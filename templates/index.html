@@ -1,0 +1,73 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title mb-0">
+                    <i class="bi bi-image"></i> Analyze Yorkie Artwork
+                </h2>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('analyze') }}" method="POST">
+                    <div class="mb-3">
+                        <label for="image_url" class="form-label">Image URL</label>
+                        <input type="url" class="form-control" id="image_url" name="image_url" required
+                               placeholder="https://example.com/yorkie-art.jpg"
+                               value="{{ image_url if image_url }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Select Hashtags</label>
+                        <div class="hashtag-container">
+                            {% for hashtag in hashtags %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="hashtags" 
+                                       value="{{ hashtag.text }}" id="hashtag{{ hashtag.id }}">
+                                <label class="form-check-label" for="hashtag{{ hashtag.id }}">
+                                    {{ hashtag.text }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="post_to_instagram" name="post_to_instagram">
+                        <label class="form-check-label" for="post_to_instagram">Post to Instagram</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-magic"></i> Analyze & Generate
+                    </button>
+                </form>
+
+                {% if analysis %}
+                <div class="mt-4">
+                    <h3>Analysis Results</h3>
+                    <div class="result-card">
+                        {% if image_url %}
+                        <div class="artwork-preview mb-3">
+                            <img src="{{ image_url }}" alt="Yorkie Artwork" class="img-fluid rounded">
+                        </div>
+                        {% endif %}
+                        
+                        <div class="analysis-content">
+                            <h4>Art Style</h4>
+                            <p>{{ analysis.art_style }}</p>
+                            
+                            <h4>Yorkie Name</h4>
+                            <p>{{ analysis.yorkie_name }}</p>
+                            
+                            <h4>Story</h4>
+                            <p>{{ analysis.story }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
