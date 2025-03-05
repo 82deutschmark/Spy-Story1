@@ -29,6 +29,10 @@ def generate_post():
         if not image_url.startswith(('http://', 'https://')):
             return jsonify({'error': 'Invalid image URL format'}), 400
         
+        # Check for OpenAI API key
+        if not os.environ.get("OPENAI_API_KEY"):
+            return jsonify({'error': 'OpenAI API key not configured. Please add it to your Replit Secrets.'}), 500
+        
         # Analyze the artwork using OpenAI
         analysis = analyze_artwork(image_url)
         

@@ -2,14 +2,28 @@ import os
 import json
 import requests
 from openai import OpenAI
+import logging
 
+# Configure logging
+logger = logging.getLogger(__name__)
+
+# Get OpenAI API key from environment variables
+api_key = os.environ.get("OPENAI_API_KEY")
+if not api_key:
+    logger.warning("OpenAI API key not found. Please add it to your Replit Secrets.")
+
+# Initialize OpenAI client with the API key
 # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
 # do not change this unless explicitly requested by the user
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+client = OpenAI(api_key=api_key)
 
 def analyze_artwork(image_url):
     """Analyze the artwork using OpenAI's vision model"""
+    if not api_key:
+        raise Exception("OpenAI API key not found. Please add it to your Replit Secrets.")
+        
     try:
+        logger.debug(f"Analyzing artwork from URL: {image_url}")
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -38,8 +52,11 @@ def analyze_artwork(image_url):
             ],
             response_format={"type": "json_object"}
         )
-        return json.loads(response.choices[0].message.content)
+        result = json.loads(response.choices[0].message.content)
+        logger.debug("Successfully analyzed artwork")
+        return result
     except Exception as e:
+        logger.error(f"Error analyzing artwork: {str(e)}")
         raise Exception(f"Failed to analyze artwork: {str(e)}")
 
 # Predefined hashtags for Yorkshire Terrier artwork

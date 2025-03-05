@@ -48,3 +48,79 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(() => showNotification('Error', 'Failed to copy text', false));
     });
 });
+document.addEventListener('DOMContentLoaded', function() {
+    const imageForm = document.getElementById('imageForm');
+    const generateBtn = document.getElementById('generateBtn');
+    const resultDiv = document.getElementById('result');
+    const generatedContent = document.getElementById('generatedContent');
+    const copyBtn = document.getElementById('copyBtn');
+    const toast = new bootstrap.Toast(document.getElementById('notificationToast'));
+    const toastTitle = document.getElementById('toastTitle');
+    const toastMessage = document.getElementById('toastMessage');
+
+    if (imageForm) {
+        imageForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Show loading state
+            generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generating...';
+            generateBtn.disabled = true;
+            resultDiv.style.display = 'none';
+            
+            const formData = new FormData(imageForm);
+            
+            fetch('/generate', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                generateBtn.innerHTML = '<i class="fas fa-magic me-2"></i>Generate Post';
+                generateBtn.disabled = false;
+                
+                if (data.error) {
+                    // Show error toast
+                    toastTitle.textContent = 'Error';
+                    toastMessage.textContent = data.error;
+                    toast.show();
+                } else {
+                    // Display the result
+                    resultDiv.style.display = 'block';
+                    generatedContent.textContent = data.caption;
+                    
+                    // Show success toast
+                    toastTitle.textContent = 'Success';
+                    toastMessage.textContent = 'Post generated successfully!';
+                    toast.show();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                generateBtn.innerHTML = '<i class="fas fa-magic me-2"></i>Generate Post';
+                generateBtn.disabled = false;
+                
+                // Show error toast
+                toastTitle.textContent = 'Error';
+                toastMessage.textContent = 'Failed to generate post. Please try again.';
+                toast.show();
+            });
+        });
+    }
+    
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+            navigator.clipboard.writeText(generatedContent.textContent)
+                .then(() => {
+                    toastTitle.textContent = 'Success';
+                    toastMessage.textContent = 'Copied to clipboard!';
+                    toast.show();
+                })
+                .catch(err => {
+                    console.error('Could not copy text: ', err);
+                    toastTitle.textContent = 'Error';
+                    toastMessage.textContent = 'Failed to copy to clipboard';
+                    toast.show();
+                });
+        });
+    }
+});
