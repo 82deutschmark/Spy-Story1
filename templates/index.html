@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html data-bs-theme="dark">
 <head>
@@ -21,11 +22,11 @@
                 <div class="card shadow-lg mb-4">
                     <div class="card-body">
                         <h3 class="card-title mb-4">
-                            <i class="fas fa-users me-2"></i>Select 3 Characters for Your Story
+                            <i class="fas fa-user me-2"></i>Select Your Main Character
                         </h3>
-
+                        
                         <div class="characters-grid mb-4">
-                            <div class="row">
+                            <div class="row justify-content-center">
                                 {% for img in images %}
                                 <div class="col-md-4 mb-3">
                                     <div class="card character-select-card" data-id="{{ img.id }}">
@@ -38,11 +39,16 @@
                                                 <span class="badge bg-primary me-1">{{ trait }}</span>
                                                 {% endfor %}
                                             </div>
-                                            <div class="form-check mt-2">
-                                                <input class="form-check-input character-checkbox" type="checkbox" value="{{ img.id }}" id="character{{ img.id }}">
-                                                <label class="form-check-label" for="character{{ img.id }}">
-                                                    Select this character
-                                                </label>
+                                            <div class="d-flex justify-content-between mt-3">
+                                                <button type="button" class="btn btn-outline-secondary btn-sm reroll-btn" data-card-index="{{ loop.index0 }}">
+                                                    <i class="fas fa-dice me-1"></i>Reroll
+                                                </button>
+                                                <div class="form-check mt-1">
+                                                    <input class="form-check-input character-checkbox" type="radio" name="selectedCharacter" value="{{ img.id }}" id="character{{ img.id }}">
+                                                    <label class="form-check-label" for="character{{ img.id }}">
+                                                        Select
+                                                    </label>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -50,13 +56,13 @@
                                 {% endfor %}
                             </div>
                         </div>
-
+                        
                         <form id="storyForm" method="POST" action="{{ url_for('generate_story_route') }}">
                             <div class="selected-characters-container mb-3" style="display: none;">
                                 <h4>Selected Characters:</h4>
                                 <div class="selected-characters-list d-flex flex-wrap"></div>
                             </div>
-
+                            
                             <div class="accordion" id="storyOptionsAccordion">
                                 <div class="accordion-item">
                                     <h2 class="accordion-header" id="storyOptionsHeading">
@@ -115,11 +121,11 @@
                                     </div>
                                 </div>
                             </div>
-
+                            
                             <div id="characterSelectionError" class="alert alert-danger mt-3" style="display: none;">
                                 Please select exactly 3 characters for your story.
                             </div>
-
+                            
                             <div class="text-center mt-4">
                                 <button type="submit" class="btn btn-primary btn-lg" id="generateStoryBtn">
                                     <i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure
@@ -128,40 +134,12 @@
                         </form>
                     </div>
                 </div>
-
-                <!-- Debug Section (Image Analysis Tool) -->
-                <div class="card shadow-lg">
-                    <div class="card-header">
-                        <h3><i class="fas fa-bug me-2"></i>Image Analysis Tool</h3>
-                    </div>
-                    <div class="card-body">
-                        <form id="imageForm">
-                            <div class="mb-4">
-                                <label for="imageUrl" class="form-label">
-                                    <i class="fas fa-image me-2"></i>Analyze Single Image (Debug)
-                                </label>
-                                <input type="url" class="form-control" id="imageUrl" name="image_url" 
-                                       placeholder="Enter image URL to analyze">
-                            </div>
-                            <div class="text-center">
-                                <button type="submit" class="btn btn-secondary" id="generateBtn">
-                                    <i class="fas fa-magic me-2"></i>Analyze Image
-                                </button>
-                            </div>
-                        </form>
-
-                        <div class="mt-4" id="result" style="display: none;">
-                            <h3 class="mb-3">
-                                <i class="fas fa-search me-2"></i>Image Analysis Results
-                            </h3>
-                            <div class="border rounded p-4 mt-2 result-content" id="generatedContent"></div>
-                            <div class="text-center mt-3">
-                                <button class="btn btn-outline-secondary btn-sm" id="copyBtn">
-                                    <i class="fas fa-copy me-2"></i>Copy to Clipboard
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                
+                <!-- Debug Link -->
+                <div class="text-center mt-4 mb-5">
+                    <a href="{{ url_for('debug') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-bug me-2"></i>Debug Tools
+                    </a>
                 </div>
             </div>
         </div>
