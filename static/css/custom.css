@@ -103,3 +103,45 @@ body {
     color: #e6e6e6;
     border-bottom: 1px solid #2d3748;
 }
+
+/* Adding to existing styles */
+.character-card {
+    transition: transform 0.3s ease;
+    height: 100%;
+}
+
+.character-card:hover {
+    transform: translateY(-5px);
+}
+
+.character-card img {
+    height: 200px;
+    object-fit: cover;
+}
+
+.story-content {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.choice-btn {
+    height: 100%;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.choice-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.choice-text {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.consequence {
+    font-style: italic;
+    opacity: 0.8;
+}

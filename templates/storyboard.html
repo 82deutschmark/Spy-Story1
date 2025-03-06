@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Story Adventure</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <!-- Character Display -->
+                <div class="character-gallery mb-4">
+                    <h3 class="text-center mb-3">Featured Characters</h3>
+                    <div class="row">
+                        {% for char in character_images %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card character-card">
+                                <img src="{{ char.image_url }}" class="card-img-top" alt="{{ char.name }}">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ char.name }}</h5>
+                                    <p class="card-text small">
+                                        {% for trait in char.traits %}
+                                        <span class="badge bg-primary me-1">{{ trait }}</span>
+                                        {% endfor %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Story Display -->
+                <div class="card shadow-lg">
+                    <div class="card-body">
+                        <h2 class="card-title text-center mb-4">{{ story.title }}</h2>
+                        <div class="story-content mb-4">
+                            {{ story.story | safe }}
+                        </div>
+
+                        <!-- Choices -->
+                        <div class="choices mt-4">
+                            <h4 class="text-center mb-3">What will you choose?</h4>
+                            <div class="row">
+                                {% for choice in story.choices %}
+                                <div class="col-md-6 mb-3">
+                                    <form action="{{ url_for('generate_story_route') }}" method="POST" class="choice-form">
+                                        <input type="hidden" name="previous_choice" value="{{ choice.text }}">
+                                        <input type="hidden" name="story_context" value="{{ story.story }}">
+                                        {% for image in character_images %}
+                                        <input type="hidden" name="selected_images[]" value="{{ image.id }}">
+                                        {% endfor %}
+                                        <button type="submit" class="btn btn-outline-primary w-100 choice-btn">
+                                            <div class="choice-text">{{ choice.text }}</div>
+                                            <div class="consequence text-muted small mt-2">{{ choice.consequence }}</div>
+                                        </button>
+                                    </form>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
