@@ -1,3 +1,4 @@
+
 import os
 import json
 import requests
@@ -37,14 +38,21 @@ def analyze_artwork(image_url):
         import base64
         import requests
         from io import BytesIO
+        from PIL import Image
         
         # Ensure we have proper error handling for the image download
         try:
             response = requests.get(image_url, headers=headers, timeout=10)
             response.raise_for_status()  # Raise an exception for bad status codes
             
-            # Convert image to base64
+            # Get image dimensions
             image_data = BytesIO(response.content)
+            img = Image.open(image_data)
+            width, height = img.size
+            format = img.format
+            
+            # Convert image to base64
+            image_data.seek(0)
             base64_image = base64.b64encode(image_data.getvalue()).decode('utf-8')
             
             # Infer content type from response headers or URL
@@ -62,6 +70,15 @@ def analyze_artwork(image_url):
             # Prepare base64 URL
             base64_url = f"data:{content_type};base64,{base64_image}"
             
+            # Store image metadata
+            image_metadata = {
+                "url": image_url,
+                "width": width,
+                "height": height,
+                "format": format,
+                "size_bytes": len(response.content)
+            }
+            
             logger.debug(f"Successfully downloaded and encoded image. Analyzing artwork...")
             
             # Call OpenAI API with the base64 encoded image
@@ -70,19 +87,49 @@ def analyze_artwork(image_url):
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are an art critic specializing in dog portraits. "
-                        "Analyze the image and provide: "
-                        "1. Art style description "
-                        "2. A creative name for the Yorkie "
-                        "3. A brief, engaging story about the Yorkie "
-                        "Respond in JSON format with keys: 'style', 'name', 'story'"
+                        "content": """You are an expert analyzer of images for a "Choose Your Own Adventure" story universe. 
+                        
+The universe is centered around a forest homestead and pasture where two Yorkshire Terriers are the main characters:
+- Pawel (male) - fearless, clever, impulsive
+- Pawleen (female) - fearless, clever, thoughtful
+
+Key characters in this universe:
+1. HEROES:
+   - The Yorkies (Pawel and Pawleen) - masters of the forest homestead and pasture
+   - Chickens - clever birds with personality (30+ of them)
+     - Big Red (the rooster, not very smart)
+     - Main hens (clever): Birdadette, Henrietta, Birderella, Birdatha, Birdgit
+
+2. NEUTRAL:
+   - Turkeys - big, white, not very smart, always getting stuck
+
+3. VILLAINS:
+   - Squirrels - evil, mean, organized in gangs, believe they're superior, steal food, harass others
+   - Rat Wizard - lives in the woods, steals eggs and vegetables for potions
+   - Mice and Moles - try to steal food, often bullied by squirrels
+
+Analyze the image and determine:
+1. If it's a CHARACTER:
+   - Suggest a creative name
+   - Determine if they are hero, villain, or neutral character
+   - List 5 character traits
+   - Suggest potential plot lines involving this character
+   - Art style description
+
+2. If it's a SCENE:
+   - Determine the scene type (narrative, choice moment, action, etc.)
+   - Describe the setting in detail
+   - Suggest how this scene fits into the story
+   - Potential dramatic moments that could occur
+
+Respond in JSON format with the appropriate keys based on the image type."""
                     },
                     {
                         "role": "user",
                         "content": [
                             {
                                 "type": "text",
-                                "text": "Please analyze this Yorkie artwork:"
+                                "text": "Please analyze this image for our Choose Your Own Adventure story:"
                             },
                             {
                                 "type": "image_url",
@@ -97,6 +144,10 @@ def analyze_artwork(image_url):
             logger.error(f"Error downloading image: {str(req_err)}")
             raise Exception(f"Failed to download image from {image_url}: {str(req_err)}")
         result = json.loads(response.choices[0].message.content)
+        
+        # Add image metadata to the result
+        result["image_metadata"] = image_metadata
+        
         logger.debug("Successfully analyzed artwork")
         return result
     except requests.exceptions.RequestException as req_err:
@@ -109,20 +160,31 @@ def analyze_artwork(image_url):
         logger.error(f"Error analyzing artwork: {str(e)}")
         raise Exception(f"Failed to analyze artwork: {str(e)}")
 
-# Predefined hashtags for Yorkshire Terrier artwork
-YORKIE_HASHTAGS = [
-    "#YorkshireTerrier", "#YorkieArt", "#DogArt", "#PetPortrait",
-    "#YorkieLove", "#DogLover", "#PetArt", "#YorkieLife",
-    "#DogPortrait", "#AnimalArt", "#YorkiesOfInstagram",
-    "#DogArtist", "#PetLover", "#YorkieMom", "#DogDrawing"
+# Predefined hashtags for adventure stories
+ADVENTURE_HASHTAGS = [
+    "#ChooseYourOwnAdventure", "#InteractiveStory", "#StoryTime",
+    "#Adventure", "#CYOA", "#VisualNovel", "#StoryTelling",
+    "#Fantasy", "#CharacterDevelopment", "#CreativeWriting",
+    "#YorkieTales", "#AnimalAdventures", "#ForestHomestead"
 ]
 
 def generate_instagram_post(analysis):
     """Generate Instagram post content with hashtags"""
-    caption = (
-        f"🎨 Meet {analysis['name']}! 🐕\n\n"
-        f"{analysis['story']}\n\n"
-        f"Art Style: {analysis['style']}\n\n"
-        f"{' '.join(YORKIE_HASHTAGS)}"
-    )
+    if "name" in analysis:
+        # It's a character
+        caption = (
+            f"🎨 Meet {analysis['name']}! {'🦸‍♂️' if analysis.get('role') == 'hero' else '😐' if analysis.get('role') == 'neutral' else '👹'}\n\n"
+            f"Character Traits: {', '.join(analysis.get('character_traits', [])[:3])}\n\n"
+            f"Potential Plot: {analysis.get('plot_lines', [''])[0]}\n\n"
+            f"Art Style: {analysis.get('style', '')}\n\n"
+            f"{' '.join(ADVENTURE_HASHTAGS)}"
+        )
+    else:
+        # It's a scene
+        caption = (
+            f"🎭 {analysis.get('scene_type', 'Adventure')} Scene\n\n"
+            f"Setting: {analysis.get('setting', '')}\n\n"
+            f"Dramatic Moment: {analysis.get('dramatic_moments', [''])[0]}\n\n"
+            f"{' '.join(ADVENTURE_HASHTAGS)}"
+        )
     return caption

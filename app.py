@@ -177,13 +177,43 @@ def generate_post():
         # Analyze the artwork using OpenAI
         analysis = analyze_artwork(image_url)
         
+        # Save to database
+        try:
+            # Extract image metadata
+            metadata = analysis.get('image_metadata', {})
+            
+            # Determine if it's a character or scene
+            is_character = 'name' in analysis
+            
+            # Create new ImageAnalysis record
+            image_analysis = ImageAnalysis(
+                image_url=image_url,
+                image_width=metadata.get('width'),
+                image_height=metadata.get('height'),
+                image_format=metadata.get('format'),
+                image_size_bytes=metadata.get('size_bytes'),
+                image_type='character' if is_character else 'scene',
+                analysis_result=analysis,
+                character_traits=analysis.get('character_traits') if is_character else None,
+                character_role=analysis.get('role') if is_character else None,
+                scene_type=analysis.get('scene_type') if not is_character else None
+            )
+            
+            db.session.add(image_analysis)
+            db.session.commit()
+            logger.info(f"Saved image analysis: {image_analysis.id}")
+        except Exception as db_err:
+            logger.error(f"Error saving to database: {str(db_err)}")
+            # Continue even if saving fails
+        
         # Generate Instagram caption with hashtags
         caption = generate_instagram_post(analysis)
         
         return jsonify({
             'success': True,
             'caption': caption,
-            'analysis': analysis
+            'analysis': analysis,
+            'saved_to_db': True
         })
     
     except Exception as e:

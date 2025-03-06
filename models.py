@@ -24,11 +24,18 @@ class StoryGeneration(db.Model):
                            backref=db.backref('stories', lazy='dynamic'))
 
 class ImageAnalysis(db.Model):
-    """Model for storing analyzed character images"""
+    """Model for storing analyzed character or scene images"""
     id = db.Column(db.Integer, primary_key=True)
     image_url = db.Column(db.String(1024), nullable=False)
-    analysis_result = db.Column(JSONB)  # Stores name, style, story
-    character_traits = db.Column(JSONB)  # Array of character traits
+    image_width = db.Column(db.Integer)
+    image_height = db.Column(db.Integer)
+    image_format = db.Column(db.String(16))
+    image_size_bytes = db.Column(db.Integer)
+    image_type = db.Column(db.String(32))  # 'character' or 'scene'
+    analysis_result = db.Column(JSONB)  # Full analysis from OpenAI
+    character_traits = db.Column(JSONB)  # Array of character traits if a character
+    character_role = db.Column(db.String(32))  # 'hero', 'villain', or 'neutral'
+    scene_type = db.Column(db.String(64))  # E.g., 'narrative', 'choice', 'action'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class AIInstruction(db.Model):
