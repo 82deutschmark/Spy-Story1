@@ -46,9 +46,4 @@ class AIInstruction(db.Model):
     parameters = db.Column(JSONB)  # Stores additional parameters
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-class HashtagCollection(db.Model):
-    """Model for storing hashtag collections (for debugging/Instagram features)"""
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255), nullable=False)
-    hashtags = db.Column(JSONB)  # Array of hashtags
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+# Removed HashtagCollection model - no longer needed

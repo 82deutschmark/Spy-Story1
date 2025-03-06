@@ -28,9 +28,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             
             if (response.ok) {
-                contentDiv.textContent = data.caption;
+                contentDiv.textContent = data.description;
                 resultDiv.style.display = 'block';
-                showNotification('Success', 'Instagram post generated successfully!', true);
+                showNotification('Success', 'Image analysis completed!', true);
             } else {
                 showNotification('Error', data.error || 'Failed to generate post', false);
             }
@@ -86,11 +86,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     // Display the result
                     resultDiv.style.display = 'block';
-                    generatedContent.textContent = data.caption;
+                    generatedContent.textContent = data.description;
                     
                     // Show success toast
                     toastTitle.textContent = 'Success';
-                    toastMessage.textContent = 'Post generated successfully!';
+                    toastMessage.textContent = 'Image analysis completed!';
                     toast.show();
                 }
             })

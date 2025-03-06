@@ -160,31 +160,21 @@ Respond in JSON format with the appropriate keys based on the image type."""
         logger.error(f"Error analyzing artwork: {str(e)}")
         raise Exception(f"Failed to analyze artwork: {str(e)}")
 
-# Predefined hashtags for adventure stories
-ADVENTURE_HASHTAGS = [
-    "#ChooseYourOwnAdventure", "#InteractiveStory", "#StoryTime",
-    "#Adventure", "#CYOA", "#VisualNovel", "#StoryTelling",
-    "#Fantasy", "#CharacterDevelopment", "#CreativeWriting",
-    "#YorkieTales", "#AnimalAdventures", "#ForestHomestead"
-]
-
-def generate_instagram_post(analysis):
-    """Generate Instagram post content with hashtags"""
+def generate_image_description(analysis):
+    """Generate a concise description of the analyzed image"""
     if "name" in analysis:
         # It's a character
-        caption = (
-            f"🎨 Meet {analysis['name']}! {'🦸‍♂️' if analysis.get('role') == 'hero' else '😐' if analysis.get('role') == 'neutral' else '👹'}\n\n"
+        description = (
+            f"Character: {analysis['name']} - {'Hero' if analysis.get('role') == 'hero' else 'Neutral' if analysis.get('role') == 'neutral' else 'Villain'}\n\n"
             f"Character Traits: {', '.join(analysis.get('character_traits', [])[:3])}\n\n"
             f"Potential Plot: {analysis.get('plot_lines', [''])[0]}\n\n"
-            f"Art Style: {analysis.get('style', '')}\n\n"
-            f"{' '.join(ADVENTURE_HASHTAGS)}"
+            f"Art Style: {analysis.get('style', '')}"
         )
     else:
         # It's a scene
-        caption = (
-            f"🎭 {analysis.get('scene_type', 'Adventure')} Scene\n\n"
+        description = (
+            f"Scene Type: {analysis.get('scene_type', 'Adventure')}\n\n"
             f"Setting: {analysis.get('setting', '')}\n\n"
-            f"Dramatic Moment: {analysis.get('dramatic_moments', [''])[0]}\n\n"
-            f"{' '.join(ADVENTURE_HASHTAGS)}"
+            f"Dramatic Moment: {analysis.get('dramatic_moments', [''])[0]}"
         )
-    return caption
+    return description

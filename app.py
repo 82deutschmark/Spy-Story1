@@ -3,10 +3,10 @@ import logging
 import json
 from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
-from services.openai_service import analyze_artwork, generate_instagram_post
+from services.openai_service import analyze_artwork, generate_image_description
 from services.story_maker import generate_story, get_story_options
 from database import db
-from models import AIInstruction, HashtagCollection, ImageAnalysis, StoryGeneration
+from models import AIInstruction, ImageAnalysis, StoryGeneration
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -206,12 +206,12 @@ def generate_post():
             logger.error(f"Error saving to database: {str(db_err)}")
             # Continue even if saving fails
         
-        # Generate Instagram caption with hashtags
-        caption = generate_instagram_post(analysis)
+        # Generate a description of the analyzed image
+        description = generate_image_description(analysis)
         
         return jsonify({
             'success': True,
-            'caption': caption,
+            'description': description,
             'analysis': analysis,
             'saved_to_db': True
         })
