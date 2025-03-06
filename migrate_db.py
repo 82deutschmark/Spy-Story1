@@ -16,7 +16,11 @@ def migrate_database():
             'image_width': 'INTEGER',
             'image_height': 'INTEGER',
             'image_format': 'VARCHAR(16)',
-            'image_size_bytes': 'INTEGER'
+            'image_size_bytes': 'INTEGER',
+            'image_type': 'VARCHAR(32)',
+            'character_traits': 'JSONB',
+            'character_role': 'VARCHAR(32)',
+            'scene_type': 'VARCHAR(64)'
         }
         
         # Add each missing column
