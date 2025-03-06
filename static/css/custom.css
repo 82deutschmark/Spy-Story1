@@ -1,3 +1,222 @@
+/* Base styles */
+body {
+    background-color: #141c2f;
+    color: #e6e6e6;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.story-icon {
+    font-size: 3rem;
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+/* Character selection */
+.characters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 15px;
+}
+
+.character-select-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    height: 100%;
+    border: 2px solid transparent;
+    background-color: #1a2235;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.character-select-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    border-color: #4299e1;
+}
+
+.character-select-card.selected {
+    border: 2px solid #4299e1;
+    box-shadow: 0 0 15px rgba(66, 153, 225, 0.3);
+}
+
+.character-select-card img {
+    height: 180px;
+    width: 100%;
+    object-fit: cover;
+}
+
+.character-traits {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.badge {
+    background-color: #2d3748;
+    color: #e2e8f0;
+    padding: 0.35em 0.65em;
+    font-size: 0.75em;
+    border-radius: 0.5rem;
+}
+
+/* Story options */
+.accordion {
+    margin-top: 2rem;
+}
+
+.accordion-button {
+    background-color: #1a2235;
+    color: #e6e6e6;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: #2d3748;
+    color: #e6e6e6;
+}
+
+.accordion-body {
+    background-color: #1a2235;
+    padding: 1.5rem;
+}
+
+/* Form elements */
+.form-control, .form-select {
+    background-color: #2d3748;
+    border-color: #4a5568;
+    color: #e6e6e6;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: #2d3748;
+    border-color: #4299e1;
+    box-shadow: 0 0 0 0.25rem rgba(66, 153, 225, 0.25);
+    color: #e6e6e6;
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: #4299e1;
+    border-color: #4299e1;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+}
+
+.btn-primary:hover {
+    background-color: #3182ce;
+    border-color: #3182ce;
+    transform: translateY(-2px);
+}
+
+.btn-outline-secondary {
+    color: #a0aec0;
+    border-color: #a0aec0;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #a0aec0;
+    color: #1a2235;
+}
+
+/* Storyboard page */
+.character-gallery {
+    background-color: #1a2235;
+    padding: 2rem;
+    border-radius: 15px;
+    margin-bottom: 2rem;
+}
+
+.story-content {
+    font-size: 1.2rem;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    color: #e2e8f0;
+    padding: 2rem;
+    background-color: #1a2235;
+    border-radius: 15px;
+    margin-bottom: 2rem;
+}
+
+.choices-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.choice-btn {
+    background-color: #2d3748;
+    border: 2px solid #4a5568;
+    border-radius: 10px;
+    padding: 1.5rem;
+    height: 100%;
+    transition: all 0.3s ease;
+    text-align: left;
+}
+
+.choice-btn:hover {
+    transform: translateY(-3px);
+    border-color: #4299e1;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.choice-text {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #e2e8f0;
+}
+
+.consequence {
+    font-style: italic;
+    color: #a0aec0;
+    font-size: 0.9rem;
+}
+
+/* Character cards in storyboard */
+.character-card {
+    background-color: #2d3748;
+    border-radius: 15px;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+}
+
+.character-card:hover {
+    transform: translateY(-5px);
+}
+
+.character-card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.character-card .card-body {
+    padding: 1.5rem;
+}
+
+.character-card .card-title {
+    color: #e2e8f0;
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Toast notifications */
+.toast {
+    background-color: #1a2235;
+    border: 1px solid #2d3748;
+}
+
+.toast-header {
+    background-color: #2d3748;
+    color: #e2e8f0;
+}
+
+.toast-body {
+    color: #e2e8f0;
+}
+
+/* Preserving original styles not replaced */
 .dog-icon {
     font-size: 3rem;
     color: var(--bs-primary);
@@ -8,130 +227,6 @@
     background-color: var(--bs-dark);
     white-space: pre-wrap;
 }
-
-.card {
-    border-color: var(--bs-primary);
-    background: var(--bs-dark);
-}
-
-.form-control:focus {
-    border-color: var(--bs-primary);
-    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
-}
-
-#generateBtn {
-    transition: all 0.3s ease;
-}
-
-#generateBtn:hover {
-    transform: scale(1.05);
-}
-
-.toast {
-    background-color: var(--bs-dark);
-    border: 1px solid var(--bs-primary);
-}
-/* Custom styles for the Yorkie Art Post Generator */
-
-body {
-    background-color: #141c2f;
-    color: #e6e6e6;
-}
-
-.dog-icon {
-    font-size: 48px;
-    color: #ffc107;
-    margin-bottom: 10px;
-}
-
-.card {
-    border-radius: 15px;
-    border: 1px solid #2d3748;
-    background-color: #1a2235;
-}
-
-.form-control {
-    background-color: #141c2f;
-    border: 1px solid #2d3748;
-    color: #e6e6e6;
-}
-
-.form-control:focus {
-    background-color: #141c2f;
-    color: #e6e6e6;
-    border-color: #4a5568;
-    box-shadow: 0 0 0 0.25rem rgba(74, 85, 104, 0.25);
-}
-
-.btn-primary {
-    background-color: #4299e1;
-    border-color: #4299e1;
-}
-
-.btn-primary:hover {
-    background-color: #3182ce;
-    border-color: #3182ce;
-}
-
-.btn-outline-secondary {
-    color: #a0aec0;
-    border-color: #a0aec0;
-}
-
-.btn-outline-secondary:hover {
-    background-color: #a0aec0;
-    color: #141c2f;
-}
-
-.result-content {
-    background-color: #141c2f;
-    white-space: pre-wrap;
-    font-family: 'Courier New', monospace;
-    color: #e6e6e6;
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.toast {
-    background-color: #1a2235;
-    color: #e6e6e6;
-    border: 1px solid #2d3748;
-}
-
-.toast-header {
-    background-color: #141c2f;
-    color: #e6e6e6;
-    border-bottom: 1px solid #2d3748;
-}
-
-/* Character Selection Styles */
-.character-select-card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    height: 100%;
-    cursor: pointer;
-}
-
-.character-select-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
-}
-
-.character-select-card.selected {
-    border: 3px solid #0d6efd;
-    box-shadow: 0 0 15px rgba(13, 110, 253, 0.5);
-}
-
-.character-select-card img {
-    height: 200px;
-    object-fit: cover;
-}
-
-.story-icon {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    color: #0d6efd;
-}
-
 .selected-characters-container {
     background-color: #1a2235;
     border-radius: 8px;
@@ -169,59 +264,28 @@ body {
     opacity: 1;
 }
 
-/* Story Content and Choice Buttons */
-.story-content {
-    font-size: 1.1rem;
-    line-height: 1.6;
-    white-space: pre-wrap;
+.card {
+    border-color: var(--bs-primary);
+    background: var(--bs-dark);
 }
 
-.choice-btn {
-    height: 100%;
-    padding: 1.5rem;
+.form-control:focus {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+#generateBtn {
     transition: all 0.3s ease;
 }
 
-.choice-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+#generateBtn:hover {
+    transform: scale(1.05);
 }
 
-.choice-text {
-    font-size: 1.1rem;
-    font-weight: 500;
+.toast {
+    background-color: var(--bs-dark);
+    border: 1px solid var(--bs-primary);
 }
-
-.consequence {
-    font-style: italic;
-    opacity: 0.8;
-}
-
-/* Character Cards in Storyboard */
-.character-card {
-    transition: transform 0.3s ease;
-    height: 100%;
-}
-
-.character-card:hover {
-    transform: translateY(-5px);
-}
-
-.character-card img {
-    height: 200px;
-    object-fit: cover;
-}
-
-/* For accordion styling */
-.accordion-button:not(.collapsed) {
-    background-color: #1a2235;
-    color: #e6e6e6;
-}
-
-.accordion-button:focus {
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-}
-
 .accordion-item {
     background-color: #141c2f;
     border: 1px solid #2d3748;
@@ -230,183 +294,4 @@ body {
 .accordion-button {
     background-color: #1a2235;
     color: #e6e6e6;
-}
-
-/* Main styles */
-body {
-    background-color: #f8f9fa;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-.story-icon {
-    font-size: 3rem;
-    color: #6c757d;
-    margin-bottom: 0.5rem;
-}
-
-/* Character selection */
-.characters-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 15px;
-}
-
-.character-select-card {
-    transition: all 0.3s ease;
-    cursor: pointer;
-    height: 100%;
-    border: 2px solid transparent;
-}
-
-.character-select-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-}
-
-.character-select-card.selected {
-    border: 2px solid #3498db;
-    background-color: #f0f7ff;
-}
-
-.character-select-card img {
-    height: 180px;
-    object-fit: cover;
-}
-
-.character-traits {
-    margin-top: 10px;
-}
-
-/* Story options */
-.story-options-container {
-    margin-top: 2rem;
-}
-
-.option-group {
-    margin-bottom: 1.5rem;
-}
-
-.option-item {
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 1px solid #e0e0e0;
-    margin-bottom: 0.5rem;
-}
-
-.option-item:hover {
-    background-color: #f8f9fa;
-    transform: translateX(5px);
-}
-
-.option-item.selected {
-    background-color: #e8f4fd;
-    border-color: #3498db;
-}
-
-.option-emoji {
-    font-size: 1.5rem;
-    margin-right: 0.5rem;
-}
-
-.option-custom {
-    display: none;
-}
-
-/* Storyboard page styles */
-.characters-display {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    margin-bottom: 30px;
-}
-
-.character-card {
-    text-align: center;
-    width: 120px;
-}
-
-.character-portrait {
-    width: 100px;
-    height: 100px;
-    object-fit: cover;
-    border-radius: 50%;
-    border: 3px solid #6c757d;
-    margin-bottom: 10px;
-}
-
-.character-name {
-    font-weight: bold;
-    font-size: 0.9rem;
-}
-
-.story-text {
-    font-size: 1.1rem;
-    line-height: 1.7;
-    white-space: pre-line;
-}
-
-.choices-container {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.choice-card {
-    padding: 20px;
-    border: 2px solid #e0e0e0;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.choice-card:hover {
-    background-color: #f8f9fa;
-    border-color: #6c757d;
-    transform: translateY(-5px);
-}
-
-.choice-text {
-    font-size: 1.2rem;
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-.choice-consequence {
-    font-size: 0.9rem;
-}
-
-/* Selected characters display */
-.selected-characters-container {
-    padding: 15px;
-    background-color: #f8f9fa;
-    border-radius: 10px;
-    margin-bottom: 20px;
-}
-
-.selected-characters-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.selected-character-item {
-    display: flex;
-    align-items: center;
-    background-color: #e8f4fd;
-    padding: 8px 12px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-}
-
-.selected-character-item img {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    margin-right: 8px;
-}
-
-.remove-character {
-    margin-left: 8px;
-    cursor: pointer;
-    color: #dc3545;
 }

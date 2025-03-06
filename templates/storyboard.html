@@ -11,80 +11,6 @@
 <body>
     <div class="container mt-5">
         <div class="row justify-content-center">
-            <div class="col-md-8">
-                <!-- Character Display -->
-                <div class="character-gallery mb-4">
-                    <h3 class="text-center mb-3">Featured Characters</h3>
-                    <div class="row">
-                        {% for char in character_images %}
-                        <div class="col-md-4 mb-3">
-                            <div class="card character-card">
-                                <img src="{{ char.image_url }}" class="card-img-top" alt="{{ char.name }}">
-                                <div class="card-body">
-                                    <h5 class="card-title">{{ char.name }}</h5>
-                                    <p class="card-text small">
-                                        {% for trait in char.traits %}
-                                        <span class="badge bg-primary me-1">{{ trait }}</span>
-                                        {% endfor %}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <!-- Story Display -->
-                <div class="card shadow-lg">
-                    <div class="card-body">
-                        <h2 class="card-title text-center mb-4">{{ story.title }}</h2>
-                        <div class="story-content mb-4">
-                            {{ story.story | safe }}
-                        </div>
-
-                        <!-- Choices -->
-                        <div class="choices mt-4">
-                            <h4 class="text-center mb-3">What will you choose?</h4>
-                            <div class="row">
-                                {% for choice in story.choices %}
-                                <div class="col-md-6 mb-3">
-                                    <form action="{{ url_for('generate_story_route') }}" method="POST" class="choice-form">
-                                        <input type="hidden" name="previous_choice" value="{{ choice.text }}">
-                                        <input type="hidden" name="story_context" value="{{ story.story }}">
-                                        {% for image in character_images %}
-                                        <input type="hidden" name="selected_images[]" value="{{ image.id }}">
-                                        {% endfor %}
-                                        <button type="submit" class="btn btn-outline-primary w-100 choice-btn">
-                                            <div class="choice-text">{{ choice.text }}</div>
-                                            <div class="consequence text-muted small mt-2">{{ choice.consequence }}</div>
-                                        </button>
-                                    </form>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Choose Your Adventure - Storyboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
-</head>
-<body>
-    <div class="container mt-5">
-        <div class="row justify-content-center">
             <div class="col-md-10">
                 <div class="text-center mb-4">
                     <i class="fas fa-book-open story-icon"></i>
@@ -92,41 +18,57 @@
                     <p class="lead">The tale continues...</p>
                 </div>
 
-                <div class="card shadow-lg mb-4">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-center mb-4">
-                            <div class="characters-display">
-                                {% for character in character_images %}
-                                <div class="character-card">
-                                    <img src="{{ character.image_url }}" alt="{{ character.name }}" class="character-portrait">
-                                    <div class="character-name">{{ character.name }}</div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-
-                        <div class="story-content">
-                            <h2 class="story-title mb-4">{{ story.title }}</h2>
-                            <div class="story-text mb-4">
-                                {{ story.story }}
-                            </div>
-                            
-                            <h4 class="mb-3">What will you do?</h4>
-                            <div class="choices-container">
-                                {% for choice in story.choices %}
-                                <div class="choice-card" data-choice="{{ choice.text }}">
-                                    <div class="choice-text">{{ choice.text }}</div>
-                                    <div class="choice-consequence text-muted">
-                                        <em>{{ choice.consequence }}</em>
+                <!-- Character Gallery -->
+                <div class="character-gallery mb-4">
+                    <h3 class="text-center mb-3">Featured Characters</h3>
+                    <div class="row">
+                        {% for char in character_images %}
+                        <div class="col-md-4 mb-3">
+                            <div class="character-card">
+                                <img src="{{ char.image_url }}" class="card-img-top" alt="{{ char.name }}">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ char.name }}</h5>
+                                    <div class="character-traits">
+                                        {% for trait in char.traits %}
+                                        <span class="badge bg-primary">{{ trait }}</span>
+                                        {% endfor %}
                                     </div>
                                 </div>
-                                {% endfor %}
                             </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Story Content -->
+                <div class="card shadow-lg">
+                    <div class="card-body">
+                        <h2 class="card-title text-center mb-4">{{ story.title }}</h2>
+                        <div class="story-content">
+                            {{ story.story | safe }}
+                        </div>
+
+                        <!-- Choices -->
+                        <div class="choices-container">
+                            {% for choice in story.choices %}
+                            <form action="{{ url_for('generate_story_route') }}" method="POST" class="choice-form">
+                                <input type="hidden" name="previous_choice" value="{{ choice.text }}">
+                                <input type="hidden" name="story_context" value="{{ story.story }}">
+                                {% for image in character_images %}
+                                <input type="hidden" name="selected_images[]" value="{{ image.id }}">
+                                {% endfor %}
+                                <button type="submit" class="choice-btn w-100">
+                                    <div class="choice-text">{{ choice.text }}</div>
+                                    <div class="consequence">{{ choice.consequence }}</div>
+                                </button>
+                            </form>
+                            {% endfor %}
                         </div>
                     </div>
                 </div>
-                
-                <div class="text-center mb-5">
+
+                <!-- Navigation -->
+                <div class="text-center mt-4 mb-5">
                     <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
                         <i class="fas fa-home me-2"></i>Back to Home
                     </a>
@@ -135,48 +77,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const choiceCards = document.querySelectorAll('.choice-card');
-            
-            choiceCards.forEach(card => {
-                card.addEventListener('click', function() {
-                    const choiceText = this.getAttribute('data-choice');
-                    
-                    // Create form for POST submission
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = '{{ url_for("generate_story_route") }}';
-                    
-                    // Add story context and choice
-                    const storyContext = document.createElement('input');
-                    storyContext.type = 'hidden';
-                    storyContext.name = 'story_context';
-                    storyContext.value = JSON.stringify({{ story|tojson }});
-                    form.appendChild(storyContext);
-                    
-                    const previousChoice = document.createElement('input');
-                    previousChoice.type = 'hidden';
-                    previousChoice.name = 'previous_choice';
-                    previousChoice.value = choiceText;
-                    form.appendChild(previousChoice);
-                    
-                    // Add character selection (from previous selection)
-                    {% for character in character_images %}
-                    const charInput = document.createElement('input');
-                    charInput.type = 'hidden';
-                    charInput.name = 'selected_images[]';
-                    charInput.value = '{{ character.id }}';
-                    form.appendChild(charInput);
-                    {% endfor %}
-                    
-                    // Add to DOM and submit
-                    document.body.appendChild(form);
-                    form.submit();
-                });
-            });
-        });
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
