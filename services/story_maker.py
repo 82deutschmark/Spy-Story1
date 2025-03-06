@@ -69,14 +69,27 @@ def generate_story(
     final_narrative = custom_narrative or narrative_style
     final_mood = custom_mood or mood
 
-    # Build the story prompt
+    # Build the story prompt with character information
     character_prompt = ""
     if character_info:
-        character_prompt = (
-            f"\nInclude the character '{character_info['name']}' in the story. "
-            f"This character has the following traits: {', '.join(character_info['traits'])}. "
-            f"Their appearance is described as: {character_info['description']}"
-        )
+        main_char = character_info.get('main_character', {})
+        supporting_chars = character_info.get('supporting_characters', [])
+        
+        if main_char:
+            character_prompt = (
+                f"\nMain Character: '{main_char.get('name', '')}' who has the following traits: "
+                f"{', '.join(main_char.get('traits', []))}. "
+                f"Their appearance is described as: {main_char.get('description', '')}"
+            )
+        
+        if supporting_chars:
+            character_prompt += "\n\nSupporting Characters:"
+            for i, char in enumerate(supporting_chars):
+                character_prompt += (
+                    f"\n{i+1}. '{char.get('name', '')}' who has the following traits: "
+                    f"{', '.join(char.get('traits', []))}. "
+                    f"Their appearance is described as: {char.get('description', '')}"
+                )
 
     context_prompt = ""
     if story_context and previous_choice:
@@ -93,10 +106,13 @@ def generate_story(
         f"Mood: {final_mood}\n"
         f"{character_prompt}\n"
         f"{context_prompt}\n\n"
-        "Create an interactive story segment that ends with exactly two distinct choices for the player. "
-        "Each choice should lead to different potential story branches. "
-        "The story should be engaging and incorporate the selected mood and narrative style. "
-        "Make the choices meaningful and impactful to the story's progression."
+        "Create an engaging interactive story segment for a Choose Your Own Adventure (CYOA) story. "
+        "This is an ongoing narrative where player choices determine the story's direction. "
+        "The story must end with exactly two distinct and meaningful choices for the player. "
+        "Each choice should lead to significantly different potential story branches. "
+        "Incorporate rich visual descriptions and character development. "
+        "Remember that this is part of a larger narrative universe that may eventually be ported to a mobile app. "
+        "Make the choices impactful to the story's progression and avoid choices that would lead to quick endings."
     )
 
     try:

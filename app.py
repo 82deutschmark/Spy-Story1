@@ -31,8 +31,6 @@ with app.app_context():
 @app.route('/')
 def index():
     """Main page showing character selection and story options"""
-    instructions = AIInstruction.query.all()
-    hashtag_collections = HashtagCollection.query.all()
     story_options = get_story_options()
 
     # Get 9 random images for character selection
@@ -51,8 +49,6 @@ def index():
 
     return render_template(
         'index.html',
-        instructions=instructions,
-        hashtag_collections=hashtag_collections,
         story_options=story_options,
         images=image_data
     )
@@ -92,16 +88,16 @@ def generate_story_route():
 
         # Get the story parameters
         story_params = {
-            'conflict': data.get('conflict'),
-            'setting': data.get('setting'),
-            'narrative_style': data.get('narrative_style'),
-            'mood': data.get('mood'),
-            'custom_conflict': data.get('custom_conflict'),
-            'custom_setting': data.get('custom_setting'),
-            'custom_narrative': data.get('custom_narrative'),
-            'custom_mood': data.get('custom_mood'),
-            'previous_choice': data.get('previous_choice'),
-            'story_context': data.get('story_context')
+            'conflict': data.get('conflict', 'Mysterious adventure'),
+            'setting': data.get('setting', 'Enchanted world'),
+            'narrative_style': data.get('narrative_style', 'Engaging modern style'),
+            'mood': data.get('mood', 'Exciting and adventurous'),
+            'custom_conflict': data.get('custom_conflict', ''),
+            'custom_setting': data.get('custom_setting', ''),
+            'custom_narrative': data.get('custom_narrative', ''),
+            'custom_mood': data.get('custom_mood', ''),
+            'previous_choice': data.get('previous_choice', ''),
+            'story_context': data.get('story_context', '')
         }
 
         # Get character information from selected images
@@ -109,12 +105,25 @@ def generate_story_route():
         if not selected_images:
             return jsonify({'error': 'Selected images not found'}), 404
 
-        # Use the first selected character as the main character
-        main_character = selected_images[0]
+        # Gather all character information
+        characters_info = []
+        for i, img in enumerate(selected_images):
+            char_info = {
+                'name': img.analysis_result.get('name', f'Character {i+1}'),
+                'traits': img.character_traits or [],
+                'description': img.analysis_result.get('style', 'Mysterious character'),
+                'is_main': i == 0  # First character is the main character
+            }
+            characters_info.append(char_info)
+        
+        # Use the first selected character as the main character, but include info about all
+        main_character = characters_info[0]
+        other_characters = characters_info[1:] if len(characters_info) > 1 else []
+        
+        # Build comprehensive character info
         character_info = {
-            'name': main_character.analysis_result.get('name', ''),
-            'traits': main_character.character_traits,
-            'description': main_character.analysis_result.get('style', '')
+            'main_character': main_character,
+            'supporting_characters': other_characters
         }
 
         # Generate the story

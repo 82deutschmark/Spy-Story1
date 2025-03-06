@@ -104,21 +104,72 @@ body {
     border-bottom: 1px solid #2d3748;
 }
 
-/* Adding to existing styles */
-.character-card {
-    transition: transform 0.3s ease;
+/* Character Selection Styles */
+.character-select-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     height: 100%;
+    cursor: pointer;
 }
 
-.character-card:hover {
+.character-select-card:hover {
     transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
 }
 
-.character-card img {
+.character-select-card.selected {
+    border: 3px solid #0d6efd;
+    box-shadow: 0 0 15px rgba(13, 110, 253, 0.5);
+}
+
+.character-select-card img {
     height: 200px;
     object-fit: cover;
 }
 
+.story-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: #0d6efd;
+}
+
+.selected-characters-container {
+    background-color: #1a2235;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 20px;
+}
+
+.selected-character-pill {
+    background-color: #212a42;
+    border-radius: 20px;
+    padding: 8px 15px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.selected-character-pill img {
+    width: 30px;
+    height: 30px;
+    border-radius: 15px;
+    margin-right: 8px;
+    object-fit: cover;
+}
+
+.remove-character {
+    margin-left: 8px;
+    cursor: pointer;
+    color: #dc3545;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.remove-character:hover {
+    opacity: 1;
+}
+
+/* Story Content and Choice Buttons */
 .story-content {
     font-size: 1.1rem;
     line-height: 1.6;
@@ -144,4 +195,39 @@ body {
 .consequence {
     font-style: italic;
     opacity: 0.8;
+}
+
+/* Character Cards in Storyboard */
+.character-card {
+    transition: transform 0.3s ease;
+    height: 100%;
+}
+
+.character-card:hover {
+    transform: translateY(-5px);
+}
+
+.character-card img {
+    height: 200px;
+    object-fit: cover;
+}
+
+/* For accordion styling */
+.accordion-button:not(.collapsed) {
+    background-color: #1a2235;
+    color: #e6e6e6;
+}
+
+.accordion-button:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.accordion-item {
+    background-color: #141c2f;
+    border: 1px solid #2d3748;
+}
+
+.accordion-button {
+    background-color: #1a2235;
+    color: #e6e6e6;
 }
