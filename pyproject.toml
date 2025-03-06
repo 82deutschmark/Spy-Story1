@@ -13,4 +13,5 @@ dependencies = [
     "email-validator>=2.2.0",
     "gunicorn>=23.0.0",
     "sqlalchemy>=2.0.38",
+    "pillow>=11.1.0",
 ]
