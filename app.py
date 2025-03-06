@@ -33,8 +33,8 @@ def index():
     """Main page showing character selection and story options"""
     story_options = get_story_options()
 
-    # Get 9 random images for character selection
-    images = ImageAnalysis.query.order_by(db.func.random()).limit(9).all()
+    # Get only 3 random images for character selection
+    images = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).limit(3).all()
     image_data = []
     for img in images:
         analysis = img.analysis_result
@@ -51,6 +51,17 @@ def index():
         'index.html',
         story_options=story_options,
         images=image_data
+    )
+
+@app.route('/debug')
+def debug():
+    """Debug page with image analysis tool and database view"""
+    # Get recent image analyses
+    recent_images = ImageAnalysis.query.order_by(ImageAnalysis.created_at.desc()).limit(10).all()
+    
+    return render_template(
+        'debug.html',
+        recent_images=recent_images
     )
 
 @app.route('/storyboard/<int:story_id>')
@@ -83,8 +94,8 @@ def generate_story_route():
         data = request.form
         selected_image_ids = request.form.getlist('selected_images[]')
 
-        if len(selected_image_ids) != 3:
-            return jsonify({'error': 'Please select exactly 3 characters'}), 400
+        if len(selected_image_ids) != 1:
+            return jsonify({'error': 'Please select a character for your story'}), 400
 
         # Get the story parameters
         story_params = {
@@ -105,20 +116,30 @@ def generate_story_route():
         if not selected_images:
             return jsonify({'error': 'Selected images not found'}), 404
 
-        # Gather all character information
-        characters_info = []
-        for i, img in enumerate(selected_images):
-            char_info = {
-                'name': img.analysis_result.get('name', f'Character {i+1}'),
-                'traits': img.character_traits or [],
-                'description': img.analysis_result.get('style', 'Mysterious character'),
-                'is_main': i == 0  # First character is the main character
-            }
-            characters_info.append(char_info)
+        # Get the main character information
+        main_character_img = selected_images[0]
+        main_character = {
+            'name': main_character_img.analysis_result.get('name', 'Main Character'),
+            'traits': main_character_img.character_traits or [],
+            'description': main_character_img.analysis_result.get('style', 'Mysterious character'),
+            'is_main': True
+        }
         
-        # Use the first selected character as the main character, but include info about all
-        main_character = characters_info[0]
-        other_characters = characters_info[1:] if len(characters_info) > 1 else []
+        # Generate two random supporting characters
+        supporting_chars = ImageAnalysis.query.filter(
+            ImageAnalysis.id != main_character_img.id,
+            ImageAnalysis.image_type == 'character'
+        ).order_by(db.func.random()).limit(2).all()
+        
+        other_characters = []
+        for i, img in enumerate(supporting_chars):
+            char_info = {
+                'name': img.analysis_result.get('name', f'Supporting Character {i+1}'),
+                'traits': img.character_traits or [],
+                'description': img.analysis_result.get('style', 'Supporting character'),
+                'is_main': False
+            }
+            other_characters.append(char_info)
         
         # Build comprehensive character info
         character_info = {
@@ -218,6 +239,46 @@ def generate_post():
     
     except Exception as e:
         logger.error(f"Error generating post: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/random_character')
+def random_character():
+    """API endpoint to get a random character from the database"""
+    try:
+        random_image = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).first()
+        
+        if not random_image:
+            return jsonify({'error': 'No character images found in database'}), 404
+        
+        analysis = random_image.analysis_result
+        return jsonify({
+            'success': True,
+            'id': random_image.id,
+            'image_url': random_image.image_url,
+            'name': analysis.get('name', ''),
+            'style': analysis.get('style', ''),
+            'character_traits': random_image.character_traits or []
+        })
+    except Exception as e:
+        logger.error(f"Error getting random character: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/image/<int:image_id>')
+def get_image_details(image_id):
+    """API endpoint to get details of a specific image"""
+    try:
+        image = ImageAnalysis.query.get_or_404(image_id)
+        
+        return jsonify({
+            'success': True,
+            'id': image.id,
+            'image_url': image.image_url,
+            'image_type': image.image_type,
+            'analysis': image.analysis_result,
+            'created_at': image.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        })
+    except Exception as e:
+        logger.error(f"Error getting image details: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":
