@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const generateBtn = document.getElementById('generateBtn');
     const copyBtn = document.getElementById('copyBtn');
     const toast = new bootstrap.Toast(document.getElementById('notificationToast'));
+    const rerollButtons = document.querySelectorAll('.reroll-character');
     
     function showNotification(title, message, success = true) {
         document.getElementById('toastTitle').textContent = title;
@@ -12,6 +13,69 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('notificationToast').classList.toggle('bg-success', success);
         document.getElementById('notificationToast').classList.toggle('bg-danger', !success);
         toast.show();
+    }
+    
+    // Reroll character functionality
+    if (rerollButtons) {
+        rerollButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const position = this.getAttribute('data-position');
+                const card = this.closest('.character-select-card');
+                
+                // Show loading state
+                button.disabled = true;
+                button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+                
+                // Get a new random character
+                fetch('/api/random_character')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update card with new character
+                            const img = card.querySelector('img');
+                            const title = card.querySelector('.card-title');
+                            const text = card.querySelector('.card-text');
+                            const traits = card.querySelector('.character-traits');
+                            const checkbox = card.querySelector('.character-checkbox');
+                            
+                            // Update data
+                            img.src = data.character.image_url;
+                            img.alt = data.character.name;
+                            title.textContent = data.character.name;
+                            text.textContent = data.character.style;
+                            
+                            // Update traits
+                            traits.innerHTML = '';
+                            if (data.character.character_traits) {
+                                data.character.character_traits.forEach(trait => {
+                                    const span = document.createElement('span');
+                                    span.className = 'badge bg-primary me-1 mb-1';
+                                    span.textContent = trait;
+                                    traits.appendChild(span);
+                                });
+                            }
+                            
+                            // Update checkbox value
+                            checkbox.value = data.character.id;
+                            checkbox.id = 'char' + data.character.id;
+                            checkbox.labels[0].setAttribute('for', 'char' + data.character.id);
+                            card.setAttribute('data-id', data.character.id);
+                            
+                            showNotification('Success', 'Character rerolled!');
+                        } else {
+                            throw new Error(data.error || 'Failed to get new character');
+                        }
+                    })
+                    .catch(error => {
+                        showNotification('Error', error.message, false);
+                    })
+                    .finally(() => {
+                        // Reset button state
+                        button.disabled = false;
+                        button.innerHTML = '<i class="fas fa-dice me-1"></i>Reroll';
+                    });
+            });
+        });
     }
 
     form.addEventListener('submit', async (e) => {

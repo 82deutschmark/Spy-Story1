@@ -33,8 +33,8 @@ def index():
     """Main page showing character selection and story options"""
     story_options = get_story_options()
 
-    # Get 9 random images for character selection
-    images = ImageAnalysis.query.order_by(db.func.random()).limit(9).all()
+    # Get 3 random images for character selection
+    images = ImageAnalysis.query.order_by(db.func.random()).limit(3).all()
     image_data = []
     for img in images:
         analysis = img.analysis_result
@@ -52,6 +52,13 @@ def index():
         story_options=story_options,
         images=image_data
     )
+    
+@app.route('/debug')
+def debug():
+    """Debug page for image analysis and database management"""
+    # Get all records from the database
+    records = ImageAnalysis.query.order_by(ImageAnalysis.id.desc()).all()
+    return render_template('debug.html', records=records)
 
 @app.route('/storyboard/<int:story_id>')
 def storyboard(story_id):
@@ -219,6 +226,93 @@ def generate_post():
     except Exception as e:
         logger.error(f"Error generating post: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/records')
+def get_records():
+    """API endpoint to get all records"""
+    try:
+        records = ImageAnalysis.query.order_by(ImageAnalysis.id.desc()).all()
+        records_data = []
+        for record in records:
+            records_data.append({
+                'id': record.id,
+                'image_url': record.image_url,
+                'image_width': record.image_width,
+                'image_height': record.image_height,
+                'image_format': record.image_format,
+                'image_size_bytes': record.image_size_bytes,
+                'image_type': record.image_type,
+                'analysis_result': record.analysis_result,
+                'character_traits': record.character_traits,
+                'character_role': record.character_role,
+                'scene_type': record.scene_type,
+                'created_at': record.created_at.isoformat() if record.created_at else None
+            })
+        return jsonify({'success': True, 'records': records_data})
+    except Exception as e:
+        logger.error(f"Error getting records: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/records/<int:record_id>')
+def get_record(record_id):
+    """API endpoint to get a specific record"""
+    try:
+        record = ImageAnalysis.query.get_or_404(record_id)
+        record_data = {
+            'id': record.id,
+            'image_url': record.image_url,
+            'image_width': record.image_width,
+            'image_height': record.image_height,
+            'image_format': record.image_format,
+            'image_size_bytes': record.image_size_bytes,
+            'image_type': record.image_type,
+            'analysis_result': record.analysis_result,
+            'character_traits': record.character_traits,
+            'character_role': record.character_role,
+            'scene_type': record.scene_type,
+            'created_at': record.created_at.isoformat() if record.created_at else None
+        }
+        return jsonify({'success': True, 'record': record_data})
+    except Exception as e:
+        logger.error(f"Error getting record: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/records/<int:record_id>', methods=['DELETE'])
+def delete_record(record_id):
+    """API endpoint to delete a record"""
+    try:
+        record = ImageAnalysis.query.get_or_404(record_id)
+        db.session.delete(record)
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        logger.error(f"Error deleting record: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+        
+@app.route('/api/random_character')
+def get_random_character():
+    """API endpoint to get a random character for rerolling"""
+    try:
+        # Get random character image from database
+        character = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).first()
+        
+        if not character:
+            return jsonify({'success': False, 'error': 'No character records found'}), 404
+            
+        analysis = character.analysis_result
+        character_data = {
+            'id': character.id,
+            'image_url': character.image_url,
+            'name': analysis.get('name', ''),
+            'style': analysis.get('style', ''),
+            'story': analysis.get('story', ''),
+            'character_traits': character.character_traits or []
+        }
+        
+        return jsonify({'success': True, 'character': character_data})
+    except Exception as e:
+        logger.error(f"Error getting random character: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
