@@ -56,6 +56,48 @@ document.addEventListener('DOMContentLoaded', function() {
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
+                            // Update the card with the new character
+                            cardImage.src = data.image_url;
+                            
+                            // Find the character name element within the container
+                            const characterContainer = card.closest('.character-container');
+                            const nameElement = characterContainer ? characterContainer.querySelector('.character-name') : null;
+                            if (nameElement) {
+                                nameElement.textContent = data.name;
+                            }
+                            
+                            // Update character traits if available
+                            if (traitsContainer && data.character_traits) {
+                                traitsContainer.innerHTML = '';
+                                data.character_traits.forEach(trait => {
+                                    const badge = document.createElement('span');
+                                    badge.className = 'badge bg-primary me-1';
+                                    badge.textContent = trait;
+                                    traitsContainer.appendChild(badge);
+                                });
+                            }
+                            
+                            // Update the checkbox value
+                            if (checkbox) {
+                                checkbox.value = data.id;
+                            }
+                            
+                            showToast('Success', 'Character rerolled successfully!');
+                        } else {
+                            throw new Error(data.error || 'Failed to get a new character');
+                        }
+                    })
+                    .catch(error => {
+                        showToast('Error', error.message);
+                    })
+                    .finally(() => {
+                        // Reset button state
+                        this.disabled = false;
+                        this.innerHTML = '<i class="fas fa-dice me-1"></i>Reroll';
+                    });
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
                             // Update card with new character data
                             card.setAttribute('data-id', data.id);
                             cardImage.src = data.image_url;
