@@ -1,10 +1,8 @@
 from app import app, db
-from api.unity_routes import unity_api
 from api.story_branch_routes import story_branch_bp
 from api.image_routes import image_bp
 
 # Register blueprints
-app.register_blueprint(unity_api)
 app.register_blueprint(story_branch_bp)
 app.register_blueprint(image_bp)
 
