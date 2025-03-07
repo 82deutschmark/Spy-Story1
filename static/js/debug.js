@@ -369,6 +369,82 @@ function populateEditFields(analysis) {
     } else {
         name = analysis.setting || '';
     }
+    
+    imageName.value = name;
+    
+    // Extract character-specific fields
+    if (isCharacter) {
+        let role = '';
+        if (analysis.character && analysis.character.role) {
+            role = analysis.character.role;
+        } else if (analysis.role) {
+            role = analysis.role;
+        }
+        characterRole.value = role || 'neutral';
+        
+        let traits = [];
+        if (analysis.character && analysis.character.character_traits) {
+            traits = analysis.character.character_traits;
+        } else if (analysis.character_traits) {
+            traits = analysis.character_traits;
+        }
+        characterTraits.value = Array.isArray(traits) ? traits.join(', ') : traits;
+        
+        let plots = [];
+        if (analysis.character && analysis.character.plot_lines) {
+            plots = analysis.character.plot_lines;
+        } else if (analysis.plot_lines) {
+            plots = analysis.plot_lines;
+        }
+        plotLines.value = Array.isArray(plots) ? plots.join('\n') : plots;
+    } 
+    // Extract scene-specific fields
+    else {
+        sceneType.value = analysis.scene_type || 'narrative';
+        sceneSetting.value = analysis.setting || '';
+        
+        let moments = analysis.dramatic_moments || [];
+        dramaticMoments.value = Array.isArray(moments) ? moments.join('\n') : moments;
+    }
+}
+function populateEditFields(analysis) {
+    const imageName = document.getElementById('imageName');
+    const imageType = document.getElementById('imageType');
+    const characterRole = document.getElementById('characterRole');
+    const characterTraits = document.getElementById('characterTraits');
+    const plotLines = document.getElementById('plotLines');
+    const sceneType = document.getElementById('sceneType');
+    const sceneSetting = document.getElementById('sceneSetting');
+    const dramaticMoments = document.getElementById('dramaticMoments');
+    
+    // Determine if this is a character or scene
+    let isCharacter = determineIfCharacter(analysis);
+    
+    // Set image type
+    imageType.value = isCharacter ? 'character' : 'scene';
+    
+    // Toggle appropriate fields
+    if (isCharacter) {
+        document.getElementById('characterFields').style.display = 'block';
+        document.getElementById('sceneFields').style.display = 'none';
+    } else {
+        document.getElementById('characterFields').style.display = 'none';
+        document.getElementById('sceneFields').style.display = 'block';
+    }
+    
+    // Extract name
+    let name = '';
+    if (isCharacter) {
+        if (analysis.character && analysis.character.name) {
+            name = analysis.character.name;
+        } else if (analysis.character_name) {
+            name = analysis.character_name;
+        } else if (analysis.name) {
+            name = analysis.name;
+        }
+    } else {
+        name = analysis.setting || '';
+    }
     imageName.value = name;
     
     // Extract character-specific fields
@@ -408,6 +484,20 @@ function populateEditFields(analysis) {
 }
 
 // Determine if this is a character analysis
+function determineIfCharacter(analysis) {
+    if (analysis.image_type === 'character') return true;
+    if (analysis.image_type === 'scene') return false;
+    
+    // Try to infer from contents
+    if (analysis.character && typeof analysis.character === 'object') return true;
+    if (analysis.character_name || analysis.character_traits) return true;
+    if (analysis.scene_type || analysis.dramatic_moments) return false;
+    
+    // Default to character
+    return true;
+}
+
+// Determine if the analysis is for a character or scene
 function determineIfCharacter(analysis) {
     if (analysis.image_type === 'character') return true;
     if (analysis.image_type === 'scene') return false;
