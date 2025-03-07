@@ -119,7 +119,8 @@ Analyze the image and determine:
 
 2. If it's a SCENE:
    - Determine the scene type (narrative, choice moment, action, etc.)
-   - Describe the setting in detail
+   - Describe the setting in detail (include in 'setting' field)
+   - Provide a more detailed setting description in 'setting_description' field
    - Suggest how this scene fits into the story
    - Potential dramatic moments that could occur
 
@@ -139,7 +140,8 @@ Even if the image appears to be a scene, treat it as a character and create a ch
             elif force_type == 'scene':
                 user_message = f"""Analyze the image AS A SCENE regardless of what's shown:
    - Determine the scene type (narrative, choice moment, action, etc.)
-   - Describe the setting in detail
+   - Describe the setting in detail (include in 'setting' field)
+   - Provide a more detailed setting description in 'setting_description' field
    - Suggest how this scene fits into the story
    - Potential dramatic moments that could occur
 
@@ -156,7 +158,8 @@ Even if the image appears to be a character, treat it as a scene and describe th
 
 2. If it's a SCENE:
    - Determine the scene type (narrative, choice moment, action, etc.)
-   - Describe the setting in detail
+   - Describe the setting in detail (include in 'setting' field)
+   - Provide a more detailed setting description in 'setting_description' field
    - Suggest how this scene fits into the story
    - Potential dramatic moments that could occur
 """
@@ -220,6 +223,7 @@ def generate_image_description(analysis):
         description = (
             f"Scene Type: {analysis.get('scene_type', 'Adventure')}\n\n"
             f"Setting: {analysis.get('setting', '')}\n\n"
+            f"Detailed Setting Description: {analysis.get('setting_description', '')}\n\n" #Added this line
             f"Dramatic Moment: {analysis.get('dramatic_moments', [''])[0]}"
         )
     return description
