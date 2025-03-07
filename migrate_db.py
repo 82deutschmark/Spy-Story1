@@ -20,6 +20,7 @@ def migrate_database():
             'image_type': 'VARCHAR(32)',
             'character_traits': 'JSONB',
             'character_role': 'VARCHAR(32)',
+            'plot_lines': 'JSONB',
             'scene_type': 'VARCHAR(64)'
         }
         

@@ -35,6 +35,7 @@ class ImageAnalysis(db.Model):
     analysis_result = db.Column(JSONB)  # Full analysis from OpenAI
     character_traits = db.Column(JSONB)  # Array of character traits if a character
     character_role = db.Column(db.String(32))  # 'hero', 'villain', or 'neutral'
+    plot_lines = db.Column(JSONB)  # Array of plot line suggestions for the character
     scene_type = db.Column(db.String(64))  # E.g., 'narrative', 'choice', 'action'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

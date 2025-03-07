@@ -417,6 +417,24 @@ def db_health_check():
             )
         ).count()
         
+        # Check for characters missing plot lines
+        missing_plot_lines = ImageAnalysis.query.filter(
+            db.and_(
+                ImageAnalysis.image_type == 'character',
+                db.or_(
+                    ImageAnalysis.plot_lines.is_(None),
+                    ImageAnalysis.plot_lines == []
+                )
+            )
+        ).count()
+        
+        if missing_plot_lines > 0:
+            issues.append({
+                'severity': 'warning',
+                'message': f'Found {missing_plot_lines} characters with missing plot lines',
+                'type': 'missing_plot_lines'
+            })
+        
         if missing_analysis > 0:
             issues.append({
                 'severity': 'error',
