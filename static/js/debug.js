@@ -460,6 +460,16 @@ function getEditedAnalysis(originalAnalysis) {
     // Apply edits and return the modified analysis
     return applyEditsToAnalysis(originalAnalysis);
 }
+function getEditedAnalysis(originalAnalysis) {
+    // If edit mode is not enabled, return the original
+    const editModeSwitch = document.getElementById('editModeSwitch');
+    if (!editModeSwitch.checked) {
+        return originalAnalysis;
+    }
+    
+    // Apply edits and return the modified analysis
+    return applyEditsToAnalysis(originalAnalysis);
+}
 
                     showToast('Success', 'Content copied to clipboard!');
                 })
