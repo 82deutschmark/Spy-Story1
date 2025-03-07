@@ -1,7 +1,7 @@
 import os
 import logging
 import json
-from flask import Flask, render_template, request, jsonify, abort
+from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
 from services.openai_service import analyze_artwork, generate_image_description
 from services.story_maker import generate_story, get_story_options
@@ -127,78 +127,27 @@ def debug():
 
 
 @app.route('/storyboard/<int:story_id>')
-def view_storyboard(story_id):
-    """View a specific story's storyboard"""
-    story_gen = StoryGeneration.query.get_or_404(story_id)
+def storyboard(story_id):
+    """Display the current story progress and choices"""
+    story = StoryGeneration.query.get_or_404(story_id)
+    story_data = json.loads(story.generated_story)
 
-    # Get the story character images
+    # Get associated character images
     character_images = []
-    for img in story_gen.images:
-        char_data = {
-            'id': img.id,
-            'image_url': img.image_url,
-            'name': img.character_name or 'Character',
-            'traits': []
-        }
+    for image in story.images:
+        analysis = image.analysis_result
+        character_images.append({
+            'id': image.id,
+            'image_url': image.image_url,
+            'name': analysis.get('name', ''),
+            'traits': image.character_traits
+        })
 
-        # Get traits from analysis results
-        try:
-            analysis = img.analysis_result or {}
-            if analysis and 'character_traits' in analysis:
-                char_data['traits'] = analysis.get('character_traits', [])
-            elif hasattr(img, 'character_traits') and img.character_traits:
-                char_data['traits'] = img.character_traits
-        except:
-            pass
-
-        character_images.append(char_data)
-
-    # Get a thematic scene image for the story
-    # First try to find one related to setting/mood if available in the story context
-    story_context = story_gen.story_context or {}
-    setting_keywords = []
-
-    if isinstance(story_context, dict):
-        setting = story_context.get('setting', '')
-        mood = story_context.get('mood', '')
-        if setting:
-            setting_keywords.extend(setting.lower().split())
-        if mood:
-            setting_keywords.extend(mood.lower().split())
-
-    # Try to find a scene that matches keywords
-    story_image = None
-    if setting_keywords:
-        # Simple keyword matching - in production you would use a more sophisticated search
-        scene_images = ImageAnalysis.query.filter_by(image_type='scene').all()
-        for img in scene_images:
-            if img.analysis_result and isinstance(img.analysis_result, dict):
-                description = img.analysis_result.get('description', '').lower()
-                if any(keyword in description for keyword in setting_keywords):
-                    story_image = img
-                    break
-
-    # If no matching image, get any random scene
-    if not story_image:
-        story_image = ImageAnalysis.query.filter_by(image_type='scene').order_by(db.func.random()).first()
-
-    # Parse story data from JSON
-    story_data = story_gen.generated_story
-    if not story_data:
-        abort(404)
-
-    # Handle the case where story_data might be a string
-    if isinstance(story_data, str):
-        try:
-            story_data = json.loads(story_data)
-        except:
-            story_data = {'title': 'Story', 'story': story_data, 'choices': []}
-
-    return render_template('storyboard.html', 
-                          story=story_data,
-                          character_images=character_images,
-                          story_image=story_image)
-
+    return render_template(
+        'storyboard.html',
+        story=story_data,
+        character_images=character_images
+    )
 
 
 @app.route('/generate_story', methods=['POST'])

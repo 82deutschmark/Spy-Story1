@@ -7,33 +7,19 @@
     <title>Choose Your Own Adventure</title>
     <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 </head>
 <body>
     <div class="container mt-5">
         <div class="row justify-content-center">
             <div class="col-md-10">
-                <div class="page-title-container fade-in">
+                <div class="text-center mb-4">
                     <i class="fas fa-book-open story-icon"></i>
                     <h1 class="display-4">Choose Your Own Adventure</h1>
                     <p class="lead">Create an interactive story with your chosen characters</p>
                 </div>
 
-                <!-- Fetch a random character from the database to feature -->
-                {% if featured_image %}
-                <div class="featured-story fade-in">
-                    <img src="{{ featured_image.image_url }}" alt="Featured Story" class="featured-image">
-                    <div class="featured-story-content">
-                        <h2>Start Your Adventure Today</h2>
-                        <p>Enter a world of enchantment and mystery with unforgettable characters</p>
-                    </div>
-                </div>
-                {% endif %}
-
-                <div class="card shadow-lg mb-4 fade-in">
+                <div class="card shadow-lg mb-4">
                     <div class="card-body">
                         <h3 class="card-title mb-4">
                             <i class="fas fa-user me-2"></i>Select Your Main Character
@@ -44,9 +30,7 @@
                                 {% for img in images %}
                                 <div class="col-12 col-sm-6 col-lg-3 mb-4">
                                     <div class="card character-select-card" data-id="{{ img.id }}">
-                                        <div class="card-image-container">
-                                            <img src="{{ img.image_url }}" class="card-img-top" alt="{{ img.name }}">
-                                        </div>
+                                        <img src="{{ img.image_url }}" class="card-img-top" alt="{{ img.name }}">
                                         <div class="card-body">
                                             <h5 class="card-title">{{ img.name }}</h5>
                                             <p class="card-text small">{{ img.style }}</p>
