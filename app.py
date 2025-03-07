@@ -167,81 +167,6 @@ def generate_story_route():
             'supporting_characters': other_characters
         }
 
-
-@app.route('/api/validate_image_types')
-def validate_image_types():
-    """API endpoint to validate image type storage and check for inconsistencies"""
-    try:
-        # Get all images
-        images = ImageAnalysis.query.all()
-        
-        results = {
-            'character_images': 0,
-            'scene_images': 0,
-            'character_missing_traits': 0,
-            'scene_missing_details': 0,
-            'inconsistent_fields': 0,
-            'samples': []
-        }
-        
-        for img in images:
-            # Check image type
-            if img.image_type == 'character':
-                results['character_images'] += 1
-                
-                # Check if character data is missing
-                if not img.character_traits or not img.character_role or not img.plot_lines:
-                    results['character_missing_traits'] += 1
-                    
-                # Add sample data
-                if len(results['samples']) < 3 and img.image_type == 'character':
-                    sample = {
-                        'id': img.id,
-                        'image_url': img.image_url,
-                        'image_type': img.image_type,
-                        'character_traits': img.character_traits,
-                        'character_role': img.character_role,
-                        'plot_lines': img.plot_lines
-                    }
-                    results['samples'].append(sample)
-                    
-            elif img.image_type == 'scene':
-                results['scene_images'] += 1
-                
-                # Check if scene data is missing
-                if not img.scene_type or not img.setting or not img.dramatic_moments:
-                    results['scene_missing_details'] += 1
-                    
-                # Add sample data
-                if len(results['samples']) < 6 and img.image_type == 'scene' and len(results['samples']) >= 3:
-                    sample = {
-                        'id': img.id,
-                        'image_url': img.image_url,
-                        'image_type': img.image_type,
-                        'scene_type': img.scene_type,
-                        'setting': img.setting,
-                        'dramatic_moments': img.dramatic_moments
-                    }
-                    results['samples'].append(sample)
-            
-            # Check for inconsistencies in analysis_result vs. specific fields
-            if img.analysis_result:
-                inconsistency = False
-                if img.image_type == 'character':
-                    if img.character_traits != img.analysis_result.get('character_traits'):
-                        inconsistency = True
-                elif img.image_type == 'scene':
-                    if img.scene_type != img.analysis_result.get('scene_type'):
-                        inconsistency = True
-                
-                if inconsistency:
-                    results['inconsistent_fields'] += 1
-        
-        return jsonify(results)
-    except Exception as e:
-        logger.error(f"Error validating image types: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
         # Generate the story
         story_params['character_info'] = character_info
         result = generate_story(**story_params)
@@ -272,6 +197,81 @@ def validate_image_types():
 
     except Exception as e:
         logger.error(f"Error generating story: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/validate_image_types')
+def validate_image_types():
+    """API endpoint to validate image type storage and check for inconsistencies"""
+    try:
+        # Get all images
+        images = ImageAnalysis.query.all()
+
+        results = {
+            'character_images': 0,
+            'scene_images': 0,
+            'character_missing_traits': 0,
+            'scene_missing_details': 0,
+            'inconsistent_fields': 0,
+            'samples': []
+        }
+
+        for img in images:
+            # Check image type
+            if img.image_type == 'character':
+                results['character_images'] += 1
+
+                # Check if character data is missing
+                if not img.character_traits or not img.character_role or not img.plot_lines:
+                    results['character_missing_traits'] += 1
+
+                # Add sample data
+                if len(results['samples']) < 3 and img.image_type == 'character':
+                    sample = {
+                        'id': img.id,
+                        'image_url': img.image_url,
+                        'image_type': img.image_type,
+                        'character_traits': img.character_traits,
+                        'character_role': img.character_role,
+                        'plot_lines': img.plot_lines
+                    }
+                    results['samples'].append(sample)
+
+            elif img.image_type == 'scene':
+                results['scene_images'] += 1
+
+                # Check if scene data is missing
+                if not img.scene_type or not img.setting or not img.dramatic_moments:
+                    results['scene_missing_details'] += 1
+
+                # Add sample data
+                if len(results['samples']) < 6 and img.image_type == 'scene' and len(results['samples']) >= 3:
+                    sample = {
+                        'id': img.id,
+                        'image_url': img.image_url,
+                        'image_type': img.image_type,
+                        'scene_type': img.scene_type,
+                        'setting': img.setting,
+                        'dramatic_moments': img.dramatic_moments
+                    }
+                    results['samples'].append(sample)
+
+            # Check for inconsistencies in analysis_result vs. specific fields
+            if img.analysis_result:
+                inconsistency = False
+                if img.image_type == 'character':
+                    if img.character_traits != img.analysis_result.get('character_traits'):
+                        inconsistency = True
+                elif img.image_type == 'scene':
+                    if img.scene_type != img.analysis_result.get('scene_type'):
+                        inconsistency = True
+
+                if inconsistency:
+                    results['inconsistent_fields'] += 1
+
+        return jsonify(results)
+    except Exception as e:
+        logger.error(f"Error validating image types: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/generate', methods=['POST'])
