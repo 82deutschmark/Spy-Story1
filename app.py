@@ -202,7 +202,6 @@ def generate_story_route():
 @app.route('/generate', methods=['POST'])
 def generate_post():
     image_url = request.form.get('image_url')
-    force_type = request.form.get('force_type')  # Can be 'character' or 'scene'
 
     if not image_url:
         return jsonify({'error': 'No image URL provided'}), 400
@@ -217,7 +216,7 @@ def generate_post():
             return jsonify({'error': 'OpenAI API key not configured. Please add it to your Replit Secrets.'}), 500
 
         # Analyze the artwork using OpenAI
-        analysis = analyze_artwork(image_url, force_type)
+        analysis = analyze_artwork(image_url)
 
         # Generate a description of the analyzed image
         description = generate_image_description(analysis)
@@ -264,10 +263,7 @@ def save_analysis():
             character_traits=analysis.get('character_traits') if is_character else None,
             character_role=analysis.get('role') if is_character else None,
             plot_lines=analysis.get('plot_lines') if is_character else None,
-            scene_type=analysis.get('sceneType') if not is_character else None,
-            setting=analysis.get('setting') if not is_character else None,
-            story_fit=analysis.get('storyFit') if not is_character else None,
-            dramatic_moments=analysis.get('dramaticMoments') if not is_character else None
+            scene_type=analysis.get('scene_type') if not is_character else None
         )
 
         db.session.add(image_analysis)

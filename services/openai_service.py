@@ -1,3 +1,4 @@
+
 import os
 import json
 import requests
@@ -17,21 +18,14 @@ if not api_key:
 # do not change this unless explicitly requested by the user
 client = OpenAI(api_key=api_key)
 
-def analyze_artwork(image_url, force_type=None):
-    """
-    Analyze the image using OpenAI's GPT-4 Vision API
-
-    Args:
-        image_url (str): URL of the image to analyze
-        force_type (str, optional): Force analysis as either 'character' or 'scene'
-    """
-
+def analyze_artwork(image_url):
+    """Analyze the artwork using OpenAI's vision model"""
     if not api_key:
-        raise ValueError("OpenAI API key not found. Please add it to your environment variables.")
-
+        raise Exception("OpenAI API key not found. Please add it to your Replit Secrets.")
+    
     try:
         logger.debug(f"Downloading artwork from URL: {image_url}")
-
+        
         # Set sophisticated user agent to avoid possible blocks
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
@@ -39,28 +33,28 @@ def analyze_artwork(image_url, force_type=None):
             "Accept-Language": "en-US,en;q=0.9",
             "Referer": "https://www.google.com/"
         }
-
+        
         # Download the image with a timeout and retries
         import base64
         import requests
         from io import BytesIO
         from PIL import Image
-
+        
         # Ensure we have proper error handling for the image download
         try:
             response = requests.get(image_url, headers=headers, timeout=10)
             response.raise_for_status()  # Raise an exception for bad status codes
-
+            
             # Get image dimensions
             image_data = BytesIO(response.content)
             img = Image.open(image_data)
             width, height = img.size
             format = img.format
-
+            
             # Convert image to base64
             image_data.seek(0)
             base64_image = base64.b64encode(image_data.getvalue()).decode('utf-8')
-
+            
             # Infer content type from response headers or URL
             content_type = response.headers.get('Content-Type', '')
             if not content_type:
@@ -72,10 +66,10 @@ def analyze_artwork(image_url, force_type=None):
                     content_type = 'image/webp'
                 else:
                     content_type = 'image/jpeg'  # Default to jpeg
-
+            
             # Prepare base64 URL
             base64_url = f"data:{content_type};base64,{base64_image}"
-
+            
             # Store image metadata
             image_metadata = {
                 "url": image_url,
@@ -84,12 +78,17 @@ def analyze_artwork(image_url, force_type=None):
                 "format": format,
                 "size_bytes": len(response.content)
             }
-
+            
             logger.debug(f"Successfully downloaded and encoded image. Analyzing artwork...")
-
-            # Prepare the system prompt with our character universe information
-            system_prompt = """You are an expert analyzer of images for a "Choose Your Own Adventure" story universe. 
-
+            
+            # Call OpenAI API with the base64 encoded image
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """You are an expert analyzer of images for a "Choose Your Own Adventure" story universe. 
+                        
 The universe is centered around a forest homestead and pasture where two Yorkshire Terriers are the main characters:
 - Pawel (male) - fearless, clever, impulsive
 - Pawleen (female) - fearless, clever, thoughtful
@@ -124,57 +123,13 @@ Analyze the image and determine:
    - Potential dramatic moments that could occur
 
 Respond in JSON format with the appropriate keys based on the image type."""
-
-            # Craft the user message with the image URL, possibly forcing a specific analysis type
-            if force_type == 'character':
-                user_message = f"""Analyze the image AS A CHARACTER regardless of what's shown:
-   - Suggest a creative name
-   - Determine if they are hero, villain, or neutral character
-   - List 5 character traits
-   - Suggest potential plot lines involving this character
-   - Art style description
-
-Even if the image appears to be a scene, treat it as a character and create a character from what's shown.
-"""
-            elif force_type == 'scene':
-                user_message = f"""Analyze the image AS A SCENE regardless of what's shown:
-   - Determine the scene type (narrative, choice moment, action, etc.)
-   - Describe the setting in detail
-   - Suggest how this scene fits into the story
-   - Potential dramatic moments that could occur
-
-Even if the image appears to be a character, treat it as a scene and describe the setting/context shown.
-"""
-            else:
-                user_message = f"""Analyze the image and determine:
-1. If it's a CHARACTER:
-   - Suggest a creative name
-   - Determine if they are hero, villain, or neutral character
-   - List 5 character traits
-   - Suggest potential plot lines involving this character
-   - Art style description
-
-2. If it's a SCENE:
-   - Determine the scene type (narrative, choice moment, action, etc.)
-   - Describe the setting in detail
-   - Suggest how this scene fits into the story
-   - Potential dramatic moments that could occur
-"""
-
-            # Call OpenAI API with the base64 encoded image
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": system_prompt
                     },
                     {
                         "role": "user",
                         "content": [
                             {
                                 "type": "text",
-                                "text": user_message
+                                "text": "Please analyze this image for our Choose Your Own Adventure story:"
                             },
                             {
                                 "type": "image_url",
@@ -189,10 +144,10 @@ Even if the image appears to be a character, treat it as a scene and describe th
             logger.error(f"Error downloading image: {str(req_err)}")
             raise Exception(f"Failed to download image from {image_url}: {str(req_err)}")
         result = json.loads(response.choices[0].message.content)
-
+        
         # Add image metadata to the result
         result["image_metadata"] = image_metadata
-
+        
         logger.debug("Successfully analyzed artwork")
         return result
     except requests.exceptions.RequestException as req_err:
