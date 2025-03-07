@@ -1,15 +1,19 @@
 
-from flask import Flask, render_template, request, redirect, url_for, jsonify, Blueprint
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Column, String, Integer, Float, Boolean, ForeignKey, DateTime, Table, Text
-from sqlalchemy.orm import relationship
-from database import db
 import os
-import json
 import logging
+import json
+import random
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_cors import CORS
+from dotenv import load_dotenv
+from database import db
+from models import AIInstruction, ImageAnalysis, StoryGeneration, story_images, StoryNode, StoryChoice, UserProgress, Achievement
+from services.openai_service import analyze_artwork, generate_image_description
+from services.story_maker import generate_story, get_story_options
+
+# Load environment variables
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -17,514 +21,590 @@ logger = logging.getLogger(__name__)
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app)  # Enable CORS
 
-# Configure database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///story_adventure.db'
+# Configure the database
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///story_generator.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize the database
 db.init_app(app)
 
-# Import API routes and services
-from api.unity_routes import unity_api
-from services.openai_service import analyze_artwork, generate_image_description
-from services.story_maker import generate_story, get_story_options
-
 # Register blueprints
+from api.unity_routes import unity_api
 app.register_blueprint(unity_api, url_prefix='/api/unity')
 
-# Import models - these now need to be imported after app and db are initialized
-from models import AIInstruction, ImageAnalysis, StoryGeneration, story_images
+# Create database tables if they don't exist
+with app.app_context():
+    db.create_all()
 
 # Routes
 @app.route('/')
 def index():
-    """Home page route"""
-    # Get recent character images for the gallery
-    recent_characters = ImageAnalysis.query.filter_by(image_type='character').order_by(ImageAnalysis.created_at.desc()).limit(6).all()
+    """Render the home page"""
+    # Get some character images to display
+    character_images = ImageAnalysis.query.filter_by(image_type='character').limit(4).all()
     
-    # Get recent scene images for the gallery
-    recent_scenes = ImageAnalysis.query.filter_by(image_type='scene').order_by(ImageAnalysis.created_at.desc()).limit(3).all()
-    
-    # Get recent stories
-    recent_stories = StoryGeneration.query.order_by(StoryGeneration.created_at.desc()).limit(5).all()
-    
+    # Get featured banner image
+    featured_image = ImageAnalysis.query.filter_by(id=54).first() or None
+
+    # Render the template
     return render_template('index.html', 
-                           characters=recent_characters,
-                           scenes=recent_scenes,
-                           stories=recent_stories)
+                          character_images=character_images,
+                          featured_image=featured_image)
 
 @app.route('/debug')
 def debug():
-    """Debug page route"""
-    # Get recent images
+    """Render the debug page"""
+    # Get recent image analyses
     recent_images = ImageAnalysis.query.order_by(ImageAnalysis.created_at.desc()).limit(10).all()
     
-    # Get recent stories
+    # Get recent story generations
     recent_stories = StoryGeneration.query.order_by(StoryGeneration.created_at.desc()).limit(10).all()
     
-    # Get database stats
+    # Get some database stats for the health check tab
     image_count = ImageAnalysis.query.count()
     character_count = ImageAnalysis.query.filter_by(image_type='character').count()
     scene_count = ImageAnalysis.query.filter_by(image_type='scene').count()
     story_count = StoryGeneration.query.count()
     
-    # Get orphaned images (not associated with any story)
-    orphaned_images = ImageAnalysis.query.filter(~ImageAnalysis.id.in_(
-        db.session.query(story_images.c.image_id)
-    )).count()
+    # Calculate orphaned images (not used in any story)
+    orphaned_images = db.session.query(ImageAnalysis).\
+        outerjoin(story_images).\
+        filter(story_images.c.image_id == None).\
+        count()
     
-    # Get empty stories (without images)
-    empty_stories = StoryGeneration.query.filter(~StoryGeneration.id.in_(
-        db.session.query(story_images.c.story_id)
-    )).count()
+    # Calculate empty stories (no images attached)
+    empty_stories = db.session.query(StoryGeneration).\
+        outerjoin(story_images).\
+        filter(story_images.c.story_id == None).\
+        count()
     
     return render_template('debug.html', 
-                           recent_images=recent_images,
-                           recent_stories=recent_stories,
-                           image_count=image_count,
-                           character_count=character_count,
-                           scene_count=scene_count,
-                           story_count=story_count,
-                           orphaned_images=orphaned_images,
-                           empty_stories=empty_stories)
+                          recent_images=recent_images,
+                          recent_stories=recent_stories,
+                          image_count=image_count,
+                          character_count=character_count,
+                          scene_count=scene_count,
+                          story_count=story_count,
+                          orphaned_images=orphaned_images,
+                          empty_stories=empty_stories)
 
-@app.route('/generate', methods=['POST'])
-def generate():
-    """Generate image analysis based on URL"""
-    image_url = request.form.get('image_url')
-    
-    if not image_url:
-        return jsonify({"success": False, "error": "No image URL provided"})
-    
-    try:
-        # Call OpenAI service to analyze the artwork
-        analysis = analyze_artwork(image_url)
-        
-        # Check if this image URL is already in the database
-        existing_image = ImageAnalysis.query.filter_by(image_url=image_url).first()
-        
-        return jsonify({
-            "success": True,
-            "image_url": image_url,
-            "analysis": analysis,
-            "saved_to_db": existing_image is not None
-        })
-    except Exception as e:
-        logger.error(f"Error generating analysis: {str(e)}")
-        return jsonify({"success": False, "error": str(e)})
+@app.route('/builder')
+def story_builder():
+    """Render the story builder page"""
+    return render_template('story_builder.html')
 
-@app.route('/save_analysis', methods=['POST'])
-def save_analysis():
-    """Save image analysis to database"""
-    data = request.json
-    image_url = data.get('image_url')
-    analysis = data.get('analysis')
+@app.route('/storyboard')
+def storyboard():
+    """Render the storyboard page"""
+    # Get story ID from query parameters
+    story_id = request.args.get('story_id')
     
-    if not image_url or not analysis:
-        return jsonify({"success": False, "error": "Missing image URL or analysis"})
+    if not story_id:
+        return redirect(url_for('index'))
     
-    try:
-        # Check if image already exists
-        existing_image = ImageAnalysis.query.filter_by(image_url=image_url).first()
-        
-        if existing_image:
-            # Update existing record
-            existing_image.analysis_result = analysis
-            existing_image.updated_at = datetime.now()
-            
-            # Update image type and other metadata
-            if isinstance(analysis, dict):
-                existing_image.image_type = analysis.get('image_type', existing_image.image_type)
-                
-                # Update character-specific fields
-                if analysis.get('image_type') == 'character':
-                    # Try to find character name in various places
-                    character_name = None
-                    if 'character' in analysis and isinstance(analysis['character'], dict):
-                        character_name = analysis['character'].get('name')
-                    if not character_name and 'name' in analysis:
-                        character_name = analysis['name']
-                    
-                    if character_name:
-                        existing_image.character_name = character_name
-                    
-                    # Character role
-                    role = None
-                    if 'character' in analysis and isinstance(analysis['character'], dict):
-                        role = analysis['character'].get('role')
-                    if not role and 'role' in analysis:
-                        role = analysis['role']
-                    
-                    if role:
-                        existing_image.character_role = role
-                    
-                    # Character traits
-                    traits = None
-                    if 'character' in analysis and isinstance(analysis['character'], dict):
-                        traits = analysis['character'].get('character_traits')
-                    if not traits and 'character_traits' in analysis:
-                        traits = analysis['character_traits']
-                    
-                    if traits:
-                        existing_image.character_traits = traits
-                    
-                    # Plot lines
-                    plot_lines = None
-                    if 'character' in analysis and isinstance(analysis['character'], dict):
-                        plot_lines = analysis['character'].get('plot_lines')
-                    if not plot_lines and 'plot_lines' in analysis:
-                        plot_lines = analysis['plot_lines']
-                    
-                    if plot_lines:
-                        existing_image.plot_lines = plot_lines
-                
-                # Update scene-specific fields
-                if analysis.get('image_type') == 'scene':
-                    if 'scene_type' in analysis:
-                        existing_image.scene_type = analysis['scene_type']
-                    if 'setting' in analysis:
-                        existing_image.setting = analysis['setting']
-                    if 'dramatic_moments' in analysis:
-                        existing_image.dramatic_moments = analysis['dramatic_moments']
-            
-            db.session.commit()
-            return jsonify({"success": True, "message": "Image analysis updated", "id": existing_image.id})
-        else:
-            # Create new record
-            new_image = ImageAnalysis(
-                image_url=image_url,
-                analysis_result=analysis
-            )
-            
-            # Set image type and other metadata
-            if isinstance(analysis, dict):
-                new_image.image_type = analysis.get('image_type', 'unknown')
-                
-                # Set character-specific fields
-                if analysis.get('image_type') == 'character':
-                    # Try to find character name in various places
-                    character_name = None
-                    if 'character' in analysis and isinstance(analysis['character'], dict):
-                        character_name = analysis['character'].get('name')
-                    if not character_name and 'name' in analysis:
-                        character_name = analysis['name']
-                    
-                    if character_name:
-                        new_image.character_name = character_name
-                    
-                    # Character role
-                    role = None
-                    if 'character' in analysis and isinstance(analysis['character'], dict):
-                        role = analysis['character'].get('role')
-                    if not role and 'role' in analysis:
-                        role = analysis['role']
-                    
-                    if role:
-                        new_image.character_role = role
-                    
-                    # Character traits
-                    traits = None
-                    if 'character' in analysis and isinstance(analysis['character'], dict):
-                        traits = analysis['character'].get('character_traits')
-                    if not traits and 'character_traits' in analysis:
-                        traits = analysis['character_traits']
-                    
-                    if traits:
-                        new_image.character_traits = traits
-                    
-                    # Plot lines
-                    plot_lines = None
-                    if 'character' in analysis and isinstance(analysis['character'], dict):
-                        plot_lines = analysis['character'].get('plot_lines')
-                    if not plot_lines and 'plot_lines' in analysis:
-                        plot_lines = analysis['plot_lines']
-                    
-                    if plot_lines:
-                        new_image.plot_lines = plot_lines
-                
-                # Set scene-specific fields
-                if analysis.get('image_type') == 'scene':
-                    if 'scene_type' in analysis:
-                        new_image.scene_type = analysis['scene_type']
-                    if 'setting' in analysis:
-                        new_image.setting = analysis['setting']
-                    if 'dramatic_moments' in analysis:
-                        new_image.dramatic_moments = analysis['dramatic_moments']
-            
-            db.session.add(new_image)
-            db.session.commit()
-            return jsonify({"success": True, "message": "Image analysis saved", "id": new_image.id})
-    
-    except Exception as e:
-        logger.error(f"Error saving analysis: {str(e)}")
-        db.session.rollback()
-        return jsonify({"success": False, "error": str(e)})
-
-@app.route('/storyboard/<int:story_id>')
-def storyboard(story_id):
-    """Display a story"""
+    # Get the story
     story = StoryGeneration.query.get_or_404(story_id)
     
-    # Parse story data from JSON
-    story_data = json.loads(story.story_text)
-    
-    # Get character images for this story
+    # Get the associated images
     character_images = []
     for image in story.images:
         if image.image_type == 'character':
-            character_info = {
-                'id': image.id,
-                'name': image.character_name or 'Unknown Character',
+            character_data = {
+                'name': image.character_name,
                 'image_url': image.image_url,
                 'traits': image.character_traits or []
             }
-            character_images.append(character_info)
+            character_images.append(character_data)
+    
+    # Parse the story text
+    try:
+        story_data = json.loads(story.story_text)
+    except json.JSONDecodeError:
+        story_data = {
+            'title': 'Error parsing story',
+            'story': story.story_text,
+            'choices': []
+        }
     
     return render_template('storyboard.html', 
-                           story=story,
-                           story_data=story_data,
-                           character_images=character_images)
+                          story=story,
+                          character_images=character_images,
+                          story_data=story_data)
+
+@app.route('/generate', methods=['POST'])
+def generate():
+    """Generate image analysis using OpenAI"""
+    image_url = request.form.get('image_url')
+    
+    if not image_url:
+        return jsonify({
+            'success': False,
+            'error': 'No image URL provided'
+        })
+    
+    try:
+        # Check if this image has already been analyzed
+        existing_analysis = ImageAnalysis.query.filter_by(image_url=image_url).first()
+        if existing_analysis:
+            return jsonify({
+                'success': True,
+                'image_url': image_url,
+                'analysis': existing_analysis.analysis_result,
+                'saved_to_db': True
+            })
+        
+        # Generate new analysis
+        analysis = analyze_artwork(image_url)
+        
+        return jsonify({
+            'success': True,
+            'image_url': image_url,
+            'analysis': analysis,
+            'saved_to_db': False
+        })
+    except Exception as e:
+        logger.error(f"Error analyzing image: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@app.route('/save_analysis', methods=['POST'])
+def save_analysis():
+    """Save image analysis to the database"""
+    data = request.get_json()
+    
+    if not data or 'image_url' not in data or 'analysis' not in data:
+        return jsonify({
+            'success': False,
+            'error': 'Invalid data provided'
+        })
+    
+    try:
+        image_url = data['image_url']
+        analysis = data['analysis']
+        
+        # Check if this image already exists
+        existing_analysis = ImageAnalysis.query.filter_by(image_url=image_url).first()
+        if existing_analysis:
+            return jsonify({
+                'success': True,
+                'message': 'Analysis already exists in the database',
+                'id': existing_analysis.id
+            })
+        
+        # Extract data from the analysis
+        image_type = analysis.get('image_type', '')
+        
+        # If image_type is not explicitly set, try to infer it
+        if not image_type:
+            if 'character' in analysis or 'character_name' in analysis or 'character_traits' in analysis:
+                image_type = 'character'
+            elif 'scene_type' in analysis or 'setting' in analysis:
+                image_type = 'scene'
+            else:
+                # Default to unknown type
+                image_type = 'unknown'
+        
+        # Create new record
+        new_analysis = ImageAnalysis(
+            image_url=image_url,
+            image_type=image_type,
+            analysis_result=analysis
+        )
+        
+        # Set character-specific fields if applicable
+        if image_type == 'character':
+            new_analysis.character_name = analysis.get('name', '')
+            if not new_analysis.character_name and 'character' in analysis:
+                new_analysis.character_name = analysis['character'].get('name', '')
+                
+            new_analysis.character_role = analysis.get('role', '')
+            if not new_analysis.character_role and 'character' in analysis:
+                new_analysis.character_role = analysis['character'].get('role', '')
+                
+            new_analysis.character_traits = analysis.get('character_traits', [])
+            new_analysis.plot_lines = analysis.get('plot_lines', [])
+        
+        # Set scene-specific fields if applicable
+        elif image_type == 'scene':
+            new_analysis.scene_type = analysis.get('scene_type', '')
+            new_analysis.setting = analysis.get('setting', '')
+            new_analysis.dramatic_moments = analysis.get('dramatic_moments', [])
+        
+        # Save to database
+        db.session.add(new_analysis)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Analysis saved to database',
+            'id': new_analysis.id
+        })
+    except Exception as e:
+        logger.error(f"Error saving analysis: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@app.route('/generate_story_options', methods=['POST'])
+def generate_story_options_route():
+    """Generate story options based on selected images"""
+    data = request.get_json()
+    
+    if not data or 'selected_images' not in data:
+        return jsonify({
+            'success': False,
+            'error': 'No images selected'
+        })
+    
+    try:
+        # Get selected images
+        image_ids = data['selected_images']
+        images = ImageAnalysis.query.filter(ImageAnalysis.id.in_(image_ids)).all()
+        
+        if not images:
+            return jsonify({
+                'success': False,
+                'error': 'No valid images found'
+            })
+        
+        # Generate options
+        options = get_story_options(images)
+        
+        return jsonify({
+            'success': True,
+            'options': options
+        })
+    except Exception as e:
+        logger.error(f"Error generating story options: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
 
 @app.route('/generate_story', methods=['POST'])
 def generate_story_route():
-    """Generate a story based on form inputs"""
-    # Get form data
-    selected_images = request.form.getlist('selected_images[]')
-    conflict = request.form.get('conflict')
-    setting = request.form.get('setting')
-    narrative_style = request.form.get('narrative_style')
-    mood = request.form.get('mood')
-    previous_choice = request.form.get('previous_choice')
-    story_context = request.form.get('story_context')
-    
-    # Validate inputs
-    if not selected_images:
-        return jsonify({"success": False, "error": "Please select at least one character or scene"})
-    
-    if not conflict or not setting or not narrative_style or not mood:
-        return jsonify({"success": False, "error": "Please provide all story parameters"})
+    """Generate a story based on selected parameters"""
+    # Get data from form or JSON
+    if request.is_json:
+        data = request.get_json()
+    else:
+        data = request.form
     
     try:
-        # Get images from database
-        images = []
-        for image_id in selected_images:
-            image = ImageAnalysis.query.get(image_id)
-            if image:
-                images.append(image)
+        # Get the various parameters
+        image_ids = data.getlist('selected_images[]') if hasattr(data, 'getlist') else data.get('selected_images', [])
+        conflict = data.get('conflict')
+        setting = data.get('setting')
+        narrative_style = data.get('narrative_style')
+        mood = data.get('mood')
+        previous_choice = data.get('previous_choice')
+        story_context = data.get('story_context')
+        
+        # Check if continuing a story
+        is_continuation = previous_choice is not None and story_context is not None
+        
+        # Get images
+        if isinstance(image_ids, str):
+            # Handle the case where image_ids is a single string
+            image_ids = [image_ids]
+            
+        images = ImageAnalysis.query.filter(ImageAnalysis.id.in_(image_ids)).all()
+        
+        if not images:
+            return jsonify({
+                'success': False,
+                'error': 'No valid images selected'
+            })
         
         # Generate story
-        story_result = generate_story(
+        result = generate_story(
             images=images,
             conflict=conflict,
             setting=setting,
-            narrative_style=narrative_style, 
+            narrative_style=narrative_style,
             mood=mood,
             previous_choice=previous_choice,
             story_context=story_context
         )
         
-        if not story_result:
-            return jsonify({"success": False, "error": "Failed to generate story"})
+        # Save the generated story to the database
+        story_data = json.loads(result['story'])
         
-        # Create story record
-        story = StoryGeneration(
-            primary_conflict=conflict,
-            setting=setting,
-            narrative_style=narrative_style,
-            mood=mood,
-            story_text=story_result.get('story')
-        )
+        # Create new story record or update existing one
+        if is_continuation:
+            # For continuation, we create a new story
+            story = StoryGeneration(
+                primary_conflict=conflict,
+                setting=setting,
+                narrative_style=narrative_style,
+                mood=mood,
+                story_text=result['story'],
+                images=images
+            )
+        else:
+            # New story
+            story = StoryGeneration(
+                primary_conflict=conflict,
+                setting=setting,
+                narrative_style=narrative_style,
+                mood=mood,
+                story_text=result['story'],
+                images=images
+            )
         
-        # Add images to story
-        for image in images:
-            story.images.append(image)
-        
-        # Save to database
         db.session.add(story)
         db.session.commit()
         
-        # Redirect to story view
+        # Redirect to the storyboard with the new story ID
         return redirect(url_for('storyboard', story_id=story.id))
-        
     except Exception as e:
         logger.error(f"Error generating story: {str(e)}")
-        return jsonify({"success": False, "error": str(e)})
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
 
 # API Routes
-
 @app.route('/api/image/<int:image_id>', methods=['GET'])
-def get_image(image_id):
-    """Get image details"""
-    image = ImageAnalysis.query.get(image_id)
-    
-    if not image:
-        return jsonify({"success": False, "error": "Image not found"})
-    
-    # Parse analysis_result if it's a string
-    analysis = image.analysis_result
-    if isinstance(analysis, str):
-        try:
-            analysis = json.loads(analysis)
-        except:
-            pass
-    
-    return jsonify({
-        "success": True,
-        "id": image.id,
-        "image_url": image.image_url,
-        "image_type": image.image_type,
-        "analysis": analysis,
-        "created_at": image.created_at.isoformat() if image.created_at else None
-    })
+def api_get_image(image_id):
+    """API endpoint to get image analysis details"""
+    try:
+        image = ImageAnalysis.query.get_or_404(image_id)
+        
+        return jsonify({
+            'success': True,
+            'id': image.id,
+            'image_url': image.image_url,
+            'image_type': image.image_type,
+            'analysis': image.analysis_result,
+            'created_at': image.created_at.isoformat()
+        })
+    except Exception as e:
+        logger.error(f"API error getting image: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/api/image/<int:image_id>', methods=['DELETE'])
-def delete_image(image_id):
-    """Delete an image"""
-    image = ImageAnalysis.query.get(image_id)
-    
-    if not image:
-        return jsonify({"success": False, "error": "Image not found"})
-    
+def api_delete_image(image_id):
+    """API endpoint to delete an image analysis"""
     try:
-        # Remove from any stories
-        image.stories = []
+        image = ImageAnalysis.query.get_or_404(image_id)
         
-        # Delete the image
+        # Remove from any stories
+        for story in image.stories:
+            story.images.remove(image)
+        
         db.session.delete(image)
         db.session.commit()
         
-        return jsonify({"success": True, "message": f"Image {image_id} deleted successfully"})
+        return jsonify({
+            'success': True,
+            'message': f'Image analysis (ID: {image_id}) deleted successfully'
+        })
     except Exception as e:
-        db.session.rollback()
-        return jsonify({"success": False, "error": str(e)})
+        logger.error(f"API error deleting image: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/api/story/<int:story_id>', methods=['DELETE'])
-def delete_story(story_id):
-    """Delete a story"""
-    story = StoryGeneration.query.get(story_id)
-    
-    if not story:
-        return jsonify({"success": False, "error": "Story not found"})
-    
+def api_delete_story(story_id):
+    """API endpoint to delete a story"""
     try:
-        # Remove image associations
-        story.images = []
+        story = StoryGeneration.query.get_or_404(story_id)
         
-        # Delete the story
         db.session.delete(story)
         db.session.commit()
         
-        return jsonify({"success": True, "message": f"Story {story_id} deleted successfully"})
+        return jsonify({
+            'success': True,
+            'message': f'Story (ID: {story_id}) deleted successfully'
+        })
     except Exception as e:
-        db.session.rollback()
-        return jsonify({"success": False, "error": str(e)})
+        logger.error(f"API error deleting story: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
-@app.route('/api/db/health-check', methods=['GET'])
-def health_check():
-    """Check database health"""
+@app.route('/api/db/health-check')
+def api_db_health_check():
+    """API endpoint to check database health"""
     try:
-        # Get counts
+        # Get database stats
         image_count = ImageAnalysis.query.count()
         character_count = ImageAnalysis.query.filter_by(image_type='character').count()
         scene_count = ImageAnalysis.query.filter_by(image_type='scene').count()
         story_count = StoryGeneration.query.count()
         
-        # Get orphaned images (not associated with any story)
-        orphaned_images = ImageAnalysis.query.filter(~ImageAnalysis.id.in_(
-            db.session.query(story_images.c.image_id)
-        )).count()
+        # Calculate orphaned images (not used in any story)
+        orphaned_images = db.session.query(ImageAnalysis).\
+            outerjoin(story_images).\
+            filter(story_images.c.image_id == None).\
+            count()
         
-        # Get empty stories (without images)
-        empty_stories = StoryGeneration.query.filter(~StoryGeneration.id.in_(
-            db.session.query(story_images.c.story_id)
-        )).count()
+        # Calculate empty stories (no images attached)
+        empty_stories = db.session.query(StoryGeneration).\
+            outerjoin(story_images).\
+            filter(story_images.c.story_id == None).\
+            count()
         
-        # Check for potential issues
+        # Identify potential issues
         issues = []
         has_issues = False
         
-        if orphaned_images > 0:
-            issues.append({
-                "severity": "warning",
-                "message": f"Found {orphaned_images} images not associated with any story"
-            })
-            has_issues = True
-        
         if empty_stories > 0:
-            issues.append({
-                "severity": "warning",
-                "message": f"Found {empty_stories} stories without any images"
-            })
             has_issues = True
-        
-        # Look for potential data inconsistencies
-        characters_without_names = ImageAnalysis.query.filter_by(image_type='character').filter(
-            (ImageAnalysis.character_name == None) | (ImageAnalysis.character_name == '')
-        ).count()
-        
-        if characters_without_names > 0:
             issues.append({
-                "severity": "warning",
-                "message": f"Found {characters_without_names} character images without names"
+                'severity': 'warning',
+                'message': f'Found {empty_stories} stories with no images attached'
             })
-            has_issues = True
         
+        if orphaned_images > 0:
+            has_issues = True
+            issues.append({
+                'severity': 'info',
+                'message': f'Found {orphaned_images} images not used in any story'
+            })
+        
+        # Check for duplicate image URLs
+        duplicate_urls = db.session.query(ImageAnalysis.image_url).\
+            group_by(ImageAnalysis.image_url).\
+            having(db.func.count(ImageAnalysis.id) > 1).\
+            count()
+        
+        if duplicate_urls > 0:
+            has_issues = True
+            issues.append({
+                'severity': 'warning',
+                'message': f'Found {duplicate_urls} duplicate image URLs in the database'
+            })
+        
+        # Return health check results
         return jsonify({
-            "success": True,
-            "stats": {
-                "image_count": image_count,
-                "character_count": character_count,
-                "scene_count": scene_count,
-                "story_count": story_count,
-                "orphaned_images": orphaned_images,
-                "empty_stories": empty_stories
+            'success': True,
+            'stats': {
+                'image_count': image_count,
+                'character_count': character_count,
+                'scene_count': scene_count,
+                'story_count': story_count,
+                'orphaned_images': orphaned_images,
+                'empty_stories': empty_stories
             },
-            "issues": issues,
-            "has_issues": has_issues
+            'has_issues': has_issues,
+            'issues': issues
         })
-    
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+        logger.error(f"API error during health check: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/api/db/delete-all-images', methods=['POST'])
-def delete_all_images():
-    """Delete all images"""
+def api_delete_all_images():
+    """API endpoint to delete all images"""
     try:
-        # First remove all story-image associations
-        db.session.execute(story_images.delete())
+        # First remove all image associations from stories
+        for story in StoryGeneration.query.all():
+            story.images = []
         
         # Then delete all images
         ImageAnalysis.query.delete()
-        
         db.session.commit()
         
-        return jsonify({"success": True, "message": "All images deleted successfully"})
+        return jsonify({
+            'success': True,
+            'message': 'All image records deleted successfully'
+        })
     except Exception as e:
-        db.session.rollback()
-        return jsonify({"success": False, "error": str(e)})
+        logger.error(f"API error deleting all images: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/api/db/delete-all-stories', methods=['POST'])
-def delete_all_stories():
-    """Delete all stories"""
+def api_delete_all_stories():
+    """API endpoint to delete all stories"""
     try:
-        # First remove all story-image associations
-        db.session.execute(story_images.delete())
-        
-        # Then delete all stories
         StoryGeneration.query.delete()
-        
         db.session.commit()
         
-        return jsonify({"success": True, "message": "All stories deleted successfully"})
+        return jsonify({
+            'success': True,
+            'message': 'All story records deleted successfully'
+        })
     except Exception as e:
-        db.session.rollback()
-        return jsonify({"success": False, "error": str(e)})
+        logger.error(f"API error deleting all stories: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
-# Create database tables
-@app.before_first_request
-def create_tables():
-    db.create_all()
+@app.route('/api/images/characters')
+def api_get_characters():
+    """API endpoint to get all character images"""
+    try:
+        characters = ImageAnalysis.query.filter_by(image_type='character').all()
+        character_list = []
+        
+        for char in characters:
+            character_list.append({
+                'id': char.id,
+                'name': char.character_name,
+                'image_url': char.image_url,
+                'character_role': char.character_role,
+                'character_traits': char.character_traits,
+                'plot_lines': char.plot_lines
+            })
+        
+        return jsonify({
+            'success': True,
+            'characters': character_list
+        })
+    except Exception as e:
+        logger.error(f"API error getting characters: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
-# Run the app
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+@app.route('/api/images/scenes')
+def api_get_scenes():
+    """API endpoint to get all scene images"""
+    try:
+        scenes = ImageAnalysis.query.filter_by(image_type='scene').all()
+        scene_list = []
+        
+        for scene in scenes:
+            scene_list.append({
+                'id': scene.id,
+                'setting': scene.setting,
+                'image_url': scene.image_url,
+                'scene_type': scene.scene_type,
+                'dramatic_moments': scene.dramatic_moments
+            })
+        
+        return jsonify({
+            'success': True,
+            'scenes': scene_list
+        })
+    except Exception as e:
+        logger.error(f"API error getting scenes: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# Entry point - this is necessary for gunicorn
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
