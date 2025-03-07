@@ -351,8 +351,23 @@ def save_analysis():
         # Extract image metadata
         metadata = analysis.get('image_metadata', {})
 
-        # Determine if it's a character or scene based on the presence of a 'character' key
-        is_character = 'character' in analysis
+        # Determine if it's a character or scene based on character indicators
+        is_character = False
+        
+        # Check for nested character object
+        if 'character' in analysis and isinstance(analysis['character'], dict):
+            is_character = True
+            logger.debug("Detected character from nested 'character' object")
+        # Or check for character-specific fields at the top level
+        elif any(key in analysis for key in ['character_name', 'character_traits', 'plot_lines']):
+            is_character = True
+            logger.debug("Detected character from top-level character fields")
+        # Or check for character-specific role field
+        elif 'role' in analysis and analysis['role'] in ['hero', 'villain', 'neutral']:
+            is_character = True
+            logger.debug("Detected character from role field")
+            
+        logger.info(f"Image classified as: {'character' if is_character else 'scene'}")
 
         # Extract character details if this is a character image
         character_data = analysis.get('character', {})
