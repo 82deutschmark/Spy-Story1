@@ -191,13 +191,26 @@ Even if the image appears to be a character, treat it as a scene and describe th
         except requests.exceptions.RequestException as req_err:
             logger.error(f"Error downloading image: {str(req_err)}")
             raise Exception(f"Failed to download image from {image_url}: {str(req_err)}")
-        result = json.loads(response.choices[0].message.content)
-
-        # Add image metadata to the result
-        result["image_metadata"] = image_metadata
-
-        logger.debug("Successfully analyzed artwork")
-        return result
+        # Log the raw response content for debugging
+        logger.debug(f"OpenAI raw response: {response.choices[0].message.content}")
+        
+        try:
+            result = json.loads(response.choices[0].message.content)
+            
+            # Add image metadata to the result
+            result["image_metadata"] = image_metadata
+            
+            logger.debug("Successfully analyzed artwork")
+            return result
+        except json.JSONDecodeError as json_err:
+            logger.error(f"JSON parse error: {json_err}. Raw content: {response.choices[0].message.content}")
+            # Try to recover by returning a basic structure if parsing fails
+            fallback_result = {
+                "name" if force_type == "character" else "scene_type": "Unknown",
+                "description": response.choices[0].message.content,
+                "image_metadata": image_metadata
+            }
+            return fallback_result
     except requests.exceptions.RequestException as req_err:
         logger.error(f"Error downloading image: {str(req_err)}")
         raise Exception(f"Failed to download image: {str(req_err)}")
