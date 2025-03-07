@@ -1,7 +1,7 @@
 import os
 import logging
 import json
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 from dotenv import load_dotenv
 from services.openai_service import analyze_artwork, generate_image_description
 from services.story_maker import generate_story, get_story_options
@@ -236,6 +236,12 @@ def generate_story_route():
 
         # Parse the story data
         story_data = json.loads(result['story'])
+        
+        # For form submissions, redirect to storyboard
+        if request.method == 'POST' and request.content_type and 'form' in request.content_type:
+            return redirect(url_for('storyboard', story_id=story.id))
+            
+        # For AJAX requests, return JSON
         return jsonify({
             'success': True,
             'story': story_data,
