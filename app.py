@@ -7,6 +7,8 @@ from services.openai_service import analyze_artwork, generate_image_description
 from services.story_maker import generate_story, get_story_options
 from database import db
 from models import AIInstruction, ImageAnalysis, StoryGeneration
+from flask_cors import CORS # Added import
+from api.unity_routes import unity_api # Added import
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -22,6 +24,16 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_pre_ping": True,
 }
 db.init_app(app)
+
+# CORS configuration
+CORS(app, resources={
+    r"/api/unity/*": {
+        "origins": "*",  # In production, replace with specific Unity client origin
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
+
 
 # Create database tables
 with app.app_context():
@@ -694,6 +706,8 @@ def db_health_check():
         logger.error(f"Error performing health check: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
+app.register_blueprint(unity_api, url_prefix='/api/unity') # Blueprint registration
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

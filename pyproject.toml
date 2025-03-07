@@ -14,4 +14,5 @@ dependencies = [
     "gunicorn>=23.0.0",
     "sqlalchemy>=2.0.38",
     "pillow>=11.1.0",
+    "flask-cors>=5.0.1",
 ]
