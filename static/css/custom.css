@@ -272,16 +272,33 @@ body {
 .character-select-card {
     height: 100%;
     transition: transform 0.2s;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .character-select-card:hover {
     transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
 .character-select-card img {
-    height: 220px;
+    height: 200px;
     object-fit: cover;
     width: 100%;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.characters-grid {
+    padding: 10px;
+}
+
+@media (max-width: 767px) {
+    .row-cols-sm-2 > .col {
+        flex: 0 0 auto;
+        width: 50%;
+    }
 }
 
 .form-control:focus {

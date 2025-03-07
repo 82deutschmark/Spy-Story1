@@ -145,11 +145,11 @@ def generate_story_route():
             'is_main': True
         }
 
-        # Generate two random supporting characters
+        # Generate three random supporting characters
         supporting_chars = ImageAnalysis.query.filter(
             ImageAnalysis.id != main_character_img.id,
             ImageAnalysis.image_type == 'character'
-        ).order_by(db.func.random()).limit(2).all()
+        ).order_by(db.func.random()).limit(3).all()
 
         other_characters = []
         for i, img in enumerate(supporting_chars):
