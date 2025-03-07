@@ -96,25 +96,28 @@ def index():
 
 @app.route('/debug')
 def debug():
-    """Debug page with image analysis tool and database view"""
-    # Get recent image analyses
+    """Debug tool for image analysis and database management"""
     recent_images = ImageAnalysis.query.order_by(ImageAnalysis.created_at.desc()).limit(10).all()
     recent_stories = StoryGeneration.query.order_by(StoryGeneration.created_at.desc()).limit(10).all()
 
-    # Database statistics
+    # Get database stats for the health check tab
     image_count = ImageAnalysis.query.count()
     character_count = ImageAnalysis.query.filter_by(image_type='character').count()
     scene_count = ImageAnalysis.query.filter_by(image_type='scene').count()
     story_count = StoryGeneration.query.count()
 
-    # Orphaned images (not associated with any story)
-    orphaned_images = ImageAnalysis.query.filter(~ImageAnalysis.stories.any()).count()
+    # Count orphaned images (not connected to any story)
+    orphaned_images = db.session.query(ImageAnalysis).outerjoin(
+        story_images, ImageAnalysis.id == story_images.c.image_id
+    ).filter(story_images.c.story_id == None).count()
 
-    # Empty stories (no generated content)
-    empty_stories = StoryGeneration.query.filter(StoryGeneration.generated_story.is_(None)).count()
+    # Count empty stories (not connected to any images)
+    empty_stories = db.session.query(StoryGeneration).outerjoin(
+        story_images, StoryGeneration.id == story_images.c.story_id
+    ).filter(story_images.c.image_id == None).count()
 
     return render_template(
-        'debug.html',
+        'debug.html', 
         recent_images=recent_images,
         recent_stories=recent_stories,
         image_count=image_count,
@@ -124,6 +127,11 @@ def debug():
         orphaned_images=orphaned_images,
         empty_stories=empty_stories
     )
+
+@app.route('/story-builder')
+def story_builder():
+    """Advanced story branching builder interface"""
+    return render_template('story_builder.html')
 
 
 @app.route('/storyboard/<int:story_id>')
