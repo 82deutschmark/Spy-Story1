@@ -647,7 +647,7 @@ def db_health_check():
                 ImageAnalysis.image_type == 'character',
                 db.or_(
                     ImageAnalysis.plot_lines.is_(None),
-                    ImageAnalysis.plot_lines == []
+                    ImageAnalysis.plot_lines == db.cast('[]', db.JSONB)
                 )
             )
         ).count()
