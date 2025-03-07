@@ -144,76 +144,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     // Add save confirmation button if not already saved
                     if (!data.saved_to_db) {
-                        const saveDiv = document.createElement('div');
-                        saveDiv.className = 'text-center mt-3';
-                        saveDiv.innerHTML = `
-                            <div class="alert alert-info mb-3">
-                                <i class="fas fa-info-circle me-2"></i>
-                                Please review the analysis results above before saving to the database.
-                            </div>
-                            <button class="btn btn-success" id="saveAnalysisBtn">
-                                <i class="fas fa-save me-2"></i>Save to Database
-                            </button>
-                            <button class="btn btn-outline-secondary ms-2" id="rejectAnalysisBtn">
-                                <i class="fas fa-times me-2"></i>Reject Analysis
-                            </button>
-                        `;
-                        resultDiv.appendChild(saveDiv);
-
-                        // Add click handler for save button
-                        document.getElementById('saveAnalysisBtn').addEventListener('click', function() {
-                            this.disabled = true;
-                            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
-                            document.getElementById('rejectAnalysisBtn').disabled = true;
-
-                            // Send the analysis to be saved
-                            fetch('/save_analysis', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                },
-                                body: JSON.stringify({
-                                    image_url: data.image_url,
-                                    analysis: data.analysis
-                                })
-                            })
-                            .then(response => response.json())
-                            .then(saveData => {
-                                if (saveData.success) {
-                                    this.innerHTML = '<i class="fas fa-check me-2"></i>Saved';
-                                    showToast('Success', 'Analysis saved to database.');
-
-                                    // Don't automatically refresh images table after saving
-                                    // Let the user manually refresh when they're ready
-
-                                } else {
-                                    this.disabled = false;
-                                    this.innerHTML = '<i class="fas fa-save me-2"></i>Save to Database';
-                                    showToast('Error', saveData.error || 'Error saving analysis.');
-                                }
-                            })
-                            .catch(error => {
-                                this.disabled = false;
-                                this.innerHTML = '<i class="fas fa-save me-2"></i>Save to Database';
-                                document.getElementById('rejectAnalysisBtn').disabled = false;
-                                showToast('Error', error.message);
-                            });
-                        });
-
-                        // Add click handler for reject button
-                        document.getElementById('rejectAnalysisBtn').addEventListener('click', function() {
-                            // Remove the save confirmation area
-                            saveDiv.remove();
-                            showToast('Info', 'Analysis rejected. You can try analyzing the image again.');
-                        });
+                        // Create save buttons for the analysis
+                        createSaveButtons(data);
                     }
                     generatedContent.textContent = JSON.stringify(data.analysis, null, 2);
                     showToast('Success', 'Image analysis completed. Please review results before saving to database.');
-
-                    // Refresh images table - REMOVED AUTOMATIC REFRESH
-                    // if (refreshImagesBtn) {
-                    //     refreshImagesBtn.click();
-                    // }
                 } else {
                     throw new Error(data.error || 'An error occurred during analysis.');
                 }
@@ -226,6 +161,84 @@ document.addEventListener('DOMContentLoaded', function() {
                 generateBtn.disabled = false;
                 generateBtn.innerHTML = '<i class="fas fa-magic me-2"></i>Analyze Image';
             });
+        });
+    }
+
+    // Function to create save and reject buttons
+    function createSaveButtons(data) {
+        // Remove any existing save buttons
+        const existingSaveArea = document.getElementById('imageSaveArea');
+        existingSaveArea.innerHTML = '';
+
+        // Create a div for the save and reject buttons
+        const saveDiv = document.createElement('div');
+        saveDiv.className = 'mt-3 d-flex gap-2';
+
+        // Create save button
+        const saveButton = document.createElement('button');
+        saveButton.className = 'btn btn-success';
+        saveButton.innerHTML = '<i class="fas fa-save me-2"></i>Save to Database';
+        saveDiv.appendChild(saveButton);
+
+        // Create reject button
+        const rejectButton = document.createElement('button');
+        rejectButton.className = 'btn btn-danger';
+        rejectButton.innerHTML = '<i class="fas fa-times me-2"></i>Reject Analysis';
+        rejectButton.id = 'rejectAnalysisBtn';
+        saveDiv.appendChild(rejectButton);
+
+        // Add the save area to the page
+        existingSaveArea.appendChild(saveDiv);
+
+        // Add click handler for save button
+        saveButton.addEventListener('click', function() {
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+            document.getElementById('rejectAnalysisBtn').disabled = true;
+
+            // Prepare data to save
+            const saveData = {
+                image_url: data.image_url,
+                analysis: data.analysis
+            };
+
+            // Send save request
+            fetch('/save_analysis', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(saveData)
+            })
+            .then(response => response.json())
+            .then(saveData => {
+                if (saveData.success) {
+                    this.innerHTML = '<i class="fas fa-check me-2"></i>Saved';
+                    this.className = 'btn btn-outline-success';
+                    document.getElementById('rejectAnalysisBtn').remove();
+                    showToast('Success', 'Analysis saved to database.');
+
+                    // Refresh the database stats
+                    refreshDatabaseStats();
+                } else {
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-save me-2"></i>Save to Database';
+                    showToast('Error', saveData.error || 'Error saving analysis.');
+                }
+            })
+            .catch(error => {
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-save me-2"></i>Save to Database';
+                document.getElementById('rejectAnalysisBtn').disabled = false;
+                showToast('Error', error.message);
+            });
+        });
+
+        // Add click handler for reject button
+        rejectButton.addEventListener('click', function() {
+            // Remove the save confirmation area
+            saveDiv.remove();
+            showToast('Info', 'Analysis rejected. You can try analyzing the image again.');
         });
     }
 
@@ -384,3 +397,7 @@ document.addEventListener('DOMContentLoaded', function() {
         runHealthCheck();
     }
 });
+
+function refreshDatabaseStats() {
+    runHealthCheck();
+}
