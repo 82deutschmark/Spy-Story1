@@ -99,7 +99,7 @@ class StoryNode(db.Model):
     # Relationships
     parent_node = relationship('StoryNode', remote_side=[id], backref='child_nodes')
     image = relationship('ImageAnalysis', back_populates='story_nodes')
-    choices = relationship('StoryChoice', back_populates='node', cascade='all, delete-orphan')
+    choices = relationship('StoryChoice', foreign_keys='StoryChoice.node_id', back_populates='node', cascade='all, delete-orphan')
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.now)
@@ -123,7 +123,7 @@ class StoryChoice(db.Model):
     
     # Relationships
     node = relationship('StoryNode', foreign_keys=[node_id], back_populates='choices')
-    next_node = relationship('StoryNode', foreign_keys=[next_node_id])
+    next_node = relationship('StoryNode', foreign_keys=[next_node_id], backref='targeting_choices')
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.now)
