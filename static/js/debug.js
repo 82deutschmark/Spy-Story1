@@ -161,7 +161,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         resultDiv.appendChild(saveDiv);
 
                         // Add click handler for save button
-                        document.getElementById('saveAnalysisBtn').addEventListener('click', function() {
+                        const saveAnalysisBtn = document.getElementById('saveAnalysisBtn');
+                        saveAnalysisBtn.addEventListener('click', function() {
                             this.disabled = true;
                             this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
                             document.getElementById('rejectAnalysisBtn').disabled = true;
@@ -187,10 +188,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 if (saveData.success) {
                                     this.innerHTML = '<i class="fas fa-check me-2"></i>Saved';
                                     showToast('Success', 'Analysis saved to database.');
-
-                                    // Don't automatically refresh images table after saving
-                                    // Let the user manually refresh when they're ready
-
                                 } else {
                                     this.disabled = false;
                                     this.innerHTML = '<i class="fas fa-save me-2"></i>Save to Database';
@@ -207,19 +204,59 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
 
                         // Add click handler for reject button
-                        document.getElementById('rejectAnalysisBtn').addEventListener('click', function() {
-                            // Remove the save confirmation area
-                            saveDiv.remove();
-                            showToast('Info', 'Analysis rejected. You can try analyzing the image again.');
+                        const rejectAnalysisBtn = document.getElementById('rejectAnalysisBtn');
+                        rejectAnalysisBtn.addEventListener('click', function() {
+                            const imageUrl = formData.get('image_url');
+                            const resultArea = document.getElementById('analysis-result'); // Assuming this id exists
+                            resultArea.innerHTML = '<div class="alert alert-info">Analyzing image as a character...</div>';
+                            generatedContent.innerHTML = '';
+                            saveAnalysisBtn.style.display = 'none';
+                            this.style.display = 'none';
+
+                            fetch('/generate', {
+                                method: 'POST',
+                                body: new FormData(imageForm),
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                // Adding force_character parameter
+                                body: JSON.stringify({ image_url: imageUrl, force_character: true })
+                            })
+                            .then(response => response.json())
+                            .then(response => {
+                                if (response.success) {
+                                    resultArea.innerHTML = `
+                                        <div class="card mb-4">
+                                            <div class="card-header bg-dark text-white">
+                                                Analysis Result
+                                            </div>
+                                            <div class="card-body">
+                                                <pre>${response.description}</pre>
+                                            </div>
+                                        </div>
+                                    `;
+                                    generatedContent.textContent = JSON.stringify(response.analysis, null, 2);
+                                    saveAnalysisBtn.style.display = 'block';
+                                    this.style.display = 'block';
+                                } else {
+                                    resultArea.innerHTML = `
+                                        <div class="alert alert-danger">
+                                            Error: ${response.error}
+                                        </div>
+                                    `;
+                                }
+                            })
+                            .catch(error => {
+                                resultArea.innerHTML = `
+                                    <div class="alert alert-danger">
+                                        Error: ${error}
+                                    </div>
+                                `;
+                            });
                         });
                     }
                     generatedContent.textContent = JSON.stringify(data.analysis, null, 2);
                     showToast('Success', 'Image analysis completed. Please review results before saving to database.');
-
-                    // Refresh images table - REMOVED AUTOMATIC REFRESH
-                    // if (refreshImagesBtn) {
-                    //     refreshImagesBtn.click();
-                    // }
                 } else {
                     throw new Error(data.error || 'An error occurred during analysis.');
                 }

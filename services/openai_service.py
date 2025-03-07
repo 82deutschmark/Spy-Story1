@@ -18,13 +18,13 @@ if not api_key:
 # do not change this unless explicitly requested by the user
 client = OpenAI(api_key=api_key)
 
-def analyze_artwork(image_url):
+def analyze_artwork(image_url, force_character=False):
     """Analyze the artwork using OpenAI's vision model"""
     if not api_key:
         raise Exception("OpenAI API key not found. Please add it to your Replit Secrets.")
     
     try:
-        logger.debug(f"Downloading artwork from URL: {image_url}")
+        logger.debug(f"Downloading artwork from URL: {image_url}, force_character: {force_character}")
         
         # Set sophisticated user agent to avoid possible blocks
         headers = {
@@ -81,6 +81,14 @@ def analyze_artwork(image_url):
             
             logger.debug(f"Successfully downloaded and encoded image. Analyzing artwork...")
             
+            # Set force character instructions if needed
+            force_character_instructions = ""
+            if force_character:
+                force_character_instructions = """IMPORTANT: This image should be analyzed as a CHARACTER, not a scene. 
+                Even if it appears to be a scene or location, treat it as a character in the story universe.
+                Your response MUST include character details (name, role, character_traits, plot_lines, style) 
+                and should be structured as a character object with these fields."""
+            
             # Call OpenAI API with the base64 encoded image
             response = client.chat.completions.create(
                 model="gpt-4o",
@@ -121,6 +129,8 @@ Analyze the image and determine:
    - Describe the setting in detail (in 'setting' and 'setting_description' fields)
    - Suggest how this scene fits into the story (in 'story_fit' field)
    - Potential dramatic moments that could occur (in 'dramatic_moments' array)
+
+${force_character_instructions}
 
 Respond in JSON format with the appropriate keys based on the image type. Use snake_case for all field names (e.g., 'scene_type', 'story_fit', 'dramatic_moments')."""
                     },
