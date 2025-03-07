@@ -43,29 +43,20 @@
                 <!-- Story Content -->
                 <div class="card shadow-lg">
                     <div class="card-body">
-                        <h2 class="card-title text-center mb-4">{{ story_data.title }}</h2>
+                        <h2 class="card-title text-center mb-4">{{ story.title }}</h2>
                         <div class="story-content">
-                            {{ story_data.story | safe }}
+                            {{ story.story | safe }}
                         </div>
 
                         <!-- Choices -->
                         <div class="choices-container">
-                            {% for choice in story_data.choices %}
+                            {% for choice in story.choices %}
                             <form action="{{ url_for('generate_story_route') }}" method="POST" class="choice-form">
                                 <input type="hidden" name="previous_choice" value="{{ choice.text }}">
-                                <input type="hidden" name="story_context" value="{{ story_data.story }}">
-                                
-                                <!-- Re-use the same story parameters -->
-                                <input type="hidden" name="conflict" value="{{ story.primary_conflict }}">
-                                <input type="hidden" name="setting" value="{{ story.setting }}">
-                                <input type="hidden" name="narrative_style" value="{{ story.narrative_style }}">
-                                <input type="hidden" name="mood" value="{{ story.mood }}">
-                                
-                                <!-- Pass the selected character -->
+                                <input type="hidden" name="story_context" value="{{ story.story }}">
                                 {% for image in character_images %}
                                 <input type="hidden" name="selected_images[]" value="{{ image.id }}">
                                 {% endfor %}
-                                
                                 <button type="submit" class="choice-btn w-100">
                                     <div class="choice-text">{{ choice.text }}</div>
                                     <div class="consequence">{{ choice.consequence }}</div>

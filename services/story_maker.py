@@ -1,9 +1,8 @@
-
 import os
 import json
 import logging
+from typing import Dict, List, Tuple, Optional, Any
 from openai import OpenAI
-from typing import List, Dict, Any, Optional
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -11,239 +10,165 @@ logger = logging.getLogger(__name__)
 # Get OpenAI API key from environment variables
 api_key = os.environ.get("OPENAI_API_KEY")
 if not api_key:
-    logger.warning("OpenAI API key not found. Please add it to your environment variables.")
+    logger.warning("OpenAI API key not found in environment variables")
 
 # Initialize OpenAI client
 client = OpenAI(api_key=api_key)
 
-def get_story_options(images: List) -> Dict[str, List[str]]:
-    """
-    Generate story options (conflicts, settings, styles, moods) based on character/scene images
-    
-    Args:
-        images: List of ImageAnalysis objects
-    
-    Returns:
-        Dict with lists of options for conflicts, settings, narrative_styles, and moods
-    """
-    if not api_key:
-        logger.error("OpenAI API key not found. Cannot generate story options.")
-        return {}
-    
-    try:
-        # Extract character information from images
-        characters_info = []
-        scenes_info = []
-        
-        for img in images:
-            if img.image_type == 'character':
-                character_data = {
-                    'name': img.character_name,
-                    'role': img.character_role,
-                    'traits': img.character_traits,
-                    'plot_lines': img.plot_lines
-                }
-                characters_info.append(character_data)
-            elif img.image_type == 'scene':
-                scene_data = {
-                    'type': img.scene_type,
-                    'setting': img.setting,
-                    'dramatic_moments': img.dramatic_moments
-                }
-                scenes_info.append(scene_data)
-        
-        # Create prompt
-        prompt = f"""
-        Generate story options for a Choose Your Own Adventure story based on the following characters and scenes:
-        
-        Characters:
-        {json.dumps(characters_info, indent=2)}
-        
-        Scenes:
-        {json.dumps(scenes_info, indent=2)}
-        
-        Provide JSON with the following lists:
-        1. conflicts: 5 potential main conflicts for the story
-        2. settings: 5 potential settings that would work well
-        3. narrative_styles: 5 potential narrative styles (e.g., humorous, dark, whimsical)
-        4. moods: 5 potential moods for the story
-        
-        Each item in the lists should be a string.
-        """
-        
-        # Call OpenAI API
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "You are a creative writing assistant specializing in interactive fiction."},
-                {"role": "user", "content": prompt}
-            ],
-            response_format={"type": "json_object"}
-        )
-        
-        # Parse result
-        result = json.loads(response.choices[0].message.content)
-        return result
-        
-    except Exception as e:
-        logger.error(f"Error generating story options: {str(e)}")
-        return {}
+# Default story options
+STORY_OPTIONS = {
+    "conflicts": [
+        ("🐿️", "Squirrel gang's mischief"),
+        ("🧙‍♂️", "Rat wizard's devious plots"),
+        ("🦃", "Turkey's clumsy adventures"),
+        ("🐔", "Chicken's clever conspiracies")
+    ],
+    "settings": [
+        ("🌳", "Deep Forest"),
+        ("🌾", "Sunny Pasture"),
+        ("🏡", "Homestead"),
+        ("🌲", "Mysterious Woods")
+    ],
+    "narrative_styles": [
+        ("😎", "GenZ fresh style"),
+        ("✌️", "Old hippie 1960s vibe"),
+        ("🤘", "Mix of both")
+    ],
+    "moods": [
+        ("😄", "Joyful and playful"),
+        ("😲", "Thrilling and mysterious"),
+        ("😎", "Cool and laid-back"),
+        ("😂", "Funny and quirky")
+    ]
+}
 
-def generate_story(images: List, conflict: str, setting: str, narrative_style: str, mood: str, 
-                previous_choice: Optional[str] = None, story_context: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Generate a story segment based on images and parameters
-    
-    Args:
-        images: List of ImageAnalysis objects
-        conflict: The primary conflict of the story
-        setting: The setting of the story
-        narrative_style: The narrative style
-        mood: The emotional tone/mood
-        previous_choice: If continuing a story, the previous choice made
-        story_context: If continuing a story, the previous story content
-    
-    Returns:
-        Dict containing story segment and metadata
-    """
+def get_story_options() -> Dict[str, List[Tuple[str, str]]]:
+    """Return available story options for UI display"""
+    return STORY_OPTIONS
+
+def generate_story(
+    conflict: str,
+    setting: str,
+    narrative_style: str,
+    mood: str,
+    character_info: Optional[Dict[str, Any]] = None,
+    custom_conflict: Optional[str] = None,
+    custom_setting: Optional[str] = None,
+    custom_narrative: Optional[str] = None,
+    custom_mood: Optional[str] = None,
+    previous_choice: Optional[str] = None,
+    story_context: Optional[str] = None
+) -> Dict[str, Any]:
+    """Generate a story based on selected or custom parameters and character info"""
     if not api_key:
-        logger.error("OpenAI API key not found. Cannot generate story.")
-        return {}
-    
+        raise ValueError("OpenAI API key not found. Please add it to your environment variables.")
+
+    # Use custom values if provided, otherwise use selected options
+    final_conflict = custom_conflict or conflict
+    final_setting = custom_setting or setting
+    final_narrative = custom_narrative or narrative_style
+    final_mood = custom_mood or mood
+
+    # Build character information for the prompt
+    selected_character_prompt = ""
+    if character_info and character_info.get('name'):
+        selected_character_prompt = (
+            f"\nSelected Character to Feature:\n"
+            f"Name: {character_info['name']}\n"
+            f"Role: {character_info.get('role', 'guest')}\n"
+            f"Traits: {', '.join(character_info.get('character_traits', []))}\n"
+            f"Visual Description: {character_info.get('style', '')}\n"
+            f"Suggested Plot Lines:\n"
+        )
+        for plot in character_info.get('plot_lines', []):
+            selected_character_prompt += f"- {plot}\n"
+
+    # Add context from previous choices if available
+    context_prompt = ""
+    if story_context and previous_choice:
+        context_prompt = (
+            f"\nPrevious story context: {story_context}\n"
+            f"Player chose: {previous_choice}\n"
+            "Continue the story based on this choice, maintaining consistency with previous events."
+        )
+
+    # Core story universe description
+    universe_prompt = (
+        "This story takes place in Uncle Mark's forest farm, where animals have distinct personalities "
+        "and adventures happen daily. The main cast includes:\n\n"
+        "Core Characters:\n"
+        "- Pawel and Pawleen: Two Yorkshire terriers who protect the farm. Pawel is impulsive but brave, "
+        "while Pawleen is thoughtful and clever.\n"
+        "- Big Red: The not-so-bright rooster who leads the chicken coop\n"
+        "- The Clever Hens: Birdadette, Henrietta, and others who actually run things\n"
+        "- The White Turkeys: Well-meaning but prone to getting into silly situations\n\n"
+        "Antagonists:\n"
+        "- Evil Squirrel Gangs: Think they're superior to other animals, bully others, and steal food\n"
+        "- The Rat Wizard: Lives in the woods, steals eggs and vegetables for his potions, enchants other rodents to do his bidding\n"
+        "- Various mice and moles: Forced by squirrels to help with their schemes\n"
+    )
+
+    # Construct the main prompt
+    prompt = (
+        f"Primary Conflict: {final_conflict}\n"
+        f"Setting: {final_setting}\n"
+        f"Narrative Style: {final_narrative}\n"
+        f"Mood: {final_mood}\n\n"
+        f"{universe_prompt}\n"
+        f"{selected_character_prompt}\n"
+        f"{context_prompt}\n\n"
+        "Create an engaging story segment that:\n"
+        "1. Features Pawel and/or Pawleen as the main story drivers\n"
+        "2. Introduces the selected character (if provided) into the farm's ongoing adventures\n"
+        "3. Maintains the established personalities and relationships\n"
+        "4. Provides exactly two meaningful choice options that:\n"
+        "   - Lead to different potential outcomes\n"
+        "   - Stay true to the characters' established traits\n"
+        "   - Avoid dead ends or quick conclusions\n"
+        "5. Include clear consequences for each choice\n\n"
+        "Format the response as a JSON object with:\n"
+        "{\n"
+        "  'title': 'Episode title',\n"
+        "  'story': 'The story text',\n"
+        "  'choices': [\n"
+        "    {'text': 'First choice', 'consequence': 'Brief outcome hint'},\n"
+        "    {'text': 'Second choice', 'consequence': 'Brief outcome hint'}\n"
+        "  ],\n"
+        "  'characters': ['List of character names featured']\n"
+        "}"
+    )
+
     try:
-        # Extract character information from images
-        characters_info = []
-        scenes_info = []
-        
-        for img in images:
-            if img.image_type == 'character':
-                character_data = {
-                    'name': img.character_name,
-                    'role': img.character_role,
-                    'traits': img.character_traits,
-                    'plot_lines': img.plot_lines
-                }
-                characters_info.append(character_data)
-            elif img.image_type == 'scene':
-                scene_data = {
-                    'type': img.scene_type,
-                    'setting': img.setting,
-                    'dramatic_moments': img.dramatic_moments
-                }
-                scenes_info.append(scene_data)
-        
-        # Determine if this is a new story or continuation
-        is_continuation = previous_choice is not None and story_context is not None
-        
-        # Create prompt
-        if is_continuation:
-            prompt = f"""
-            Continue the Choose Your Own Adventure story based on the following choice and context:
-            
-            Previous story: {story_context}
-            
-            User's choice: {previous_choice}
-            
-            Characters:
-            {json.dumps(characters_info, indent=2)}
-            
-            Scenes:
-            {json.dumps(scenes_info, indent=2)}
-            
-            Story parameters:
-            - Conflict: {conflict}
-            - Setting: {setting}
-            - Narrative style: {narrative_style}
-            - Mood: {mood}
-            
-            Generate the next segment of the story that follows from the user's choice. Include 2-3 new choices at the end.
-            
-            Respond with a JSON object in this format:
-            {{
-                "title": "The story segment title",
-                "story": "The story text with rich description and character interactions (minimum 300 words)",
-                "choices": [
-                    {{
-                        "text": "Choice 1 text",
-                        "consequence": "Brief hint about what this choice leads to"
-                    }},
-                    {{
-                        "text": "Choice 2 text",
-                        "consequence": "Brief hint about what this choice leads to"
-                    }},
-                    {{
-                        "text": "Choice 3 text",
-                        "consequence": "Brief hint about what this choice leads to"
-                    }}
-                ]
-            }}
-            """
-        else:
-            # Starting a new story
-            prompt = f"""
-            Generate a Choose Your Own Adventure story opening based on the following:
-            
-            Characters:
-            {json.dumps(characters_info, indent=2)}
-            
-            Scenes:
-            {json.dumps(scenes_info, indent=2)}
-            
-            Story parameters:
-            - Conflict: {conflict}
-            - Setting: {setting}
-            - Narrative style: {narrative_style}
-            - Mood: {mood}
-            
-            Create an engaging story opening that introduces the characters and setting, and presents the initial conflict.
-            Include 2-3 choices for the reader at the end.
-            
-            Respond with a JSON object in this format:
-            {{
-                "title": "The story title",
-                "story": "The story opening with rich description and character introductions (minimum 300 words)",
-                "choices": [
-                    {{
-                        "text": "Choice 1 text",
-                        "consequence": "Brief hint about what this choice leads to"
-                    }},
-                    {{
-                        "text": "Choice 2 text",
-                        "consequence": "Brief hint about what this choice leads to"
-                    }},
-                    {{
-                        "text": "Choice 3 text",
-                        "consequence": "Brief hint about what this choice leads to"
-                    }}
-                ]
-            }}
-            """
-        
-        # Call OpenAI API
+        # Note: gpt-4o is the newest model, released May 13, 2024.
+        # do not change this unless explicitly requested by the user
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "You are a creative writing assistant specializing in interactive fiction."},
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a master storyteller creating stories set in Uncle Mark's forest farm. "
+                        "Your stories feature the adventures of the farm's animal residents, "
+                        "especially Pawel and Pawleen the Yorkshire terriers. Keep the tone playful and engaging, "
+                        "with clear moral lessons about friendship, courage, and standing up to bullies."
+                    )
+                },
                 {"role": "user", "content": prompt}
             ],
+            temperature=0.8,
             response_format={"type": "json_object"}
         )
-        
-        # Parse result
-        story_data = response.choices[0].message.content
-        
-        # Return the result with metadata
+
+        # Parse and return the generated story
+        result = json.loads(response.choices[0].message.content)
         return {
-            'story': story_data,
-            'is_continuation': is_continuation,
-            'parameters': {
-                'conflict': conflict,
-                'setting': setting,
-                'narrative_style': narrative_style,
-                'mood': mood
-            }
+            "story": json.dumps(result),  # Convert dict to JSON string for database storage
+            "conflict": final_conflict,
+            "setting": final_setting,
+            "narrative_style": final_narrative,
+            "mood": final_mood
         }
-        
+
     except Exception as e:
         logger.error(f"Error generating story: {str(e)}")
-        return {}
+        raise Exception(f"Failed to generate story: {str(e)}")
