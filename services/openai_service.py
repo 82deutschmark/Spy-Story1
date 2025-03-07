@@ -139,11 +139,11 @@ Even if the image appears to be a scene, treat it as a character and create a ch
 """
             elif force_type == 'scene':
                 user_message = f"""Analyze the image AS A SCENE regardless of what's shown:
-   - Determine the scene type (narrative, choice moment, action, etc.)
+   - Determine the scene type (narrative, choice moment, action, etc.) - include as 'sceneType'
    - Describe the setting in detail (include in 'setting' field)
    - Provide a more detailed setting description in 'setting_description' field
-   - Suggest how this scene fits into the story
-   - Potential dramatic moments that could occur
+   - Suggest how this scene fits into the story (include as 'storyFit' field)
+   - Potential dramatic moments that could occur (include as 'dramaticMoments' array)
 
 Even if the image appears to be a character, treat it as a scene and describe the setting/context shown.
 """
@@ -157,11 +157,11 @@ Even if the image appears to be a character, treat it as a scene and describe th
    - Art style description
 
 2. If it's a SCENE:
-   - Determine the scene type (narrative, choice moment, action, etc.)
+   - Determine the scene type (narrative, choice moment, action, etc.) - include as 'sceneType'
    - Describe the setting in detail (include in 'setting' field)
    - Provide a more detailed setting description in 'setting_description' field
-   - Suggest how this scene fits into the story
-   - Potential dramatic moments that could occur
+   - Suggest how this scene fits into the story (include as 'storyFit' field)
+   - Potential dramatic moments that could occur (include as 'dramaticMoments' array)
 """
 
             # Call OpenAI API with the base64 encoded image

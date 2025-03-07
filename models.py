@@ -37,7 +37,10 @@ class ImageAnalysis(db.Model):
     character_role = db.Column(db.String(32))  # 'hero', 'villain', or 'neutral'
     plot_lines = db.Column(JSONB)  # Array of plot line suggestions for the character
     scene_type = db.Column(db.String(64))  # E.g., 'narrative', 'choice', 'action'
-    setting_description = db.Column(db.Text, nullable=True)
+    setting = db.Column(db.Text, nullable=True)  # Basic setting information
+    setting_description = db.Column(db.Text, nullable=True)  # Detailed setting description
+    story_fit = db.Column(db.Text, nullable=True)  # How the scene fits into the story
+    dramatic_moments = db.Column(JSONB, nullable=True)  # Potential dramatic moments
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class AIInstruction(db.Model):
