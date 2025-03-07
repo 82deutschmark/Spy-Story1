@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, current_app
-from models import StoryNode, StoryChoice, UserProgress, ImageAnalysis
+from models import StoryNode, StoryChoice, UserProgress, ImageAnalysis, Achievement # Added Achievement import
 from database import db
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
@@ -222,22 +222,101 @@ def get_characters():
     except Exception as e:
         return jsonify(APIResponse(success=False, error=str(e)).to_dict()), 500
 
-@unity_api.route('/save-state', methods=['POST'])
+
+@unity_api.route('/story-branch/<int:node_id>')
+def get_story_branch(node_id):
+    """Get the complete branch information for a story node"""
+    try:
+        node = StoryNode.query.get_or_404(node_id)
+
+        # Get branch history (ancestors)
+        branch_history = []
+        current = node
+        while current.parent_node:
+            branch_history.append({
+                'id': current.id,
+                'narrative_text': current.narrative_text,
+                'branch_metadata': current.branch_metadata
+            })
+            current = current.parent_node
+
+        # Get available sub-branches (children)
+        sub_branches = [{
+            'id': child.id,
+            'preview': child.narrative_text[:100] + '...',
+            'metadata': child.branch_metadata
+        } for child in node.child_nodes]
+
+        response = APIResponse(
+            success=True,
+            data={
+                'current_node': {
+                    'id': node.id,
+                    'narrative_text': node.narrative_text,
+                    'metadata': node.branch_metadata
+                },
+                'branch_history': branch_history,
+                'sub_branches': sub_branches
+            }
+        )
+        return jsonify(response.to_dict())
+    except Exception as e:
+        return jsonify(APIResponse(success=False, error=str(e)).to_dict()), 500
+
+@unity_api.route('/achievements/<string:user_id>')
+def get_user_achievements(user_id):
+    """Get all achievements and their status for a user"""
+    try:
+        progress = UserProgress.query.filter_by(user_id=user_id).first()
+        earned_achievements = progress.achievements_earned if progress else []
+
+        # Get all achievements
+        achievements = Achievement.query.all()
+        achievement_list = []
+
+        for achievement in achievements:
+            achievement_list.append({
+                'id': achievement.id,
+                'name': achievement.name,
+                'description': achievement.description,
+                'points': achievement.points,
+                'earned': achievement.id in earned_achievements if earned_achievements else False,
+                'criteria': achievement.criteria
+            })
+
+        response = APIResponse(
+            success=True,
+            data={
+                'achievements': achievement_list,
+                'total_points': sum(a['points'] for a in achievement_list if a['earned'])
+            }
+        )
+        return jsonify(response.to_dict())
+    except Exception as e:
+        return jsonify(APIResponse(success=False, error=str(e)).to_dict()), 500
+
+@unity_api.route('/save-game-state', methods=['POST'])
 @rate_limit(requests_per_minute=30)  # Lower limit for state-changing operations
 def save_game_state():
-    """Save additional game state data for a user"""
+    """Save comprehensive game state for Unity client"""
     try:
-        user_id = request.json.get('user_id')
+        data = request.json
+        user_id = data.get('user_id')
         if not user_id:
             return jsonify(APIResponse(success=False, error='user_id is required').to_dict()), 400
 
-        # Get the current progress
+        # Get or create user progress
         progress = UserProgress.query.filter_by(user_id=user_id).first()
         if not progress:
-            return jsonify(APIResponse(success=False, error='No user progress found').to_dict()), 404
+            progress = UserProgress(user_id=user_id)
 
-        # Update the last_updated timestamp
-        progress.last_updated = datetime.utcnow()
+        # Update game state
+        progress.current_node_id = data.get('current_node_id', progress.current_node_id)
+        progress.choice_history = data.get('choice_history', progress.choice_history)
+        progress.achievements_earned = data.get('achievements_earned', progress.achievements_earned)
+        progress.game_state = data.get('game_state', progress.game_state)
+
+        db.session.add(progress)
         db.session.commit()
 
         response = APIResponse(
@@ -246,6 +325,28 @@ def save_game_state():
             metadata={
                 'user_id': user_id,
                 'saved_at': progress.last_updated.isoformat()
+            }
+        )
+        return jsonify(response.to_dict())
+    except Exception as e:
+        return jsonify(APIResponse(success=False, error=str(e)).to_dict()), 500
+
+@unity_api.route('/load-game-state/<string:user_id>')
+def load_game_state(user_id):
+    """Load comprehensive game state for Unity client"""
+    try:
+        progress = UserProgress.query.filter_by(user_id=user_id).first()
+        if not progress:
+            return jsonify(APIResponse(success=False, error='No saved game state found').to_dict()), 404
+
+        response = APIResponse(
+            success=True,
+            data={
+                'current_node_id': progress.current_node_id,
+                'choice_history': progress.choice_history,
+                'achievements_earned': progress.achievements_earned,
+                'game_state': progress.game_state,
+                'last_updated': progress.last_updated.isoformat()
             }
         )
         return jsonify(response.to_dict())
