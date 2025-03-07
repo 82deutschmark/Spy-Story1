@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from services.openai_service import analyze_artwork, generate_image_description
 from services.story_maker import generate_story, get_story_options
 from database import db
-from models import AIInstruction, ImageAnalysis, StoryGeneration
+from models import AIInstruction, ImageAnalysis, StoryGeneration, story_images
 from flask_cors import CORS # Added import
 from api.unity_routes import unity_api # Added import
 
