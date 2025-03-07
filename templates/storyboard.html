@@ -11,58 +11,55 @@
 <body>
     <div class="container mt-5">
         <div class="row justify-content-center">
-            <div class="col-md-10">
+            <div class="col-12">
                 <div class="text-center mb-4">
                     <i class="fas fa-book-open story-icon"></i>
                     <h1 class="display-4">Your Adventure</h1>
                     <p class="lead">The tale continues...</p>
                 </div>
 
-                <!-- Character Gallery -->
-                <div class="character-gallery mb-4">
-                    <h3 class="text-center mb-3">Featured Characters</h3>
-                    <div class="row">
-                        {% for char in character_images %}
-                        <div class="col-md-4 mb-3">
-                            <div class="character-card">
-                                <img src="{{ char.image_url }}" class="card-img-top" alt="{{ char.name }}">
-                                <div class="card-body">
-                                    <h5 class="card-title">{{ char.name }}</h5>
-                                    <div class="character-traits">
-                                        {% for trait in char.traits %}
-                                        <span class="badge bg-primary">{{ trait }}</span>
-                                        {% endfor %}
-                                    </div>
-                                </div>
+                <div class="story-container">
+                    <!-- Character Showcase (Left Side) -->
+                    <div class="character-showcase">
+                        {% for char in character_images[:1] %}
+                        <img src="{{ char.image_url }}" class="main-character-img" alt="{{ char.name }}">
+                        <div class="character-info-box">
+                            <h3>{{ char.name }}</h3>
+                            <div class="character-traits-list">
+                                {% for trait in char.traits %}
+                                <span class="badge bg-primary">{{ trait }}</span>
+                                {% endfor %}
                             </div>
                         </div>
                         {% endfor %}
                     </div>
-                </div>
 
-                <!-- Story Content -->
-                <div class="card shadow-lg">
-                    <div class="card-body">
-                        <h2 class="card-title text-center mb-4">{{ story.title }}</h2>
-                        <div class="story-content">
-                            {{ story.story | safe }}
-                        </div>
+                    <!-- Story Content (Right Side) -->
+                    <div class="story-content-container">
+                        <div class="card shadow-lg">
+                            <div class="card-body">
+                                <h2 class="card-title text-center mb-4">{{ story.title }}</h2>
+                                <div class="story-content">
+                                    {{ story.story | safe }}
+                                </div>
 
-                        <!-- Choices -->
-                        <div class="choices-container">
-                            {% for choice in story.choices %}
-                            <form action="{{ url_for('generate_story_route') }}" method="POST" class="choice-form">
-                                <input type="hidden" name="previous_choice" value="{{ choice.text }}">
-                                <input type="hidden" name="story_context" value="{{ story.story }}">
-                                {% for image in character_images %}
-                                <input type="hidden" name="selected_images[]" value="{{ image.id }}">
-                                {% endfor %}
-                                <button type="submit" class="choice-btn w-100">
-                                    <div class="choice-text">{{ choice.text }}</div>
-                                    <div class="consequence">{{ choice.consequence }}</div>
-                                </button>
-                            </form>
-                            {% endfor %}
+                                <!-- Choices -->
+                                <div class="choices-container">
+                                    {% for choice in story.choices %}
+                                    <form action="{{ url_for('generate_story_route') }}" method="POST" class="choice-form">
+                                        <input type="hidden" name="previous_choice" value="{{ choice.text }}">
+                                        <input type="hidden" name="story_context" value="{{ story.story }}">
+                                        {% for image in character_images %}
+                                        <input type="hidden" name="selected_images[]" value="{{ image.id }}">
+                                        {% endfor %}
+                                        <button type="submit" class="choice-btn w-100">
+                                            <div class="choice-text">{{ choice.text }}</div>
+                                            <div class="consequence">{{ choice.consequence }}</div>
+                                        </button>
+                                    </form>
+                                    {% endfor %}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

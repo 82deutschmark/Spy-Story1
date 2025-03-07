@@ -1,3 +1,22 @@
+// Progress bar functions
+function createProgressBar() {
+    const container = document.createElement('div');
+    container.className = 'progress-container';
+    const bar = document.createElement('div');
+    bar.className = 'progress-bar';
+    container.appendChild(bar);
+    document.body.appendChild(container);
+    return bar;
+}
+
+function updateProgress(progressBar, progress) {
+    progressBar.style.width = `${progress}%`;
+}
+
+function removeProgressBar(container) {
+    container.parentElement.remove();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Character selection elements
     const characterCards = document.querySelectorAll('.character-select-card');
@@ -22,7 +41,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (characterCards.length > 0) {
         characterCards.forEach((card, index) => {
             card.addEventListener('click', function(e) {
-                // Prevent triggering when clicking the checkbox or reroll button
                 if (e.target.type !== 'radio' && !e.target.closest('.reroll-btn')) {
                     const checkbox = characterCheckboxes[index];
                     checkbox.checked = true;
@@ -95,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Handle form submission
+    // Handle form submission with progress bar
     if (storyForm) {
         storyForm.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -112,11 +130,23 @@ document.addEventListener('DOMContentLoaded', function() {
             // Hide any previous errors
             characterSelectionError.style.display = 'none';
 
+            // Create and show progress bar
+            const progressBar = createProgressBar();
+
             // Show loading state
             generateStoryBtn.disabled = true;
             generateStoryBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generating Story...';
 
             try {
+                // Simulate progress while story generates
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += 5;
+                    if (progress <= 90) {
+                        updateProgress(progressBar, progress);
+                    }
+                }, 1000);
+
                 const formData = new FormData(this);
                 formData.set('selected_images[]', selectedCharacter.value);
 
@@ -130,9 +160,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const data = await response.json();
 
+                // Clear progress interval
+                clearInterval(progressInterval);
+
                 if (data.success && data.redirect) {
-                    // Redirect to the storyboard page
-                    window.location.href = data.redirect;
+                    // Show 100% progress before redirect
+                    updateProgress(progressBar, 100);
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 500);
                 } else {
                     throw new Error(data.error || 'Failed to generate story');
                 }
@@ -141,6 +177,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Reset button state
                 generateStoryBtn.disabled = false;
                 generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
+                // Remove progress bar on error
+                removeProgressBar(progressBar);
             }
         });
     }
