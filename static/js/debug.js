@@ -382,8 +382,14 @@ document.addEventListener('DOMContentLoaded', function() {
                             this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
                             document.getElementById('rejectAnalysisBtn').disabled = true;
 
-                            // Get the edited analysis
-                            const editedAnalysis = getEditedAnalysis(data.analysis);
+                            // Get the edited analysis from the UI or use the original if edit mode is not enabled
+                            const editModeSwitch = document.getElementById('editModeSwitch');
+                            let editedAnalysis = data.analysis;
+                            
+                            // Apply edits if edit mode is enabled
+                            if (editModeSwitch.checked) {
+                                editedAnalysis = applyEditsToAnalysis(data.analysis);
+                            }
 
                             // Send the analysis to be saved
                             fetch('/save_analysis', {
