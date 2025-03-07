@@ -1,10 +1,10 @@
 import os
 import logging
 import json
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
 from services.openai_service import analyze_artwork, generate_image_description
-from services.story_maker import generate_story as story_maker # Renamed to avoid naming conflict
+from services.story_maker import generate_story, get_story_options
 from database import db
 from models import AIInstruction, ImageAnalysis, StoryGeneration
 from flask_cors import CORS # Added import
@@ -128,85 +128,61 @@ def debug():
 
 @app.route('/storyboard/<int:story_id>')
 def storyboard(story_id):
-    try:
-        # Get the story
-        story = StoryGeneration.query.get_or_404(story_id)
+    """Display the current story progress and choices"""
+    story = StoryGeneration.query.get_or_404(story_id)
+    story_data = json.loads(story.generated_story)
 
-        # Extract character information for display
-        character_images = []
-        for img in story.images:
-            img_analysis = img.analysis_result or {}
-            character_data = {
-                'id': img.id,
-                'image_url': img.image_url,
-                'name': img.character_name or img_analysis.get('name', 'Mystery Character'),
-                'traits': img.character_traits or img_analysis.get('character_traits', [])
-            }
-            character_images.append(character_data)
+    # Get associated character images
+    character_images = []
+    for image in story.images:
+        analysis = image.analysis_result
+        character_images.append({
+            'id': image.id,
+            'image_url': image.image_url,
+            'name': analysis.get('name', ''),
+            'traits': image.character_traits
+        })
 
-        # Check if story is still generating
-        if not story.generated_story or story.generated_story.get('status') == 'generating':
-            return render_template('storyboard.html', 
-                                  story_id=story_id,
-                                  character_images=character_images,
-                                  is_generating=True)
-        elif story.generated_story.get('status') == 'error':
-            return render_template('storyboard.html',
-                                  error=story.generated_story.get('message', 'An error occurred'),
-                                  character_images=character_images)
-        else:
-            # Story is ready to display
-            return render_template('storyboard.html', 
-                                  story=story.generated_story, 
-                                  character_images=character_images,
-                                  is_generating=False)
-    except Exception as e:
-        app.logger.error(f"Error displaying storyboard: {str(e)}", exc_info=True)
-        return redirect(url_for('index', error=f"Failed to load story: {str(e)}"))
-
+    return render_template(
+        'storyboard.html',
+        story=story_data,
+        character_images=character_images
+    )
 
 
 @app.route('/generate_story', methods=['POST'])
 def generate_story_route():
     try:
-        # Get selected options from form
-        conflict = request.form.get('conflict')
-        setting = request.form.get('setting')
-        narrative_style = request.form.get('narrative_style')
-        mood = request.form.get('mood')
-
-        # Get custom options if provided
-        custom_conflict = request.form.get('custom_conflict')
-        custom_setting = request.form.get('custom_setting')
-        custom_narrative = request.form.get('custom_narrative')
-        custom_mood = request.form.get('custom_mood')
-
-        # Get previous choice and context if available
-        previous_choice = request.form.get('previous_choice')
-        story_context = request.form.get('story_context')
-
-        # Get selected images
+        # Get form data
+        data = request.form
         selected_image_ids = request.form.getlist('selected_images[]')
-        selected_images = []
 
-        # For newly submitted stories, single character selection
-        if not selected_image_ids:
-            selected_char_id = request.form.get('selectedCharacter')
-            if selected_char_id:
-                selected_image_ids = [selected_char_id]
+        if len(selected_image_ids) != 1:
+            return jsonify({'error': 'Please select a character for your story'}), 400
 
-        # Fetch the selected images
-        selected_images = ImageAnalysis.query.filter(
-            ImageAnalysis.id.in_(selected_image_ids)).all()
+        # Get the story parameters
+        story_params = {
+            'conflict': data.get('conflict', 'Mysterious adventure'),
+            'setting': data.get('setting', 'Enchanted world'),
+            'narrative_style': data.get('narrative_style', 'Engaging modern style'),
+            'mood': data.get('mood', 'Exciting and adventurous'),
+            'custom_conflict': data.get('custom_conflict', ''),
+            'custom_setting': data.get('custom_setting', ''),
+            'custom_narrative': data.get('custom_narrative', ''),
+            'custom_mood': data.get('custom_mood', ''),
+            'previous_choice': data.get('previous_choice', ''),
+            'story_context': data.get('story_context', '')
+        }
 
-        # Ensure we have at least one image selected
+        # Get character information from selected images
+        selected_images = ImageAnalysis.query.filter(ImageAnalysis.id.in_(selected_image_ids)).all()
         if not selected_images:
-            return redirect(url_for('index', error='Please select at least one character'))
+            return jsonify({'error': 'Selected images not found'}), 404
 
         # Get the main character information
         main_character_img = selected_images[0]
         analysis = main_character_img.analysis_result or {}
-
+        
         # Extract character information comprehensively
         character_info = {
             'name': analysis.get('name', main_character_img.character_name or 'Unknown Character'),
@@ -215,134 +191,144 @@ def generate_story_route():
             'plot_lines': main_character_img.plot_lines or analysis.get('plot_lines', []),
             'style': analysis.get('style', '')
         }
-
+        
         # If traits are stored as a string instead of a list, convert them
         if isinstance(character_info['character_traits'], str):
             character_info['character_traits'] = [trait.strip() for trait in character_info['character_traits'].split(',')]
-
+        
         # If plot_lines are stored as a string instead of a list, convert them
         if isinstance(character_info['plot_lines'], str):
             character_info['plot_lines'] = [plot.strip() for plot in character_info['plot_lines'].split('\n')]
 
         # Extract name - first use character_name field, then try analysis_result
         char_name = main_character_img.character_name or ''
-        if not char_name and analysis.get('name'):
-            char_name = analysis['name']
+        if not char_name and analysis:
+            if 'character' in analysis and 'name' in analysis['character']:
+                char_name = analysis['character'].get('name', '')
+            elif 'character_name' in analysis:
+                char_name = analysis.get('character_name', '')
+            elif 'name' in analysis:
+                char_name = analysis.get('name', '')
 
-        # Fallback for older records 
-        if not char_name and analysis.get('character', {}).get('name'):
-            char_name = analysis['character']['name']
-
-        # Use character_name as a fallback for when not explicitly set
+        # If still no name, use a default
         if not char_name:
             char_name = "Mystery Character"
 
-        # Create a placeholder story record
-        new_story = StoryGeneration(
-            primary_conflict=conflict or custom_conflict,
-            setting=setting or custom_setting,
-            narrative_style=narrative_style or custom_narrative,
-            mood=mood or custom_mood,
-            generated_story={"status": "generating"} # Placeholder for the story being generated
+        # Build comprehensive character info
+        character_info = {
+            'name': char_name,
+            'role': main_character_img.character_role or 'protagonist',
+            'character_traits': main_character_img.character_traits or [],
+            'style': analysis.get('style', 'A mysterious character'),
+            'plot_lines': main_character_img.plot_lines or []
+        }
+
+        # Generate the story
+        story_params['character_info'] = character_info
+        result = generate_story(**story_params)
+
+        # Store the generated story
+        story = StoryGeneration(
+            primary_conflict=result['conflict'],
+            setting=result['setting'],
+            narrative_style=result['narrative_style'],
+            mood=result['mood'],
+            generated_story=result['story']
         )
 
-        # Associate the selected images with the story
-        for img in selected_images:
-            new_story.images.append(img)
+        # Associate selected images with the story
+        for image in selected_images:
+            story.images.append(image)
 
-        db.session.add(new_story)
+        db.session.add(story)
         db.session.commit()
 
-        # Start a background thread to generate the story
-        def generate_story_background():
-            try:
-                # Generate the story using the story maker service
-                story_result = story_maker(
-                    conflict=conflict,
-                    setting=setting,
-                    narrative_style=narrative_style,
-                    mood=mood,
-                    character_info=character_info,
-                    custom_conflict=custom_conflict,
-                    custom_setting=custom_setting,
-                    custom_narrative=custom_narrative,
-                    custom_mood=custom_mood,
-                    previous_choice=previous_choice,
-                    story_context=story_context
-                )
-
-                # Update the story record with the generated story
-                new_story.generated_story = json.loads(story_result['story'])
-                db.session.commit()
-            except Exception as e:
-                # Update the story record with the error
-                new_story.generated_story = {"status": "error", "message": str(e)}
-                db.session.commit()
-                app.logger.error(f"Error generating story: {str(e)}", exc_info=True)
-
-        import threading
-        thread = threading.Thread(target=generate_story_background)
-        thread.daemon = True
-        thread.start()
-
-        # Extract character information for display
-        character_images = []
-        for img in selected_images:
-            img_analysis = img.analysis_result or {}
-            character_data = {
-                'id': img.id,
-                'image_url': img.image_url,
-                'name': img.character_name or img_analysis.get('name', 'Mystery Character'),
-                'traits': img.character_traits or img_analysis.get('character_traits', [])
-            }
-            character_images.append(character_data)
-
-        # Redirect to the storyboard page with the story ID
-        return redirect(url_for('storyboard', story_id=new_story.id))
+        # Parse the story data
+        story_data = json.loads(result['story'])
+        return jsonify({
+            'success': True,
+            'story': story_data,
+            'story_id': story.id
+        })
 
     except Exception as e:
-        # Log the error and provide a friendly error message
-        app.logger.error(f"Error initiating story generation: {str(e)}", exc_info=True)
-        return redirect(url_for('index', error=f"Failed to start story generation: {str(e)}"))
+        logger.error(f"Error generating story: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 
-@app.route('/storyboard/<int:story_id>')
-def storyboard(story_id):
+@app.route('/api/validate_image_types')
+def validate_image_types():
+    """API endpoint to validate image type storage and check for inconsistencies"""
     try:
-        # Get the story
-        story = StoryGeneration.query.get_or_404(story_id)
+        # Get all images
+        images = ImageAnalysis.query.all()
 
-        # Extract character information for display
-        character_images = []
-        for img in story.images:
-            img_analysis = img.analysis_result or {}
-            character_data = {
-                'id': img.id,
-                'image_url': img.image_url,
-                'name': img.character_name or img_analysis.get('name', 'Mystery Character'),
-                'traits': img.character_traits or img_analysis.get('character_traits', [])
-            }
-            character_images.append(character_data)
+        results = {
+            'character_images': 0,
+            'scene_images': 0,
+            'character_missing_traits': 0,
+            'scene_missing_details': 0,
+            'inconsistent_fields': 0,
+            'samples': []
+        }
 
-        # Check if story is still generating
-        if not story.generated_story or story.generated_story.get('status') == 'generating':
-            return render_template('storyboard.html', 
-                                  story_id=story_id,
-                                  character_images=character_images,
-                                  is_generating=True)
-        elif story.generated_story.get('status') == 'error':
-            return render_template('storyboard.html',
-                                  error=story.generated_story.get('message', 'An error occurred'),
-                                  character_images=character_images)
-        else:
-            # Story is ready to display
-            return render_template('storyboard.html', 
-                                  story=story.generated_story, 
-                                  character_images=character_images,
-                                  is_generating=False)
+        for img in images:
+            # Check image type
+            if img.image_type == 'character':
+                results['character_images'] += 1
+
+                # Check if character data is missing
+                if not img.character_traits or not img.character_role or not img.plot_lines:
+                    results['character_missing_traits'] += 1
+
+                # Add sample data
+                if len(results['samples']) < 3 and img.image_type == 'character':
+                    sample = {
+                        'id': img.id,
+                        'image_url': img.image_url,
+                        'image_type': img.image_type,
+                        'character_traits': img.character_traits,
+                        'character_role': img.character_role,
+                        'plot_lines': img.plot_lines
+                    }
+                    results['samples'].append(sample)
+
+            elif img.image_type == 'scene':
+                results['scene_images'] += 1
+
+                # Check if scene data is missing
+                if not img.scene_type or not img.setting or not img.dramatic_moments:
+                    results['scene_missing_details'] += 1
+
+                # Add sample data
+                if len(results['samples']) < 6 and img.image_type == 'scene' and len(results['samples']) >= 3:
+                    sample = {
+                        'id': img.id,
+                        'image_url': img.image_url,
+                        'image_type': img.image_type,
+                        'scene_type': img.scene_type,
+                        'setting': img.setting,
+                        'dramatic_moments': img.dramatic_moments
+                    }
+                    results['samples'].append(sample)
+
+            # Check for inconsistencies in analysis_result vs. specific fields
+            if img.analysis_result:
+                inconsistency = False
+                if img.image_type == 'character':
+                    if img.character_traits != img.analysis_result.get('character_traits'):
+                        inconsistency = True
+                elif img.image_type == 'scene':
+                    if img.scene_type != img.analysis_result.get('scene_type'):
+                        inconsistency = True
+
+                if inconsistency:
+                    results['inconsistent_fields'] += 1
+
+        return jsonify(results)
     except Exception as e:
-        app.logger.error(f"Error displaying storyboard: {str(e)}", exc_info=True)
-        return redirect(url_for('index', error=f"Failed to load story: {str(e)}"))
+        logger.error(f"Error validating image types: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/generate', methods=['POST'])
@@ -664,12 +650,12 @@ def db_health_check():
         missing_analysis = ImageAnalysis.query.filter(
             ImageAnalysis.analysis_result.is_(None)
         ).count()
-
+        
         # We need to handle empty JSONs separately to avoid type casting issues
         empty_json_count = db.session.execute(
             db.text("SELECT COUNT(*) FROM image_analysis WHERE analysis_result::text = '{}'")
         ).scalar()
-
+        
         missing_analysis += empty_json_count if empty_json_count else 0
 
         # Check for characters missing plot lines
@@ -741,80 +727,6 @@ def db_health_check():
         logger.error(f"Error performing health check: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-
-@app.route('/api/validate_image_types')
-def validate_image_types():
-    """API endpoint to validate image type storage and check for inconsistencies"""
-    try:
-        # Get all images
-        images = ImageAnalysis.query.all()
-
-        results = {
-            'character_images': 0,
-            'scene_images': 0,
-            'character_missing_traits': 0,
-            'scene_missing_details': 0,
-            'inconsistent_fields': 0,
-            'samples': []
-        }
-
-        for img in images:
-            # Check image type
-            if img.image_type == 'character':
-                results['character_images'] += 1
-
-                # Check if character data is missing
-                if not img.character_traits or not img.character_role or not img.plot_lines:
-                    results['character_missing_traits'] += 1
-
-                # Add sample data
-                if len(results['samples']) < 3 and img.image_type == 'character':
-                    sample = {
-                        'id': img.id,
-                        'image_url': img.image_url,
-                        'image_type': img.image_type,
-                        'character_traits': img.character_traits,
-                        'character_role': img.character_role,
-                        'plot_lines': img.plot_lines
-                    }
-                    results['samples'].append(sample)
-
-            elif img.image_type == 'scene':
-                results['scene_images'] += 1
-
-                # Check if scene data is missing
-                if not img.scene_type or not img.setting or not img.dramatic_moments:
-                    results['scene_missing_details'] += 1
-
-                # Add sample data
-                if len(results['samples']) < 6 and img.image_type == 'scene' and len(results['samples']) >= 3:
-                    sample = {
-                        'id': img.id,
-                        'image_url': img.image_url,
-                        'image_type': img.image_type,
-                        'scene_type': img.scene_type,
-                        'setting': img.setting,
-                        'dramatic_moments': img.dramatic_moments
-                    }
-                    results['samples'].append(sample)
-
-            # Check for inconsistencies in analysis_result vs. specific fields
-            if img.analysis_result:
-                inconsistency = False
-                if img.image_type == 'character':
-                    if img.character_traits != img.analysis_result.get('character_traits'):
-                        inconsistency = True
-                elif img.image_type == 'scene':
-                    if img.scene_type != img.analysis_result.get('scene_type'):
-                        inconsistency = True
-
-                if inconsistency:
-                    results['inconsistent_fields'] += 1
-
-        return jsonify(results)
-    except Exception as e:
-        logger.error(f"Error validating image types: {str(e)}")
-        return jsonify({'error': str(e)}), 500
 
 app.register_blueprint(unity_api, url_prefix='/api/unity') # Blueprint registration
 

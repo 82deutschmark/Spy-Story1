@@ -39,18 +39,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.stopPropagation();
 
                 const cardIndex = this.getAttribute('data-card-index');
-                const cardContainer = this.closest('.character-container');
-                if (!cardContainer) return;
-                
                 const card = characterCards[cardIndex];
-                const cardImage = cardContainer.querySelector('.card-img');
-                const nameElement = cardContainer.querySelector('.character-name');
-                const checkbox = cardContainer.querySelector('.character-checkbox');
+                const cardImage = card.querySelector('img');
+                const cardTitle = card.querySelector('.card-title');
+                const cardText = card.querySelector('.card-text');
+                const traitsContainer = card.querySelector('.character-traits');
+                const checkbox = card.querySelector('.character-checkbox');
 
                 // Show loading state
                 this.disabled = true;
                 this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
-                if (cardImage) cardImage.src = 'https://via.placeholder.com/400x250?text=Loading...';
+                cardImage.src = 'https://via.placeholder.com/400x250?text=Loading...';
 
                 // Fetch a new random character
                 fetch('/api/random_character')
