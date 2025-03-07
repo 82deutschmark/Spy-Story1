@@ -357,15 +357,28 @@ def save_analysis():
         # Extract character details if this is a character image
         character_data = analysis.get('character', {})
 
-        # Get character name - first try from character data if it exists, then try directly from the top level
+        # Get character name - check all possible locations in a consistent manner
         character_name = None
         if is_character:
-            if 'character' in analysis and 'name' in character_data:
-                character_name = character_data.get('name')
-            elif 'character_name' in analysis:
-                character_name = analysis.get('character_name')
-            else:
-                character_name = analysis.get('name')
+            # Try to find name in all possible locations
+            if 'character' in analysis and isinstance(analysis['character'], dict):
+                if 'name' in analysis['character']:
+                    character_name = analysis['character'].get('name')
+            
+            # If not found in character object, check top level fields
+            if not character_name:
+                if 'character_name' in analysis:
+                    character_name = analysis.get('character_name')
+                elif 'name' in analysis:
+                    character_name = analysis.get('name')
+                    
+            # Log character name extraction for debugging
+            logger.debug(f"Extracted character name: {character_name} from analysis structure")
+            
+            # Ensure we always have a name for characters
+            if not character_name:
+                logger.warning(f"Could not find a name in the API response. Using default name.")
+                character_name = "Unnamed Character"
                 
         # Extract traits and plot lines either from character object or top level
         character_traits = None

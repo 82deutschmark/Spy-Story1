@@ -1,75 +1,103 @@
 
+import os
+import json
+import logging
 from app import app, db
 from models import ImageAnalysis
-import logging
-import json
 
-# Set up logging
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def fix_missing_character_names():
     """
     Update existing character records to ensure character_name is properly populated from analysis_result
-    This will handle both empty names and JSON stored as strings
+    This function checks all possible locations where the name might be stored in the analysis_result
     """
     with app.app_context():
-        # Get all character records with missing or empty character_name
+        # Get all character records
         characters = ImageAnalysis.query.filter_by(image_type='character').all()
         
-        count = 0
-        updated_ids = []
+        updated_count = 0
         
         for character in characters:
-            try:
-                # Handle case where analysis_result is a string (JSON string)
-                analysis = character.analysis_result
-                if isinstance(analysis, str):
-                    try:
-                        analysis = json.loads(analysis)
-                    except:
-                        logger.warning(f"Could not parse string analysis_result for record {character.id}")
-                        continue
+            current_name = character.character_name
+            
+            if current_name is None or current_name == '':
+                # If we need to extract a name - check all possible locations
+                name = extract_character_name_from_analysis(character.analysis_result)
                 
-                # Extract name from all possible locations in the JSON structure
-                name = None
-                if analysis and isinstance(analysis, dict):
-                    # Option 1: Check if name is directly at top level as character_name
-                    if 'character_name' in analysis:
-                        name = analysis.get('character_name')
-                        logger.info(f"Found name '{name}' as character_name at top level for record {character.id}")
-                    
-                    # Option 2: Check if name is directly at top level as name
-                    elif 'name' in analysis:
-                        name = analysis.get('name')
-                        logger.info(f"Found name '{name}' as name at top level for record {character.id}")
-                    
-                    # Option 3: Check if name is in character object
-                    elif 'character' in analysis and isinstance(analysis['character'], dict):
-                        if 'name' in analysis['character']:
-                            name = analysis['character'].get('name')
-                            logger.info(f"Found name '{name}' in character object for record {character.id}")
-                
-                # Only update if name exists and is different from current value
-                if name and (not character.character_name or character.character_name == "None" or character.character_name != name):
-                    logger.info(f"Updating character name for record {character.id} from '{character.character_name}' to '{name}'")
+                if name:
+                    logger.info(f"Updating character name for record {character.id} from '{current_name}' to '{name}'")
                     character.character_name = name
-                    count += 1
-                    updated_ids.append(character.id)
-                elif not name and character.image_type == 'character':
-                    logger.warning(f"No name found for character record {character.id}")
-                else:
-                    logger.info(f"Record {character.id} already has correct name: '{character.character_name}'")
-            except Exception as e:
-                logger.error(f"Error processing record {character.id}: {str(e)}")
-                continue
+                    updated_count += 1
             
         # Save changes if any were made
-        if count > 0:
+        if updated_count > 0:
             db.session.commit()
-            logger.info(f"Updated {count} records with missing character names: {updated_ids}")
+            logger.info(f"Updated {updated_count} records with missing character names")
         else:
-            logger.info("No records needed updating")
+            logger.info(f"No records needed updating")
+
+def extract_character_name_from_analysis(analysis):
+    """
+    Extract the character name from the analysis result, checking all possible locations
+    This is a robust function that handles different API response structures
+    """
+    if not analysis:
+        return None
+        
+    # Handle string JSON
+    if isinstance(analysis, str):
+        try:
+            analysis = json.loads(analysis)
+        except:
+            logger.warning("Could not parse string analysis_result")
+            return None
+            
+    if not isinstance(analysis, dict):
+        return None
+        
+    # Check all possible locations for the name (ordered by priority)
+    name = None
+    
+    # Option 1: Check if name is in a nested character object
+    if 'character' in analysis and isinstance(analysis['character'], dict):
+        name = analysis['character'].get('name')
+        if name:
+            logger.info(f"Found name '{name}' in character object")
+            return name
+            
+    # Option 2: Check if there's a character_name field at top level
+    if 'character_name' in analysis:
+        name = analysis.get('character_name')
+        if name:
+            logger.info(f"Found name '{name}' as character_name at top level")
+            return name
+            
+    # Option 3: Check if there's a name field at top level
+    if 'name' in analysis:
+        name = analysis.get('name')
+        if name:
+            logger.info(f"Found name '{name}' as name at top level")
+            return name
+    
+    # Option 4: Try to extract name from the first plot line (as last resort)
+    if 'plot_lines' in analysis and isinstance(analysis['plot_lines'], list) and len(analysis['plot_lines']) > 0:
+        first_plot = analysis['plot_lines'][0]
+        # Look for the first capitalized word that might be a name
+        words = first_plot.split()
+        for word in words:
+            if word[0].isupper() and len(word) > 2 and word.lower() not in ['the', 'and', 'but', 'with']:
+                potential_name = word.rstrip('.,;:!?')
+                logger.info(f"Extracted potential name '{potential_name}' from plot line")
+                return potential_name
+                
+    return None
+
+def main():
+    """Main function to run the fix"""
+    fix_missing_character_names()
 
 if __name__ == "__main__":
-    fix_missing_character_names()
+    main()
