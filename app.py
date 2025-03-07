@@ -7,8 +7,8 @@ from services.openai_service import analyze_artwork, generate_image_description
 from services.story_maker import generate_story, get_story_options
 from database import db
 from models import AIInstruction, ImageAnalysis, StoryGeneration
-from flask_cors import CORS # Added import
-from api.unity_routes import unity_api # Added import
+from flask_cors import CORS
+from api.unity_routes import unity_api
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -39,19 +39,25 @@ CORS(app, resources={
 with app.app_context():
     db.create_all()
 
+def get_random_scene_background():
+    """Get a random scene image suitable for background"""
+    scene = ImageAnalysis.query.filter(
+        ImageAnalysis.image_type == 'scene',
+        ImageAnalysis.image_width > ImageAnalysis.image_height
+    ).order_by(db.func.random()).first()
+    return scene.image_url if scene else None
 
 @app.route('/')
 def index():
     """Main page showing character selection and story options"""
     story_options = get_story_options()
+    background_image = get_random_scene_background()
 
     # Get 4 random images for character selection
     images = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).limit(4).all()
     image_data = []
     for img in images:
         analysis = img.analysis_result or {}
-
-        # Extract name - first use character_name field, then try analysis_result
         char_name = img.character_name or ''
         if not char_name and analysis:
             if 'character' in analysis and 'name' in analysis['character']:
@@ -61,7 +67,6 @@ def index():
             elif 'name' in analysis:
                 char_name = analysis.get('name', '')
 
-        # Get character traits and plot lines safely
         char_traits = []
         plot_lines = []
         try:
@@ -90,14 +95,14 @@ def index():
     return render_template(
         'index.html',
         story_options=story_options,
-        images=image_data
+        images=image_data,
+        background_image=background_image
     )
 
 
 @app.route('/debug')
 def debug():
     """Debug page with image analysis tool and database view"""
-    # Get recent image analyses
     recent_images = ImageAnalysis.query.order_by(ImageAnalysis.created_at.desc()).limit(10).all()
     recent_stories = StoryGeneration.query.order_by(StoryGeneration.created_at.desc()).limit(10).all()
 
@@ -106,11 +111,7 @@ def debug():
     character_count = ImageAnalysis.query.filter_by(image_type='character').count()
     scene_count = ImageAnalysis.query.filter_by(image_type='scene').count()
     story_count = StoryGeneration.query.count()
-
-    # Orphaned images (not associated with any story)
     orphaned_images = ImageAnalysis.query.filter(~ImageAnalysis.stories.any()).count()
-
-    # Empty stories (no generated content)
     empty_stories = StoryGeneration.query.filter(StoryGeneration.generated_story.is_(None)).count()
 
     return render_template(
@@ -125,12 +126,14 @@ def debug():
         empty_stories=empty_stories
     )
 
-
 @app.route('/storyboard/<int:story_id>')
 def storyboard(story_id):
     """Display the current story progress and choices"""
     story = StoryGeneration.query.get_or_404(story_id)
     story_data = json.loads(story.generated_story)
+
+    # Get random scene for background
+    background_image = get_random_scene_background()
 
     # Get associated character images
     character_images = []
@@ -146,12 +149,13 @@ def storyboard(story_id):
     return render_template(
         'storyboard.html',
         story=story_data,
-        character_images=character_images
+        character_images=character_images,
+        background_image=background_image
     )
-
 
 @app.route('/generate_story', methods=['POST'])
 def generate_story_route():
+    """Generate a new story or continue an existing one"""
     try:
         # Get form data
         data = request.form
@@ -230,6 +234,28 @@ def generate_story_route():
             flash('Error generating story: ' + str(e), 'error')
             return redirect(url_for('index'))
 
+@app.route('/api/save_analysis', methods=['POST'])
+def save_analysis():
+    """Save edited analysis from debug page"""
+    try:
+        data = request.json
+        image_id = data.get('image_id')
+        analysis = data.get('analysis')
+
+        if not image_id or not analysis:
+            return jsonify({'error': 'Missing image_id or analysis'}), 400
+
+        image = ImageAnalysis.query.get_or_404(image_id)
+        image.analysis_result = analysis
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Analysis updated successfully'
+        })
+    except Exception as e:
+        logger.error(f"Error saving analysis: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/validate_image_types')
 def validate_image_types():
@@ -305,7 +331,6 @@ def validate_image_types():
         logger.error(f"Error validating image types: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/generate', methods=['POST'])
 def generate_post():
     image_url = request.form.get('image_url')
@@ -340,9 +365,8 @@ def generate_post():
         logger.error(f"Error generating post: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/save_analysis', methods=['POST'])
-def save_analysis():
+def save_analysis_original():
     """Save the analyzed image data to the database after user confirmation"""
     data = request.json
 
@@ -466,7 +490,6 @@ def save_analysis():
             'error': f"Database error: {str(e)}"
         }), 500
 
-
 @app.route('/api/random_character')
 def random_character():
     """API endpoint to get a random character from the database"""
@@ -489,7 +512,6 @@ def random_character():
         logger.error(f"Error getting random character: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/api/image/<int:image_id>')
 def get_image_details(image_id):
     """API endpoint to get details of a specific image"""
@@ -507,7 +529,6 @@ def get_image_details(image_id):
     except Exception as e:
         logger.error(f"Error getting image details: {str(e)}")
         return jsonify({'error': str(e)}), 500
-
 
 @app.route('/api/image/<int:image_id>', methods=['DELETE'])
 def delete_image(image_id):
@@ -531,7 +552,6 @@ def delete_image(image_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/api/story/<int:story_id>', methods=['DELETE'])
 def delete_story(story_id):
     """API endpoint to delete a specific story record"""
@@ -548,7 +568,6 @@ def delete_story(story_id):
         logger.error(f"Error deleting story: {str(e)}")
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-
 
 @app.route('/api/db/delete-all-images', methods=['POST'])
 def delete_all_images():
@@ -572,7 +591,6 @@ def delete_all_images():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/api/db/delete-all-stories', methods=['POST'])
 def delete_all_stories():
     """API endpoint to delete all story records"""
@@ -588,7 +606,6 @@ def delete_all_stories():
         logger.error(f"Error deleting all stories: {str(e)}")
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-
 
 @app.route('/api/db/health-check', methods=['GET'])
 def db_health_check():

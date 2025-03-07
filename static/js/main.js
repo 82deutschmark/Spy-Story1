@@ -1,3 +1,32 @@
+// Loading overlay functions
+function createLoadingOverlay(message = 'Generating your story...') {
+    const overlay = document.createElement('div');
+    overlay.className = 'loading-overlay';
+    overlay.innerHTML = `
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h3>${message}</h3>
+            <div class="loading-progress">
+                <div class="loading-progress-bar"></div>
+            </div>
+            <p class="loading-status">Crafting your adventure...</p>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.style.display = 'flex';
+    return overlay.querySelector('.loading-progress-bar');
+}
+
+function updateLoadingStatus(progressBar, progress, status) {
+    progressBar.style.width = `${progress}%`;
+    const statusEl = progressBar.closest('.loading-content').querySelector('.loading-status');
+    if (statusEl) statusEl.textContent = status;
+}
+
+function removeLoadingOverlay(overlay) {
+    overlay.closest('.loading-overlay').remove();
+}
+
 // Progress bar functions
 function createProgressBar() {
     const container = document.createElement('div');
@@ -113,37 +142,39 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Handle form submission with progress bar
+    // Handle form submission with enhanced loading UI
     if (storyForm) {
         storyForm.addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            // Check if a character is selected
             const selectedCharacter = document.querySelector('input[name="selectedCharacter"]:checked');
-
             if (!selectedCharacter) {
                 characterSelectionError.style.display = 'block';
                 characterSelectionError.textContent = 'Please select a character for your story.';
                 return;
             }
 
-            // Hide any previous errors
             characterSelectionError.style.display = 'none';
 
-            // Create and show progress bar
-            const progressBar = createProgressBar();
-
-            // Show loading state
+            // Create loading overlay
+            const progressBar = createLoadingOverlay('Crafting your adventure...');
             generateStoryBtn.disabled = true;
-            generateStoryBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generating Story...';
 
             try {
-                // Simulate progress while story generates
                 let progress = 0;
+                const loadingStates = [
+                    'Gathering inspiration...',
+                    'Creating characters...',
+                    'Weaving the narrative...',
+                    'Adding dramatic elements...',
+                    'Finalizing your story...'
+                ];
+
                 const progressInterval = setInterval(() => {
-                    progress += 5;
-                    if (progress <= 90) {
-                        updateProgress(progressBar, progress);
+                    if (progress < 90) {
+                        progress += 5;
+                        const stateIndex = Math.floor((progress / 90) * loadingStates.length);
+                        updateLoadingStatus(progressBar, progress, loadingStates[stateIndex]);
                     }
                 }, 1000);
 
@@ -159,13 +190,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
 
                 const data = await response.json();
-
-                // Clear progress interval
                 clearInterval(progressInterval);
 
                 if (data.success && data.redirect) {
-                    // Show 100% progress before redirect
-                    updateProgress(progressBar, 100);
+                    updateLoadingStatus(progressBar, 100, 'Story ready! Redirecting...');
                     setTimeout(() => {
                         window.location.href = data.redirect;
                     }, 500);
@@ -174,11 +202,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } catch (error) {
                 showToast('Error', error.message);
-                // Reset button state
                 generateStoryBtn.disabled = false;
                 generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
-                // Remove progress bar on error
-                removeProgressBar(progressBar);
+                const overlay = progressBar.closest('.loading-overlay');
+                if (overlay) overlay.remove();
+            }
+        });
+    }
+
+    // Debug page enhancements
+    const editModeSwitch = document.getElementById('editModeSwitch');
+    const generatedContent = document.getElementById('generatedContent');
+
+    if (editModeSwitch && generatedContent) {
+        editModeSwitch.addEventListener('change', function() {
+            if (this.checked) {
+                generatedContent.contentEditable = true;
+                generatedContent.classList.add('editable');
+                generatedContent.focus();
+            } else {
+                generatedContent.contentEditable = false;
+                generatedContent.classList.remove('editable');
             }
         });
     }

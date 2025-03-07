@@ -18,14 +18,83 @@ document.addEventListener('DOMContentLoaded', function() {
     const refreshStoriesBtn = document.getElementById('refreshStoriesBtn');
     const runHealthCheckBtn = document.getElementById('runHealthCheckBtn');
 
+    // View details button functionality
+    viewDetailsBtns.forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const id = this.getAttribute('data-id');
+
+            try {
+                const response = await fetch(`/api/image/${id}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    // Update modal content
+                    const modalContent = document.getElementById('modalContent');
+                    const modalImage = document.getElementById('modalImage');
+
+                    // Enable editing
+                    modalContent.contentEditable = true;
+                    modalContent.classList.add('result-content', 'editable');
+                    modalContent.textContent = JSON.stringify(data.analysis, null, 2);
+
+                    // Set image
+                    modalImage.src = data.image_url;
+
+                    // Add save button if not exists
+                    let saveBtn = document.getElementById('saveAnalysisBtn');
+                    if (!saveBtn) {
+                        saveBtn = document.createElement('button');
+                        saveBtn.id = 'saveAnalysisBtn';
+                        saveBtn.className = 'btn btn-primary mt-3';
+                        saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Changes';
+                        modalContent.parentElement.appendChild(saveBtn);
+
+                        // Add save functionality
+                        saveBtn.addEventListener('click', async function() {
+                            try {
+                                const updatedAnalysis = JSON.parse(modalContent.textContent);
+
+                                const response = await fetch('/api/save_analysis', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        image_id: id,
+                                        analysis: updatedAnalysis
+                                    })
+                                });
+
+                                const result = await response.json();
+                                if (result.success) {
+                                    showToast('Success', 'Analysis updated successfully');
+                                    // Refresh the page to show updated data
+                                    setTimeout(() => location.reload(), 1000);
+                                } else {
+                                    throw new Error(result.error);
+                                }
+                            } catch (error) {
+                                showToast('Error', 'Failed to save changes: ' + error.message);
+                            }
+                        });
+                    }
+
+                    // Show modal
+                    new bootstrap.Modal(document.getElementById('detailsModal')).show();
+                } else {
+                    throw new Error(data.error || 'Failed to fetch image details');
+                }
+            } catch (error) {
+                showToast('Error', error.message);
+            }
+        });
+    });
+
     // Show toast notification
     function showToast(title, message) {
-        const toastTitle = document.getElementById('toastTitle');
-        const toastMessage = document.getElementById('toastMessage');
         const toast = new bootstrap.Toast(document.getElementById('notificationToast'));
-
-        toastTitle.textContent = title;
-        toastMessage.textContent = message;
+        document.getElementById('toastTitle').textContent = title;
+        document.getElementById('toastMessage').textContent = message;
         toast.show();
     }
 
@@ -194,7 +263,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 plots = analysis.plot_lines;
             }
             plotLines.value = Array.isArray(plots) ? plots.join('\n') : plots;
-        } 
+        }
         // Extract scene-specific fields
         else {
             sceneType.value = analysis.scene_type || 'narrative';
@@ -469,34 +538,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // View details buttons
-    if (viewDetailsBtns.length > 0) {
-        viewDetailsBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const id = this.getAttribute('data-id');
-
-                // Fetch the analysis details
-                fetch(`/api/image/${id}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Update modal content
-                            document.getElementById('modalImage').src = data.image_url;
-                            document.getElementById('modalContent').textContent = 
-                                JSON.stringify(data.analysis, null, 2);
-
-                            // Show modal
-                            new bootstrap.Modal(document.getElementById('detailsModal')).show();
-                        } else {
-                            throw new Error(data.error || 'Failed to fetch image details');
-                        }
-                    })
-                    .catch(error => {
-                        showToast('Error', error.message);
-                    });
-            });
-        });
-    }
 
     // Delete image buttons
     if (deleteImageBtns.length > 0) {
