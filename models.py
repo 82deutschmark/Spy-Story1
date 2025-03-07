@@ -33,6 +33,7 @@ class ImageAnalysis(db.Model):
     image_size_bytes = db.Column(db.Integer)
     image_type = db.Column(db.String(32))  # 'character' or 'scene'
     analysis_result = db.Column(JSONB)  # Full analysis from OpenAI
+    character_name = db.Column(db.String(255))  # Name of the character
     character_traits = db.Column(JSONB)  # Array of character traits if a character
     character_role = db.Column(db.String(32))  # 'hero', 'villain', or 'neutral'
     plot_lines = db.Column(JSONB)  # Array of plot line suggestions for the character
