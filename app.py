@@ -1,22 +1,21 @@
-
 import os
 import logging
-import json
-import random
-from datetime import datetime
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_cors import CORS
 from dotenv import load_dotenv
 from database import db
-from models import AIInstruction, ImageAnalysis, StoryGeneration, story_images, StoryNode, StoryChoice, UserProgress, Achievement
-from services.openai_service import analyze_artwork, generate_image_description
+from models import (
+    AIInstruction, ImageAnalysis, StoryGeneration, 
+    story_images, StoryNode, StoryChoice, 
+    UserProgress, Achievement
+)
 from services.story_maker import generate_story, get_story_options
 
 # Load environment variables
 load_dotenv()
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Initialize Flask app
@@ -24,8 +23,9 @@ app = Flask(__name__)
 CORS(app)  # Enable CORS
 
 # Configure the database
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///story_generator.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.secret_key = os.environ.get("SESSION_SECRET")
 
 # Initialize the database
 db.init_app(app)
@@ -34,61 +34,45 @@ db.init_app(app)
 from api.unity_routes import unity_api
 app.register_blueprint(unity_api, url_prefix='/api/unity')
 
-# Create database tables if they don't exist
+# Create database tables
 with app.app_context():
     db.create_all()
 
-# Routes
 @app.route('/')
 def index():
     """Render the home page"""
-    # Get some character images to display
-    character_images = ImageAnalysis.query.filter_by(image_type='character').limit(4).all()
-    
-    # Get featured banner image
-    featured_image = ImageAnalysis.query.filter_by(id=54).first() or None
+    try:
+        # Get some character images to display
+        character_images = ImageAnalysis.query.filter_by(image_type='character').limit(4).all()
+        logger.debug(f"Found {len(character_images)} character images")
 
-    # Render the template
-    return render_template('index.html', 
-                          character_images=character_images,
-                          featured_image=featured_image)
+        return render_template('index.html', character_images=character_images)
+    except Exception as e:
+        logger.error(f"Error rendering index: {str(e)}")
+        return render_template('index.html', character_images=[])
 
 @app.route('/debug')
 def debug():
     """Render the debug page"""
-    # Get recent image analyses
-    recent_images = ImageAnalysis.query.order_by(ImageAnalysis.created_at.desc()).limit(10).all()
-    
-    # Get recent story generations
-    recent_stories = StoryGeneration.query.order_by(StoryGeneration.created_at.desc()).limit(10).all()
-    
-    # Get some database stats for the health check tab
-    image_count = ImageAnalysis.query.count()
-    character_count = ImageAnalysis.query.filter_by(image_type='character').count()
-    scene_count = ImageAnalysis.query.filter_by(image_type='scene').count()
-    story_count = StoryGeneration.query.count()
-    
-    # Calculate orphaned images (not used in any story)
-    orphaned_images = db.session.query(ImageAnalysis).\
-        outerjoin(story_images).\
-        filter(story_images.c.image_id == None).\
-        count()
-    
-    # Calculate empty stories (no images attached)
-    empty_stories = db.session.query(StoryGeneration).\
-        outerjoin(story_images).\
-        filter(story_images.c.story_id == None).\
-        count()
-    
-    return render_template('debug.html', 
-                          recent_images=recent_images,
-                          recent_stories=recent_stories,
-                          image_count=image_count,
-                          character_count=character_count,
-                          scene_count=scene_count,
-                          story_count=story_count,
-                          orphaned_images=orphaned_images,
-                          empty_stories=empty_stories)
+    try:
+        # Get recent image analyses
+        recent_images = ImageAnalysis.query.order_by(ImageAnalysis.created_at.desc()).limit(10).all()
+
+        # Get recent story generations
+        recent_stories = StoryGeneration.query.order_by(StoryGeneration.created_at.desc()).limit(10).all()
+
+        # Get database stats
+        image_count = ImageAnalysis.query.count()
+        story_count = StoryGeneration.query.count()
+
+        return render_template('debug.html', 
+                           recent_images=recent_images,
+                           recent_stories=recent_stories,
+                           image_count=image_count,
+                           story_count=story_count)
+    except Exception as e:
+        logger.error(f"Error rendering debug page: {str(e)}")
+        return render_template('debug.html')
 
 @app.route('/builder')
 def story_builder():
@@ -605,6 +589,5 @@ def api_get_scenes():
             'error': str(e)
         }), 500
 
-# Entry point - this is necessary for gunicorn
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
+import json
+# The __main__ block is removed because it's likely handled in main.py
