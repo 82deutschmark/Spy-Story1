@@ -37,12 +37,26 @@ def index():
     images = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).limit(4).all()
     image_data = []
     for img in images:
-        analysis = img.analysis_result
-        # Safely extract character name from analysis_result if character_name column doesn't exist
-        char_name = analysis.get('name', '')
+        analysis = img.analysis_result or {}
+        
+        # Extract name from analysis_result if character_name doesn't exist
+        char_name = ''
+        if analysis and 'name' in analysis:
+            char_name = analysis.get('name', '')
+        
+        # Get character traits and plot lines safely
+        char_traits = []
+        plot_lines = []
         try:
-            if hasattr(img, 'character_name') and img.character_name:
-                char_name = img.character_name
+            if hasattr(img, 'character_traits') and img.character_traits:
+                char_traits = img.character_traits
+            elif analysis and 'character_traits' in analysis:
+                char_traits = analysis.get('character_traits', [])
+                
+            if hasattr(img, 'plot_lines') and img.plot_lines:
+                plot_lines = img.plot_lines
+            elif analysis and 'plot_lines' in analysis:
+                plot_lines = analysis.get('plot_lines', [])
         except:
             pass
             
@@ -52,8 +66,8 @@ def index():
             'name': char_name,
             'style': analysis.get('style', ''),
             'story': analysis.get('story', ''),
-            'character_traits': img.character_traits or [],
-            'plot_lines': img.plot_lines or []
+            'character_traits': char_traits,
+            'plot_lines': plot_lines
         })
 
     return render_template(
