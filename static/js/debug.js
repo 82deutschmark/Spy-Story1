@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', function() {
     // Form elements
     const imageForm = document.getElementById('imageForm');
@@ -6,30 +5,30 @@ document.addEventListener('DOMContentLoaded', function() {
     const resultDiv = document.getElementById('result');
     const generatedContent = document.getElementById('generatedContent');
     const copyBtn = document.getElementById('copyBtn');
-    
+
     // Detail view elements
     const viewDetailsBtns = document.querySelectorAll('.view-details-btn');
     const deleteImageBtns = document.querySelectorAll('.delete-image-btn');
     const deleteStoryBtns = document.querySelectorAll('.delete-story-btn');
-    
+
     // Database management buttons
     const deleteAllImagesBtn = document.getElementById('deleteAllImagesBtn');
     const deleteAllStoriesBtn = document.getElementById('deleteAllStoriesBtn');
     const refreshImagesBtn = document.getElementById('refreshImagesBtn');
     const refreshStoriesBtn = document.getElementById('refreshStoriesBtn');
     const runHealthCheckBtn = document.getElementById('runHealthCheckBtn');
-    
+
     // Show toast notification
     function showToast(title, message) {
         const toastTitle = document.getElementById('toastTitle');
         const toastMessage = document.getElementById('toastMessage');
         const toast = new bootstrap.Toast(document.getElementById('notificationToast'));
-        
+
         toastTitle.textContent = title;
         toastMessage.textContent = message;
         toast.show();
     }
-    
+
     // Update database stats in the health tab
     function updateStats(stats) {
         document.getElementById('totalImages').textContent = stats.image_count;
@@ -39,29 +38,29 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('orphanedImages').textContent = stats.orphaned_images;
         document.getElementById('emptyStories').textContent = stats.empty_stories;
     }
-    
+
     // Update issues list in the health tab
     function updateIssues(issues, hasIssues) {
         const noIssuesAlert = document.getElementById('noIssuesAlert');
         const issuesList = document.getElementById('issuesList');
-        
+
         if (hasIssues) {
             noIssuesAlert.style.display = 'none';
             issuesList.style.display = 'block';
-            
+
             // Clear previous issues
             issuesList.innerHTML = '';
-            
+
             // Add new issues
             issues.forEach(issue => {
                 const li = document.createElement('li');
                 li.className = `list-group-item list-group-item-${issue.severity === 'error' ? 'danger' : 'warning'}`;
-                
+
                 const icon = document.createElement('i');
                 icon.className = `fas fa-${issue.severity === 'error' ? 'exclamation-circle' : 'exclamation-triangle'} me-2`;
-                
+
                 const text = document.createTextNode(issue.message);
-                
+
                 li.appendChild(icon);
                 li.appendChild(text);
                 issuesList.appendChild(li);
@@ -71,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
             issuesList.style.display = 'none';
         }
     }
-    
+
     // Run health check function
     function runHealthCheck() {
         fetch('/api/db/health-check')
@@ -89,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 showToast('Error', error.message);
             });
     }
-    
+
     // Delete record function
     function deleteRecord(url, recordType, recordId) {
         if (confirm(`Are you sure you want to delete this ${recordType}? This action cannot be undone.`)) {
@@ -114,24 +113,25 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
-    
+
     // Initialize image analysis form
     if (imageForm && generateBtn) {
         imageForm.addEventListener('submit', function(e) {
+            // Prevent the default form submission that would reload the page
             e.preventDefault();
-            
+
             const formData = new FormData(imageForm);
             const imageUrl = formData.get('image_url');
-            
+
             if (!imageUrl || !imageUrl.trim()) {
                 showToast('Error', 'Please enter a valid image URL');
                 return;
             }
-            
+
             // Disable button and show loading indicator
             generateBtn.disabled = true;
             generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Analyzing...';
-            
+
             fetch('/generate', {
                 method: 'POST',
                 body: formData
@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     // Display the results
                     resultDiv.style.display = 'block';
-                    
+
                     // Add save confirmation button if not already saved
                     if (!data.saved_to_db) {
                         const saveDiv = document.createElement('div');
@@ -159,13 +159,13 @@ document.addEventListener('DOMContentLoaded', function() {
                             </button>
                         `;
                         resultDiv.appendChild(saveDiv);
-                        
+
                         // Add click handler for save button
                         document.getElementById('saveAnalysisBtn').addEventListener('click', function() {
                             this.disabled = true;
                             this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
                             document.getElementById('rejectAnalysisBtn').disabled = true;
-                            
+
                             // Send the analysis to be saved
                             fetch('/save_analysis', {
                                 method: 'POST',
@@ -180,16 +180,16 @@ document.addEventListener('DOMContentLoaded', function() {
                             .then(response => response.json())
                             .then(saveData => {
                                 if (saveData.success) {
-                                    // Remove save button
-                                    saveDiv.remove();
-                                    showToast('Success', 'Analysis saved to database');
-                                    
-                                    // Refresh images table
-                                    if (refreshImagesBtn) {
-                                        refreshImagesBtn.click();
-                                    }
+                                    this.innerHTML = '<i class="fas fa-check me-2"></i>Saved';
+                                    showToast('Success', 'Analysis saved to database.');
+
+                                    // Don't automatically refresh images table after saving
+                                    // Let the user manually refresh when they're ready
+
                                 } else {
-                                    throw new Error(saveData.error || 'Failed to save analysis');
+                                    this.disabled = false;
+                                    this.innerHTML = '<i class="fas fa-save me-2"></i>Save to Database';
+                                    showToast('Error', saveData.error || 'Error saving analysis.');
                                 }
                             })
                             .catch(error => {
@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 showToast('Error', error.message);
                             });
                         });
-                        
+
                         // Add click handler for reject button
                         document.getElementById('rejectAnalysisBtn').addEventListener('click', function() {
                             // Remove the save confirmation area
@@ -209,11 +209,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     generatedContent.textContent = JSON.stringify(data.analysis, null, 2);
                     showToast('Success', 'Image analysis completed. Please review results before saving to database.');
-                    
-                    // Refresh images table
-                    if (refreshImagesBtn) {
-                        refreshImagesBtn.click();
-                    }
+
+                    // Refresh images table - REMOVED AUTOMATIC REFRESH
+                    // if (refreshImagesBtn) {
+                    //     refreshImagesBtn.click();
+                    // }
                 } else {
                     throw new Error(data.error || 'An error occurred during analysis.');
                 }
@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
+
     // Copy button
     if (copyBtn) {
         copyBtn.addEventListener('click', function() {
@@ -242,13 +242,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         });
     }
-    
+
     // View details buttons
     if (viewDetailsBtns.length > 0) {
         viewDetailsBtns.forEach(btn => {
             btn.addEventListener('click', function() {
                 const id = this.getAttribute('data-id');
-                
+
                 // Fetch the analysis details
                 fetch(`/api/image/${id}`)
                     .then(response => response.json())
@@ -258,7 +258,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             document.getElementById('modalImage').src = data.image_url;
                             document.getElementById('modalContent').textContent = 
                                 JSON.stringify(data.analysis, null, 2);
-                            
+
                             // Show modal
                             new bootstrap.Modal(document.getElementById('detailsModal')).show();
                         } else {
@@ -271,7 +271,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
+
     // Delete image buttons
     if (deleteImageBtns.length > 0) {
         deleteImageBtns.forEach(btn => {
@@ -281,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
+
     // Delete story buttons
     if (deleteStoryBtns.length > 0) {
         deleteStoryBtns.forEach(btn => {
@@ -291,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
+
     // Delete all images button
     if (deleteAllImagesBtn) {
         deleteAllImagesBtn.addEventListener('click', function() {
@@ -308,7 +308,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             tableBody.innerHTML = '';
                         }
                         showToast('Success', data.message);
-                        
+
                         // Run health check
                         runHealthCheck();
                     } else {
@@ -321,7 +321,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Delete all stories button
     if (deleteAllStoriesBtn) {
         deleteAllStoriesBtn.addEventListener('click', function() {
@@ -338,7 +338,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             tableBody.innerHTML = '';
                         }
                         showToast('Success', data.message);
-                        
+
                         // Run health check
                         runHealthCheck();
                     } else {
@@ -351,35 +351,35 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Refresh images button
     if (refreshImagesBtn) {
         refreshImagesBtn.addEventListener('click', function() {
             location.reload();
         });
     }
-    
+
     // Refresh stories button
     if (refreshStoriesBtn) {
         refreshStoriesBtn.addEventListener('click', function() {
             location.reload();
         });
     }
-    
+
     // Run health check button
     if (runHealthCheckBtn) {
         runHealthCheckBtn.addEventListener('click', function() {
             runHealthCheckBtn.disabled = true;
             runHealthCheckBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
-            
+
             runHealthCheck();
-            
+
             setTimeout(() => {
                 runHealthCheckBtn.disabled = false;
                 runHealthCheckBtn.innerHTML = '<i class="fas fa-stethoscope me-1"></i>Run Health Check';
             }, 1000);
         });
-        
+
         // Run a health check on page load
         runHealthCheck();
     }
