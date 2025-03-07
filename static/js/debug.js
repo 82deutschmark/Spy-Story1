@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             document.getElementById('rejectAnalysisBtn').disabled = true;
 
                             // Send the analysis to be saved
-                            fetch('/save_analysis', {
+                            fetch('/save_analysis_endpoint', {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',

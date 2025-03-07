@@ -326,10 +326,10 @@ def save_analysis():
 
         # Determine if it's a character or scene based on the presence of a 'character' key
         is_character = 'character' in analysis
-        
+
         # Extract character details if this is a character image
         character_data = analysis.get('character', {})
-        
+
         # Create new ImageAnalysis record
         image_analysis = ImageAnalysis(
             image_url=image_url,
@@ -373,54 +373,6 @@ def save_analysis():
             'error': f"Database error: {str(e)}"
         }), 500
 
-@app.route('/api/save_analysis', methods=['POST'])
-def save_analysis():
-    """Save the analysis results to the database"""
-    try:
-        data = request.json
-        
-        # Extract the image metadata
-        image_metadata = data.get('image_metadata', {})
-        
-        # Create a new ImageAnalysis object
-        image_analysis = ImageAnalysis(
-            image_url=image_metadata.get('url', ''),
-            image_width=image_metadata.get('width', 0),
-            image_height=image_metadata.get('height', 0),
-            image_format=image_metadata.get('format', ''),
-            image_size_bytes=image_metadata.get('size_bytes', 0),
-            image_type='character',  # Default to character for now
-            analysis_result=data,  # Store the full analysis
-            character_name=data.get('name', ''),  # Store the character name properly
-            character_traits=data.get('character_traits', []),
-            character_role=data.get('role', ''),
-            plot_lines=data.get('plot_lines', []),  # Make sure plot_lines are saved
-            setting=data.get('setting', '')  # Setting field should be for actual settings
-        )
-        
-        # Add to the database
-        db.session.add(image_analysis)
-        db.session.commit()
-        
-        logger.info(f"Saved analysis for image {image_analysis.image_url} with name {image_analysis.character_name}")
-        
-        return jsonify({
-            'success': True,
-            'message': 'Analysis saved to database',
-            'image_id': image_analysis.id
-        })
-        
-    except Exception as e:
-        logger.error(f"Error saving analysis: {str(e)}")
-        try:
-            db.session.rollback()
-        except:
-            pass
-            
-        return jsonify({
-            'success': False,
-            'error': f"Database error: {str(e)}"
-        }), 500
 
 @app.route('/api/random_character')
 def random_character():
