@@ -322,7 +322,10 @@ document.addEventListener('DOMContentLoaded', function() {
         applyChangesBtn.addEventListener('click', function() {
             const generatedContent = document.getElementById('generatedContent');
             const updatedAnalysis = applyEditsToAnalysis(analysis);
+            // Replace the content entirely instead of appending
             generatedContent.textContent = JSON.stringify(updatedAnalysis, null, 2);
+            // Update the original analysis object with the edited version
+            analysis = updatedAnalysis;
             showToast('Success', 'Changes applied to analysis. Review before saving.');
         });
     }
