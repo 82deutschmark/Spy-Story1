@@ -1,0 +1,35 @@
+Your goal is to ensure that when your storytelling API generates narrative choices, it uses the specific "plot_lines" (and other tags) stored in your database. To do this, you'll employ **dynamic prompt injection**—a technique where you dynamically build the prompt string by injecting the values you retrieved (like "plot_lines") into the prompt before sending it to OpenAI.
+
+Here's what you want to achieve, explained step-by-step for your AI coding assistant:
+
+1. **Retrieve Data from the Database:**  
+   You already store a JSON output containing the character details, including the list of "plot_lines". Retrieve these values from your database.
+
+2. **Construct the Prompt Dynamically:**  
+   Build a prompt string that incorporates the retrieved tags. For example, you might format the prompt like this:
+   
+   ```python
+   # Assuming 'character' is a dict with keys 'name', 'role', 'character_traits', and 'plot_lines'
+   prompt = (
+       f"Character Details:\n"
+       f"Name: {character['name']}\n"
+       f"Role: {character['role']}\n"
+       f"Traits: {', '.join(character['character_traits'])}\n\n"
+       "Available plot lines for narrative branching:\n"
+   )
+   for idx, line in enumerate(character['plot_lines'], start=1):
+       prompt += f"{idx}. {line}\n"
+   
+   prompt += (
+       "\nBased on the above details, generate three narrative branching suggestions. "
+       "Each suggestion should reference one of the provided plot lines (by number or text) as a tag."
+   )
+   ```
+
+3. **Send the Prompt to OpenAI:**  
+   Use this dynamically constructed prompt in your API call to OpenAI. This ensures the model is explicitly aware of the available "plot_lines" and must incorporate them into the narrative choices.
+
+4. **Structured Output:**  
+   Optionally, instruct the model to format its response in a structured way (e.g., JSON) so that each narrative suggestion includes a field (like `"plot_tag"`) that directly maps to one of the injected "plot_lines."
+
+In summary, dynamic prompt injection here means that every time you generate a narrative branch, your prompt is built at runtime with the current database values (like "plot_lines"). This method tightly couples your narrative choices with your stored content, ensuring consistency and allowing for flexible, data-driven storytelling.
