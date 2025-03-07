@@ -26,10 +26,10 @@
                         </h3>
                         
                         <div class="characters-grid mb-4">
-                            <div class="row justify-content-center">
+                            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 justify-content-center">
                                 {% for img in images %}
-                                <div class="col-md-4 mb-3">
-                                    <div class="card character-select-card" data-id="{{ img.id }}">
+                                <div class="col mb-3">
+                                    <div class="card h-100 character-select-card" data-id="{{ img.id }}">
                                         <img src="{{ img.image_url }}" class="card-img-top" alt="{{ img.name }}">
                                         <div class="card-body">
                                             <h5 class="card-title">{{ img.name }}</h5>

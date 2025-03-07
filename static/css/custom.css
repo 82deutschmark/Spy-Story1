@@ -269,6 +269,21 @@ body {
     background: var(--bs-dark);
 }
 
+.character-select-card {
+    height: 100%;
+    transition: transform 0.2s;
+}
+
+.character-select-card:hover {
+    transform: translateY(-5px);
+}
+
+.character-select-card img {
+    height: 220px;
+    object-fit: cover;
+    width: 100%;
+}
+
 .form-control:focus {
     border-color: var(--bs-primary);
     box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);

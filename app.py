@@ -33,8 +33,8 @@ def index():
     """Main page showing character selection and story options"""
     story_options = get_story_options()
 
-    # Get only 3 random images for character selection
-    images = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).limit(3).all()
+    # Get 4 random images for character selection
+    images = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).limit(4).all()
     image_data = []
     for img in images:
         analysis = img.analysis_result
