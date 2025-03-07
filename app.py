@@ -182,6 +182,23 @@ def generate_story_route():
         # Get the main character information
         main_character_img = selected_images[0]
         analysis = main_character_img.analysis_result or {}
+        
+        # Extract character information comprehensively
+        character_info = {
+            'name': analysis.get('name', main_character_img.character_name or 'Unknown Character'),
+            'role': analysis.get('role', 'neutral'),
+            'character_traits': main_character_img.character_traits or analysis.get('character_traits', []),
+            'plot_lines': main_character_img.plot_lines or analysis.get('plot_lines', []),
+            'style': analysis.get('style', '')
+        }
+        
+        # If traits are stored as a string instead of a list, convert them
+        if isinstance(character_info['character_traits'], str):
+            character_info['character_traits'] = [trait.strip() for trait in character_info['character_traits'].split(',')]
+        
+        # If plot_lines are stored as a string instead of a list, convert them
+        if isinstance(character_info['plot_lines'], str):
+            character_info['plot_lines'] = [plot.strip() for plot in character_info['plot_lines'].split('\n')]
 
         # Extract name - first use character_name field, then try analysis_result
         char_name = main_character_img.character_name or ''

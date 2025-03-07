@@ -72,16 +72,35 @@ def generate_story(
     # Build character information for the prompt
     selected_character_prompt = ""
     if character_info and character_info.get('name'):
+        # Extract character traits with fallback options for different data structures
+        traits = character_info.get('character_traits', [])
+        if not traits and 'traits' in character_info:
+            traits = character_info['traits']
+        
+        # Extract plot lines with fallback options
+        plot_lines = character_info.get('plot_lines', [])
+        if not plot_lines and 'plot_lines' in character_info:
+            plot_lines = character_info['plot_lines']
+        
+        # Get character style/visual description
+        style = character_info.get('style', '')
+        if not style and character_info.get('visual_description'):
+            style = character_info.get('visual_description')
+            
+        # Build the character prompt section with all available data
         selected_character_prompt = (
             f"\nSelected Character to Feature:\n"
             f"Name: {character_info['name']}\n"
-            f"Role: {character_info.get('role', 'guest')}\n"
-            f"Traits: {', '.join(character_info.get('character_traits', []))}\n"
-            f"Visual Description: {character_info.get('style', '')}\n"
-            f"Suggested Plot Lines:\n"
+            f"Role: {character_info.get('role', 'neutral')}\n"
+            f"Traits: {', '.join(traits)}\n"
+            f"Visual Description: {style}\n"
         )
-        for plot in character_info.get('plot_lines', []):
-            selected_character_prompt += f"- {plot}\n"
+        
+        # Add plot lines with emphasis to ensure they're incorporated into the story
+        if plot_lines:
+            selected_character_prompt += f"Suggested Plot Lines (MUST USE AT LEAST ONE):\n"
+            for plot in plot_lines:
+                selected_character_prompt += f"- {plot}\n"
 
     # Add context from previous choices if available
     context_prompt = ""
@@ -120,12 +139,15 @@ def generate_story(
         "Create an engaging story segment that:\n"
         "1. Features Pawel and/or Pawleen as the main story drivers\n"
         "2. Introduces the selected character (if provided) into the farm's ongoing adventures\n"
-        "3. Maintains the established personalities and relationships\n"
-        "4. Provides exactly two meaningful choice options that:\n"
+        "3. IMPORTANT: If plot lines are provided for the character, you MUST incorporate at least one into the story\n"
+        "4. Maintains the established personalities and relationships\n"
+        "5. Uses the character's traits to guide their behavior and dialogue\n"
+        "6. Provides exactly two meaningful choice options that:\n"
         "   - Lead to different potential outcomes\n"
         "   - Stay true to the characters' established traits\n"
+        "   - Relate to at least one of the plot lines if provided\n"
         "   - Avoid dead ends or quick conclusions\n"
-        "5. Include clear consequences for each choice\n\n"
+        "7. Include clear consequences for each choice that follow from the plot lines\n\n"
         "Format the response as a JSON object with:\n"
         "{\n"
         "  'title': 'Episode title',\n"
