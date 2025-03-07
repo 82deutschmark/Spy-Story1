@@ -631,11 +631,15 @@ def db_health_check():
 
         # Check for missing analysis results
         missing_analysis = ImageAnalysis.query.filter(
-            db.or_(
-                ImageAnalysis.analysis_result.is_(None),
-                ImageAnalysis.analysis_result == {}
-            )
+            ImageAnalysis.analysis_result.is_(None)
         ).count()
+        
+        # We need to handle empty JSONs separately to avoid type casting issues
+        empty_json_count = db.session.execute(
+            db.text("SELECT COUNT(*) FROM image_analysis WHERE analysis_result = '{}'::jsonb")
+        ).scalar()
+        
+        missing_analysis += empty_json_count if empty_json_count else 0
 
         # Check for characters missing plot lines
         missing_plot_lines = ImageAnalysis.query.filter(
