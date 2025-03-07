@@ -147,8 +147,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         const saveDiv = document.createElement('div');
                         saveDiv.className = 'text-center mt-3';
                         saveDiv.innerHTML = `
+                            <div class="alert alert-info mb-3">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Please review the analysis results above before saving to the database.
+                            </div>
                             <button class="btn btn-success" id="saveAnalysisBtn">
                                 <i class="fas fa-save me-2"></i>Save to Database
+                            </button>
+                            <button class="btn btn-outline-secondary ms-2" id="rejectAnalysisBtn">
+                                <i class="fas fa-times me-2"></i>Reject Analysis
                             </button>
                         `;
                         resultDiv.appendChild(saveDiv);
@@ -157,6 +164,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('saveAnalysisBtn').addEventListener('click', function() {
                             this.disabled = true;
                             this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+                            document.getElementById('rejectAnalysisBtn').disabled = true;
                             
                             // Send the analysis to be saved
                             fetch('/save_analysis', {
@@ -187,12 +195,20 @@ document.addEventListener('DOMContentLoaded', function() {
                             .catch(error => {
                                 this.disabled = false;
                                 this.innerHTML = '<i class="fas fa-save me-2"></i>Save to Database';
+                                document.getElementById('rejectAnalysisBtn').disabled = false;
                                 showToast('Error', error.message);
                             });
                         });
+                        
+                        // Add click handler for reject button
+                        document.getElementById('rejectAnalysisBtn').addEventListener('click', function() {
+                            // Remove the save confirmation area
+                            saveDiv.remove();
+                            showToast('Info', 'Analysis rejected. You can try analyzing the image again.');
+                        });
                     }
                     generatedContent.textContent = JSON.stringify(data.analysis, null, 2);
-                    showToast('Success', 'Image analysis completed. Review results and save if acceptable.');
+                    showToast('Success', 'Image analysis completed. Please review results before saving to database.');
                     
                     // Refresh images table
                     if (refreshImagesBtn) {
