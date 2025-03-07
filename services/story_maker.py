@@ -143,38 +143,15 @@ def generate_story(
             response_format={"type": "json_object"}
         )
 
-        # Log the raw response content for debugging
-        logger.debug(f"OpenAI raw response: {response.choices[0].message.content}")
-        
-        try:
-            # Parse and return the generated story
-            result = json.loads(response.choices[0].message.content)
-            return {
-                "story": json.dumps(result),  # Convert dict to JSON string for database storage
-                "conflict": final_conflict,
-                "setting": final_setting,
-                "narrative_style": final_narrative,
-                "mood": final_mood
-            }
-        except json.JSONDecodeError as json_err:
-            logger.error(f"JSON parse error: {json_err}. Raw content: {response.choices[0].message.content}")
-            # Create a fallback result with the raw content
-            fallback_result = {
-                "title": "Story Generation",
-                "story": response.choices[0].message.content,
-                "choices": [
-                    {"text": "Continue the adventure", "consequence": "See what happens next"},
-                    {"text": "Try a different approach", "consequence": "Start a new path"}
-                ],
-                "characters": ["Pawel", "Pawleen"]
-            }
-            return {
-                "story": json.dumps(fallback_result),
-                "conflict": final_conflict,
-                "setting": final_setting,
-                "narrative_style": final_narrative,
-                "mood": final_mood
-            }
+        # Parse and return the generated story
+        result = json.loads(response.choices[0].message.content)
+        return {
+            "story": json.dumps(result),  # Convert dict to JSON string for database storage
+            "conflict": final_conflict,
+            "setting": final_setting,
+            "narrative_style": final_narrative,
+            "mood": final_mood
+        }
 
     except Exception as e:
         logger.error(f"Error generating story: {str(e)}")

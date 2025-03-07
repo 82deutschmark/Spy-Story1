@@ -267,8 +267,7 @@ def save_analysis():
             scene_type=analysis.get('sceneType') if not is_character else None,
             setting=analysis.get('setting') if not is_character else None,
             story_fit=analysis.get('storyFit') if not is_character else None,
-            dramatic_moments=analysis.get('dramaticMoments') if not is_character else None,
-            setting_description=analysis.get('setting_description') if not is_character else None
+            dramatic_moments=analysis.get('dramaticMoments') if not is_character else None
         )
 
         db.session.add(image_analysis)

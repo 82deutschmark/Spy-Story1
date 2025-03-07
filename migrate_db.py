@@ -21,11 +21,7 @@ def migrate_database():
             'character_traits': 'JSONB',
             'character_role': 'VARCHAR(32)',
             'plot_lines': 'JSONB',
-            'scene_type': 'VARCHAR(64)',
-            'setting': 'TEXT',
-            'story_fit': 'TEXT',
-            'setting_description': 'TEXT',
-            'dramatic_moments': 'JSONB'
+            'scene_type': 'VARCHAR(64)'
         }
         
         # Add each missing column

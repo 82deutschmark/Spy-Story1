@@ -1,138 +1,147 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if we're on the index page with the form
-    const generateStoryForm = document.getElementById('generateStoryForm');
-    if (generateStoryForm) {
-        generateStoryForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            submitStoryForm();
-        });
+    // Character selection elements
+    const characterCards = document.querySelectorAll('.character-select-card');
+    const characterCheckboxes = document.querySelectorAll('.character-checkbox');
+    const rerollButtons = document.querySelectorAll('.reroll-btn');
+    const storyForm = document.getElementById('storyForm');
+    const generateStoryBtn = document.getElementById('generateStoryBtn');
+    const characterSelectionError = document.getElementById('characterSelectionError');
+    const notificationToast = document.getElementById('notificationToast');
+
+    // Bootstrap toast instance
+    const toast = new bootstrap.Toast(notificationToast);
+
+    // Show toast notification
+    function showToast(title, message) {
+        document.getElementById('toastTitle').textContent = title;
+        document.getElementById('toastMessage').textContent = message;
+        toast.show();
     }
 
     // Character selection
-    const characterCards = document.querySelectorAll('.character-card');
-    characterCards.forEach(card => {
-        card.addEventListener('click', function() {
-            // Toggle selection
-            this.classList.toggle('selected');
-
-            // Update hidden input
-            const imageId = this.getAttribute('data-id');
-            let selectedImages = document.querySelectorAll('input[name="selected_images[]"]');
-
-            // If no selected_images inputs exist yet, create one
-            if (selectedImages.length === 0) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'selected_images[]';
-                input.value = imageId;
-                generateStoryForm.appendChild(input);
-            } else {
-                // Otherwise, update the existing one
-                selectedImages[0].value = imageId;
-            }
-
-            // Visual feedback - make only one card selected
-            characterCards.forEach(otherCard => {
-                if (otherCard !== this) {
-                    otherCard.classList.remove('selected');
+    if (characterCards.length > 0) {
+        characterCards.forEach((card, index) => {
+            card.addEventListener('click', function(e) {
+                // Prevent triggering when clicking the checkbox or reroll button
+                if (e.target.type !== 'radio' && !e.target.closest('.reroll-btn')) {
+                    const checkbox = characterCheckboxes[index];
+                    checkbox.checked = true;
                 }
             });
         });
-    });
+    }
 
-    // Custom option toggles
-    const customToggles = document.querySelectorAll('.custom-toggle');
-    customToggles.forEach(toggle => {
-        toggle.addEventListener('change', function() {
-            const targetId = this.getAttribute('data-target');
-            const targetElement = document.getElementById(targetId);
-            if (targetElement) {
-                if (this.checked) {
-                    targetElement.classList.remove('d-none');
-                } else {
-                    targetElement.classList.add('d-none');
-                }
-            }
+    // Reroll functionality
+    if (rerollButtons.length > 0) {
+        rerollButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const cardIndex = this.getAttribute('data-card-index');
+                const card = characterCards[cardIndex];
+                const cardImage = card.querySelector('img');
+                const cardTitle = card.querySelector('.card-title');
+                const cardText = card.querySelector('.card-text');
+                const traitsContainer = card.querySelector('.character-traits');
+                const checkbox = card.querySelector('.character-checkbox');
+
+                // Show loading state
+                this.disabled = true;
+                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+                cardImage.src = 'https://via.placeholder.com/400x250?text=Loading...';
+
+                // Fetch a new random character
+                fetch('/api/random_character')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update card with new character data
+                            card.setAttribute('data-id', data.id);
+                            cardImage.src = data.image_url;
+                            cardTitle.textContent = data.name;
+                            cardText.textContent = data.style;
+
+                            // Update traits
+                            traitsContainer.innerHTML = '';
+                            if (data.character_traits && data.character_traits.length > 0) {
+                                data.character_traits.forEach(trait => {
+                                    const badge = document.createElement('span');
+                                    badge.className = 'badge bg-primary me-1';
+                                    badge.textContent = trait;
+                                    traitsContainer.appendChild(badge);
+                                });
+                            }
+
+                            // Update checkbox value
+                            checkbox.value = data.id;
+                            checkbox.id = 'character' + data.id;
+                            checkbox.nextElementSibling.setAttribute('for', 'character' + data.id);
+
+                            showToast('Success', 'Character rerolled successfully!');
+                        } else {
+                            throw new Error(data.error || 'Failed to get a new character');
+                        }
+                    })
+                    .catch(error => {
+                        showToast('Error', error.message);
+                    })
+                    .finally(() => {
+                        // Reset button state
+                        this.disabled = false;
+                        this.innerHTML = '<i class="fas fa-dice me-1"></i>Reroll';
+                    });
+            });
         });
-    });
-});
-
-function submitStoryForm() {
-    // Show loading state
-    const generateStoryBtn = document.getElementById('generateStoryBtn');
-    if (generateStoryBtn) {
-        generateStoryBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generating...';
-        generateStoryBtn.disabled = true;
     }
 
-    // Get form data
-    const form = document.getElementById('generateStoryForm');
-    const formData = new FormData(form);
+    // Handle form submission
+    if (storyForm) {
+        storyForm.addEventListener('submit', function(e) {
+            e.preventDefault();
 
-    // Check if at least one character is selected
-    if (!formData.has('selected_images[]')) {
-        showToast('Please select a character for your adventure!', 'warning');
-        if (generateStoryBtn) {
-            generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
-            generateStoryBtn.disabled = false;
-        }
-        return;
-    }
+            // Check if a character is selected
+            const selectedCharacter = document.querySelector('input[name="selectedCharacter"]:checked');
 
-    // Send request
-    fetch('/generate_story', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            showToast(data.error, 'danger');
-            if (generateStoryBtn) {
-                generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
-                generateStoryBtn.disabled = false;
+            if (!selectedCharacter) {
+                characterSelectionError.style.display = 'block';
+                characterSelectionError.textContent = 'Please select a character for your story.';
+                return;
             }
-        } else if (data.success) {
-            // Redirect to storyboard
-            window.location.href = `/storyboard/${data.story_id}`;
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showToast('An error occurred while generating your story. Please try again.', 'danger');
-        if (generateStoryBtn) {
-            generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
-            generateStoryBtn.disabled = false;
-        }
-    });
-}
 
-function showToast(message, type) {
-    const toastEl = document.getElementById('notificationToast');
-    const toastBodyEl = document.getElementById('toastMessage');
-    const toastTitleEl = document.getElementById('toastTitle');
+            // Hide any previous errors
+            characterSelectionError.style.display = 'none';
 
-    if (!toastEl || !toastBodyEl) {
-        console.error('Toast elements not found in the DOM');
-        alert(message); // Fallback to alert if toast elements don't exist
-        return;
+            // Show loading state
+            generateStoryBtn.disabled = true;
+            generateStoryBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generating Story...';
+
+            // Create FormData and append selected character
+            const formData = new FormData(this);
+
+            // Ensure the selected character is included
+            formData.set('selected_images[]', selectedCharacter.value);
+
+            // Submit the form
+            fetch('/generate_story', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Redirect to the storyboard page
+                    window.location.href = '/storyboard/' + data.story_id;
+                } else {
+                    throw new Error(data.error || 'Failed to generate story');
+                }
+            })
+            .catch(error => {
+                showToast('Error', error.message);
+                // Reset button state
+                generateStoryBtn.disabled = false;
+                generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
+            });
+        });
     }
-
-    // Set content
-    if (toastBodyEl) toastBodyEl.textContent = message;
-
-    // Set title based on type
-    if (toastTitleEl) {
-        if (type === 'danger') {
-            toastTitleEl.textContent = 'Error';
-        } else if (type === 'warning') {
-            toastTitleEl.textContent = 'Warning';
-        } else {
-            toastTitleEl.textContent = 'Notification';
-        }
-    }
-
-    // Show toast
-    const toast = new bootstrap.Toast(toastEl);
-    toast.show();
-}
+});

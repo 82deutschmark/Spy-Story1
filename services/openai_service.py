@@ -119,8 +119,7 @@ Analyze the image and determine:
 
 2. If it's a SCENE:
    - Determine the scene type (narrative, choice moment, action, etc.)
-   - Describe the setting in detail (include in 'setting' field)
-   - Provide a more detailed setting description in 'setting_description' field
+   - Describe the setting in detail
    - Suggest how this scene fits into the story
    - Potential dramatic moments that could occur
 
@@ -139,11 +138,10 @@ Even if the image appears to be a scene, treat it as a character and create a ch
 """
             elif force_type == 'scene':
                 user_message = f"""Analyze the image AS A SCENE regardless of what's shown:
-   - Determine the scene type (narrative, choice moment, action, etc.) - include as 'sceneType'
-   - Describe the setting in detail (include in 'setting' field)
-   - Provide a more detailed setting description in 'setting_description' field
-   - Suggest how this scene fits into the story (include as 'storyFit' field)
-   - Potential dramatic moments that could occur (include as 'dramaticMoments' array)
+   - Determine the scene type (narrative, choice moment, action, etc.)
+   - Describe the setting in detail
+   - Suggest how this scene fits into the story
+   - Potential dramatic moments that could occur
 
 Even if the image appears to be a character, treat it as a scene and describe the setting/context shown.
 """
@@ -157,11 +155,10 @@ Even if the image appears to be a character, treat it as a scene and describe th
    - Art style description
 
 2. If it's a SCENE:
-   - Determine the scene type (narrative, choice moment, action, etc.) - include as 'sceneType'
-   - Describe the setting in detail (include in 'setting' field)
-   - Provide a more detailed setting description in 'setting_description' field
-   - Suggest how this scene fits into the story (include as 'storyFit' field)
-   - Potential dramatic moments that could occur (include as 'dramaticMoments' array)
+   - Determine the scene type (narrative, choice moment, action, etc.)
+   - Describe the setting in detail
+   - Suggest how this scene fits into the story
+   - Potential dramatic moments that could occur
 """
 
             # Call OpenAI API with the base64 encoded image
@@ -170,14 +167,14 @@ Even if the image appears to be a character, treat it as a scene and describe th
                 messages=[
                     {
                         "role": "system",
-                        "content": system_prompt + "\n\nPlease respond in JSON format."
+                        "content": system_prompt
                     },
                     {
                         "role": "user",
                         "content": [
                             {
                                 "type": "text",
-                                "text": user_message + "\n\nRespond in valid JSON format."
+                                "text": user_message
                             },
                             {
                                 "type": "image_url",
@@ -191,26 +188,13 @@ Even if the image appears to be a character, treat it as a scene and describe th
         except requests.exceptions.RequestException as req_err:
             logger.error(f"Error downloading image: {str(req_err)}")
             raise Exception(f"Failed to download image from {image_url}: {str(req_err)}")
-        # Log the raw response content for debugging
-        logger.debug(f"OpenAI raw response: {response.choices[0].message.content}")
-        
-        try:
-            result = json.loads(response.choices[0].message.content)
-            
-            # Add image metadata to the result
-            result["image_metadata"] = image_metadata
-            
-            logger.debug("Successfully analyzed artwork")
-            return result
-        except json.JSONDecodeError as json_err:
-            logger.error(f"JSON parse error: {json_err}. Raw content: {response.choices[0].message.content}")
-            # Try to recover by returning a basic structure if parsing fails
-            fallback_result = {
-                "name" if force_type == "character" else "scene_type": "Unknown",
-                "description": response.choices[0].message.content,
-                "image_metadata": image_metadata
-            }
-            return fallback_result
+        result = json.loads(response.choices[0].message.content)
+
+        # Add image metadata to the result
+        result["image_metadata"] = image_metadata
+
+        logger.debug("Successfully analyzed artwork")
+        return result
     except requests.exceptions.RequestException as req_err:
         logger.error(f"Error downloading image: {str(req_err)}")
         raise Exception(f"Failed to download image: {str(req_err)}")
@@ -236,7 +220,6 @@ def generate_image_description(analysis):
         description = (
             f"Scene Type: {analysis.get('scene_type', 'Adventure')}\n\n"
             f"Setting: {analysis.get('setting', '')}\n\n"
-            f"Detailed Setting Description: {analysis.get('setting_description', '')}\n\n" #Added this line
             f"Dramatic Moment: {analysis.get('dramatic_moments', [''])[0]}"
         )
     return description
