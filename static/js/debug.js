@@ -177,7 +177,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                     analysis: data.analysis
                                 })
                             })
-                            .then(response => response.json())
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                                }
+                                return response.json();
+                            })
                             .then(saveData => {
                                 if (saveData.success) {
                                     this.innerHTML = '<i class="fas fa-check me-2"></i>Saved';
@@ -193,10 +198,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                 }
                             })
                             .catch(error => {
+                                console.error("Save error:", error);
                                 this.disabled = false;
                                 this.innerHTML = '<i class="fas fa-save me-2"></i>Save to Database';
                                 document.getElementById('rejectAnalysisBtn').disabled = false;
-                                showToast('Error', error.message);
+                                showToast('Error', `Failed to save analysis: ${error.message}`);
                             });
                         });
 
