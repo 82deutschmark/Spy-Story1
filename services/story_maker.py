@@ -118,7 +118,7 @@ def generate_story(
     try:
         # Call OpenAI API to generate the story using new client syntax
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o",  # Changed from gpt-4 to gpt-4o which supports JSON response format
             messages=[
                 {
                     "role": "system",
