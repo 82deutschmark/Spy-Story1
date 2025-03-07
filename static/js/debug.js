@@ -1,38 +1,134 @@
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Form and element references
+    // Form elements
     const imageForm = document.getElementById('imageForm');
+    const generateBtn = document.getElementById('generateBtn');
     const resultDiv = document.getElementById('result');
     const generatedContent = document.getElementById('generatedContent');
     const copyBtn = document.getElementById('copyBtn');
-    const notificationToast = document.getElementById('notificationToast');
-    const viewDetailsBtns = document.querySelectorAll('.view-details-btn');
     
-    // Bootstrap toast instance
-    const toast = new bootstrap.Toast(notificationToast);
+    // Detail view elements
+    const viewDetailsBtns = document.querySelectorAll('.view-details-btn');
+    const deleteImageBtns = document.querySelectorAll('.delete-image-btn');
+    const deleteStoryBtns = document.querySelectorAll('.delete-story-btn');
+    
+    // Database management buttons
+    const deleteAllImagesBtn = document.getElementById('deleteAllImagesBtn');
+    const deleteAllStoriesBtn = document.getElementById('deleteAllStoriesBtn');
+    const refreshImagesBtn = document.getElementById('refreshImagesBtn');
+    const refreshStoriesBtn = document.getElementById('refreshStoriesBtn');
+    const runHealthCheckBtn = document.getElementById('runHealthCheckBtn');
     
     // Show toast notification
     function showToast(title, message) {
-        document.getElementById('toastTitle').textContent = title;
-        document.getElementById('toastMessage').textContent = message;
+        const toastTitle = document.getElementById('toastTitle');
+        const toastMessage = document.getElementById('toastMessage');
+        const toast = new bootstrap.Toast(document.getElementById('notificationToast'));
+        
+        toastTitle.textContent = title;
+        toastMessage.textContent = message;
         toast.show();
     }
     
-    // Image analysis form
-    if (imageForm) {
+    // Update database stats in the health tab
+    function updateStats(stats) {
+        document.getElementById('totalImages').textContent = stats.image_count;
+        document.getElementById('characterImages').textContent = stats.character_count;
+        document.getElementById('sceneImages').textContent = stats.scene_count;
+        document.getElementById('totalStories').textContent = stats.story_count;
+        document.getElementById('orphanedImages').textContent = stats.orphaned_images;
+        document.getElementById('emptyStories').textContent = stats.empty_stories;
+    }
+    
+    // Update issues list in the health tab
+    function updateIssues(issues, hasIssues) {
+        const noIssuesAlert = document.getElementById('noIssuesAlert');
+        const issuesList = document.getElementById('issuesList');
+        
+        if (hasIssues) {
+            noIssuesAlert.style.display = 'none';
+            issuesList.style.display = 'block';
+            
+            // Clear previous issues
+            issuesList.innerHTML = '';
+            
+            // Add new issues
+            issues.forEach(issue => {
+                const li = document.createElement('li');
+                li.className = `list-group-item list-group-item-${issue.severity === 'error' ? 'danger' : 'warning'}`;
+                
+                const icon = document.createElement('i');
+                icon.className = `fas fa-${issue.severity === 'error' ? 'exclamation-circle' : 'exclamation-triangle'} me-2`;
+                
+                const text = document.createTextNode(issue.message);
+                
+                li.appendChild(icon);
+                li.appendChild(text);
+                issuesList.appendChild(li);
+            });
+        } else {
+            noIssuesAlert.style.display = 'block';
+            issuesList.style.display = 'none';
+        }
+    }
+    
+    // Run health check function
+    function runHealthCheck() {
+        fetch('/api/db/health-check')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateStats(data.stats);
+                    updateIssues(data.issues, data.has_issues);
+                    showToast('Health Check', 'Database health check completed successfully');
+                } else {
+                    throw new Error(data.error || 'Failed to run health check');
+                }
+            })
+            .catch(error => {
+                showToast('Error', error.message);
+            });
+    }
+    
+    // Delete record function
+    function deleteRecord(url, recordType, recordId) {
+        if (confirm(`Are you sure you want to delete this ${recordType}? This action cannot be undone.`)) {
+            fetch(url, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove the row from the table
+                    const row = document.querySelector(`tr[data-id="${recordId}"]`);
+                    if (row) {
+                        row.remove();
+                    }
+                    showToast('Success', data.message);
+                } else {
+                    throw new Error(data.error || `Failed to delete ${recordType}`);
+                }
+            })
+            .catch(error => {
+                showToast('Error', error.message);
+            });
+        }
+    }
+    
+    // Initialize image analysis form
+    if (imageForm && generateBtn) {
         imageForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const formData = new FormData(this);
+            const formData = new FormData(imageForm);
             const imageUrl = formData.get('image_url');
             
-            if (!imageUrl) {
-                showToast('Error', 'Please enter an image URL.');
+            if (!imageUrl || !imageUrl.trim()) {
+                showToast('Error', 'Please enter a valid image URL');
                 return;
             }
             
-            // Show loading state
-            const generateBtn = document.getElementById('generateBtn');
+            // Disable button and show loading indicator
             generateBtn.disabled = true;
             generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Analyzing...';
             
@@ -47,6 +143,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     resultDiv.style.display = 'block';
                     generatedContent.textContent = JSON.stringify(data.analysis, null, 2);
                     showToast('Success', 'Image analysis completed and saved to database.');
+                    
+                    // Refresh images table
+                    if (refreshImagesBtn) {
+                        refreshImagesBtn.click();
+                    }
                 } else {
                     throw new Error(data.error || 'An error occurred during analysis.');
                 }
@@ -103,5 +204,117 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
             });
         });
+    }
+    
+    // Delete image buttons
+    if (deleteImageBtns.length > 0) {
+        deleteImageBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                deleteRecord(`/api/image/${id}`, 'image', id);
+            });
+        });
+    }
+    
+    // Delete story buttons
+    if (deleteStoryBtns.length > 0) {
+        deleteStoryBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                deleteRecord(`/api/story/${id}`, 'story', id);
+            });
+        });
+    }
+    
+    // Delete all images button
+    if (deleteAllImagesBtn) {
+        deleteAllImagesBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to delete ALL image records? This action cannot be undone.')) {
+                fetch('/api/db/delete-all-images', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Clear the table
+                        const tableBody = document.getElementById('imagesTableBody');
+                        if (tableBody) {
+                            tableBody.innerHTML = '';
+                        }
+                        showToast('Success', data.message);
+                        
+                        // Run health check
+                        runHealthCheck();
+                    } else {
+                        throw new Error(data.error || 'Failed to delete all images');
+                    }
+                })
+                .catch(error => {
+                    showToast('Error', error.message);
+                });
+            }
+        });
+    }
+    
+    // Delete all stories button
+    if (deleteAllStoriesBtn) {
+        deleteAllStoriesBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to delete ALL story records? This action cannot be undone.')) {
+                fetch('/api/db/delete-all-stories', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Clear the table
+                        const tableBody = document.getElementById('storiesTableBody');
+                        if (tableBody) {
+                            tableBody.innerHTML = '';
+                        }
+                        showToast('Success', data.message);
+                        
+                        // Run health check
+                        runHealthCheck();
+                    } else {
+                        throw new Error(data.error || 'Failed to delete all stories');
+                    }
+                })
+                .catch(error => {
+                    showToast('Error', error.message);
+                });
+            }
+        });
+    }
+    
+    // Refresh images button
+    if (refreshImagesBtn) {
+        refreshImagesBtn.addEventListener('click', function() {
+            location.reload();
+        });
+    }
+    
+    // Refresh stories button
+    if (refreshStoriesBtn) {
+        refreshStoriesBtn.addEventListener('click', function() {
+            location.reload();
+        });
+    }
+    
+    // Run health check button
+    if (runHealthCheckBtn) {
+        runHealthCheckBtn.addEventListener('click', function() {
+            runHealthCheckBtn.disabled = true;
+            runHealthCheckBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
+            
+            runHealthCheck();
+            
+            setTimeout(() => {
+                runHealthCheckBtn.disabled = false;
+                runHealthCheckBtn.innerHTML = '<i class="fas fa-stethoscope me-1"></i>Run Health Check';
+            }, 1000);
+        });
+        
+        // Run a health check on page load
+        runHealthCheck();
     }
 });

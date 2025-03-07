@@ -58,10 +58,30 @@ def debug():
     """Debug page with image analysis tool and database view"""
     # Get recent image analyses
     recent_images = ImageAnalysis.query.order_by(ImageAnalysis.created_at.desc()).limit(10).all()
+    recent_stories = StoryGeneration.query.order_by(StoryGeneration.created_at.desc()).limit(10).all()
+    
+    # Database statistics
+    image_count = ImageAnalysis.query.count()
+    character_count = ImageAnalysis.query.filter_by(image_type='character').count()
+    scene_count = ImageAnalysis.query.filter_by(image_type='scene').count()
+    story_count = StoryGeneration.query.count()
+    
+    # Orphaned images (not associated with any story)
+    orphaned_images = ImageAnalysis.query.filter(~ImageAnalysis.stories.any()).count()
+    
+    # Empty stories (no generated content)
+    empty_stories = StoryGeneration.query.filter(StoryGeneration.generated_story.is_(None)).count()
     
     return render_template(
         'debug.html',
-        recent_images=recent_images
+        recent_images=recent_images,
+        recent_stories=recent_stories,
+        image_count=image_count,
+        character_count=character_count,
+        scene_count=scene_count,
+        story_count=story_count,
+        orphaned_images=orphaned_images,
+        empty_stories=empty_stories
     )
 
 @app.route('/storyboard/<int:story_id>')
@@ -279,6 +299,173 @@ def get_image_details(image_id):
         })
     except Exception as e:
         logger.error(f"Error getting image details: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+        
+@app.route('/api/image/<int:image_id>', methods=['DELETE'])
+def delete_image(image_id):
+    """API endpoint to delete a specific image record"""
+    try:
+        image = ImageAnalysis.query.get_or_404(image_id)
+        
+        # Remove associations with stories
+        for story in image.stories:
+            story.images.remove(image)
+            
+        db.session.delete(image)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Image record {image_id} deleted successfully'
+        })
+    except Exception as e:
+        logger.error(f"Error deleting image: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+        
+@app.route('/api/story/<int:story_id>', methods=['DELETE'])
+def delete_story(story_id):
+    """API endpoint to delete a specific story record"""
+    try:
+        story = StoryGeneration.query.get_or_404(story_id)
+        db.session.delete(story)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Story record {story_id} deleted successfully'
+        })
+    except Exception as e:
+        logger.error(f"Error deleting story: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/db/delete-all-images', methods=['POST'])
+def delete_all_images():
+    """API endpoint to delete all image records"""
+    try:
+        # First remove associations with stories
+        for image in ImageAnalysis.query.all():
+            for story in image.stories:
+                story.images.remove(image)
+        
+        # Then delete all images
+        num_deleted = db.session.query(ImageAnalysis).delete()
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Deleted {num_deleted} image records'
+        })
+    except Exception as e:
+        logger.error(f"Error deleting all images: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/db/delete-all-stories', methods=['POST'])
+def delete_all_stories():
+    """API endpoint to delete all story records"""
+    try:
+        num_deleted = db.session.query(StoryGeneration).delete()
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Deleted {num_deleted} story records'
+        })
+    except Exception as e:
+        logger.error(f"Error deleting all stories: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/db/health-check', methods=['GET'])
+def db_health_check():
+    """API endpoint to perform a database health check"""
+    try:
+        # Get counts
+        image_count = ImageAnalysis.query.count()
+        character_count = ImageAnalysis.query.filter_by(image_type='character').count()
+        scene_count = ImageAnalysis.query.filter_by(image_type='scene').count()
+        story_count = StoryGeneration.query.count()
+        orphaned_images = ImageAnalysis.query.filter(~ImageAnalysis.stories.any()).count()
+        empty_stories = StoryGeneration.query.filter(StoryGeneration.generated_story.is_(None)).count()
+        
+        # Check for potential issues
+        issues = []
+        
+        # Check for missing image URLs
+        invalid_urls = ImageAnalysis.query.filter(
+            db.or_(
+                ImageAnalysis.image_url.is_(None),
+                ImageAnalysis.image_url == '',
+                ~ImageAnalysis.image_url.like('http%')
+            )
+        ).count()
+        
+        if invalid_urls > 0:
+            issues.append({
+                'severity': 'warning',
+                'message': f'Found {invalid_urls} images with invalid or missing URLs',
+                'type': 'invalid_urls'
+            })
+            
+        # Check for missing analysis results
+        missing_analysis = ImageAnalysis.query.filter(
+            db.or_(
+                ImageAnalysis.analysis_result.is_(None),
+                ImageAnalysis.analysis_result == {}
+            )
+        ).count()
+        
+        if missing_analysis > 0:
+            issues.append({
+                'severity': 'error',
+                'message': f'Found {missing_analysis} images with missing analysis results',
+                'type': 'missing_analysis'
+            })
+            
+        # Check for stories with no images
+        stories_no_images = StoryGeneration.query.filter(~StoryGeneration.images.any()).count()
+        
+        if stories_no_images > 0:
+            issues.append({
+                'severity': 'warning',
+                'message': f'Found {stories_no_images} stories with no associated images',
+                'type': 'stories_no_images'
+            })
+            
+        # Check for malformed story JSON
+        malformed_stories = 0
+        for story in StoryGeneration.query.all():
+            if story.generated_story:
+                try:
+                    if isinstance(story.generated_story, str):
+                        json.loads(story.generated_story)
+                except:
+                    malformed_stories += 1
+        
+        if malformed_stories > 0:
+            issues.append({
+                'severity': 'error',
+                'message': f'Found {malformed_stories} stories with malformed JSON',
+                'type': 'malformed_json'
+            })
+            
+        return jsonify({
+            'success': True,
+            'stats': {
+                'image_count': image_count,
+                'character_count': character_count,
+                'scene_count': scene_count,
+                'story_count': story_count,
+                'orphaned_images': orphaned_images,
+                'empty_stories': empty_stories
+            },
+            'issues': issues,
+            'has_issues': len(issues) > 0
+        })
+    except Exception as e:
+        logger.error(f"Error performing health check: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":
