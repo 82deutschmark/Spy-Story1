@@ -95,14 +95,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         this.disabled = false;
                         this.innerHTML = '<i class="fas fa-dice me-1"></i>Reroll';
                     });
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Update card with new character data
-                            card.setAttribute('data-id', data.id);
-                            cardImage.src = data.image_url;
-                            cardTitle.textContent = data.name;
-                            cardText.textContent = data.style;
 
                             // Update traits
                             traitsContainer.innerHTML = '';
