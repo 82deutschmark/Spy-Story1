@@ -39,44 +39,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.stopPropagation();
 
                 const cardIndex = this.getAttribute('data-card-index');
+                const cardContainer = this.closest('.character-container');
+                if (!cardContainer) return;
+                
                 const card = characterCards[cardIndex];
-                const cardImage = card.querySelector('img');
-                const cardTitle = card.querySelector('.card-title');
-                const cardText = card.querySelector('.card-text');
-                const traitsContainer = card.querySelector('.character-traits');
-                const checkbox = card.querySelector('.character-checkbox');
+                const cardImage = cardContainer.querySelector('.card-img');
+                const nameElement = cardContainer.querySelector('.character-name');
+                const checkbox = cardContainer.querySelector('.character-checkbox');
 
                 // Show loading state
                 this.disabled = true;
                 this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
-                cardImage.src = 'https://via.placeholder.com/400x250?text=Loading...';
-                
-                // Fetch a random character
-                fetch('/api/random_character')
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Update the card with the new character
-                            cardImage.src = data.image_url;
-                            cardTitle.textContent = data.name;
-                            
-                            // Update character traits if available
-                            if (traitsContainer) {
-                                traitsContainer.innerHTML = '';
-                                if (data.character_traits && data.character_traits.length > 0) {
-                                    data.character_traits.forEach(trait => {
-                                        const badge = document.createElement('span');
-                                        badge.className = 'badge bg-primary me-1';
-                                        badge.textContent = trait;
-                                        traitsContainer.appendChild(badge);
-                                    });
-                                }
-                            }
-                            
-                            // Update the checkbox value
-                            if (checkbox) {
-                                checkbox.value = data.id;
-                            }
+                if (cardImage) cardImage.src = 'https://via.placeholder.com/400x250?text=Loading...';
 
                 // Fetch a new random character
                 fetch('/api/random_character')

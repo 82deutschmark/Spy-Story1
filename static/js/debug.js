@@ -382,7 +382,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
                             document.getElementById('rejectAnalysisBtn').disabled = true;
 
-                            // Use the function defined above to get edited analysis
+                            // Get the edited analysis by directly applying edits if needed
                             let editedAnalysis = data.analysis;
                             if (document.getElementById('editModeSwitch').checked) {
                                 editedAnalysis = applyEditsToAnalysis(data.analysis);
