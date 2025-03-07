@@ -18,9 +18,11 @@ load_dotenv()
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Initialize Flask app
-app = Flask(__name__)
-CORS(app)  # Enable CORS
+# Initialize Flask app with explicit template folder
+app = Flask(__name__, 
+            template_folder=os.path.abspath('templates'),
+            static_folder=os.path.abspath('static'))
+CORS(app)
 
 # Configure the database
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
@@ -49,7 +51,64 @@ def index():
         return render_template('index.html', character_images=character_images)
     except Exception as e:
         logger.error(f"Error rendering index: {str(e)}")
+        # Return a basic template with error info in debug mode
+        if app.debug:
+            return f"Error: {str(e)}", 500
         return render_template('index.html', character_images=[])
+
+@app.route('/story-builder')
+def story_builder():
+    """Render the story builder page"""
+    try:
+        return render_template('story_builder.html')
+    except Exception as e:
+        logger.error(f"Error rendering story builder: {str(e)}")
+        return str(e), 500
+
+@app.route('/storyboard')
+def storyboard():
+    """Render the storyboard page"""
+    try:
+        # Get story ID from query parameters
+        story_id = request.args.get('story_id')
+    
+        if not story_id:
+            return redirect(url_for('index'))
+    
+        # Get the story
+        story = StoryGeneration.query.get_or_404(story_id)
+    
+        # Get the associated images
+        character_images = []
+        for image in story.images:
+            if image.image_type == 'character':
+                character_data = {
+                    'name': image.character_name,
+                    'image_url': image.image_url,
+                    'traits': image.character_traits or []
+                }
+                character_images.append(character_data)
+    
+        # Parse the story text
+        try:
+            story_data = json.loads(story.story_text)
+        except json.JSONDecodeError:
+            story_data = {
+                'title': 'Error parsing story',
+                'story': story.story_text,
+                'choices': []
+            }
+    
+        return render_template('storyboard.html', 
+                              story=story,
+                              character_images=character_images,
+                              story_data=story_data)
+    except Exception as e:
+        logger.error(f"Error rendering storyboard: {str(e)}")
+        return str(e), 500
+
+# Import additional routes and functionality
+import json
 
 @app.route('/debug')
 def debug():
@@ -73,49 +132,6 @@ def debug():
     except Exception as e:
         logger.error(f"Error rendering debug page: {str(e)}")
         return render_template('debug.html')
-
-@app.route('/builder')
-def story_builder():
-    """Render the story builder page"""
-    return render_template('story_builder.html')
-
-@app.route('/storyboard')
-def storyboard():
-    """Render the storyboard page"""
-    # Get story ID from query parameters
-    story_id = request.args.get('story_id')
-    
-    if not story_id:
-        return redirect(url_for('index'))
-    
-    # Get the story
-    story = StoryGeneration.query.get_or_404(story_id)
-    
-    # Get the associated images
-    character_images = []
-    for image in story.images:
-        if image.image_type == 'character':
-            character_data = {
-                'name': image.character_name,
-                'image_url': image.image_url,
-                'traits': image.character_traits or []
-            }
-            character_images.append(character_data)
-    
-    # Parse the story text
-    try:
-        story_data = json.loads(story.story_text)
-    except json.JSONDecodeError:
-        story_data = {
-            'title': 'Error parsing story',
-            'story': story.story_text,
-            'choices': []
-        }
-    
-    return render_template('storyboard.html', 
-                          story=story,
-                          character_images=character_images,
-                          story_data=story_data)
 
 @app.route('/generate', methods=['POST'])
 def generate():
@@ -588,6 +604,3 @@ def api_get_scenes():
             'success': False,
             'error': str(e)
         }), 500
-
-import json
-# The __main__ block is removed because it's likely handled in main.py
