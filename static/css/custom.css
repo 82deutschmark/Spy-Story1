@@ -272,9 +272,10 @@ body {
 .character-select-card {
     height: 100%;
     transition: transform 0.2s;
-    margin-bottom: 15px;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
 }
 
 .character-select-card:hover {
@@ -294,10 +295,36 @@ body {
     padding: 10px;
 }
 
-@media (max-width: 767px) {
-    .row-cols-sm-2 > .col {
-        flex: 0 0 auto;
+/* Make cards in a row have equal heights */
+.row {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.row > [class*='col-'] {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Specific breakpoint adjustments */
+@media (max-width: 575.98px) {
+    /* 1 card per row on very small screens */
+    .col-12 {
+        width: 100%;
+    }
+}
+
+@media (min-width: 576px) and (max-width: 991.98px) {
+    /* 2 cards per row on medium screens */
+    .col-sm-6 {
         width: 50%;
+    }
+}
+
+@media (min-width: 992px) {
+    /* 4 cards per row on large screens */
+    .col-lg-3 {
+        width: 25%;
     }
 }
 
