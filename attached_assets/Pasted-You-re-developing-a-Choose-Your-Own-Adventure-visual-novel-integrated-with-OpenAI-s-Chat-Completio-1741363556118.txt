@@ -1,0 +1,53 @@
+You're developing a "Choose-Your-Own-Adventure" visual novel integrated with OpenAI's Chat Completions API and your existing PostgreSQL database.
+
+You already have a PostgreSQL database containing a large collection of images. Each image record includes:
+- An image_id (primary key)
+- A categorization as plot points or possible storylines (stored as JSON or text fields)
+
+Here’s exactly how you will integrate these existing images into the story structure and branching:
+
+Step 1: Story Structure
+- Create or extend tables for your branching narrative:
+   - story_nodes:
+     - node_id (primary key)
+     - narrative_text
+     - image_id (references existing images table, nullable)
+     - is_endpoint (boolean)
+     - generated_by_ai (boolean)
+
+- story_choices:
+   - choice_id
+   - node_id (references story_nodes)
+   - choice_text
+   - next_node_id (references story_nodes, nullable for AI-generated nodes)
+
+- user_progress:
+   - user_id (primary key)
+   - current_node_id
+   - last_updated (timestamp)
+
+Step 2: Logic for Using Existing Images
+- When creating or generating a story node, the AI coding assistant should query your images database to identify relevant images based on the current plot context.
+- Specifically:
+  - First, analyze the existing image table’s stored plot points or storyline tags.
+  - Next, match these tags or plot points to the current story context or user choice.
+  - Finally, associate the selected image (image_id) with the generated story node.
+
+Step 3: AI Generation of Story Nodes:
+- Use the OpenAI Chat Completions API to generate new narrative segments:
+  - Construct prompts by incorporating selected plot points or storyline tags derived from existing images.
+  - Request the API explicitly to create narrative text and multiple-choice branching options based on provided plot points or storyline tags.
+- Store the resulting content and linked image_id in the database for future reuse.
+
+Step 4: User Story Progression:
+- Track users’ current position in the story within the user_progress table.
+- Present users with node content and associated image from your existing database.
+- When users select choices, either:
+  - Retrieve existing next nodes from the database (if available), or
+  - Dynamically generate new nodes as described above.
+
+Step 5: Important Technical Considerations for your assistant:
+- Always cache AI-generated nodes to minimize repeated API calls.
+- Index frequently queried columns such as user_id and node_id.
+
+This is the approach you should implement, clearly leveraging your existing PostgreSQL database and integrating the OpenAI Chat API to create an interactive branching story using your existing images and associated storyline metadata.
