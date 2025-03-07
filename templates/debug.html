@@ -49,13 +49,81 @@
                             </h3>
                             <div class="alert alert-light border">
                                 <i class="fas fa-info-circle me-2"></i>
-                                Review the analysis below. You can accept and save it to the database or reject it.
+                                Review and edit the analysis below before saving to the database.
                             </div>
-                            <div class="border rounded p-4 mt-2 result-content" id="generatedContent"></div>
-                            <div class="text-center mt-3">
-                                <button class="btn btn-outline-secondary btn-sm" id="copyBtn">
-                                    <i class="fas fa-copy me-2"></i>Copy to Clipboard
-                                </button>
+                            <div class="row">
+                                <div class="col-12 col-lg-6">
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="editModeSwitch">
+                                        <label class="form-check-label" for="editModeSwitch">
+                                            <i class="fas fa-edit me-1"></i>Enable Edit Mode
+                                        </label>
+                                    </div>
+                                    <div class="border rounded p-4 mt-2 result-content" id="generatedContent"></div>
+                                    <div class="text-center mt-3">
+                                        <button class="btn btn-outline-secondary btn-sm" id="copyBtn">
+                                            <i class="fas fa-copy me-2"></i>Copy to Clipboard
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-lg-6" id="editContainer" style="display: none;">
+                                    <h4><i class="fas fa-edit me-2"></i>Edit Analysis</h4>
+                                    <div class="mb-3">
+                                        <label for="imageName" class="form-label">Character/Scene Name</label>
+                                        <input type="text" class="form-control" id="imageName">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="imageType" class="form-label">Image Type</label>
+                                        <select class="form-select" id="imageType">
+                                            <option value="character">Character</option>
+                                            <option value="scene">Scene</option>
+                                        </select>
+                                    </div>
+                                    <div id="characterFields">
+                                        <div class="mb-3">
+                                            <label for="characterRole" class="form-label">Character Role</label>
+                                            <select class="form-select" id="characterRole">
+                                                <option value="protagonist">Protagonist</option>
+                                                <option value="antagonist">Antagonist</option>
+                                                <option value="neutral">Neutral</option>
+                                                <option value="villain">Villain</option>
+                                                <option value="hero">Hero</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="characterTraits" class="form-label">Character Traits (comma separated)</label>
+                                            <input type="text" class="form-control" id="characterTraits">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="plotLines" class="form-label">Plot Lines (comma separated)</label>
+                                            <textarea class="form-control" id="plotLines" rows="3"></textarea>
+                                        </div>
+                                    </div>
+                                    <div id="sceneFields" style="display: none;">
+                                        <div class="mb-3">
+                                            <label for="sceneType" class="form-label">Scene Type</label>
+                                            <select class="form-select" id="sceneType">
+                                                <option value="action">Action</option>
+                                                <option value="narrative">Narrative</option>
+                                                <option value="choice">Choice</option>
+                                                <option value="conclusion">Conclusion</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="sceneSetting" class="form-label">Setting</label>
+                                            <input type="text" class="form-control" id="sceneSetting">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="dramaticMoments" class="form-label">Dramatic Moments (comma separated)</label>
+                                            <textarea class="form-control" id="dramaticMoments" rows="3"></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <button type="button" class="btn btn-primary" id="applyChangesBtn">
+                                            <i class="fas fa-check me-2"></i>Apply Changes
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

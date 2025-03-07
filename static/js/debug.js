@@ -166,6 +166,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
                             document.getElementById('rejectAnalysisBtn').disabled = true;
 
+                            // Get the edited analysis
+                            const editedAnalysis = getEditedAnalysis(data.analysis);
+                            
                             // Send the analysis to be saved
                             fetch('/save_analysis', {
                                 method: 'POST',
@@ -174,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 },
                                 body: JSON.stringify({
                                     image_url: data.image_url,
-                                    analysis: data.analysis
+                                    analysis: editedAnalysis
                                 })
                             })
                             .then(response => {
@@ -214,7 +217,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                     }
                     generatedContent.textContent = JSON.stringify(data.analysis, null, 2);
-                    showToast('Success', 'Image analysis completed. Please review results before saving to database.');
+                    showToast('Success', 'Image analysis completed. Review and edit results before saving.');
+
+                    // Setup analysis editing UI
+                    setupAnalysisEditing(data.analysis);
 
                     // Refresh images table - REMOVED AUTOMATIC REFRESH
                     // if (refreshImagesBtn) {
@@ -241,6 +247,220 @@ document.addEventListener('DOMContentLoaded', function() {
             const content = generatedContent.textContent;
             navigator.clipboard.writeText(content)
                 .then(() => {
+
+// Functions for analysis editing
+function setupAnalysisEditing(analysis) {
+    const editModeSwitch = document.getElementById('editModeSwitch');
+    const editContainer = document.getElementById('editContainer');
+    const imageTypeSelect = document.getElementById('imageType');
+    const characterFields = document.getElementById('characterFields');
+    const sceneFields = document.getElementById('sceneFields');
+    const applyChangesBtn = document.getElementById('applyChangesBtn');
+    
+    // Populate edit fields with current analysis data
+    populateEditFields(analysis);
+    
+    // Event listeners for edit mode toggle
+    editModeSwitch.addEventListener('change', function() {
+        if (this.checked) {
+            editContainer.style.display = 'block';
+        } else {
+            editContainer.style.display = 'none';
+        }
+    });
+    
+    // Event listener for image type change
+    imageTypeSelect.addEventListener('change', function() {
+        if (this.value === 'character') {
+            characterFields.style.display = 'block';
+            sceneFields.style.display = 'none';
+        } else {
+            characterFields.style.display = 'none';
+            sceneFields.style.display = 'block';
+        }
+    });
+    
+    // Event listener for apply changes button
+    applyChangesBtn.addEventListener('click', function() {
+        const generatedContent = document.getElementById('generatedContent');
+        const updatedAnalysis = applyEditsToAnalysis(analysis);
+        generatedContent.textContent = JSON.stringify(updatedAnalysis, null, 2);
+        showToast('Success', 'Changes applied to analysis. Review before saving.');
+    });
+}
+
+// Populate edit fields with data from analysis
+function populateEditFields(analysis) {
+    const imageName = document.getElementById('imageName');
+    const imageType = document.getElementById('imageType');
+    const characterRole = document.getElementById('characterRole');
+    const characterTraits = document.getElementById('characterTraits');
+    const plotLines = document.getElementById('plotLines');
+    const sceneType = document.getElementById('sceneType');
+    const sceneSetting = document.getElementById('sceneSetting');
+    const dramaticMoments = document.getElementById('dramaticMoments');
+    
+    // Determine if this is a character or scene
+    let isCharacter = determineIfCharacter(analysis);
+    
+    // Set image type
+    imageType.value = isCharacter ? 'character' : 'scene';
+    
+    // Toggle appropriate fields
+    if (isCharacter) {
+        document.getElementById('characterFields').style.display = 'block';
+        document.getElementById('sceneFields').style.display = 'none';
+    } else {
+        document.getElementById('characterFields').style.display = 'none';
+        document.getElementById('sceneFields').style.display = 'block';
+    }
+    
+    // Extract name
+    let name = '';
+    if (isCharacter) {
+        if (analysis.character && analysis.character.name) {
+            name = analysis.character.name;
+        } else if (analysis.character_name) {
+            name = analysis.character_name;
+        } else if (analysis.name) {
+            name = analysis.name;
+        }
+    } else {
+        name = analysis.setting || '';
+    }
+    imageName.value = name;
+    
+    // Extract character-specific fields
+    if (isCharacter) {
+        let role = '';
+        if (analysis.character && analysis.character.role) {
+            role = analysis.character.role;
+        } else if (analysis.role) {
+            role = analysis.role;
+        }
+        characterRole.value = role || 'neutral';
+        
+        let traits = [];
+        if (analysis.character && analysis.character.character_traits) {
+            traits = analysis.character.character_traits;
+        } else if (analysis.character_traits) {
+            traits = analysis.character_traits;
+        }
+        characterTraits.value = Array.isArray(traits) ? traits.join(', ') : traits;
+        
+        let plots = [];
+        if (analysis.character && analysis.character.plot_lines) {
+            plots = analysis.character.plot_lines;
+        } else if (analysis.plot_lines) {
+            plots = analysis.plot_lines;
+        }
+        plotLines.value = Array.isArray(plots) ? plots.join('\n') : plots;
+    } 
+    // Extract scene-specific fields
+    else {
+        sceneType.value = analysis.scene_type || 'narrative';
+        sceneSetting.value = analysis.setting || '';
+        
+        let moments = analysis.dramatic_moments || [];
+        dramaticMoments.value = Array.isArray(moments) ? moments.join('\n') : moments;
+    }
+}
+
+// Determine if this is a character analysis
+function determineIfCharacter(analysis) {
+    if (analysis.image_type === 'character') return true;
+    if (analysis.image_type === 'scene') return false;
+    
+    // Try to infer from contents
+    if (analysis.character && typeof analysis.character === 'object') return true;
+    if (analysis.character_name || analysis.character_traits) return true;
+    if (analysis.scene_type || analysis.dramatic_moments) return false;
+    
+    // Default to character
+    return true;
+}
+
+// Apply edits from form to analysis object
+function applyEditsToAnalysis(originalAnalysis) {
+    // Clone the original analysis to avoid modifying it directly
+    const analysis = JSON.parse(JSON.stringify(originalAnalysis));
+    
+    const imageName = document.getElementById('imageName').value;
+    const imageType = document.getElementById('imageType').value;
+    const characterRole = document.getElementById('characterRole').value;
+    const characterTraits = document.getElementById('characterTraits').value;
+    const plotLines = document.getElementById('plotLines').value;
+    const sceneType = document.getElementById('sceneType').value;
+    const sceneSetting = document.getElementById('sceneSetting').value;
+    const dramaticMoments = document.getElementById('dramaticMoments').value;
+    
+    // Update image type
+    analysis.image_type = imageType;
+    
+    if (imageType === 'character') {
+        // Update character fields
+        
+        // Ensure character object exists
+        if (!analysis.character) {
+            analysis.character = {};
+        }
+        
+        // Update name in all possible locations
+        analysis.name = imageName;
+        analysis.character_name = imageName;
+        analysis.character.name = imageName;
+        
+        // Update role
+        analysis.role = characterRole;
+        analysis.character.role = characterRole;
+        
+        // Update traits - convert comma separated string to array
+        const traitsArray = characterTraits.split(',').map(t => t.trim()).filter(t => t);
+        analysis.character_traits = traitsArray;
+        analysis.character.character_traits = traitsArray;
+        
+        // Update plot lines - convert newline separated string to array
+        const plotArray = plotLines.split('\n').map(p => p.trim()).filter(p => p);
+        analysis.plot_lines = plotArray;
+        analysis.character.plot_lines = plotArray;
+        
+        // Clean up scene-specific fields
+        delete analysis.scene_type;
+        delete analysis.setting;
+        delete analysis.dramatic_moments;
+    } else {
+        // Update scene fields
+        analysis.scene_type = sceneType;
+        analysis.setting = sceneSetting;
+        
+        // Update dramatic moments - convert newline separated string to array
+        const momentsArray = dramaticMoments.split('\n').map(m => m.trim()).filter(m => m);
+        analysis.dramatic_moments = momentsArray;
+        
+        // Clean up character-specific fields
+        delete analysis.character;
+        delete analysis.character_name;
+        delete analysis.character_traits;
+        delete analysis.role;
+        delete analysis.plot_lines;
+        analysis.name = sceneSetting;
+    }
+    
+    return analysis;
+}
+
+// Get the edited analysis for saving
+function getEditedAnalysis(originalAnalysis) {
+    // If edit mode is not enabled, return the original
+    const editModeSwitch = document.getElementById('editModeSwitch');
+    if (!editModeSwitch.checked) {
+        return originalAnalysis;
+    }
+    
+    // Apply edits and return the modified analysis
+    return applyEditsToAnalysis(originalAnalysis);
+}
+
                     showToast('Success', 'Content copied to clipboard!');
                 })
                 .catch(err => {
