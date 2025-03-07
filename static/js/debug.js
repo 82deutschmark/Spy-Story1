@@ -141,8 +141,58 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     // Display the results
                     resultDiv.style.display = 'block';
+                    
+                    // Add save confirmation button if not already saved
+                    if (!data.saved_to_db) {
+                        const saveDiv = document.createElement('div');
+                        saveDiv.className = 'text-center mt-3';
+                        saveDiv.innerHTML = `
+                            <button class="btn btn-success" id="saveAnalysisBtn">
+                                <i class="fas fa-save me-2"></i>Save to Database
+                            </button>
+                        `;
+                        resultDiv.appendChild(saveDiv);
+                        
+                        // Add click handler for save button
+                        document.getElementById('saveAnalysisBtn').addEventListener('click', function() {
+                            this.disabled = true;
+                            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+                            
+                            // Send the analysis to be saved
+                            fetch('/save_analysis', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    image_url: data.image_url,
+                                    analysis: data.analysis
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(saveData => {
+                                if (saveData.success) {
+                                    // Remove save button
+                                    saveDiv.remove();
+                                    showToast('Success', 'Analysis saved to database');
+                                    
+                                    // Refresh images table
+                                    if (refreshImagesBtn) {
+                                        refreshImagesBtn.click();
+                                    }
+                                } else {
+                                    throw new Error(saveData.error || 'Failed to save analysis');
+                                }
+                            })
+                            .catch(error => {
+                                this.disabled = false;
+                                this.innerHTML = '<i class="fas fa-save me-2"></i>Save to Database';
+                                showToast('Error', error.message);
+                            });
+                        });
+                    }
                     generatedContent.textContent = JSON.stringify(data.analysis, null, 2);
-                    showToast('Success', 'Image analysis completed and saved to database.');
+                    showToast('Success', 'Image analysis completed. Review results and save if acceptable.');
                     
                     // Refresh images table
                     if (refreshImagesBtn) {
