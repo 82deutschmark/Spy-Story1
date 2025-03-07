@@ -139,7 +139,8 @@ def generate_story(
                 },
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.8
+            temperature=0.8,
+            response_format={"type": "json_object"}
         )
 
         # Parse and return the generated story

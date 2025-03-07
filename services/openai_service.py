@@ -185,7 +185,8 @@ Even if the image appears to be a character, treat it as a scene and describe th
                             }
                         ]
                     }
-                ]
+                ],
+                response_format={"type": "json_object"}
             )
         except requests.exceptions.RequestException as req_err:
             logger.error(f"Error downloading image: {str(req_err)}")
