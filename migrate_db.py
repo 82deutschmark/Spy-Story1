@@ -28,6 +28,21 @@ def migrate_database():
             'dramatic_moments': 'JSONB'
         }
         
+        # Check if we need to fix any inconsistent column names
+        inconsistent_columns = {
+            'sceneType': 'scene_type',
+            'storyFit': 'story_fit',
+            'dramaticMoments': 'dramatic_moments'
+        }
+        
+        # Add logic to rename columns if they exist with the old camelCase names
+        with engine.connect() as conn:
+            for old_name, new_name in inconsistent_columns.items():
+                if old_name in existing_columns and new_name not in existing_columns:
+                    print(f"Renaming column {old_name} to {new_name}")
+                    conn.execute(db.text(f"ALTER TABLE image_analysis RENAME COLUMN {old_name} TO {new_name}"))
+            conn.commit()
+        
         # Add each missing column
         with engine.connect() as conn:
             for col_name, col_type in columns_to_add.items():

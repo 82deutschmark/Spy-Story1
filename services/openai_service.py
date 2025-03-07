@@ -111,18 +111,18 @@ Key characters in this universe:
 Analyze the image and determine:
 1. If it's a CHARACTER:
    - Suggest a creative name
-   - Determine if they are hero, villain, or neutral character
-   - List 5 character traits
-   - Suggest potential plot lines involving this character
-   - Art style description
+   - Determine if they are hero, villain, or neutral character (use 'role' field with value 'hero', 'villain', or 'neutral')
+   - List 5 character traits (in 'character_traits' array)
+   - Suggest potential plot lines involving this character (in 'plot_lines' array)
+   - Art style description (in 'style' field)
 
 2. If it's a SCENE:
-   - Determine the scene type (narrative, choice moment, action, etc.)
-   - Describe the setting in detail
-   - Suggest how this scene fits into the story
-   - Potential dramatic moments that could occur
+   - Determine the scene type (narrative, choice moment, action, etc.) (in 'scene_type' field)
+   - Describe the setting in detail (in 'setting' and 'setting_description' fields)
+   - Suggest how this scene fits into the story (in 'story_fit' field)
+   - Potential dramatic moments that could occur (in 'dramatic_moments' array)
 
-Respond in JSON format with the appropriate keys based on the image type."""
+Respond in JSON format with the appropriate keys based on the image type. Use snake_case for all field names (e.g., 'scene_type', 'story_fit', 'dramatic_moments')."""
                     },
                     {
                         "role": "user",
