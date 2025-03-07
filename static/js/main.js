@@ -1,3 +1,128 @@
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Get DOM elements with null checks
+    const storyForm = document.getElementById('storyForm');
+    const characterCheckboxes = document.querySelectorAll('.character-checkbox');
+    const selectedCharactersContainer = document.querySelector('.selected-characters-container');
+    const selectedCharactersList = document.querySelector('.selected-characters-list');
+    const generateStoryBtn = document.getElementById('generateStoryBtn');
+    const characterSelectionError = document.getElementById('characterSelectionError');
+    const rerollButtons = document.querySelectorAll('.reroll-btn');
+    const notificationToast = document.getElementById('notificationToast');
+    const toastTitle = document.getElementById('toastTitle');
+    const toastMessage = document.getElementById('toastMessage');
+    
+    // Initialize toast if elements exist
+    let toast;
+    if (notificationToast) {
+        toast = new bootstrap.Toast(notificationToast);
+    }
+    
+    // Show notification
+    function showNotification(title, message) {
+        if (toastTitle && toastMessage && toast) {
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+            toast.show();
+        }
+    }
+    
+    // Handle character selection
+    if (characterCheckboxes.length > 0 && selectedCharactersContainer && selectedCharactersList) {
+        characterCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateSelectedCharacters);
+        });
+    }
+    
+    // Update selected characters
+    function updateSelectedCharacters() {
+        if (!selectedCharactersContainer || !selectedCharactersList) return;
+        
+        const selectedCharacters = [];
+        characterCheckboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                const card = checkbox.closest('.character-select-card');
+                if (card) {
+                    selectedCharacters.push({
+                        id: card.dataset.id,
+                        name: card.querySelector('.card-title').textContent,
+                        image: card.querySelector('img').src
+                    });
+                }
+            }
+        });
+        
+        // Update UI
+        if (selectedCharacters.length > 0) {
+            selectedCharactersContainer.style.display = 'block';
+            selectedCharactersList.innerHTML = '';
+            
+            selectedCharacters.forEach(char => {
+                const charElement = document.createElement('div');
+                charElement.className = 'selected-character-item';
+                charElement.innerHTML = `
+                    <img src="${char.image}" alt="${char.name}" width="50">
+                    <span>${char.name}</span>
+                    <input type="hidden" name="selected_images[]" value="${char.id}">
+                `;
+                selectedCharactersList.appendChild(charElement);
+            });
+        } else {
+            selectedCharactersContainer.style.display = 'none';
+        }
+        
+        // Validate selection
+        validateSelection();
+    }
+    
+    // Validate character selection
+    function validateSelection() {
+        if (!characterSelectionError || !generateStoryBtn) return;
+        
+        const selectedCount = document.querySelectorAll('.character-checkbox:checked').length;
+        const maxAllowed = 3; // Maximum allowed selection
+        
+        if (selectedCount > 0 && selectedCount <= maxAllowed) {
+            characterSelectionError.style.display = 'none';
+            generateStoryBtn.disabled = false;
+        } else {
+            characterSelectionError.style.display = 'block';
+            generateStoryBtn.disabled = true;
+        }
+    }
+    
+    // Handle reroll buttons
+    if (rerollButtons.length > 0) {
+        rerollButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const cardIndex = this.dataset.cardIndex;
+                showNotification('Rerolling Character', 'Generating a new character...');
+                
+                // Here you would typically send an AJAX request to regenerate the character
+                // For now, we'll just simulate it
+                setTimeout(() => {
+                    showNotification('Character Updated', 'New character has been generated!');
+                }, 1500);
+            });
+        });
+    }
+    
+    // Form submission
+    if (storyForm) {
+        storyForm.addEventListener('submit', function(e) {
+            const selectedCount = document.querySelectorAll('.character-checkbox:checked').length;
+            const maxAllowed = 3; // Maximum allowed selection
+            
+            if (selectedCount === 0 || selectedCount > maxAllowed) {
+                e.preventDefault();
+                if (characterSelectionError) {
+                    characterSelectionError.style.display = 'block';
+                }
+            }
+        });
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     // Character selection elements
     const characterCards = document.querySelectorAll('.character-select-card');

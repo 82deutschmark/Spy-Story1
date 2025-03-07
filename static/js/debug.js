@@ -388,8 +388,11 @@ document.addEventListener('DOMContentLoaded', function() {
             runHealthCheck();
 
             setTimeout(() => {
-                runHealthCheckBtn.disabled = false;
-                runHealthCheckBtn.innerHTML = '<i class="fas fa-stethoscope me-1"></i>Run Health Check';
+                // Ensure the button still exists before trying to update it
+                if (runHealthCheckBtn) {
+                    runHealthCheckBtn.disabled = false;
+                    runHealthCheckBtn.innerHTML = '<i class="fas fa-stethoscope me-1"></i>Run Health Check';
+                }
             }, 1000);
         });
 
