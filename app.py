@@ -39,10 +39,15 @@ def index():
     for img in images:
         analysis = img.analysis_result or {}
         
-        # Extract name from analysis_result if character_name doesn't exist
-        char_name = ''
-        if analysis and 'name' in analysis:
-            char_name = analysis.get('name', '')
+        # Extract name - first use character_name field, then try analysis_result
+        char_name = img.character_name or ''
+        if not char_name and analysis:
+            if 'character' in analysis and 'name' in analysis['character']:
+                char_name = analysis['character'].get('name', '')
+            elif 'character_name' in analysis:
+                char_name = analysis.get('character_name', '')
+            elif 'name' in analysis:
+                char_name = analysis.get('name', '')
         
         # Get character traits and plot lines safely
         char_traits = []
@@ -352,6 +357,38 @@ def save_analysis():
         # Extract character details if this is a character image
         character_data = analysis.get('character', {})
 
+        # Get character name - first try from character data if it exists, then try directly from the top level
+        character_name = None
+        if is_character:
+            if 'character' in analysis and 'name' in character_data:
+                character_name = character_data.get('name')
+            elif 'character_name' in analysis:
+                character_name = analysis.get('character_name')
+            else:
+                character_name = analysis.get('name')
+                
+        # Extract traits and plot lines either from character object or top level
+        character_traits = None
+        if is_character:
+            if 'character' in analysis and 'character_traits' in character_data:
+                character_traits = character_data.get('character_traits')
+            else:
+                character_traits = analysis.get('character_traits')
+                
+        character_role = None
+        if is_character:
+            if 'character' in analysis and 'role' in character_data:
+                character_role = character_data.get('role')
+            else:
+                character_role = analysis.get('role')
+                
+        plot_lines = None
+        if is_character:
+            if 'character' in analysis and 'plot_lines' in character_data:
+                plot_lines = character_data.get('plot_lines')
+            else:
+                plot_lines = analysis.get('plot_lines')
+
         # Create new ImageAnalysis record
         image_analysis = ImageAnalysis(
             image_url=image_url,
@@ -361,10 +398,10 @@ def save_analysis():
             image_size_bytes=metadata.get('size_bytes'),
             image_type='character' if is_character else 'scene',
             analysis_result=analysis,
-            character_name=character_data.get('name') if is_character else None,  # Get name from character data
-            character_traits=character_data.get('character_traits') if is_character else None,
-            character_role=character_data.get('role') if is_character else None,
-            plot_lines=character_data.get('plot_lines') if is_character else None,
+            character_name=character_name,  # Get name with our new logic
+            character_traits=character_traits,
+            character_role=character_role,
+            plot_lines=plot_lines,
             scene_type=analysis.get('scene_type') if not is_character else None,
             setting=analysis.get('setting') if not is_character else None,
             setting_description=analysis.get('setting_description') if not is_character else None,
