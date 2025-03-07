@@ -361,7 +361,7 @@ def save_analysis():
             image_size_bytes=metadata.get('size_bytes'),
             image_type='character' if is_character else 'scene',
             analysis_result=analysis,
-            character_name=analysis.get('name') if is_character else None,  # Explicitly save the name
+            character_name=character_data.get('name') if is_character else None,  # Get name from character data
             character_traits=character_data.get('character_traits') if is_character else None,
             character_role=character_data.get('role') if is_character else None,
             plot_lines=character_data.get('plot_lines') if is_character else None,

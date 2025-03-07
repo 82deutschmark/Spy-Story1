@@ -27,11 +27,21 @@ def debug_character_names():
                     logger.info("analysis_result is a string (needs to be parsed)")
                     try:
                         analysis = json.loads(character.analysis_result)
-                        logger.info(f"Parsed name from analysis_result: '{analysis.get('name', 'NOT FOUND')}'")
-                    except:
-                        logger.info("Could not parse analysis_result JSON string")
+                        # Look in nested character object
+                        if 'character' in analysis and isinstance(analysis['character'], dict):
+                            name_in_char = analysis['character'].get('name', 'NOT FOUND')
+                            logger.info(f"Name in character.name: '{name_in_char}'")
+                        # Fall back to top level
+                        logger.info(f"Name at top level: '{analysis.get('name', 'NOT FOUND')}'")
+                    except Exception as e:
+                        logger.info(f"Could not parse analysis_result JSON string: {str(e)}")
                 elif isinstance(character.analysis_result, dict):
-                    logger.info(f"Name in analysis_result: '{character.analysis_result.get('name', 'NOT FOUND')}'")
+                    # Look in nested character object
+                    if 'character' in character.analysis_result and isinstance(character.analysis_result['character'], dict):
+                        name_in_char = character.analysis_result['character'].get('name', 'NOT FOUND')
+                        logger.info(f"Name in character.name: '{name_in_char}'")
+                    # Fall back to top level
+                    logger.info(f"Name at top level: '{character.analysis_result.get('name', 'NOT FOUND')}'")
                 else:
                     logger.info(f"analysis_result is type: {type(character.analysis_result)}")
             else:

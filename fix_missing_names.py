@@ -29,17 +29,23 @@ def fix_missing_character_names():
                         logger.warning(f"Could not parse string analysis_result for record {character.id}")
                         continue
                 
-                # Check if analysis contains name
-                if analysis and isinstance(analysis, dict) and 'name' in analysis:
-                    name = analysis.get('name', '')
-                    
-                    # Only update if name exists and is different from current value
-                    if name and (not character.character_name or character.character_name != name):
-                        logger.info(f"Updating character name for record {character.id} from '{character.character_name}' to '{name}'")
-                        character.character_name = name
-                        count += 1
-                else:
-                    logger.warning(f"Record {character.id} has no 'name' field in analysis_result")
+                # Extract name from correct location in the JSON structure
+                name = None
+                if analysis and isinstance(analysis, dict):
+                    # First check if name is in character object
+                    if 'character' in analysis and isinstance(analysis['character'], dict):
+                        name = analysis['character'].get('name')
+                    # Fallback to top level name
+                    elif 'name' in analysis:
+                        name = analysis.get('name')
+                
+                # Only update if name exists and is different from current value
+                if name and (not character.character_name or character.character_name != name):
+                    logger.info(f"Updating character name for record {character.id} from '{character.character_name}' to '{name}'")
+                    character.character_name = name
+                    count += 1
+                elif not name and character.image_type == 'character':
+                    logger.warning(f"No name found for character record {character.id}")
             except Exception as e:
                 logger.error(f"Error processing record {character.id}: {str(e)}")
                 continue
