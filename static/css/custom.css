@@ -13,19 +13,22 @@ body {
 
 /* Character selection */
 .characters-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 15px;
+    margin: 0 auto;
+}
+
+.character-container {
+    display: flex;
+    flex-direction: column;
 }
 
 .character-select-card {
     transition: all 0.3s ease;
     cursor: pointer;
-    height: 100%;
     border: 2px solid transparent;
     background-color: #1a2235;
     border-radius: 15px;
     overflow: hidden;
+    aspect-ratio: 1 / 1;
 }
 
 .character-select-card:hover {
@@ -40,9 +43,19 @@ body {
 }
 
 .character-select-card img {
-    height: 180px;
     width: 100%;
+    height: 100%;
     object-fit: cover;
+}
+
+.character-info {
+    padding: 0 10px;
+}
+
+.character-name {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    text-align: center;
 }
 
 .character-traits {
