@@ -43,50 +43,6 @@
                 <!-- Story Content -->
                 <div class="card shadow-lg">
                     <div class="card-body">
-                        {% if error %}
-                        <!-- Error State -->
-                        <div class="alert alert-danger text-center">
-                            <i class="fas fa-exclamation-circle fa-2x mb-3"></i>
-                            <h3>Oops! Something went wrong</h3>
-                            <p>{{ error }}</p>
-                        </div>
-                        {% elif is_generating %}
-                        <!-- Loading State -->
-                        <div class="text-center p-5">
-                            <div class="spinner-border text-primary mb-4" role="status" style="width: 3rem; height: 3rem;">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <h3 class="mb-3">Creating Your Adventure...</h3>
-                            <p class="text-muted">The storyteller is weaving an exciting tale for you!</p>
-                            <div class="progress mt-4 mb-2" style="height: 10px;">
-                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
-                            </div>
-                            <p class="small text-muted" id="loading-message">This may take a moment...</p>
-                            
-                            <!-- Auto-refresh script -->
-                            <script>
-                                setTimeout(function() {
-                                    location.reload();
-                                }, 5000); // Refresh every 5 seconds
-                                
-                                // Cycle through loading messages
-                                const messages = [
-                                    "Thinking of clever plot twists...",
-                                    "Introducing your character to the farm...",
-                                    "Pawel and Pawleen are getting ready for adventure...",
-                                    "Crafting meaningful choices for you...",
-                                    "The squirrels are up to something..."
-                                ];
-                                let messageIndex = 0;
-                                
-                                setInterval(function() {
-                                    document.getElementById('loading-message').innerText = messages[messageIndex];
-                                    messageIndex = (messageIndex + 1) % messages.length;
-                                }, 3000);
-                            </script>
-                        </div>
-                        {% else %}
-                        <!-- Story Content (when ready) -->
                         <h2 class="card-title text-center mb-4">{{ story.title }}</h2>
                         <div class="story-content">
                             {{ story.story | safe }}
@@ -108,7 +64,6 @@
                             </form>
                             {% endfor %}
                         </div>
-                        {% endif %}
                     </div>
                 </div>
 
