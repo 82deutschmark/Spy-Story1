@@ -87,9 +87,9 @@ def analyze_artwork(image_url):
                 messages=[
                     {
                         "role": "system",
-                        "content": """You are an expert analyzer of images for a "Choose Your Own Adventure" story universe. 
+                        "content": """You are an expert analyzer of images for a "Choose Your Own Adventure" story universe.
                         
-The universe is centered around a forest homestead and pasture where two Yorkshire Terriers are the main characters:
+The universe is centered around Uncle Mark's forest farm where two Yorkshire Terriers are the main characters:
 - Pawel (male) - fearless, clever, impulsive
 - Pawleen (female) - fearless, clever, thoughtful
 
@@ -104,9 +104,13 @@ Key characters in this universe:
    - Turkeys - big, white, not very smart, always getting stuck
 
 3. VILLAINS:
-   - Squirrels - evil, mean, organized in gangs, believe they're superior, steal food, harass others
-   - Rat Wizard - lives in the woods, steals eggs and vegetables for potions
-   - Mice and Moles - try to steal food, often bullied by squirrels
+   - Squirrels - evil and mean, organized in gangs, believe they're superior to all other animals
+   - Squirrels make fun of the Yorkshire terriers for not being able to climb trees
+   - Squirrels steal eggs, food and harass the chickens and turkeys
+   - Squirrels fight with each other and other animals
+   - Rat Wizard - lives in the woods, steals eggs and vegetables from garden for his potions and spells
+   - Mice and Moles - try to steal food, bullied by squirrels who use them as servants
+   - Squirrels force rodents to use their underground tunnels and steal their food
 
 Analyze the image and determine:
 1. If it's a CHARACTER:
