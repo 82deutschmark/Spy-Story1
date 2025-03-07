@@ -636,7 +636,7 @@ def db_health_check():
         
         # We need to handle empty JSONs separately to avoid type casting issues
         empty_json_count = db.session.execute(
-            db.text("SELECT COUNT(*) FROM image_analysis WHERE analysis_result = '{}'::jsonb")
+            db.text("SELECT COUNT(*) FROM image_analysis WHERE analysis_result::text = '{}'")
         ).scalar()
         
         missing_analysis += empty_json_count if empty_json_count else 0
