@@ -1,8 +1,8 @@
 import os
 import json
-from openai import OpenAI
 import logging
 from typing import Dict, List, Tuple, Optional, Any
+from openai import OpenAI
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ def generate_story(
     previous_choice: Optional[str] = None,
     story_context: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Generate a story based on selected or custom parameters and optional character info"""
+    """Generate a story based on selected or custom parameters and character info"""
     if not api_key:
         raise ValueError("OpenAI API key not found. Please add it to your environment variables.")
 
@@ -72,17 +72,16 @@ def generate_story(
     # Build character information for the prompt
     character_prompt = ""
     if character_info:
-        # Process main character
-        if 'name' in character_info:
-            character_prompt = (
-                f"\nMain Character: {character_info['name']}\n"
-                f"Role: {character_info.get('role', 'protagonist')}\n"
-                f"Traits: {', '.join(character_info.get('character_traits', []))}\n"
-                f"Visual Description: {character_info.get('style', '')}\n"
-                f"Potential Plot Lines:\n"
-            )
-            for plot in character_info.get('plot_lines', []):
-                character_prompt += f"- {plot}\n"
+        # Process selected character
+        character_prompt = (
+            f"\nMain Character: {character_info['name']}\n"
+            f"Role: {character_info.get('role', 'protagonist')}\n"
+            f"Traits: {', '.join(character_info.get('character_traits', []))}\n"
+            f"Visual Description: {character_info.get('style', '')}\n"
+            f"Potential Plot Lines:\n"
+        )
+        for plot in character_info.get('plot_lines', []):
+            character_prompt += f"- {plot}\n"
 
     # Add context from previous choices if available
     context_prompt = ""
@@ -101,15 +100,24 @@ def generate_story(
         f"Mood: {final_mood}\n"
         f"{character_prompt}\n"
         f"{context_prompt}\n\n"
-        "Create an engaging interactive story segment that:\n"
-        "1. Continues the ongoing Choose Your Own Adventure narrative\n"
-        "2. Incorporates the character's personality traits and suggested plot lines\n"
-        "3. Maintains consistency with any previous story context\n"
-        "4. Ends with exactly two distinct and meaningful choices that:\n"
+        "Create an engaging interactive story segment for our Choose Your Own Adventure story. "
+        "This story takes place in Uncle Mark's forest farm, a magical place where animals have distinct personalities.\n\n"
+        "Remember these important story elements:\n"
+        "- The farm's main protectors are two Yorkshire terriers: Pawel (impulsive male) and Pawleen (thoughtful female)\n"
+        "- The farm has chickens led by Big Red (the dumb rooster) and his clever hens (Birdadette, Henrietta, etc.)\n"
+        "- White turkeys who aren't very smart and often get stuck in silly situations\n"
+        "- Evil squirrel gangs who think they're superior to other animals\n"
+        "- A devious rat wizard who steals eggs and vegetables for his potions\n"
+        "- Mice and moles who are bullied by squirrels into helping them\n\n"
+        "Your story segment should:\n"
+        "1. Continue the ongoing narrative, incorporating the selected character naturally\n"
+        "2. Use the character's established traits and suggested plot lines\n"
+        "3. Maintain consistency with any previous story context\n"
+        "4. End with exactly two distinct and meaningful choices that:\n"
         "   - Lead to significantly different potential outcomes\n"
         "   - Reflect the character's established traits\n"
         "   - Avoid dead ends or quick story conclusions\n"
-        "5. Provides clear consequences for each choice\n"
+        "5. Provide clear consequences for each choice\n\n"
         "Format the response as a JSON object with the following structure:\n"
         "{\n"
         "  'title': 'Episode title',\n"
@@ -131,10 +139,11 @@ def generate_story(
                 {
                     "role": "system",
                     "content": (
-                        "You are a master storyteller creating an ongoing Choose Your Own Adventure story. "
-                        "Each response should continue the narrative while respecting previous context "
+                        "You are a master storyteller creating stories set in Uncle Mark's forest farm. "
+                        "These stories are for kids and feature the adventures of the farm's animal residents. "
+                        "Each response should continue the narrative while respecting the established universe "
                         "and character traits. Focus on creating meaningful choices that branch the story "
-                        "in interesting ways."
+                        "in interesting ways while maintaining the playful and engaging tone of the world."
                     )
                 },
                 {"role": "user", "content": prompt}
