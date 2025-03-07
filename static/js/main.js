@@ -50,6 +50,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.disabled = true;
                 this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
                 cardImage.src = 'https://via.placeholder.com/400x250?text=Loading...';
+                
+                // Fetch a random character
+                fetch('/api/random_character')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update the card with the new character
+                            cardImage.src = data.image_url;
+                            cardTitle.textContent = data.name;
+                            
+                            // Update character traits if available
+                            if (traitsContainer) {
+                                traitsContainer.innerHTML = '';
+                                if (data.character_traits && data.character_traits.length > 0) {
+                                    data.character_traits.forEach(trait => {
+                                        const badge = document.createElement('span');
+                                        badge.className = 'badge bg-primary me-1';
+                                        badge.textContent = trait;
+                                        traitsContainer.appendChild(badge);
+                                    });
+                                }
+                            }
+                            
+                            // Update the checkbox value
+                            if (checkbox) {
+                                checkbox.value = data.id;
+                            }
 
                 // Fetch a new random character
                 fetch('/api/random_character')
