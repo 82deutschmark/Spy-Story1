@@ -226,6 +226,47 @@ document.addEventListener('DOMContentLoaded', function() {
                     // if (refreshImagesBtn) {
                     //     refreshImagesBtn.click();
                     // }
+
+// Function to setup the analysis editing UI
+function setupAnalysisEditing(analysis) {
+    const editModeSwitch = document.getElementById('editModeSwitch');
+    const editContainer = document.getElementById('editContainer');
+    const imageTypeSelect = document.getElementById('imageType');
+    const characterFields = document.getElementById('characterFields');
+    const sceneFields = document.getElementById('sceneFields');
+    const applyChangesBtn = document.getElementById('applyChangesBtn');
+    
+    // Populate edit fields with current analysis data
+    populateEditFields(analysis);
+    
+    // Event listeners for edit mode toggle
+    editModeSwitch.addEventListener('change', function() {
+        if (this.checked) {
+            editContainer.style.display = 'block';
+        } else {
+            editContainer.style.display = 'none';
+        }
+    });
+    
+    // Event listener for image type change
+    imageTypeSelect.addEventListener('change', function() {
+        if (this.value === 'character') {
+            characterFields.style.display = 'block';
+            sceneFields.style.display = 'none';
+        } else {
+            characterFields.style.display = 'none';
+            sceneFields.style.display = 'block';
+        }
+    });
+    
+    // Event listener for apply changes button
+    applyChangesBtn.addEventListener('click', function() {
+        const generatedContent = document.getElementById('generatedContent');
+        const updatedAnalysis = applyEditsToAnalysis(analysis);
+        generatedContent.textContent = JSON.stringify(updatedAnalysis, null, 2);
+        showToast('Success', 'Changes applied to analysis. Review before saving.');
+    });
+}
                 } else {
                     throw new Error(data.error || 'An error occurred during analysis.');
                 }
