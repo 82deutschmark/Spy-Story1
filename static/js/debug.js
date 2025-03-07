@@ -399,7 +399,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 },
                                 body: JSON.stringify({
                                     image_url: data.image_url,
-                                    analysis: editedAnalysis
+                                    analysis: data.analysis
                                 })
                             })
                             .then(response => {

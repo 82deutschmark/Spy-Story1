@@ -43,17 +43,17 @@
                 <!-- Story Content -->
                 <div class="card shadow-lg">
                     <div class="card-body">
-                        <h2 class="card-title text-center mb-4">{{ story.title }}</h2>
+                        <h2 class="card-title text-center mb-4">{{ story_data.title }}</h2>
                         <div class="story-content">
-                            {{ story.story | safe }}
+                            {{ story_data.story | safe }}
                         </div>
 
                         <!-- Choices -->
                         <div class="choices-container">
-                            {% for choice in story.choices %}
+                            {% for choice in story_data.choices %}
                             <form action="{{ url_for('generate_story_route') }}" method="POST" class="choice-form">
                                 <input type="hidden" name="previous_choice" value="{{ choice.text }}">
-                                <input type="hidden" name="story_context" value="{{ story.story }}">
+                                <input type="hidden" name="story_context" value="{{ story_data.story }}">
                                 
                                 <!-- Re-use the same story parameters -->
                                 <input type="hidden" name="conflict" value="{{ story.primary_conflict }}">
