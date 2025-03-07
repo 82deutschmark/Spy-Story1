@@ -104,7 +104,7 @@ def generate_story(
         "- The White Turkeys: Well-meaning but prone to getting into silly situations\n\n"
         "Antagonists:\n"
         "- Evil Squirrel Gangs: Think they're superior to other animals, bully others, and steal food\n"
-        "- The Rat Wizard: Lives in the woods, steals eggs and vegetables for his potions\n"
+        "- The Rat Wizard: Lives in the woods, steals eggs and vegetables for his potions, enchants other rodents to do his bidding\n"
         "- Various mice and moles: Forced by squirrels to help with their schemes\n"
     )
 
@@ -119,7 +119,7 @@ def generate_story(
         f"{context_prompt}\n\n"
         "Create an engaging story segment that:\n"
         "1. Features Pawel and/or Pawleen as the main story drivers\n"
-        "2. Naturally incorporates the selected character (if provided) into the farm's ongoing adventures\n"
+        "2. Introduces the selected character (if provided) into the farm's ongoing adventures\n"
         "3. Maintains the established personalities and relationships\n"
         "4. Provides exactly two meaningful choice options that:\n"
         "   - Lead to different potential outcomes\n"
@@ -148,7 +148,7 @@ def generate_story(
                     "role": "system",
                     "content": (
                         "You are a master storyteller creating stories set in Uncle Mark's forest farm. "
-                        "Your stories are for kids and feature the adventures of the farm's animal residents, "
+                        "Your stories feature the adventures of the farm's animal residents, "
                         "especially Pawel and Pawleen the Yorkshire terriers. Keep the tone playful and engaging, "
                         "with clear moral lessons about friendship, courage, and standing up to bullies."
                     )
