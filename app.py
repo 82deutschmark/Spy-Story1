@@ -1,7 +1,7 @@
 import os
 import logging
 import json
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, url_for, redirect, flash
 from dotenv import load_dotenv
 from services.openai_service import analyze_artwork, generate_image_description
 from services.story_maker import generate_story, get_story_options
@@ -182,41 +182,10 @@ def generate_story_route():
         # Get the main character information
         main_character_img = selected_images[0]
         analysis = main_character_img.analysis_result or {}
-        
+
         # Extract character information comprehensively
         character_info = {
-            'name': analysis.get('name', main_character_img.character_name or 'Unknown Character'),
-            'role': analysis.get('role', 'neutral'),
-            'character_traits': main_character_img.character_traits or analysis.get('character_traits', []),
-            'plot_lines': main_character_img.plot_lines or analysis.get('plot_lines', []),
-            'style': analysis.get('style', '')
-        }
-        
-        # If traits are stored as a string instead of a list, convert them
-        if isinstance(character_info['character_traits'], str):
-            character_info['character_traits'] = [trait.strip() for trait in character_info['character_traits'].split(',')]
-        
-        # If plot_lines are stored as a string instead of a list, convert them
-        if isinstance(character_info['plot_lines'], str):
-            character_info['plot_lines'] = [plot.strip() for plot in character_info['plot_lines'].split('\n')]
-
-        # Extract name - first use character_name field, then try analysis_result
-        char_name = main_character_img.character_name or ''
-        if not char_name and analysis:
-            if 'character' in analysis and 'name' in analysis['character']:
-                char_name = analysis['character'].get('name', '')
-            elif 'character_name' in analysis:
-                char_name = analysis.get('character_name', '')
-            elif 'name' in analysis:
-                char_name = analysis.get('name', '')
-
-        # If still no name, use a default
-        if not char_name:
-            char_name = "Mystery Character"
-
-        # Build comprehensive character info
-        character_info = {
-            'name': char_name,
+            'name': main_character_img.character_name or analysis.get('name', 'Unknown Character'),
             'role': main_character_img.character_role or 'protagonist',
             'character_traits': main_character_img.character_traits or [],
             'style': analysis.get('style', 'A mysterious character'),
@@ -243,17 +212,23 @@ def generate_story_route():
         db.session.add(story)
         db.session.commit()
 
-        # Parse the story data
-        story_data = json.loads(result['story'])
-        return jsonify({
-            'success': True,
-            'story': story_data,
-            'story_id': story.id
-        })
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            # If AJAX request, return JSON
+            return jsonify({
+                'success': True,
+                'redirect': url_for('storyboard', story_id=story.id)
+            })
+        else:
+            # If regular form submit, redirect to storyboard
+            return redirect(url_for('storyboard', story_id=story.id))
 
     except Exception as e:
         logger.error(f"Error generating story: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'error': str(e)}), 500
+        else:
+            flash('Error generating story: ' + str(e), 'error')
+            return redirect(url_for('index'))
 
 
 @app.route('/api/validate_image_types')
@@ -650,12 +625,12 @@ def db_health_check():
         missing_analysis = ImageAnalysis.query.filter(
             ImageAnalysis.analysis_result.is_(None)
         ).count()
-        
+
         # We need to handle empty JSONs separately to avoid type casting issues
         empty_json_count = db.session.execute(
             db.text("SELECT COUNT(*) FROM image_analysis WHERE analysis_result::text = '{}'")
         ).scalar()
-        
+
         missing_analysis += empty_json_count if empty_json_count else 0
 
         # Check for characters missing plot lines
