@@ -633,7 +633,7 @@ def db_health_check():
         missing_analysis = ImageAnalysis.query.filter(
             db.or_(
                 ImageAnalysis.analysis_result.is_(None),
-                ImageAnalysis.analysis_result == {}
+                ImageAnalysis.analysis_result == db.cast('{}', db.JSONB)
             )
         ).count()
 
