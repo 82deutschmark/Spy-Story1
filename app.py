@@ -1,4 +1,3 @@
-
 import os
 import logging
 import json
@@ -278,7 +277,6 @@ def validate_image_types():
 @app.route('/generate', methods=['POST'])
 def generate_post():
     image_url = request.form.get('image_url')
-    force_character = request.form.get('force_character') == 'true'
 
     if not image_url:
         return jsonify({'error': 'No image URL provided'}), 400
@@ -293,7 +291,7 @@ def generate_post():
             return jsonify({'error': 'OpenAI API key not configured. Please add it to your Replit Secrets.'}), 500
 
         # Analyze the artwork using OpenAI
-        analysis = analyze_artwork(image_url, force_character)
+        analysis = analyze_artwork(image_url)
 
         # Generate a description of the analyzed image
         description = generate_image_description(analysis)

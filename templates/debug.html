@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html data-bs-theme="dark">
 <head>
@@ -35,11 +36,6 @@
                                 <input type="url" class="form-control" id="imageUrl" name="image_url" 
                                        placeholder="Enter image URL to analyze">
                             </div>
-                            <div class="mb-3 form-check">
-                                <input type="checkbox" class="form-check-input" id="forceCharacter" name="force_character">
-                                <label class="form-check-label" for="forceCharacter">Force Character Analysis</label>
-                                <small class="form-text text-muted d-block">Use this if the image is incorrectly detected as a scene</small>
-                            </div>
                             <div class="text-center">
                                 <button type="submit" class="btn btn-primary" id="generateBtn">
                                     <i class="fas fa-magic me-2"></i>Analyze Image
@@ -56,18 +52,15 @@
                                 Review the analysis below. You can accept and save it to the database or reject it.
                             </div>
                             <div class="border rounded p-4 mt-2 result-content" id="generatedContent"></div>
-                            <div class="mt-3">
-                              <button id="save-analysis-btn" class="btn btn-success" style="display: none;">
-                                Save Analysis to DB
-                              </button>
-                              <button id="reject-analysis-btn" class="btn btn-warning" style="display: none;">
-                                Reject Analysis (Try as Character)
-                              </button>
+                            <div class="text-center mt-3">
+                                <button class="btn btn-outline-secondary btn-sm" id="copyBtn">
+                                    <i class="fas fa-copy me-2"></i>Copy to Clipboard
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
-
+                
                 <!-- Database Management -->
                 <div class="card shadow-lg">
                     <div class="card-header bg-secondary text-white">
@@ -91,7 +84,7 @@
                                 </button>
                             </li>
                         </ul>
-
+                        
                         <div class="tab-content p-3 border border-top-0 rounded-bottom" id="dbTabsContent">
                             <!-- Images Tab -->
                             <div class="tab-pane fade show active" id="images" role="tabpanel" aria-labelledby="images-tab">
@@ -106,7 +99,7 @@
                                         </button>
                                     </div>
                                 </div>
-
+                                
                                 <div class="table-responsive">
                                     <table class="table table-hover">
                                         <thead>
@@ -145,7 +138,7 @@
                                     </table>
                                 </div>
                             </div>
-
+                            
                             <!-- Stories Tab -->
                             <div class="tab-pane fade" id="stories" role="tabpanel" aria-labelledby="stories-tab">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -159,7 +152,7 @@
                                         </button>
                                     </div>
                                 </div>
-
+                                
                                 <div class="table-responsive">
                                     <table class="table table-hover">
                                         <thead>
@@ -196,7 +189,7 @@
                                     </table>
                                 </div>
                             </div>
-
+                            
                             <!-- DB Health Tab -->
                             <div class="tab-pane fade" id="health" role="tabpanel" aria-labelledby="health-tab">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -205,7 +198,7 @@
                                         <i class="fas fa-stethoscope me-1"></i>Run Health Check
                                     </button>
                                 </div>
-
+                                
                                 <div class="card mb-3">
                                     <div class="card-header bg-dark">
                                         <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Database Statistics</h5>
@@ -247,7 +240,7 @@
                                         </div>
                                     </div>
                                 </div>
-
+                                
                                 <div class="card">
                                     <div class="card-header bg-dark">
                                         <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Potential Issues</h5>
