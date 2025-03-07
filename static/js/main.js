@@ -1,50 +1,31 @@
 // Loading overlay functions
-function createLoadingOverlay(message = 'Generating your story...') {
+function createLoadingOverlay(message = 'Generating Story...') {
     const overlay = document.createElement('div');
     overlay.className = 'loading-overlay';
     overlay.innerHTML = `
         <div class="loading-content">
             <div class="loading-spinner"></div>
-            <h3>${message}</h3>
-            <div class="loading-progress">
-                <div class="loading-progress-bar"></div>
-            </div>
-            <p class="loading-status">Crafting your adventure...</p>
+            <div class="loading-percentage">0%</div>
         </div>
     `;
     document.body.appendChild(overlay);
     overlay.style.display = 'flex';
-    return overlay.querySelector('.loading-progress-bar');
+    return overlay.querySelector('.loading-percentage');
 }
 
-function updateLoadingStatus(progressBar, progress, status) {
-    progressBar.style.width = `${progress}%`;
-    const statusEl = progressBar.closest('.loading-content').querySelector('.loading-status');
-    if (statusEl) statusEl.textContent = status;
+function updateLoadingPercent(element, percent) {
+    element.textContent = `${Math.round(percent)}%`;
 }
 
 function removeLoadingOverlay(overlay) {
     overlay.closest('.loading-overlay').remove();
 }
 
-// Progress bar functions
-function createProgressBar() {
-    const container = document.createElement('div');
-    container.className = 'progress-container';
-    const bar = document.createElement('div');
-    bar.className = 'progress-bar';
-    container.appendChild(bar);
-    document.body.appendChild(container);
-    return bar;
-}
+// Progress bar functions (These are not used anymore, so removed)
+// function createProgressBar() { ... }
+// function updateProgress(progressBar, progress) { ... }
+// function removeProgressBar(container) { ... }
 
-function updateProgress(progressBar, progress) {
-    progressBar.style.width = `${progress}%`;
-}
-
-function removeProgressBar(container) {
-    container.parentElement.remove();
-}
 
 document.addEventListener('DOMContentLoaded', function() {
     // Character selection elements
@@ -78,7 +59,117 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Reroll functionality
+    // Story choice form submission
+    const choiceForms = document.querySelectorAll('.choice-form');
+    if (choiceForms.length > 0) {
+        choiceForms.forEach(form => {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const btn = this.querySelector('button');
+                btn.disabled = true;
+                btn.classList.add('loading');
+
+                const loadingPercent = createLoadingOverlay('Continuing your story...');
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    if (progress < 90) {
+                        progress += 5;
+                        updateLoadingPercent(loadingPercent, progress);
+                    }
+                }, 500);
+
+                try {
+                    const response = await fetch(this.action, {
+                        method: 'POST',
+                        body: new FormData(this),
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    const data = await response.json();
+                    clearInterval(progressInterval);
+
+                    if (data.success && data.redirect) {
+                        updateLoadingPercent(loadingPercent, 100);
+                        setTimeout(() => {
+                            window.location.href = data.redirect;
+                        }, 500);
+                    } else {
+                        throw new Error(data.error || 'Failed to continue story');
+                    }
+                } catch (error) {
+                    showToast('Error', error.message);
+                    btn.disabled = false;
+                    btn.classList.remove('loading');
+                    clearInterval(progressInterval);
+                    const overlay = loadingPercent.closest('.loading-overlay');
+                    if (overlay) overlay.remove();
+                }
+            });
+        });
+    }
+
+    // Handle main story form submission
+    if (storyForm) {
+        storyForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const selectedCharacter = document.querySelector('input[name="selectedCharacter"]:checked');
+            if (!selectedCharacter) {
+                characterSelectionError.style.display = 'block';
+                characterSelectionError.textContent = 'Please select a character for your story.';
+                return;
+            }
+
+            characterSelectionError.style.display = 'none';
+
+            // Create loading overlay with percentage
+            const loadingPercent = createLoadingOverlay();
+            generateStoryBtn.disabled = true;
+
+            try {
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    if (progress < 90) {
+                        progress += 5;
+                        updateLoadingPercent(loadingPercent, progress);
+                    }
+                }, 500);
+
+                const formData = new FormData(this);
+                formData.set('selected_images[]', selectedCharacter.value);
+
+                const response = await fetch('/generate_story', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const data = await response.json();
+                clearInterval(progressInterval);
+
+                if (data.success && data.redirect) {
+                    updateLoadingPercent(loadingPercent, 100);
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 500);
+                } else {
+                    throw new Error(data.error || 'Failed to generate story');
+                }
+            } catch (error) {
+                showToast('Error', error.message);
+                generateStoryBtn.disabled = false;
+                generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
+                const overlay = loadingPercent.closest('.loading-overlay');
+                if (overlay) overlay.remove();
+            }
+        });
+    }
+
+    // Reroll functionality (adapted to use new loading overlay)
     if (rerollButtons.length > 0) {
         rerollButtons.forEach(button => {
             button.addEventListener('click', async function(e) {
@@ -95,6 +186,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.disabled = true;
                 this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
                 cardImage.src = 'https://via.placeholder.com/400x250?text=Loading...';
+
+                const loadingPercent = createLoadingOverlay();
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += 5;
+                    updateLoadingPercent(loadingPercent, progress);
+                    if (progress >= 100) {
+                        clearInterval(progressInterval);
+                        removeLoadingOverlay(loadingPercent);
+                    }
+                }, 100);
 
                 try {
                     const response = await fetch('/api/random_character');
@@ -139,74 +241,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.innerHTML = '<i class="fas fa-dice me-1"></i>Reroll';
                 }
             });
-        });
-    }
-
-    // Handle form submission with enhanced loading UI
-    if (storyForm) {
-        storyForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const selectedCharacter = document.querySelector('input[name="selectedCharacter"]:checked');
-            if (!selectedCharacter) {
-                characterSelectionError.style.display = 'block';
-                characterSelectionError.textContent = 'Please select a character for your story.';
-                return;
-            }
-
-            characterSelectionError.style.display = 'none';
-
-            // Create loading overlay
-            const progressBar = createLoadingOverlay('Crafting your adventure...');
-            generateStoryBtn.disabled = true;
-
-            try {
-                let progress = 0;
-                const loadingStates = [
-                    'Gathering inspiration...',
-                    'Creating characters...',
-                    'Weaving the narrative...',
-                    'Adding dramatic elements...',
-                    'Finalizing your story...'
-                ];
-
-                const progressInterval = setInterval(() => {
-                    if (progress < 90) {
-                        progress += 5;
-                        const stateIndex = Math.floor((progress / 90) * loadingStates.length);
-                        updateLoadingStatus(progressBar, progress, loadingStates[stateIndex]);
-                    }
-                }, 1000);
-
-                const formData = new FormData(this);
-                formData.set('selected_images[]', selectedCharacter.value);
-
-                const response = await fetch('/generate_story', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-
-                const data = await response.json();
-                clearInterval(progressInterval);
-
-                if (data.success && data.redirect) {
-                    updateLoadingStatus(progressBar, 100, 'Story ready! Redirecting...');
-                    setTimeout(() => {
-                        window.location.href = data.redirect;
-                    }, 500);
-                } else {
-                    throw new Error(data.error || 'Failed to generate story');
-                }
-            } catch (error) {
-                showToast('Error', error.message);
-                generateStoryBtn.disabled = false;
-                generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
-                const overlay = progressBar.closest('.loading-overlay');
-                if (overlay) overlay.remove();
-            }
         });
     }
 

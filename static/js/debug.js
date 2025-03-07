@@ -18,69 +18,76 @@ document.addEventListener('DOMContentLoaded', function() {
     const refreshStoriesBtn = document.getElementById('refreshStoriesBtn');
     const runHealthCheckBtn = document.getElementById('runHealthCheckBtn');
 
-    // View details button functionality
+    // Enhanced view details button functionality
     viewDetailsBtns.forEach(btn => {
         btn.addEventListener('click', async function() {
             const id = this.getAttribute('data-id');
+            const modal = document.getElementById('detailsModal');
+            const editContainer = modal.querySelector('#editContainer');
+            const modalContent = modal.querySelector('#modalContent');
+            const saveBtn = modal.querySelector('#saveAnalysisBtn');
+            const editModeSwitch = modal.querySelector('#editModeSwitch');
 
             try {
                 const response = await fetch(`/api/image/${id}`);
                 const data = await response.json();
 
                 if (data.success) {
-                    // Update modal content
-                    const modalContent = document.getElementById('modalContent');
-                    const modalImage = document.getElementById('modalImage');
-
-                    // Enable editing
-                    modalContent.contentEditable = true;
-                    modalContent.classList.add('result-content', 'editable');
+                    // Set image and initial content
+                    document.getElementById('modalImage').src = data.image_url;
                     modalContent.textContent = JSON.stringify(data.analysis, null, 2);
 
-                    // Set image
-                    modalImage.src = data.image_url;
+                    // Setup edit mode switch
+                    editModeSwitch.addEventListener('change', function() {
+                        if (this.checked) {
+                            modalContent.contentEditable = 'true';
+                            modalContent.classList.add('editable');
+                            saveBtn.style.display = 'block';
+                            editContainer.style.display = 'block';
+                            populateEditFields(data.analysis);
+                        } else {
+                            modalContent.contentEditable = 'false';
+                            modalContent.classList.remove('editable');
+                            saveBtn.style.display = 'none';
+                            editContainer.style.display = 'none';
+                        }
+                    });
 
-                    // Add save button if not exists
-                    let saveBtn = document.getElementById('saveAnalysisBtn');
-                    if (!saveBtn) {
-                        saveBtn = document.createElement('button');
-                        saveBtn.id = 'saveAnalysisBtn';
-                        saveBtn.className = 'btn btn-primary mt-3';
-                        saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Changes';
-                        modalContent.parentElement.appendChild(saveBtn);
-
-                        // Add save functionality
-                        saveBtn.addEventListener('click', async function() {
+                    // Setup save button
+                    saveBtn.addEventListener('click', async function() {
+                        try {
+                            let updatedAnalysis;
                             try {
-                                const updatedAnalysis = JSON.parse(modalContent.textContent);
-
-                                const response = await fetch('/api/save_analysis', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json'
-                                    },
-                                    body: JSON.stringify({
-                                        image_id: id,
-                                        analysis: updatedAnalysis
-                                    })
-                                });
-
-                                const result = await response.json();
-                                if (result.success) {
-                                    showToast('Success', 'Analysis updated successfully');
-                                    // Refresh the page to show updated data
-                                    setTimeout(() => location.reload(), 1000);
-                                } else {
-                                    throw new Error(result.error);
-                                }
-                            } catch (error) {
-                                showToast('Error', 'Failed to save changes: ' + error.message);
+                                updatedAnalysis = JSON.parse(modalContent.textContent);
+                            } catch (parseError) {
+                                throw new Error('Invalid JSON format in the editor');
                             }
-                        });
-                    }
+
+                            const saveResponse = await fetch('/api/save_analysis', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    image_id: id,
+                                    analysis: updatedAnalysis
+                                })
+                            });
+
+                            const result = await saveResponse.json();
+                            if (result.success) {
+                                showToast('Success', 'Analysis updated successfully');
+                                setTimeout(() => location.reload(), 1000);
+                            } else {
+                                throw new Error(result.error || 'Failed to save changes');
+                            }
+                        } catch (error) {
+                            showToast('Error', error.message);
+                        }
+                    });
 
                     // Show modal
-                    new bootstrap.Modal(document.getElementById('detailsModal')).show();
+                    new bootstrap.Modal(modal).show();
                 } else {
                     throw new Error(data.error || 'Failed to fetch image details');
                 }
