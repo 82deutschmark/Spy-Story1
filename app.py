@@ -38,7 +38,7 @@ def index():
     image_data = []
     for img in images:
         analysis = img.analysis_result or {}
-        
+
         # Extract name - first use character_name field, then try analysis_result
         char_name = img.character_name or ''
         if not char_name and analysis:
@@ -48,7 +48,7 @@ def index():
                 char_name = analysis.get('character_name', '')
             elif 'name' in analysis:
                 char_name = analysis.get('name', '')
-        
+
         # Get character traits and plot lines safely
         char_traits = []
         plot_lines = []
@@ -57,14 +57,14 @@ def index():
                 char_traits = img.character_traits
             elif analysis and 'character_traits' in analysis:
                 char_traits = analysis.get('character_traits', [])
-                
+
             if hasattr(img, 'plot_lines') and img.plot_lines:
                 plot_lines = img.plot_lines
             elif analysis and 'plot_lines' in analysis:
                 plot_lines = analysis.get('plot_lines', [])
         except:
             pass
-            
+
         image_data.append({
             'id': img.id,
             'image_url': img.image_url,
@@ -80,6 +80,7 @@ def index():
         story_options=story_options,
         images=image_data
     )
+
 
 @app.route('/debug')
 def debug():
@@ -112,6 +113,7 @@ def debug():
         empty_stories=empty_stories
     )
 
+
 @app.route('/storyboard/<int:story_id>')
 def storyboard(story_id):
     """Display the current story progress and choices"""
@@ -134,6 +136,7 @@ def storyboard(story_id):
         story=story_data,
         character_images=character_images
     )
+
 
 @app.route('/generate_story', methods=['POST'])
 def generate_story_route():
@@ -166,33 +169,29 @@ def generate_story_route():
 
         # Get the main character information
         main_character_img = selected_images[0]
-        main_character = {
-            'name': main_character_img.analysis_result.get('name', 'Main Character'),
-            'traits': main_character_img.character_traits or [],
-            'description': main_character_img.analysis_result.get('style', 'Mysterious character'),
-            'is_main': True
-        }
+        analysis = main_character_img.analysis_result or {}
 
-        # Generate three random supporting characters
-        supporting_chars = ImageAnalysis.query.filter(
-            ImageAnalysis.id != main_character_img.id,
-            ImageAnalysis.image_type == 'character'
-        ).order_by(db.func.random()).limit(3).all()
+        # Extract name - first use character_name field, then try analysis_result
+        char_name = main_character_img.character_name or ''
+        if not char_name and analysis:
+            if 'character' in analysis and 'name' in analysis['character']:
+                char_name = analysis['character'].get('name', '')
+            elif 'character_name' in analysis:
+                char_name = analysis.get('character_name', '')
+            elif 'name' in analysis:
+                char_name = analysis.get('name', '')
 
-        other_characters = []
-        for i, img in enumerate(supporting_chars):
-            char_info = {
-                'name': img.analysis_result.get('name', f'Supporting Character {i+1}'),
-                'traits': img.character_traits or [],
-                'description': img.analysis_result.get('style', 'Supporting character'),
-                'is_main': False
-            }
-            other_characters.append(char_info)
+        # If still no name, use a default
+        if not char_name:
+            char_name = "Mystery Character"
 
         # Build comprehensive character info
         character_info = {
-            'main_character': main_character,
-            'supporting_characters': other_characters
+            'name': char_name,
+            'role': main_character_img.character_role or 'protagonist',
+            'character_traits': main_character_img.character_traits or [],
+            'style': analysis.get('style', 'A mysterious character'),
+            'plot_lines': main_character_img.plot_lines or []
         }
 
         # Generate the story
@@ -302,6 +301,7 @@ def validate_image_types():
         logger.error(f"Error validating image types: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 @app.route('/generate', methods=['POST'])
 def generate_post():
     image_url = request.form.get('image_url')
@@ -336,6 +336,7 @@ def generate_post():
         logger.error(f"Error generating post: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 @app.route('/save_analysis', methods=['POST'])
 def save_analysis():
     """Save the analyzed image data to the database after user confirmation"""
@@ -353,7 +354,7 @@ def save_analysis():
 
         # Determine if it's a character or scene based on character indicators
         is_character = False
-        
+
         # Check for nested character object
         if 'character' in analysis and isinstance(analysis['character'], dict):
             is_character = True
@@ -366,7 +367,7 @@ def save_analysis():
         elif 'role' in analysis and analysis['role'] in ['hero', 'villain', 'neutral']:
             is_character = True
             logger.debug("Detected character from role field")
-            
+
         logger.info(f"Image classified as: {'character' if is_character else 'scene'}")
 
         # Extract character details if this is a character image
@@ -379,22 +380,22 @@ def save_analysis():
             if 'character' in analysis and isinstance(analysis['character'], dict):
                 if 'name' in analysis['character']:
                     character_name = analysis['character'].get('name')
-            
+
             # If not found in character object, check top level fields
             if not character_name:
                 if 'character_name' in analysis:
                     character_name = analysis.get('character_name')
                 elif 'name' in analysis:
                     character_name = analysis.get('name')
-                    
+
             # Log character name extraction for debugging
             logger.debug(f"Extracted character name: {character_name} from analysis structure")
-            
+
             # Ensure we always have a name for characters
             if not character_name:
                 logger.warning(f"Could not find a name in the API response. Using default name.")
                 character_name = "Unnamed Character"
-                
+
         # Extract traits and plot lines either from character object or top level
         character_traits = None
         if is_character:
@@ -402,14 +403,14 @@ def save_analysis():
                 character_traits = character_data.get('character_traits')
             else:
                 character_traits = analysis.get('character_traits')
-                
+
         character_role = None
         if is_character:
             if 'character' in analysis and 'role' in character_data:
                 character_role = character_data.get('role')
             else:
                 character_role = analysis.get('role')
-                
+
         plot_lines = None
         if is_character:
             if 'character' in analysis and 'plot_lines' in character_data:
@@ -484,6 +485,7 @@ def random_character():
         logger.error(f"Error getting random character: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 @app.route('/api/image/<int:image_id>')
 def get_image_details(image_id):
     """API endpoint to get details of a specific image"""
@@ -501,6 +503,7 @@ def get_image_details(image_id):
     except Exception as e:
         logger.error(f"Error getting image details: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/image/<int:image_id>', methods=['DELETE'])
 def delete_image(image_id):
@@ -524,6 +527,7 @@ def delete_image(image_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+
 @app.route('/api/story/<int:story_id>', methods=['DELETE'])
 def delete_story(story_id):
     """API endpoint to delete a specific story record"""
@@ -540,6 +544,7 @@ def delete_story(story_id):
         logger.error(f"Error deleting story: {str(e)}")
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/db/delete-all-images', methods=['POST'])
 def delete_all_images():
@@ -563,6 +568,7 @@ def delete_all_images():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+
 @app.route('/api/db/delete-all-stories', methods=['POST'])
 def delete_all_stories():
     """API endpoint to delete all story records"""
@@ -578,6 +584,7 @@ def delete_all_stories():
         logger.error(f"Error deleting all stories: {str(e)}")
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/db/health-check', methods=['GET'])
 def db_health_check():
@@ -686,6 +693,7 @@ def db_health_check():
     except Exception as e:
         logger.error(f"Error performing health check: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

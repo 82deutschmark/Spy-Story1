@@ -70,18 +70,18 @@ def generate_story(
     final_mood = custom_mood or mood
 
     # Build character information for the prompt
-    character_prompt = ""
-    if character_info:
-        # Process selected character
-        character_prompt = (
-            f"\nMain Character: {character_info['name']}\n"
-            f"Role: {character_info.get('role', 'protagonist')}\n"
+    selected_character_prompt = ""
+    if character_info and character_info.get('name'):
+        selected_character_prompt = (
+            f"\nSelected Character to Feature:\n"
+            f"Name: {character_info['name']}\n"
+            f"Role: {character_info.get('role', 'guest')}\n"
             f"Traits: {', '.join(character_info.get('character_traits', []))}\n"
             f"Visual Description: {character_info.get('style', '')}\n"
-            f"Potential Plot Lines:\n"
+            f"Suggested Plot Lines:\n"
         )
         for plot in character_info.get('plot_lines', []):
-            character_prompt += f"- {plot}\n"
+            selected_character_prompt += f"- {plot}\n"
 
     # Add context from previous choices if available
     context_prompt = ""
@@ -92,47 +92,55 @@ def generate_story(
             "Continue the story based on this choice, maintaining consistency with previous events."
         )
 
+    # Core story universe description
+    universe_prompt = (
+        "This story takes place in Uncle Mark's forest farm, where animals have distinct personalities "
+        "and adventures happen daily. The main cast includes:\n\n"
+        "Core Characters:\n"
+        "- Pawel and Pawleen: Two Yorkshire terriers who protect the farm. Pawel is impulsive but brave, "
+        "while Pawleen is thoughtful and clever.\n"
+        "- Big Red: The not-so-bright rooster who leads the chicken coop\n"
+        "- The Clever Hens: Birdadette, Henrietta, and others who actually run things\n"
+        "- The White Turkeys: Well-meaning but prone to getting into silly situations\n\n"
+        "Antagonists:\n"
+        "- Evil Squirrel Gangs: Think they're superior to other animals, bully others, and steal food\n"
+        "- The Rat Wizard: Lives in the woods, steals eggs and vegetables for his potions\n"
+        "- Various mice and moles: Forced by squirrels to help with their schemes\n"
+    )
+
     # Construct the main prompt
     prompt = (
         f"Primary Conflict: {final_conflict}\n"
         f"Setting: {final_setting}\n"
         f"Narrative Style: {final_narrative}\n"
-        f"Mood: {final_mood}\n"
-        f"{character_prompt}\n"
+        f"Mood: {final_mood}\n\n"
+        f"{universe_prompt}\n"
+        f"{selected_character_prompt}\n"
         f"{context_prompt}\n\n"
-        "Create an engaging interactive story segment for our Choose Your Own Adventure story. "
-        "This story takes place in Uncle Mark's forest farm, a magical place where animals have distinct personalities.\n\n"
-        "Remember these important story elements:\n"
-        "- The farm's main protectors are two Yorkshire terriers: Pawel (impulsive male) and Pawleen (thoughtful female)\n"
-        "- The farm has chickens led by Big Red (the dumb rooster) and his clever hens (Birdadette, Henrietta, etc.)\n"
-        "- White turkeys who aren't very smart and often get stuck in silly situations\n"
-        "- Evil squirrel gangs who think they're superior to other animals\n"
-        "- A devious rat wizard who steals eggs and vegetables for his potions\n"
-        "- Mice and moles who are bullied by squirrels into helping them\n\n"
-        "Your story segment should:\n"
-        "1. Continue the ongoing narrative, incorporating the selected character naturally\n"
-        "2. Use the character's established traits and suggested plot lines\n"
-        "3. Maintain consistency with any previous story context\n"
-        "4. End with exactly two distinct and meaningful choices that:\n"
-        "   - Lead to significantly different potential outcomes\n"
-        "   - Reflect the character's established traits\n"
-        "   - Avoid dead ends or quick story conclusions\n"
-        "5. Provide clear consequences for each choice\n\n"
-        "Format the response as a JSON object with the following structure:\n"
+        "Create an engaging story segment that:\n"
+        "1. Features Pawel and/or Pawleen as the main story drivers\n"
+        "2. Naturally incorporates the selected character (if provided) into the farm's ongoing adventures\n"
+        "3. Maintains the established personalities and relationships\n"
+        "4. Provides exactly two meaningful choice options that:\n"
+        "   - Lead to different potential outcomes\n"
+        "   - Stay true to the characters' established traits\n"
+        "   - Avoid dead ends or quick conclusions\n"
+        "5. Include clear consequences for each choice\n\n"
+        "Format the response as a JSON object with:\n"
         "{\n"
         "  'title': 'Episode title',\n"
         "  'story': 'The story text',\n"
         "  'choices': [\n"
-        "    {'text': 'First choice description', 'consequence': 'Brief hint about outcome'},\n"
-        "    {'text': 'Second choice description', 'consequence': 'Brief hint about outcome'}\n"
+        "    {'text': 'First choice', 'consequence': 'Brief outcome hint'},\n"
+        "    {'text': 'Second choice', 'consequence': 'Brief outcome hint'}\n"
         "  ],\n"
-        "  'characters': ['List of character names featured in this segment']\n"
+        "  'characters': ['List of character names featured']\n"
         "}"
     )
 
     try:
-        # Call OpenAI API to generate the story
-        # Note: gpt-4o is the newest model, released May 13, 2024
+        # Note: gpt-4o is the newest model, released May 13, 2024.
+        # do not change this unless explicitly requested by the user
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -140,10 +148,9 @@ def generate_story(
                     "role": "system",
                     "content": (
                         "You are a master storyteller creating stories set in Uncle Mark's forest farm. "
-                        "These stories are for kids and feature the adventures of the farm's animal residents. "
-                        "Each response should continue the narrative while respecting the established universe "
-                        "and character traits. Focus on creating meaningful choices that branch the story "
-                        "in interesting ways while maintaining the playful and engaging tone of the world."
+                        "Your stories are for kids and feature the adventures of the farm's animal residents, "
+                        "especially Pawel and Pawleen the Yorkshire terriers. Keep the tone playful and engaging, "
+                        "with clear moral lessons about friendship, courage, and standing up to bullies."
                     )
                 },
                 {"role": "user", "content": prompt}
