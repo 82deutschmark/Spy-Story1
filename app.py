@@ -323,9 +323,12 @@ def save_analysis():
         # Extract image metadata
         metadata = analysis.get('image_metadata', {})
 
-        # Determine if it's a character or scene
-        is_character = 'name' in analysis
-
+        # Determine if it's a character or scene based on the presence of a 'character' key
+        is_character = 'character' in analysis
+        
+        # Extract character details if this is a character image
+        character_data = analysis.get('character', {})
+        
         # Create new ImageAnalysis record
         image_analysis = ImageAnalysis(
             image_url=image_url,
@@ -335,9 +338,9 @@ def save_analysis():
             image_size_bytes=metadata.get('size_bytes'),
             image_type='character' if is_character else 'scene',
             analysis_result=analysis,
-            character_traits=analysis.get('character_traits') if is_character else None,
-            character_role=analysis.get('role') if is_character else None,
-            plot_lines=analysis.get('plot_lines') if is_character else None,
+            character_traits=character_data.get('character_traits') if is_character else None,
+            character_role=character_data.get('role') if is_character else None,
+            plot_lines=character_data.get('plot_lines') if is_character else None,
             scene_type=analysis.get('scene_type') if not is_character else None,
             setting=analysis.get('setting') if not is_character else None,
             setting_description=analysis.get('setting_description') if not is_character else None,
