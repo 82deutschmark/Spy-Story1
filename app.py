@@ -38,10 +38,18 @@ def index():
     image_data = []
     for img in images:
         analysis = img.analysis_result
+        # Safely extract character name from analysis_result if character_name column doesn't exist
+        char_name = analysis.get('name', '')
+        try:
+            if hasattr(img, 'character_name') and img.character_name:
+                char_name = img.character_name
+        except:
+            pass
+            
         image_data.append({
             'id': img.id,
             'image_url': img.image_url,
-            'name': img.character_name or analysis.get('name', ''),
+            'name': char_name,
             'style': analysis.get('style', ''),
             'story': analysis.get('story', ''),
             'character_traits': img.character_traits or [],
