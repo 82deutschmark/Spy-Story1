@@ -95,9 +95,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         this.disabled = false;
                         this.innerHTML = '<i class="fas fa-dice me-1"></i>Reroll';
                     });
-
-                            // Update traits
-                            traitsContainer.innerHTML = '';
                             if (data.character_traits && data.character_traits.length > 0) {
                                 data.character_traits.forEach(trait => {
                                     const badge = document.createElement('span');
