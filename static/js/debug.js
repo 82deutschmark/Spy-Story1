@@ -122,6 +122,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const formData = new FormData(imageForm);
             const imageUrl = formData.get('image_url');
+            const forceCharacter = document.getElementById('forceCharacter') ? document.getElementById('forceCharacter').checked : false; //Added to get forceCharacter value
+
 
             if (!imageUrl || !imageUrl.trim()) {
                 showToast('Error', 'Please enter a valid image URL');
@@ -134,7 +136,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
             fetch('/generate', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                headers: {
+                    'Content-Type': 'application/json' // Added for JSON data
+                },
+                //Adding force_character parameter
+                body: JSON.stringify({ image_url: imageUrl, force_character: forceCharacter })
             })
             .then(response => response.json())
             .then(data => {
@@ -154,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <button class="btn btn-success" id="saveAnalysisBtn">
                                 <i class="fas fa-save me-2"></i>Save to Database
                             </button>
-                            <button class="btn btn-outline-secondary ms-2" id="rejectAnalysisBtn">
+                            <button class="btn btn-outline-warning ms-2" id="rejectAnalysisBtn">
                                 <i class="fas fa-times me-2"></i>Reject Analysis
                             </button>
                         `;
@@ -207,19 +214,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         const rejectAnalysisBtn = document.getElementById('rejectAnalysisBtn');
                         rejectAnalysisBtn.addEventListener('click', function() {
                             const imageUrl = formData.get('image_url');
-                            const resultArea = document.getElementById('analysis-result'); // Assuming this id exists
-                            resultArea.innerHTML = '<div class="alert alert-info">Analyzing image as a character...</div>';
+                            const resultArea = document.getElementById('analysis-result'); 
+                            resultArea.innerHTML = '<div class="alert alert-info">Re-analyzing image as a character...</div>';
                             generatedContent.innerHTML = '';
                             saveAnalysisBtn.style.display = 'none';
                             this.style.display = 'none';
 
                             fetch('/generate', {
                                 method: 'POST',
-                                body: new FormData(imageForm),
                                 headers: {
                                     'Content-Type': 'application/json',
                                 },
-                                // Adding force_character parameter
                                 body: JSON.stringify({ image_url: imageUrl, force_character: true })
                             })
                             .then(response => response.json())

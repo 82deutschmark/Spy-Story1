@@ -35,6 +35,11 @@
                                 <input type="url" class="form-control" id="imageUrl" name="image_url" 
                                        placeholder="Enter image URL to analyze">
                             </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="forceCharacter" name="force_character">
+                                <label class="form-check-label" for="forceCharacter">Force Character Analysis</label>
+                                <small class="form-text text-muted d-block">Use this if the image is incorrectly detected as a scene</small>
+                            </div>
                             <div class="text-center">
                                 <button type="submit" class="btn btn-primary" id="generateBtn">
                                     <i class="fas fa-magic me-2"></i>Analyze Image

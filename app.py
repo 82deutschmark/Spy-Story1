@@ -1,3 +1,4 @@
+
 import os
 import logging
 import json
@@ -277,15 +278,6 @@ def validate_image_types():
 @app.route('/generate', methods=['POST'])
 def generate_post():
     image_url = request.form.get('image_url')
-
-    if not image_url:
-        return jsonify({'error': 'No image URL provided'}), 400
-
-    try:
-
-@app.route('/generate', methods=['POST'])
-def generate_post():
-    image_url = request.form.get('image_url')
     force_character = request.form.get('force_character') == 'true'
 
     if not image_url:
@@ -302,32 +294,6 @@ def generate_post():
 
         # Analyze the artwork using OpenAI
         analysis = analyze_artwork(image_url, force_character)
-
-        # Generate a description of the analyzed image
-        description = generate_image_description(analysis)
-
-        return jsonify({
-            'success': True,
-            'description': description,
-            'analysis': analysis,
-            'saved_to_db': False,
-            'image_url': image_url
-        })
-
-    except Exception as e:
-        logger.error(f"Error generating post: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-        # Validate URL format
-        if not image_url.startswith(('http://', 'https://')):
-            return jsonify({'error': 'Invalid image URL format'}), 400
-
-        # Check for OpenAI API key
-        if not os.environ.get("OPENAI_API_KEY"):
-            return jsonify({'error': 'OpenAI API key not configured. Please add it to your Replit Secrets.'}), 500
-
-        # Analyze the artwork using OpenAI
-        analysis = analyze_artwork(image_url)
 
         # Generate a description of the analyzed image
         description = generate_image_description(analysis)
