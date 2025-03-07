@@ -170,14 +170,14 @@ Even if the image appears to be a character, treat it as a scene and describe th
                 messages=[
                     {
                         "role": "system",
-                        "content": system_prompt
+                        "content": system_prompt + "\n\nPlease respond in JSON format."
                     },
                     {
                         "role": "user",
                         "content": [
                             {
                                 "type": "text",
-                                "text": user_message
+                                "text": user_message + "\n\nRespond in valid JSON format."
                             },
                             {
                                 "type": "image_url",
@@ -185,8 +185,7 @@ Even if the image appears to be a character, treat it as a scene and describe th
                             }
                         ]
                     }
-                ],
-                response_format={"type": "json_object"}
+                ]
             )
         except requests.exceptions.RequestException as req_err:
             logger.error(f"Error downloading image: {str(req_err)}")
