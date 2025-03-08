@@ -1,465 +1,496 @@
-// Loading overlay functions
-function createLoadingOverlay(message = 'Generating Story...') {
-    const overlay = document.createElement('div');
-    overlay.className = 'loading-overlay';
-    overlay.innerHTML = `
-        <div class="loading-content">
-            <div class="loading-spinner"></div>
-            <div class="loading-percentage">0%</div>
-        </div>
-    `;
-    document.body.appendChild(overlay);
-    overlay.style.display = 'flex';
-    return overlay.querySelector('.loading-percentage');
-}
 
-function updateLoadingPercent(element, percent) {
-    element.textContent = `${Math.round(percent)}%`;
-}
+// Main JavaScript file for the application
 
-function removeLoadingOverlay(overlay) {
-    overlay.closest('.loading-overlay').remove();
-}
+// DOM elements
+const startStoryForm = document.getElementById('start-story-form');
+const characterSelection = document.getElementById('character-selection');
+const charactersContainer = document.querySelector('.characters-container');
+const selectedCharactersList = document.querySelector('.selected-characters-list');
+const storyContainer = document.getElementById('story-container');
+const storyContentContainer = document.getElementById('story-content');
+const characterProfilesContainer = document.getElementById('character-profiles');
+const formFields = document.querySelectorAll('.form-field');
+const storiesTab = document.getElementById('stories-tab');
+const loadingOverlayContainer = document.getElementById('loading-overlay-container');
+const errorContainer = document.getElementById('error-container');
+const chapterNav = document.getElementById('chapter-nav');
 
-// Toast notification function
-function showToast(title, message) {
-    const toastEl = document.getElementById('notificationToast');
-    if (toastEl) {
-        const toast = new bootstrap.Toast(toastEl);
-        document.getElementById('toastTitle').textContent = title;
-        document.getElementById('toastMessage').textContent = message;
-        toast.show();
-    }
-}
+// Global variables
+let selectedCharacters = [];
+let storyId = null;
 
+// Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
-    // Character selection elements
-    const characterCards = document.querySelectorAll('.character-select-card');
-    const characterCheckboxes = document.querySelectorAll('.character-checkbox');
-    const storyForm = document.getElementById('storyForm');
-    const characterSelectionError = document.getElementById('characterSelectionError');
-    const generateStoryBtn = document.getElementById('generateStoryBtn');
+    initializeApp();
+});
 
-    // Add hidden input fields for selected images
-    function updateSelectedImagesInput() {
-        if (!storyForm) return;
-
-        // Remove any existing hidden inputs
-        document.querySelectorAll('input[name="selected_images[]"]').forEach(el => el.remove());
-
-        // Add new hidden inputs for each selected character
-        document.querySelectorAll('.character-checkbox:checked').forEach(checkbox => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'selected_images[]';
-            input.value = checkbox.value;
-            storyForm.appendChild(input);
-        });
+function initializeApp() {
+    // Set up event listeners
+    setupFormListeners();
+    setupChoiceForms();
+    setupPopstate();
+    setupCharacterCardEvents();
+    
+    // Check if we're on a storyboard page
+    if (window.location.pathname.includes('/storyboard/')) {
+        initializeStoryboard();
     }
+}
 
-    // Clear all selections
-    function clearAllSelections() {
-        characterCards.forEach(card => {
-            card.classList.remove('selected');
-            const indicator = card.querySelector('.selection-indicator');
-            if (indicator) {
-                indicator.style.display = 'none';
-            }
-        });
-
+function setupFormListeners() {
+    // Character selection event listeners
+    if (characterSelection) {
+        const characterCheckboxes = characterSelection.querySelectorAll('input[type="checkbox"]');
+        
         characterCheckboxes.forEach(checkbox => {
-            checkbox.checked = false;
+            checkbox.addEventListener('change', function() {
+                updateSelectedCharacters();
+            });
         });
     }
 
-    // Handle character selection when clicking on card
-    characterCards.forEach(card => {
-        card.addEventListener('click', function() {
-            const characterId = this.dataset.id;
-            const checkbox = document.getElementById(`character${characterId}`);
-            const selectionIndicator = this.querySelector('.selection-indicator');
-
-            if (!checkbox || !selectionIndicator) return;
-
-            // For single-select behavior
-            clearAllSelections();
-
-            // Select this character
-            checkbox.checked = true;
-            selectionIndicator.style.display = 'block';
-            this.classList.add('selected');
-
-            updateSelectedImagesInput();
-
-            // Show toast notification
-            showToast('Character Selected', 'Character has been selected for your story.');
-        });
-    });
-
-    // Handle select character button clicks
-    const selectButtons = document.querySelectorAll('.select-character-btn');
-    selectButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
+    // Start story form event listener
+    if (startStoryForm) {
+        startStoryForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            e.stopPropagation();
-
-            const characterId = this.dataset.characterId;
-            const characterCard = document.querySelector(`.character-select-card[data-id="${characterId}"]`);
-
-            if (!characterCard) return;
-
-            const checkbox = document.getElementById(`character${characterId}`);
-            const selectionIndicator = characterCard.querySelector('.selection-indicator');
-
-            if (!checkbox || !selectionIndicator) return;
-
-            // For single-select behavior
-            clearAllSelections();
-
-            // Select this character
-            checkbox.checked = true;
-            selectionIndicator.style.display = 'block';
-            characterCard.classList.add('selected');
-
-            updateSelectedImagesInput();
-
-            // Show toast notification
-            showToast('Character Selected', 'Character has been selected for your story.');
-        });
-    });
-
-    // Handle reroll buttons
-    const rerollButtons = document.querySelectorAll('.reroll-btn');
-    rerollButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const cardContainer = this.closest('.character-container');
-
-            if (!cardContainer) return;
-
-            const characterCard = cardContainer.querySelector('.character-select-card');
-
-            if (!characterCard) return;
-
-            // Show loading state
-            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Rerolling...';
-
-            // Fetch a new random character
-            fetch('/api/random_character')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Update image
-                        const cardImg = characterCard.querySelector('img');
-                        if (cardImg) {
-                            cardImg.src = data.image_url;
-                        }
-
-                        // Update character ID
-                        characterCard.dataset.id = data.id;
-
-                        // Update character name
-                        const nameElement = cardContainer.querySelector('.character-name');
-                        if (nameElement) {
-                            nameElement.textContent = data.name;
-                        }
-
-                        // Update traits
-                        const traitsContainer = cardContainer.querySelector('.character-traits-list');
-                        if (traitsContainer) {
-                            traitsContainer.innerHTML = '';
-                            if (data.character_traits && data.character_traits.length > 0) {
-                                data.character_traits.forEach(trait => {
-                                    const traitBadge = document.createElement('span');
-                                    traitBadge.className = 'trait-badge';
-                                    traitBadge.textContent = trait;
-                                    traitsContainer.appendChild(traitBadge);
-                                });
-                            }
-                        }
-
-                        // Update select button data attribute
-                        const selectBtn = cardContainer.querySelector('.select-character-btn');
-                        if (selectBtn) {
-                            selectBtn.dataset.characterId = data.id;
-                        }
-
-                        // Update hidden input
-                        const checkbox = cardContainer.querySelector('.character-checkbox');
-                        if (checkbox) {
-                            checkbox.value = data.id;
-                            checkbox.id = `character${data.id}`;
-                        }
-
-                        // Show toast notification
-                        showToast('Character Updated', 'A new character has been loaded!');
-                    } else {
-                        showToast('Error', 'Failed to load a new character. Please try again.');
-                    }
-
-                    // Reset button
-                    this.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
-                })
-                .catch(error => {
-                    console.error('Error fetching random character:', error);
-                    this.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
-                    showToast('Error', 'Failed to load a new character. Please try again.');
-                });
-        });
-    });
-
-    // Form submission handling
-    if (storyForm) {
-        storyForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            // Check if at least one character is selected
-            const selectedCharacters = document.querySelectorAll('.character-checkbox:checked');
-            if (selectedCharacters.length !== 1) {
-                if (characterSelectionError) {
-                    characterSelectionError.style.display = 'block';
-                    characterSelectionError.textContent = 'Please select a character for your story';
-                    window.scrollTo(0, 0);
-                }
-                showToast('Selection Needed', 'Please select a character before continuing');
+            
+            // Basic validation
+            if (!validateForm()) {
                 return;
             }
+            
+            // Submit the form
+            submitStartStoryForm();
+        });
+    }
+}
 
-            // Hide error message if shown
-            if (characterSelectionError) {
-                characterSelectionError.style.display = 'none';
+function validateForm() {
+    // Check if characters are selected
+    if (selectedCharacters.length === 0) {
+        showToast('Error', 'Please select at least one character.');
+        return false;
+    }
+    
+    return true;
+}
+
+function updateSelectedCharacters() {
+    if (!characterSelection) return;
+    
+    const characterCheckboxes = characterSelection.querySelectorAll('input[type="checkbox"]:checked');
+    selectedCharacters = Array.from(characterCheckboxes).map(cb => {
+        return {
+            id: cb.value,
+            name: cb.dataset.name,
+            image: cb.dataset.image
+        };
+    });
+    
+    // Update the visual list of selected characters
+    updateSelectedCharactersList();
+}
+
+function updateSelectedCharactersList() {
+    if (!selectedCharactersList) return;
+    
+    selectedCharactersList.innerHTML = '';
+    
+    selectedCharacters.forEach(character => {
+        const badge = document.createElement('div');
+        badge.className = 'selected-character-badge';
+        badge.innerHTML = `
+            <img src="${character.image}" alt="${character.name}" class="selected-character-img">
+            <span>${character.name}</span>
+        `;
+        selectedCharactersList.appendChild(badge);
+    });
+}
+
+function submitStartStoryForm() {
+    // Create loading overlay
+    const loadingPercent = createLoadingOverlay('Creating your story...');
+    
+    // Set up progress simulation
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        progress += Math.random() * 10;
+        if (progress > 98) {
+            progress = 98;
+            clearInterval(progressInterval);
+        }
+        updateLoadingPercent(loadingPercent, progress);
+    }, 500);
+    
+    // Get form data
+    const formData = new FormData(startStoryForm);
+    
+    // Add character IDs to form data
+    selectedCharacters.forEach((character, index) => {
+        formData.append(`characters[${index}]`, character.id);
+    });
+    
+    // Submit the form
+    fetch(startStoryForm.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to start story');
+        }
+        return response.json();
+    })
+    .then(data => {
+        clearInterval(progressInterval);
+        
+        if (data.success && data.redirect) {
+            updateLoadingPercent(loadingPercent, 100);
+            setTimeout(() => {
+                window.location.href = data.redirect;
+            }, 1000);
+        } else {
+            throw new Error(data.error || 'Failed to start story');
+        }
+    })
+    .catch(error => {
+        console.error('Start story error:', error);
+        showToast('Error', error.message || 'Failed to start story. Please try again.');
+        
+        clearInterval(progressInterval);
+        const overlay = loadingPercent.closest('.loading-overlay');
+        if (overlay) overlay.remove();
+    });
+}
+
+function initializeStoryboard() {
+    // Extract story ID from URL
+    const urlParts = window.location.pathname.split('/');
+    storyId = urlParts[urlParts.length - 1];
+    
+    // Initialize character cards
+    updateCharacterCards();
+    
+    // Set up chapter navigation
+    setupChapterNav();
+}
+
+function setupChapterNav() {
+    if (!chapterNav) return;
+    
+    const chapterLinks = chapterNav.querySelectorAll('a');
+    chapterLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const targetId = this.getAttribute('href').substring(1);
+            const targetElement = document.getElementById(targetId);
+            
+            if (targetElement) {
+                window.scrollTo({
+                    top: targetElement.offsetTop - 80,
+                    behavior: 'smooth'
+                });
             }
+        });
+    });
+}
 
-            // Create loading overlay with percentage
-            const loadingPercent = createLoadingOverlay('Generating your adventure...');
-
-            if (generateStoryBtn) {
-                generateStoryBtn.disabled = true;
-                generateStoryBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Story...';
-            }
-
+function setupChoiceForms() {
+    const choiceForms = document.querySelectorAll('.choice-form');
+    if (choiceForms.length === 0) return;
+    
+    choiceForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Disable the button to prevent multiple submissions
+            const btn = this.querySelector('button');
+            if (btn) btn.disabled = true;
+            
+            // Create loading overlay
+            const loadingPercent = createLoadingOverlay('Continuing your story...');
+            
+            // Set up progress simulation
             let progress = 0;
             const progressInterval = setInterval(() => {
-                if (progress < 90) {
-                    progress += 5;
-                    updateLoadingPercent(loadingPercent, progress);
+                progress += Math.random() * 8;
+                if (progress > 98) {
+                    progress = 98;
+                    clearInterval(progressInterval);
                 }
+                updateLoadingPercent(loadingPercent, progress);
             }, 500);
-
-            // Update selected images input
-            updateSelectedImagesInput();
-
+            
             // Submit the form
             const formData = new FormData(this);
-            fetch('/generate_story', {
+            
+            fetch(this.action, {
                 method: 'POST',
                 body: formData,
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
                 clearInterval(progressInterval);
-
+                
                 if (data.success && data.redirect) {
+                    // Successful response with redirect
                     updateLoadingPercent(loadingPercent, 100);
                     setTimeout(() => {
                         window.location.href = data.redirect;
-                    }, 500);
+                    }, 1000);
                 } else {
-                    throw new Error(data.error || 'Failed to generate story');
+                    // Error in the response
+                    throw new Error(data.error || 'Failed to continue story');
                 }
             })
             .catch(error => {
-                console.error('Error generating story:', error);
-                showToast('Error', error.message || 'Failed to generate story. Please try again.');
-
+                // Handle any errors
+                console.error('Story continuation error:', error);
+                showToast('Error', error.message || 'Failed to continue story. Please try again.');
+                
+                // Reset the button state
+                if (btn) btn.disabled = false;
+                
+                // Remove the loading overlay
                 clearInterval(progressInterval);
-                const overlay = loadingPercent.closest('.loading-overlay');
-                if (overlay) overlay.remove();
-
-                if (generateStoryBtn) {
-                    generateStoryBtn.disabled = false;
-                    generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
+                if (loadingPercent) {
+                    const overlay = loadingPercent.closest('.loading-overlay');
+                    if (overlay) overlay.remove();
                 }
             });
         });
-    }
+    });
+}
 
-    // Story choice form submission
-    // Add event listeners to story choice forms when they exist
-    function setupChoiceForms() {
-        const choiceForms = document.querySelectorAll('.choice-form');
-        if (choiceForms.length > 0) {
-            choiceForms.forEach(form => {
-                form.addEventListener('submit', async function(e) {
-                    e.preventDefault();
-                    const btn = this.querySelector('button');
-                    btn.disabled = true;
-                    
-                    // Create loading overlay
-                    const loadingPercent = createLoadingOverlay('Continuing your story...');
-                    let progress = 0;
-                    const progressInterval = setInterval(() => {
-                        if (progress < 90) {
-                            progress += 5;
-                            updateLoadingPercent(loadingPercent, progress);
-                        }
-                    }, 500);
-
-                    try {
-                        // Submit the form
-                        const formData = new FormData(this);
-                        const response = await fetch(this.action, {
-                            method: 'POST',
-                            body: formData,
-                            headers: {
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        });
-
-                        const data = await response.json();
-                        clearInterval(progressInterval);
-
-                        if (data.success && data.redirect) {
-                            // Successful response with redirect
-                            updateLoadingPercent(loadingPercent, 100);
-                            setTimeout(() => {
-                                window.location.href = data.redirect;
-                            }, 500);
-                        } else {
-                            // Error in the response
-                            throw new Error(data.error || 'Failed to continue story');
-                        }
-                    } catch (error) {
-                        // Handle any errors
-                        console.error('Story continuation error:', error);
-                        showToast('Error', error.message || 'Failed to continue story. Please try again.');
-                        
-                        // Reset the button state
-                        btn.disabled = false;
-                        
-                        // Remove the loading overlay
-                        clearInterval(progressInterval);
-                        const overlay = loadingPercent.closest('.loading-overlay');
-                        if (overlay) overlay.remove();
-                    }
-                });
-            });
+function setupPopstate() {
+    window.addEventListener('popstate', function(event) {
+        if (event.state && event.state.storyboard) {
+            // Handle back/forward navigation
+            location.reload();
         }
-    }
+    });
+}
+
+function setupCharacterCardEvents() {
+    document.addEventListener('click', function(e) {
+        // Check if the click was on a character detail toggle
+        if (e.target.classList.contains('character-detail-toggle') || 
+            e.target.closest('.character-detail-toggle')) {
+            
+            const card = e.target.closest('.character-card');
+            if (card) {
+                toggleCharacterDetails(card);
+            }
+        }
+    });
+}
+
+function toggleCharacterDetails(card) {
+    if (!card) return;
     
-    // Run the setup when page loads
-    setupChoiceForms();
+    const detailsContainer = card.querySelector('.character-details');
+    const arrow = card.querySelector('.toggle-arrow');
+    
+    if (detailsContainer && arrow) {
+        detailsContainer.classList.toggle('show');
+        arrow.classList.toggle('rotated');
+    }
+}
 
-    // Debug page enhancements
-    const editModeSwitch = document.getElementById('editModeSwitch');
-    const generatedContent = document.getElementById('generatedContent');
+function updateCharacterCards() {
+    // This function is called when character mentions are found in the story
+    const storyText = document.querySelector('.story-text');
+    if (!storyText) return;
+    
+    // Process all character mentions
+    document.querySelectorAll('.character-mention').forEach(mention => {
+        if (!mention.dataset.processed) {
+            const characterId = mention.dataset.characterId;
+            const characterName = mention.dataset.characterName;
+            const characterImage = mention.dataset.characterImage;
+            
+            if (characterId && characterName && characterImage) {
+                createOrUpdateCharacterCard(characterId, characterName, characterImage);
+                mention.dataset.processed = "true";
+            }
+        }
+    });
+}
 
-    if (editModeSwitch && generatedContent) {
-        editModeSwitch.addEventListener('change', function() {
-            if (this.checked) {
-                generatedContent.contentEditable = true;
-                generatedContent.classList.add('editable');
-                generatedContent.focus();
+function createOrUpdateCharacterCard(characterId, characterName, characterImage) {
+    if (!characterProfilesContainer) return;
+    
+    // Check if the character card already exists
+    let characterCard = document.getElementById(`character-card-${characterId}`);
+    
+    // If not, create a new one
+    if (!characterCard) {
+        characterCard = document.createElement('div');
+        characterCard.id = `character-card-${characterId}`;
+        characterCard.className = 'character-card';
+        characterCard.innerHTML = `
+            <div class="character-header">
+                <img src="${characterImage}" alt="${characterName}" class="character-image">
+                <div class="character-name">${characterName}</div>
+                <div class="character-detail-toggle">
+                    <i class="fas fa-chevron-down toggle-arrow"></i>
+                </div>
+            </div>
+            <div class="character-details">
+                <div class="character-description">Loading character details...</div>
+            </div>
+        `;
+        
+        characterProfilesContainer.appendChild(characterCard);
+        
+        // Load character details
+        loadCharacterDetails(characterId, characterCard);
+    }
+}
+
+function loadCharacterDetails(characterId, cardElement) {
+    if (!characterId || !cardElement) return;
+    
+    // Find the details container
+    const detailsContainer = cardElement.querySelector('.character-description');
+    if (!detailsContainer) return;
+    
+    // Make API request to get character details
+    fetch(`/api/character/${characterId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                detailsContainer.innerHTML = `
+                    <div class="character-profile">
+                        <div class="profile-item"><strong>Age:</strong> ${data.character.age || 'Unknown'}</div>
+                        <div class="profile-item"><strong>Occupation:</strong> ${data.character.occupation || 'Unknown'}</div>
+                        <div class="profile-item"><strong>Description:</strong> ${data.character.description || 'No description available.'}</div>
+                    </div>
+                `;
             } else {
-                generatedContent.contentEditable = false;
-                generatedContent.classList.remove('editable');
+                detailsContainer.innerHTML = 'Failed to load character details.';
             }
+        })
+        .catch(error => {
+            console.error('Error loading character details:', error);
+            detailsContainer.innerHTML = 'Error loading character details.';
         });
-    }
+}
 
-    // Check radio buttons on page load to restore selection state
-    if (characterCheckboxes && characterCheckboxes.length > 0 && characterCards && characterCards.length > 0) {
-        characterCheckboxes.forEach((checkbox, index) => {
-            if (checkbox.checked && index < characterCards.length) {
-                characterCards[index].classList.add('selected');
-                const indicator = characterCards[index].querySelector('.selection-indicator');
-                if (indicator) {
-                    indicator.style.display = 'block';
+// Utility functions
+function createLoadingOverlay(message) {
+    if (!loadingOverlayContainer) return null;
+    
+    const overlay = document.createElement('div');
+    overlay.className = 'loading-overlay';
+    overlay.innerHTML = `
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-message">${message || 'Loading...'}</div>
+            <div class="progress-container">
+                <div class="progress-bar" style="width: 0%"></div>
+            </div>
+            <div class="progress-percent">0%</div>
+        </div>
+    `;
+    
+    loadingOverlayContainer.appendChild(overlay);
+    
+    return overlay.querySelector('.progress-percent');
+}
+
+function updateLoadingPercent(element, percent) {
+    if (!element) return;
+    
+    const roundedPercent = Math.round(percent);
+    element.textContent = `${roundedPercent}%`;
+    
+    const progressBar = element.closest('.loading-content').querySelector('.progress-bar');
+    if (progressBar) {
+        progressBar.style.width = `${percent}%`;
+    }
+}
+
+function showToast(title, message, type = 'error', duration = 5000) {
+    const toastContainer = document.getElementById('toast-container') || createToastContainer();
+    
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-header">
+            <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} me-2"></i>
+            <strong class="me-auto">${title}</strong>
+            <button type="button" class="btn-close" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            ${message}
+        </div>
+    `;
+    
+    toastContainer.appendChild(toast);
+    
+    // Auto-remove after duration
+    setTimeout(() => {
+        toast.classList.add('fade-out');
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, duration);
+    
+    // Close button functionality
+    toast.querySelector('.btn-close').addEventListener('click', () => {
+        toast.classList.add('fade-out');
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    });
+}
+
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toast-container';
+    document.body.appendChild(container);
+    return container;
+}
+
+// Function to process story text and highlight character mentions
+function processStoryText() {
+    const storyParagraphs = document.querySelectorAll('.story-paragraph');
+    if (!storyParagraphs.length) return;
+    
+    storyParagraphs.forEach(paragraph => {
+        // Only process paragraphs that haven't been processed yet
+        if (paragraph.dataset.processed !== 'true') {
+            // Get all character mentions in this paragraph
+            const characterMentions = paragraph.querySelectorAll('.character-mention');
+            
+            characterMentions.forEach(mention => {
+                const characterId = mention.dataset.characterId;
+                const characterName = mention.dataset.characterName;
+                const characterImage = mention.dataset.characterImage;
+                
+                if (characterId && characterName && characterImage) {
+                    // Create or update the character card
+                    createOrUpdateCharacterCard(characterId, characterName, characterImage);
                 }
-            }
-        });
-    }
-});
+            });
+            
+            // Mark paragraph as processed
+            paragraph.dataset.processed = 'true';
+        }
+    });
+}
 
-
-// Character highlighting in story text
+// Process story text when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // Function to highlight characters in story text
-    function highlightCharactersInStory() {
-        const storyContent = document.querySelector('.story-content');
-        if (!storyContent) return;
-        
-        // Get all character names from the mini-portraits
-        const characterPortraits = document.querySelectorAll('.character-portrait-mini');
-        const characterNames = Array.from(characterPortraits).map(portrait => {
-            return {
-                name: portrait.querySelector('.character-mini-name').textContent.trim(),
-                image: portrait.querySelector('img').src,
-                element: portrait
-            };
-        });
-        
-        // Sort names by length (longest first) to avoid partial matches
-        characterNames.sort((a, b) => b.name.length - a.name.length);
-        
-        // Get the story text
-        let storyText = storyContent.innerHTML;
-        
-        // Replace character names with highlighted spans
-        characterNames.forEach(character => {
-            const regex = new RegExp(`\\b${character.name}\\b`, 'gi');
-            storyText = storyText.replace(regex, match => {
-                return `<span class="character-mention" data-character="${character.name.toLowerCase().replace(/\s/g, '-')}">${match}<span class="character-tooltip"><img src="${character.image}" alt="${match}">${match}</span></span>`;
-            });
-        });
-        
-        // Update the story content
-        storyContent.innerHTML = storyText;
-        
-        // Add click event to highlight corresponding mini-portrait
-        document.querySelectorAll('.character-mention').forEach(mention => {
-            mention.addEventListener('click', function() {
-                const characterId = this.dataset.character;
-                const targetPortrait = document.querySelector(`.character-portrait-mini[data-character-name="${characterId}"]`);
-                
-                // Remove highlight from all portraits
-                document.querySelectorAll('.character-mini-img').forEach(img => {
-                    img.classList.remove('character-mini-highlight');
-                });
-                
-                // Add highlight to this portrait
-                if (targetPortrait) {
-                    const portraitImg = targetPortrait.querySelector('.character-mini-img');
-                    portraitImg.classList.add('character-mini-highlight');
-                    
-                    // Scroll to the portrait if needed
-                    targetPortrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                    
-                    // Remove highlight after 3 seconds
-                    setTimeout(() => {
-                        portraitImg.classList.remove('character-mini-highlight');
-                    }, 3000);
-                }
-            });
-        });
-    }
-    
-    // Run the highlighting function when page loads
-    highlightCharactersInStory();
-    
-    // Also run when a story choice is made (if needed)
-    const choiceForms = document.querySelectorAll('.choice-form');
-    if (choiceForms.length > 0) {
-        choiceForms.forEach(form => {
-            form.addEventListener('submit', function() {
-                // We'll re-run the function when the new page loads
-                // This is handled by the DOMContentLoaded event
-            });
-        });
-    }
+    processStoryText();
 });
