@@ -295,10 +295,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const choiceForms = document.querySelectorAll('.choice-form');
         if (choiceForms.length > 0) {
             choiceForms.forEach(form => {
-                form.addEventListener('submit', async function(e) {
+                form.addEventListener('submit', function(e) {
                     e.preventDefault();
+                    
+                    // Disable the button to prevent multiple submissions
                     const btn = this.querySelector('button');
-                    btn.disabled = true;
+                    if (btn) btn.disabled = true;
                     
                     // Create loading overlay
                     const loadingPercent = createLoadingOverlay('Continuing your story...');
@@ -310,20 +312,25 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }, 500);
 
-                    try {
-                        // Submit the form
-                        const formData = new FormData(this);
-                        const response = await fetch(this.action, {
-                            method: 'POST',
-                            body: formData,
-                            headers: {
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        });
-
-                        const data = await response.json();
+                    // Submit the form
+                    const formData = new FormData(this);
+                    
+                    fetch(this.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
                         clearInterval(progressInterval);
-
+                        
                         if (data.success && data.redirect) {
                             // Successful response with redirect
                             updateLoadingPercent(loadingPercent, 100);
@@ -334,19 +341,22 @@ document.addEventListener('DOMContentLoaded', function() {
                             // Error in the response
                             throw new Error(data.error || 'Failed to continue story');
                         }
-                    } catch (error) {
+                    })
+                    .catch(error => {
                         // Handle any errors
                         console.error('Story continuation error:', error);
-                        showToast('Error', error.message || 'Failed to continue story. Please try again.');
+                        showToast('Error', 'Failed to continue story. Please try again.');
                         
                         // Reset the button state
-                        btn.disabled = false;
+                        if (btn) btn.disabled = false;
                         
                         // Remove the loading overlay
                         clearInterval(progressInterval);
-                        const overlay = loadingPercent.closest('.loading-overlay');
-                        if (overlay) overlay.remove();
-                    }
+                        if (loadingPercent) {
+                            const overlay = loadingPercent.closest('.loading-overlay');
+                            if (overlay) overlay.remove();
+                        }
+                    });
                 });
             });
         }
