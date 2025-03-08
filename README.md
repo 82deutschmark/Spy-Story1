@@ -98,7 +98,7 @@ The story universe centers around Uncle Mark's forest farm with:
 
 ### Heroes
 - **Pawel and Pawleen**: Yorkshire terriers who protect the farm
-- **Clever Hens**: Birdadette, Henrietta, and other intelligent chickens
+- **Clever Hens**: Birdadette, Henrietta, and other chickens
 - **Big Red**: The not-so-bright rooster who leads the chicken coop
 
 ### Villains
@@ -117,3 +117,4 @@ MIT License
 
 
 7pm March 7th Going to commit working version!
+Minor cosmetic functions made ahead of deployment.  
