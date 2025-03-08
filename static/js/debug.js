@@ -83,6 +83,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Handle image analysis form submission
+    // COMMENTED OUT - Duplicate event listener (keeping the one at the bottom of the file)
+    /*
     if (imageForm) {
         imageForm.addEventListener('submit', function(e) {
             e.preventDefault();
@@ -141,6 +143,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+    */
     
     // Handle copy button click
     if (copyBtn) {
