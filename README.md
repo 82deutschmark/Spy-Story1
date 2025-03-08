@@ -114,7 +114,3 @@ The story universe centers around Uncle Mark's forest farm with:
 ## License
 
 MIT License
-
-
-7pm March 7th Going to commit working version!
-Minor cosmetic functions made ahead of deployment.  
