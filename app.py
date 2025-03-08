@@ -53,8 +53,8 @@ def index():
     story_options = get_story_options()
     background_image = get_random_scene_background()
 
-    # Get 3 random images for character selection
-    images = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).limit(3).all()
+    # Get 2 random images for character selection
+    images = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).limit(2).all()
     image_data = []
     for img in images:
         analysis = img.analysis_result or {}

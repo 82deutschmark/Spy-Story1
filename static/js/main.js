@@ -367,7 +367,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Handle character selection
+    // Handle character selection when clicking on card
     characterCards.forEach((card, index) => {
         card.addEventListener('click', function() {
             const characterId = this.dataset.id;
@@ -387,6 +387,33 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
+    // Handle select character button clicks
+    const selectButtons = document.querySelectorAll('.select-character-btn');
+    selectButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const characterId = this.dataset.characterId;
+            const characterCard = document.querySelector(`.character-select-card[data-id="${characterId}"]`);
+            const checkbox = document.getElementById(`character${characterId}`);
+            const selectionIndicator = characterCard.querySelector('.selection-indicator');
+            
+            // Select this character
+            checkbox.checked = true;
+            selectionIndicator.style.display = 'block';
+            characterCard.classList.add('selected');
+            
+            updateSelectedImagesInput();
+            
+            // Show toast notification
+            const toast = new bootstrap.Toast(document.getElementById('notificationToast'));
+            document.getElementById('toastTitle').textContent = 'Character Selected';
+            document.getElementById('toastMessage').textContent = 'Character has been selected for your story.';
+            toast.show();
+        });
+    });
+    
     // Handle reroll buttons
     const rerollButtons = document.querySelectorAll('.reroll-btn');
     rerollButtons.forEach(button => {
@@ -397,6 +424,63 @@ document.addEventListener('DOMContentLoaded', function() {
             const cardIndex = this.dataset.cardIndex;
             const cardContainer = this.closest('.character-container');
             const characterCard = cardContainer.querySelector('.character-select-card');
+            
+            // Show loading state
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Rerolling...';
+            
+            // Fetch a new random character
+            fetch('/api/random_character')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update image
+                        const cardImg = characterCard.querySelector('img');
+                        cardImg.src = data.image_url;
+                        
+                        // Update character ID
+                        characterCard.dataset.id = data.id;
+                        
+                        // Update character name
+                        const nameElement = cardContainer.querySelector('.character-name');
+                        if (nameElement) {
+                            nameElement.textContent = data.name;
+                        }
+                        
+                        // Update traits
+                        const traitsContainer = cardContainer.querySelector('.character-traits-list');
+                        if (traitsContainer) {
+                            traitsContainer.innerHTML = '';
+                            if (data.character_traits && data.character_traits.length > 0) {
+                                data.character_traits.forEach(trait => {
+                                    const traitBadge = document.createElement('span');
+                                    traitBadge.className = 'trait-badge';
+                                    traitBadge.textContent = trait;
+                                    traitsContainer.appendChild(traitBadge);
+                                });
+                            }
+                        }
+                        
+                        // Update select button data attribute
+                        const selectBtn = cardContainer.querySelector('.select-character-btn');
+                        if (selectBtn) {
+                            selectBtn.dataset.characterId = data.id;
+                        }
+                        
+                        // Update hidden input
+                        const checkbox = cardContainer.querySelector('.character-checkbox');
+                        if (checkbox) {
+                            checkbox.value = data.id;
+                            checkbox.id = `character${data.id}`;
+                        }
+                    }
+                    
+                    // Reset button
+                    this.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
+                })
+                .catch(error => {
+                    console.error('Error fetching random character:', error);
+                    this.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
+                });
             const characterNameElement = cardContainer.querySelector('.character-name');
             const traitsContainer = cardContainer.querySelector('.character-traits-list');
             
