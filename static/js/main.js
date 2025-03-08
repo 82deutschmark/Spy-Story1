@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Handle story generation form submission
     if (storyForm) {
-        storyForm.addEventListener('submit', async function(e) {
+        storyForm.addEventListener('submit', function(e) {
             e.preventDefault();
 
             const selectedCharacter = document.querySelector('input[name="selectedCharacter"]:checked');
@@ -80,27 +80,27 @@ document.addEventListener('DOMContentLoaded', function() {
             const loadingPercent = createLoadingOverlay();
             generateStoryBtn.disabled = true;
 
-            try {
-                let progress = 0;
-                const progressInterval = setInterval(() => {
-                    if (progress < 90) {
-                        progress += 5;
-                        updateLoadingPercent(loadingPercent, progress);
-                    }
-                }, 500);
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                if (progress < 90) {
+                    progress += 5;
+                    updateLoadingPercent(loadingPercent, progress);
+                }
+            }, 500);
 
-                const formData = new FormData(this);
-                formData.set('selected_images[]', selectedCharacter.value);
+            // Submit form data
+            const formData = new FormData(storyForm);
+            formData.set('selected_images[]', selectedCharacter.value);
 
-                const response = await fetch('/generate_story', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-
-                const data = await response.json();
+            fetch('/generate_story', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
                 clearInterval(progressInterval);
 
                 if (data.success && data.redirect) {
@@ -111,12 +111,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     throw new Error(data.error || 'Failed to generate story');
                 }
-            } catch (error) {
+            })
+            .catch(error => {
                 showToast('Error', error.message);
                 generateStoryBtn.disabled = false;
                 generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
+                clearInterval(progressInterval);
                 removeLoadingOverlay(loadingPercent);
-            }
+            });
         });
     }
 
@@ -126,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function() {
         choiceForms.forEach(form => {
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
-                const submitBtn = this.querySelector('button');
+                const submitBtn = form.querySelector('button');
                 submitBtn.disabled = true;
                 submitBtn.classList.add('loading');
 
@@ -139,7 +141,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }, 500);
 
-                const formData = new FormData(this);
+                const formData = new FormData(form);
 
                 fetch('/generate_story', {
                     method: 'POST',
