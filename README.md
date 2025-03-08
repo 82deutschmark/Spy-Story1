@@ -79,11 +79,23 @@ SESSION_SECRET=your_session_secret
 - `app.py`: Main application file with Flask routes
 - `models.py`: Database models (SQLAlchemy)
 - `services/`: 
-  - `openai_service.py`: OpenAI API integration
-  - `story_maker.py`: Story generation logic
+  - `openai_service.py`: OpenAI API integration (contains artwork analysis prompts)
+  - `story_maker.py`: Story generation logic (contains the core story generation prompts)
 - `static/`: CSS and JavaScript files
 - `templates/`: HTML templates
 - `api/`: API endpoints for potential Unity integration
+
+### AI Prompts Location
+
+The application uses two main AI prompts:
+
+1. **Story Generation Prompt** - Located in `services/story_maker.py` in the `generate_story()` function (around lines 90-140):
+   - Instructs ChatGPT how to create interactive stories set in Uncle Mark's forest farm
+   - Includes character details, narrative style guidelines, and formatting requirements
+
+2. **Artwork Analysis Prompt** - Located in `services/openai_service.py` in the `analyze_artwork()` function (around lines 90-130):
+   - Instructs ChatGPT how to analyze uploaded character images for the adventure story
+   - Specifies the format for character trait extraction and response formatting
 
 ## API Endpoints
 
