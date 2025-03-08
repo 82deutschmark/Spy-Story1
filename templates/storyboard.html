@@ -15,60 +15,64 @@
     {% endif %}
 
     <div class="container-fluid story-main-container">
-        <!-- Character Showcase (Now Central) -->
-        <div class="character-showcase">
-            {% for char in character_images[:1] %}
-            <div class="character-portrait-container">
-                <img src="{{ char.image_url }}" class="main-character-img" alt="{{ char.name|default('Mystery Character') }}">
-            </div>
-            <div class="character-info-box">
-                <h3>{{ char.name|default('Mystery Character') }}</h3>
-                <div class="character-traits-list">
-                    {% if char.traits %}
-                        {% for trait in char.traits %}
-                        <span class="badge trait-badge">{{ trait }}</span>
-                        {% endfor %}
-                    {% endif %}
+        <!-- Story Content Overlay -->
+        <div class="story-overlay-container">
+            <!-- Character Showcase (Central) -->
+            <div class="character-showcase">
+                {% for char in character_images[:1] %}
+                <div class="character-portrait-container">
+                    <img src="{{ char.image_url }}" class="main-character-img" alt="{{ char.name|default('Mystery Character') }}">
                 </div>
+                <div class="character-info-box">
+                    <h3>{{ char.name|default('Mystery Character') }}</h3>
+                    <div class="character-traits-list">
+                        {% if char.traits %}
+                            {% for trait in char.traits %}
+                            <span class="badge trait-badge">{{ trait }}</span>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-        </div>
 
-        <!-- Story Content -->
-        <div class="story-content-container">
+            <!-- Story Title -->
             <div class="story-title-area">
                 <h1 class="story-title">{{ story.title }}</h1>
                 <p class="story-subtitle">An adventure in Uncle Mark's forest farm</p>
             </div>
-            
-            <div class="story-scroll-container">
-                <div class="story-content">
-                    {{ story.story | safe }}
-                </div>
 
-                <!-- Choices -->
-                <div class="choices-container">
-                    {% for choice in story.choices %}
-                    <form action="{{ url_for('generate_story_route') }}" method="POST" class="choice-form">
-                        <input type="hidden" name="previous_choice" value="{{ choice.text }}">
-                        <input type="hidden" name="story_context" value="{{ story.story }}">
-                        {% for image in character_images %}
-                        <input type="hidden" name="selected_images[]" value="{{ image.id }}">
+            <!-- Story Content (Overlaid on character) -->
+            <div class="story-content-container">
+                <div class="story-scroll-container">
+                    <div class="story-content">
+                        {{ story.story | safe }}
+                    </div>
+
+                    <!-- Choices -->
+                    <div class="choices-container">
+                        {% for choice in story.choices %}
+                        <form action="{{ url_for('generate_story_route') }}" method="POST" class="choice-form">
+                            <input type="hidden" name="previous_choice" value="{{ choice.text }}">
+                            <input type="hidden" name="story_context" value="{{ story.story }}">
+                            {% for image in character_images %}
+                            <input type="hidden" name="selected_images[]" value="{{ image.id }}">
+                            {% endfor %}
+                            <button type="submit" class="choice-btn">
+                                <div class="choice-text">{{ choice.text }}</div>
+                                <div class="consequence">{{ choice.consequence }}</div>
+                            </button>
+                        </form>
                         {% endfor %}
-                        <button type="submit" class="choice-btn">
-                            <div class="choice-text">{{ choice.text }}</div>
-                            <div class="consequence">{{ choice.consequence }}</div>
-                        </button>
-                    </form>
-                    {% endfor %}
+                    </div>
                 </div>
-            </div>
-            
-            <!-- Navigation -->
-            <div class="navigation-area">
-                <a href="{{ url_for('index') }}" class="btn btn-return">
-                    <i class="fas fa-arrow-left me-2"></i>Return to Home
-                </a>
+                
+                <!-- Navigation -->
+                <div class="navigation-area">
+                    <a href="{{ url_for('index') }}" class="btn btn-return">
+                        <i class="fas fa-arrow-left me-2"></i>Return to Home
+                    </a>
+                </div>
             </div>
         </div>
     </div>
