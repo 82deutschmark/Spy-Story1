@@ -23,6 +23,12 @@ function removeLoadingOverlay(overlay) {
 
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Define variables for character selection
+    const characterCards = document.querySelectorAll('.character-select-card');
+    const characterCheckboxes = document.querySelectorAll('.character-checkbox');
+    const storyForm = document.getElementById('storyForm');
+    const characterSelectionError = document.getElementById('characterSelectionError');
+    
     // Character selection and reroll functionality are implemented in the comprehensive 
     // event listeners at the bottom of this file
 
@@ -59,11 +65,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Check radio buttons on page load to restore selection state
-    characterCheckboxes.forEach((checkbox, index) => {
-        if (checkbox.checked) {
-            characterCards[index].classList.add('selected');
-        }
-    });
+    if (characterCheckboxes.length > 0 && characterCards.length > 0) {
+        characterCheckboxes.forEach((checkbox, index) => {
+            if (checkbox.checked && index < characterCards.length) {
+                characterCards[index].classList.add('selected');
+            }
+        });
+    }
 });
 
 // Story choice form submission
@@ -196,7 +204,7 @@ if (editModeSwitch && generatedContent) {
     });
 }
 document.addEventListener('DOMContentLoaded', function() {
-    // Character selection
+    // Get references to elements
     const characterCards = document.querySelectorAll('.character-select-card');
     const characterCheckboxes = document.querySelectorAll('.character-checkbox');
     const generateStoryBtn = document.getElementById('generateStoryBtn');
