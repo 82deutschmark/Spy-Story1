@@ -9,7 +9,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 </head>
-<body>
+<body data-bs-theme="dark">
+    {% if background_image %}
+    <img src="{{ background_image }}" class="story-background" alt="Story Background">
+    {% endif %}
     <div class="container mt-5">
         <div class="row justify-content-center">
             <div class="col-md-10">
@@ -33,8 +36,15 @@
                                         <div class="card character-select-card" data-id="{{ img.id }}">
                                             <img src="{{ img.image_url }}" class="card-img" alt="{{ img.name }}">
                                         </div>
-                                        <div class="character-info mt-2">
-                                            <h5 class="character-name">{{ img.name }}</h5>
+                                        <div class="character-info-box mt-2">
+                                            <h3 class="character-name">{{ img.name }}</h3>
+                                            <div class="character-traits-list">
+                                                {% if img.character_traits %}
+                                                    {% for trait in img.character_traits %}
+                                                    <span class="trait-badge">{{ trait }}</span>
+                                                    {% endfor %}
+                                                {% endif %}
+                                            </div>
                                             <div class="character-controls d-flex justify-content-between align-items-center mt-2">
                                                 <button type="button" class="btn btn-outline-secondary btn-sm reroll-btn" data-card-index="{{ loop.index0 }}">
                                                     <i class="fas fa-dice me-1"></i>Reroll

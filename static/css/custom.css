@@ -5,6 +5,31 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* Landing page (index) styling to match storyboard */
+body[data-bs-theme="dark"] {
+    background-color: #f9f7ff;
+    color: #333;
+}
+
+/* Landing page background */
+body[data-bs-theme="dark"] {
+    position: relative;
+    background-color: #f9f7ff;
+}
+
+body[data-bs-theme="dark"]::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    background-size: cover;
+    background-position: center;
+    opacity: 0.2;
+}
+
 /* Loading overlay */
 .loading-overlay {
     position: fixed;
@@ -165,6 +190,16 @@ body {
     font-size: 0.7rem;
     margin: 0.1rem;
     opacity: 0.7;
+}
+
+body[data-bs-theme="dark"] .trait-badge {
+    background-color: #4a5df0;
+    color: white;
+    padding: 0.15rem 0.35rem;
+    border-radius: 50px;
+    font-size: 0.7rem;
+    margin: 0.1rem;
+    opacity: 0.85;
 }
 
 /* Story content container */
@@ -360,6 +395,13 @@ body {
     color: #e6e6e6;
 }
 
+body[data-bs-theme="dark"] .form-control, 
+body[data-bs-theme="dark"] .form-select {
+    background-color: #fff;
+    border-color: rgba(139, 92, 246, 0.3);
+    color: #333;
+}
+
 /* Pagination styling */
 .pagination .page-link {
     background-color: #2d3748;
@@ -481,6 +523,20 @@ body {
     transform: translateY(-2px);
 }
 
+body[data-bs-theme="dark"] .btn-primary {
+    background-color: #4a5df0;
+    border-color: #4a5df0;
+    color: white;
+    font-weight: 700;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+body[data-bs-theme="dark"] .btn-primary:hover {
+    background-color: #3746d3;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
 .btn-outline-secondary {
     color: #a0aec0;
     border-color: #a0aec0;
@@ -586,6 +642,14 @@ body {
     background: var(--bs-dark);
 }
 
+/* Updated card styling for landing page */
+body[data-bs-theme="dark"] .card {
+    background-color: rgba(255, 255, 255, 0.85);
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
 .character-select-card {
     height: 100%;
     transition: transform 0.2s;
@@ -672,6 +736,21 @@ body {
     color: #e6e6e6;
 }
 
+body[data-bs-theme="dark"] .accordion-item {
+    background-color: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+body[data-bs-theme="dark"] .accordion-button {
+    background-color: rgba(255, 255, 255, 0.95);
+    color: #333;
+}
+
+body[data-bs-theme="dark"] .accordion-button:not(.collapsed) {
+    background-color: rgba(255, 255, 255, 0.98);
+    color: #333;
+}
+
 /* Progress bar styles */
 .progress-container {
     position: fixed;
@@ -735,6 +814,13 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+body[data-bs-theme="dark"] .character-select-card {
+    background-color: #fff;
+    border-radius: 10px;
+    border: 2px solid #fff;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
 .character-select-card:hover {
