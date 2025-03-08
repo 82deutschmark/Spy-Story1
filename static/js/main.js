@@ -261,3 +261,63 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+document.addEventListener('DOMContentLoaded', function() {
+    // Character selection
+    const characterCards = document.querySelectorAll('.character-select-card');
+    const characterCheckboxes = document.querySelectorAll('.character-checkbox');
+    const storyForm = document.getElementById('storyForm');
+    const generateStoryBtn = document.getElementById('generateStoryBtn');
+    const characterSelectionError = document.getElementById('characterSelectionError');
+    
+    // Select character when card is clicked
+    characterCards.forEach((card, index) => {
+        card.addEventListener('click', function() {
+            if (characterCheckboxes[index]) {
+                characterCheckboxes[index].checked = true;
+            }
+        });
+    });
+    
+    // Reroll buttons functionality
+    const rerollButtons = document.querySelectorAll('.reroll-btn');
+    if (rerollButtons) {
+        rerollButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                // Add reroll functionality here
+                showToast('Rerolling character...', 'Character traits will be refreshed');
+            });
+        });
+    }
+    
+    // Toast notification function
+    function showToast(title, message) {
+        const toastElement = document.getElementById('notificationToast');
+        const toastTitle = document.getElementById('toastTitle');
+        const toastMessage = document.getElementById('toastMessage');
+        
+        if (toastElement && toastTitle && toastMessage) {
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+        }
+    }
+    
+    // Form submission
+    if (storyForm) {
+        storyForm.addEventListener('submit', function(e) {
+            // Add validation if needed before form submission
+            const selectedCharacters = document.querySelectorAll('.character-checkbox:checked');
+            
+            // Example validation - can be modified based on requirements
+            if (selectedCharacters.length < 1) {
+                e.preventDefault();
+                if (characterSelectionError) {
+                    characterSelectionError.style.display = 'block';
+                }
+                window.scrollTo(0, 0);
+            }
+        });
+    }
+});

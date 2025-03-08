@@ -10,7 +10,10 @@ logger = logging.getLogger(__name__)
 # Get OpenAI API key from environment variables
 api_key = os.environ.get("OPENAI_API_KEY")
 if not api_key:
-    logger.warning("OpenAI API key not found. Please add it to your Replit Secrets.")
+    if os.environ.get("REPLIT_DEPLOYMENT") == "1":
+        logger.error("OpenAI API key not found in deployment environment!")
+    else:
+        logger.warning("OpenAI API key not found. Please add it to your Replit Secrets.")
 
 # Initialize OpenAI client with the API key
 # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
