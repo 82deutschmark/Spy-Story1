@@ -13,8 +13,8 @@
     <img src="{{ background_image }}" class="story-background" alt="Story Background">
     {% endif %}
 
-    <div class="container-fluid story-main-container">
-        <!-- Character Showcase (Now Central) -->
+    <div class="story-main-container">
+        <!-- Character Showcase -->
         <div class="character-showcase">
             {% for char in character_images[:1] %}
             <div class="character-portrait-container">
@@ -25,7 +25,7 @@
                 <div class="character-traits-list">
                     {% if char.traits %}
                         {% for trait in char.traits %}
-                        <span class="badge trait-badge">{{ trait }}</span>
+                        <span class="trait-badge">{{ trait }}</span>
                         {% endfor %}
                     {% endif %}
                 </div>
@@ -65,8 +65,8 @@
 
             <!-- Navigation -->
             <div class="navigation-area">
-                <a href="{{ url_for('index') }}" class="btn btn-return">
-                    <i class="fas fa-arrow-left me-2"></i>Return to Home
+                <a href="{{ url_for('index') }}" class="btn-return">
+                    <i class="fas fa-arrow-left me-1"></i>Return to Home
                 </a>
             </div>
         </div>
