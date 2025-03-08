@@ -407,9 +407,11 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         
         // Check if at least one character is selected
-        const selectedCharactersCount = document.querySelectorAll('.character-checkbox:checked').length;
-        if (selectedCharactersCount !== 1) {
+        const selectedCharacters = document.querySelectorAll('.character-checkbox:checked');
+        if (selectedCharacters.length !== 1) {
             characterSelectionError.style.display = 'block';
+            characterSelectionError.textContent = 'Please select a character for your story';
+            window.scrollTo(0, 0);
             return;
         }
         
