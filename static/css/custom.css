@@ -220,7 +220,7 @@ body {
 }
 
 .choice-btn {
-    background: #8B5CF6;
+    background: #4a5df0;
     color: white;
     border: none;
     padding: 1rem;
@@ -228,27 +228,29 @@ body {
     cursor: pointer;
     text-align: left;
     width: 100%;
-    box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     transition: all 0.2s ease;
 }
 
 .choice-btn:hover {
-    background: #7c3aed;
+    background: #3746d3;
     transform: translateY(-3px);
-    box-shadow: 0 6px 12px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
 }
 
 .choice-text {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
     color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .consequence {
     font-style: italic;
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 0.9rem;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
 }
 
 /* Navigation */
@@ -259,19 +261,21 @@ body {
 }
 
 .btn-return {
-    background-color: transparent;
-    color: #666;
-    border: none;
-    padding: 0.25rem 0.5rem;
+    background-color: rgba(0, 0, 0, 0.1);
+    color: #333;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    padding: 0.35rem 0.75rem;
     border-radius: 5px;
-    font-weight: 400;
-    font-size: 0.8rem;
-    opacity: 0.6;
+    font-weight: 500;
+    font-size: 0.9rem;
+    opacity: 0.8;
+    transition: all 0.2s ease;
 }
 
 .btn-return:hover {
-    background-color: transparent;
+    background-color: rgba(0, 0, 0, 0.2);
     opacity: 1;
+    transform: translateY(-2px);
 }
 
 /* Responsive design - side by side layout on larger screens */
