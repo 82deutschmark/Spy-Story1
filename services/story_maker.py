@@ -57,7 +57,8 @@ def generate_story(
     custom_narrative: Optional[str] = None,
     custom_mood: Optional[str] = None,
     previous_choice: Optional[str] = None,
-    story_context: Optional[str] = None
+    story_context: Optional[str] = None,
+    additional_characters: Optional[List[Dict[str, Any]]] = None
 ) -> Dict[str, Any]:
     """Generate a story based on selected or custom parameters and character info"""
     if not api_key:
@@ -101,6 +102,26 @@ def generate_story(
             selected_character_prompt += f"Suggested Plot Lines (MUST USE AT LEAST ONE):\n"
             for plot in plot_lines:
                 selected_character_prompt += f"- {plot}\n"
+    
+    # Build information about additional characters from the database
+    additional_characters_prompt = ""
+    if additional_characters and len(additional_characters) > 0:
+        additional_characters_prompt = "\nAdditional Characters from Database (MUST INCLUDE AT LEAST ONE NEW CHARACTER):\n"
+        for char in additional_characters:
+            char_traits = char.get('character_traits', [])
+            if isinstance(char_traits, str):
+                # Handle case where traits might be a string
+                char_traits = [char_traits]
+            
+            char_name = char.get('name', char.get('character_name', 'Unnamed Character'))
+            char_role = char.get('role', char.get('character_role', 'neutral'))
+            traits_str = ', '.join(char_traits) if char_traits else 'No specified traits'
+            
+            additional_characters_prompt += (
+                f"- Name: {char_name}\n"
+                f"  Role: {char_role}\n"
+                f"  Traits: {traits_str}\n"
+            )
 
     # Add context from previous choices if available
     context_prompt = ""
@@ -135,19 +156,22 @@ def generate_story(
         f"Mood: {final_mood}\n\n"
         f"{universe_prompt}\n"
         f"{selected_character_prompt}\n"
+        f"{additional_characters_prompt}\n"
         f"{context_prompt}\n\n"
         "Create an engaging story segment that:\n"
         "1. Features Pawel and/or Pawleen as the main story drivers\n"
         "2. Introduces the selected character (if provided) into the farm's ongoing adventures\n"
         "3. IMPORTANT: If plot lines are provided for the character, you MUST incorporate at least one into the story\n"
-        "4. Maintains the established personalities and relationships\n"
-        "5. Uses the character's traits to guide their behavior and dialogue\n"
-        "6. Provides exactly two meaningful choice options that:\n"
+        "4. CRITICAL: If additional characters from the database are provided, you MUST introduce at least one new character from this list into the story\n"
+        "5. Maintains the established personalities and relationships\n"
+        "6. Uses the character's traits to guide their behavior and dialogue\n"
+        "7. Provides exactly two meaningful choice options that:\n"
         "   - Lead to different potential outcomes\n"
         "   - Stay true to the characters' established traits\n"
         "   - Relate to at least one of the plot lines if provided\n"
+        "   - IMPORTANT: Include at least one new character from the database in the choices when possible\n"
         "   - Avoid dead ends or quick conclusions\n"
-        "7. Include clear consequences for each choice that follow from the plot lines\n\n"
+        "8. Include clear consequences for each choice that follow from the plot lines\n\n"
         "Format the response as a JSON object with:\n"
         "{\n"
         "  'title': 'Episode title',\n"
@@ -156,7 +180,7 @@ def generate_story(
         "    {'text': 'First choice', 'consequence': 'Brief outcome hint'},\n"
         "    {'text': 'Second choice', 'consequence': 'Brief outcome hint'}\n"
         "  ],\n"
-        "  'characters': ['List of character names featured']\n"
+        "  'characters': ['List of character names featured, including new characters']\n"
         "}"
     )
 

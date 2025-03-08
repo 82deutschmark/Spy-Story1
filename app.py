@@ -186,6 +186,23 @@ def generate_story_route():
         # Get the main character information
         main_character_img = selected_images[0]
         analysis = main_character_img.analysis_result or {}
+        
+        # Get additional characters from database (excluding the selected character)
+        additional_characters = []
+        additional_chars_query = ImageAnalysis.query.filter_by(image_type='character')\
+            .filter(ImageAnalysis.id != main_character_img.id)\
+            .order_by(db.func.random())\
+            .limit(3)\
+            .all()
+            
+        for char in additional_chars_query:
+            char_data = {
+                'name': char.character_name,
+                'character_traits': char.character_traits,
+                'role': char.character_role,
+                'plot_lines': char.plot_lines
+            }
+            additional_characters.append(char_data)
 
         # Extract character information comprehensively
         character_info = {
@@ -198,6 +215,7 @@ def generate_story_route():
 
         # Generate the story
         story_params['character_info'] = character_info
+        story_params['additional_characters'] = additional_characters
         result = generate_story(**story_params)
 
         # Store the generated story
