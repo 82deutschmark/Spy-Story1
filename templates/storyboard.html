@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -40,7 +39,7 @@
                 <h1 class="story-title">{{ story.title }}</h1>
                 <p class="story-subtitle">An adventure in Uncle Mark's forest farm</p>
             </div>
-            
+
             <div class="story-scroll-container">
                 <div class="story-content">
                     {{ story.story | safe }}
@@ -63,7 +62,7 @@
                     {% endfor %}
                 </div>
             </div>
-            
+
             <!-- Navigation -->
             <div class="navigation-area">
                 <a href="{{ url_for('index') }}" class="btn btn-return">

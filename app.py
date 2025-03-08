@@ -615,6 +615,254 @@ def db_health_check():
         image_count = ImageAnalysis.query.count()
         character_count = ImageAnalysis.query.filter_by(image_type='character').count()
         scene_count = ImageAnalysis.query.filter_by(image_type='scene').count()
+
+@app.route('/api/images/all')
+def get_all_images():
+    """API endpoint to get all images with pagination"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        image_type = request.args.get('type')
+        search = request.args.get('search')
+        
+        query = ImageAnalysis.query
+        
+        # Apply filters
+        if image_type:
+            query = query.filter_by(image_type=image_type)
+            
+        if search:
+            # Search by ID or character name
+            if search.isdigit():
+                query = query.filter(ImageAnalysis.id == int(search))
+            else:
+                query = query.filter(ImageAnalysis.character_name.ilike(f'%{search}%'))
+        
+        # Execute count query
+        total = query.count()
+        
+        # Get paginated results
+        images = query.order_by(ImageAnalysis.id.desc()).paginate(page=page, per_page=per_page)
+        
+        # Format results
+        results = []
+        for img in images.items:
+            analysis = img.analysis_result or {}
+            name = img.character_name or ''
+            if not name and analysis:
+                name = analysis.get('name', '')
+                
+            results.append({
+                'id': img.id,
+                'image_url': img.image_url,
+                'image_type': img.image_type,
+                'name': name,
+                'created_at': img.created_at.strftime('%Y-%m-%d %H:%M'),
+                'traits': img.character_traits or [],
+                'role': img.character_role or '',
+                'stories_count': img.stories.count()
+            })
+        
+        return jsonify({
+            'success': True,
+            'images': results,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': total,
+                'pages': (total + per_page - 1) // per_page
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error getting all images: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/stories/all')
+def get_all_stories():
+    """API endpoint to get all stories with pagination"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        search = request.args.get('search')
+        
+        query = StoryGeneration.query
+        
+        # Apply search filter
+        if search:
+            if search.isdigit():
+                query = query.filter(StoryGeneration.id == int(search))
+            else:
+                query = query.filter(
+                    db.or_(
+                        StoryGeneration.primary_conflict.ilike(f'%{search}%'),
+                        StoryGeneration.setting.ilike(f'%{search}%')
+                    )
+                )
+        
+        # Execute count query
+        total = query.count()
+        
+        # Get paginated results
+        stories = query.order_by(StoryGeneration.id.desc()).paginate(page=page, per_page=per_page)
+        
+        # Format results
+        results = []
+        for story in stories.items:
+            # Extract title from JSON if available
+            title = "Untitled Story"
+            if story.generated_story:
+                try:
+                    story_data = json.loads(story.generated_story)
+                    if isinstance(story_data, dict) and 'title' in story_data:
+                        title = story_data['title']
+                except:
+                    pass
+                    
+            results.append({
+                'id': story.id,
+                'title': title,
+                'conflict': story.primary_conflict,
+                'setting': story.setting,
+                'images_count': len(story.images),
+                'character_names': [img.character_name for img in story.images if img.character_name],
+                'created_at': story.created_at.strftime('%Y-%m-%d %H:%M')
+            })
+        
+        return jsonify({
+            'success': True,
+            'stories': results,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': total,
+                'pages': (total + per_page - 1) // per_page
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error getting all stories: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/story_nodes/all')
+def get_all_story_nodes():
+    """API endpoint to get all story nodes"""
+    try:
+        nodes = StoryNode.query.all()
+        results = []
+        
+        for node in nodes:
+            choice_count = len(node.choices) if hasattr(node, 'choices') else 0
+            
+            results.append({
+                'id': node.id,
+                'parent_node_id': node.parent_node_id,
+                'text_preview': node.narrative_text[:100] + '...' if len(node.narrative_text) > 100 else node.narrative_text,
+                'choices_count': choice_count,
+                'is_endpoint': node.is_endpoint,
+                'image_id': node.image_id
+            })
+        
+        return jsonify({
+            'success': True,
+            'nodes': results
+        })
+    except Exception as e:
+        logger.error(f"Error getting all story nodes: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/reanalyze/<int:image_id>', methods=['POST'])
+def reanalyze_image(image_id):
+    """API endpoint to reanalyze an existing image"""
+    try:
+        # Get the image
+        image = ImageAnalysis.query.get_or_404(image_id)
+        image_url = image.image_url
+        
+        if not image_url:
+            return jsonify({'error': 'Image URL is missing'}), 400
+            
+        # Verify URL format
+        if not image_url.startswith(('http://', 'https://')):
+            return jsonify({'error': 'Invalid image URL format'}), 400
+            
+        # Check API key
+        if not os.environ.get("OPENAI_API_KEY"):
+            return jsonify({'error': 'OpenAI API key not configured'}), 500
+            
+        # Reanalyze the image
+        analysis = analyze_artwork(image_url)
+        
+        # Generate description
+        description = generate_image_description(analysis)
+        
+        # Get preservation option
+        preserve_relations = request.json.get('preserve_relations', True)
+        
+        # Prepare for saving to the database
+        old_stories = list(image.stories) if preserve_relations else []
+        
+        # Update the image analysis record
+        is_character = False
+        if 'character' in analysis and isinstance(analysis['character'], dict):
+            is_character = True
+        elif any(key in analysis for key in ['character_name', 'character_traits', 'plot_lines']):
+            is_character = True
+        elif 'role' in analysis and analysis['role'] in ['hero', 'villain', 'neutral']:
+            is_character = True
+            
+        # Extract character details
+        character_name = None
+        if is_character:
+            if 'character' in analysis and isinstance(analysis['character'], dict):
+                if 'name' in analysis['character']:
+                    character_name = analysis['character'].get('name')
+            if not character_name:
+                if 'character_name' in analysis:
+                    character_name = analysis.get('character_name')
+                elif 'name' in analysis:
+                    character_name = analysis.get('name')
+            if not character_name:
+                character_name = "Unnamed Character"
+                
+        # Extract traits and other fields
+        character_data = analysis.get('character', {})
+        character_traits = character_data.get('character_traits') if 'character' in analysis else analysis.get('character_traits')
+        character_role = character_data.get('role') if 'character' in analysis else analysis.get('role')
+        plot_lines = character_data.get('plot_lines') if 'character' in analysis else analysis.get('plot_lines')
+        
+        # Update image record
+        image.image_type = 'character' if is_character else 'scene'
+        image.analysis_result = analysis
+        image.character_name = character_name
+        image.character_traits = character_traits
+        image.character_role = character_role
+        image.plot_lines = plot_lines
+        
+        if not is_character:
+            image.scene_type = analysis.get('scene_type')
+            image.setting = analysis.get('setting')
+            image.setting_description = analysis.get('setting_description')
+            image.story_fit = analysis.get('story_fit')
+            image.dramatic_moments = analysis.get('dramatic_moments')
+        
+        # Restore story relationships if needed
+        if preserve_relations:
+            image.stories = old_stories
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Image reanalyzed successfully',
+            'description': description,
+            'analysis': analysis,
+            'image_url': image_url
+        })
+        
+    except Exception as e:
+        logger.error(f"Error reanalyzing image: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
         story_count = StoryGeneration.query.count()
         orphaned_images = ImageAnalysis.query.filter(~ImageAnalysis.stories.any()).count()
         empty_stories = StoryGeneration.query.filter(StoryGeneration.generated_story.is_(None)).count()
