@@ -114,18 +114,18 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 0;
     width: 100%;
 }
 
 .character-portrait-container {
     width: 100%;
-    max-width: 400px;
+    max-width: 600px;
     height: auto;
     overflow: hidden;
     border-radius: 10px;
-    margin-bottom: 0.5rem;
     border: 2px solid #fff;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
 .main-character-img {
@@ -135,18 +135,19 @@ body {
 }
 
 .character-info-box {
-    background: rgba(255, 255, 255, 0.8);
-    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.7);
+    padding: 0.35rem;
     border-radius: 8px;
     text-align: center;
-    max-width: 400px;
-    margin-bottom: 1rem;
+    max-width: 600px;
+    margin-top: 0.5rem;
+    margin-bottom: 0;
 }
 
 .character-info-box h3 {
     color: #333;
-    font-size: 1.5rem;
-    margin-bottom: 0.5rem;
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
 }
 
 .character-traits-list {
@@ -159,24 +160,26 @@ body {
 .trait-badge {
     background-color: #8B5CF6;
     color: white;
-    padding: 0.25rem 0.5rem;
+    padding: 0.15rem 0.35rem;
     border-radius: 50px;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     margin: 0.1rem;
+    opacity: 0.7;
 }
 
 /* Story content container */
 .story-content-container {
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.85);
     border-radius: 10px;
-    padding: 1rem;
+    padding: 0.75rem;
     width: 100%;
 }
 
 .story-title-area {
     text-align: center;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
     padding: 0.5rem;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.3);
 }
 
 .story-title {
@@ -188,7 +191,7 @@ body {
 
 .story-subtitle {
     color: #666;
-    font-size: 1rem;
+    font-size: 0.9rem;
 }
 
 .story-scroll-container {
@@ -198,49 +201,53 @@ body {
 }
 
 .story-content {
-    background-color: rgba(255, 255, 255, 0.95);
-    border-radius: 8px;
-    padding: 1rem;
+    background-color: transparent;
+    padding: 0.5rem;
     font-size: 1.1rem;
     line-height: 1.6;
     white-space: pre-wrap;
     color: #333;
-    border-left: 3px solid #8B5CF6;
+    border-left: none;
 }
 
 /* Choices styling */
 .choices-container {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 0.75rem;
-    margin-top: 1rem;
+    gap: 1rem;
+    margin-top: 1.5rem;
     margin-bottom: 1rem;
 }
 
 .choice-btn {
-    background: #fff;
-    border: 1px solid #ddd;
-    padding: 0.75rem;
+    background: #8B5CF6;
+    color: white;
+    border: none;
+    padding: 1rem;
     border-radius: 8px;
     cursor: pointer;
     text-align: left;
     width: 100%;
+    box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2);
+    transition: all 0.2s ease;
 }
 
 .choice-btn:hover {
-    background: #f5f0ff;
+    background: #7c3aed;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(139, 92, 246, 0.3);
 }
 
 .choice-text {
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: 600;
     margin-bottom: 0.25rem;
-    color: #333;
+    color: white;
 }
 
 .consequence {
     font-style: italic;
-    color: #666;
+    color: rgba(255, 255, 255, 0.85);
     font-size: 0.85rem;
 }
 
@@ -248,20 +255,23 @@ body {
 .navigation-area {
     margin-top: 1rem;
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
 }
 
 .btn-return {
-    background-color: #8B5CF6;
-    color: white;
+    background-color: transparent;
+    color: #666;
     border: none;
-    padding: 0.5rem 1rem;
+    padding: 0.25rem 0.5rem;
     border-radius: 5px;
-    font-weight: 500;
+    font-weight: 400;
+    font-size: 0.8rem;
+    opacity: 0.6;
 }
 
 .btn-return:hover {
-    background-color: #7c3aed;
+    background-color: transparent;
+    opacity: 1;
 }
 
 /* Responsive design - side by side layout on larger screens */
@@ -273,13 +283,13 @@ body {
     }
     
     .character-showcase {
-        width: 30%;
+        width: 40%;
         position: sticky;
         top: 1rem;
     }
     
     .story-content-container {
-        width: 70%;
+        width: 60%;
     }
     
     .choices-container {
@@ -289,11 +299,11 @@ body {
 
 @media (min-width: 992px) {
     .character-portrait-container {
-        max-width: 500px;
+        max-width: 650px;
     }
 
     .character-info-box {
-        max-width: 450px;
+        max-width: 650px;
     }
 }
 
