@@ -399,13 +399,7 @@ document.addEventListener('DOMContentLoaded', function() {
         characterNames.forEach(character => {
             const regex = new RegExp(`\\b${character.name}\\b`, 'gi');
             storyText = storyText.replace(regex, match => {
-                return `<span class="character-mention" data-character="${character.name.toLowerCase().replace(/\s/g, '-')}">
-                    ${match}
-                    <span class="character-tooltip">
-                        <img src="${character.image}" alt="${match}">
-                        ${match}
-                    </span>
-                </span>`;
+                return `<span class="character-mention" data-character="${character.name.toLowerCase().replace(/\s/g, '-')}">${match}<span class="character-tooltip"><img src="${character.image}" alt="${match}">${match}</span></span>`;
             });
         });
         
