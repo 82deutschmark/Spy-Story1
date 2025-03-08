@@ -93,8 +93,8 @@ body {
     max-width: 1600px;
     margin: 0 auto;
     padding: 1rem;
-    position: relative;
-    height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 .story-background {
@@ -108,36 +108,26 @@ body {
     object-fit: cover;
 }
 
-/* Story overlay container */
-.story-overlay-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-/* Character showcase - central and prominent */
+/* Character showcase - now central and prominent */
 .character-showcase {
-    width: 100%;
-    max-width: 600px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 0;
+    margin-bottom: 1.5rem;
+    width: 100%;
     position: relative;
-    z-index: 1;
+    z-index: 2;
 }
 
 .character-portrait-container {
     width: 100%;
-    max-width: 500px;
+    max-width: 400px;
     height: auto;
     overflow: hidden;
     border-radius: 15px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     margin-bottom: 1rem;
+    transition: transform 0.3s ease;
 }
 
 .main-character-img {
@@ -159,9 +149,8 @@ body {
     text-align: center;
     margin-top: -20px;
     position: relative;
-    max-width: 400px;
+    max-width: 350px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    z-index: 2;
 }
 
 .character-info-box h3 {
@@ -189,30 +178,25 @@ body {
 
 /* Story content container */
 .story-content-container {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 90%;
-    max-width: 800px;
-    z-index: 3;
-    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
     border-radius: 20px;
+    padding: 2rem;
+    margin-top: 1rem;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 .story-title-area {
     text-align: center;
-    margin-bottom: 1.5rem;
-    background: rgba(255, 255, 255, 0.7);
+    margin-bottom: 2rem;
+    background: rgba(255, 255, 255, 0.5);
     backdrop-filter: blur(5px);
-    padding: 1rem;
+    padding: 1.5rem;
     border-radius: 15px;
-    position: relative;
-    z-index: 4;
 }
 
 .story-title {
-    font-size: 2rem;
+    font-size: 2.2rem;
     font-weight: 600;
     color: #333;
     margin-bottom: 0.5rem;
@@ -220,27 +204,23 @@ body {
 
 .story-subtitle {
     color: #666;
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-style: italic;
 }
 
 .story-scroll-container {
     position: relative;
     overflow-y: auto;
-    max-height: 60vh;
+    max-height: 70vh;
     padding-right: 0.5rem;
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(8px);
-    border-radius: 15px;
-    padding: 1rem;
 }
 
 .story-content {
     background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(5px);
+    backdrop-filter: blur(10px);
     border-radius: 15px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
     font-size: 1.2rem;
     line-height: 1.8;
@@ -318,42 +298,30 @@ body {
 /* Responsive design */
 @media (min-width: 768px) {
     .story-main-container {
-        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
         justify-content: center;
-        align-items: center;
+        align-items: flex-start;
     }
-    
-    .story-content-container {
-        width: 80%;
-    }
-    
+
     .character-showcase {
-        margin-top: 2rem;
+        width: 100%;
+        margin-bottom: 2rem;
+    }
+
+    .story-content-container {
+        flex: 1;
+        margin-top: 0;
     }
 }
 
 @media (min-width: 992px) {
     .character-portrait-container {
-        max-width: 600px;
+        max-width: 500px;
     }
 
     .character-info-box {
-        max-width: 500px;
-    }
-    
-    .story-content-container {
-        width: 70%;
-    }
-}
-
-/* For larger screens */
-@media (min-width: 1200px) {
-    .character-portrait-container {
-        max-width: 700px;
-    }
-    
-    .story-content-container {
-        width: 60%;
+        max-width: 450px;
     }
 }
 
