@@ -64,9 +64,15 @@
                     <form action="{{ url_for('generate_story_route') }}" method="POST" class="choice-form">
                         <input type="hidden" name="previous_choice" value="{{ choice.text }}">
                         <input type="hidden" name="story_context" value="{{ story.story }}">
+                        <!-- Character selection data -->
                         {% for image in character_images %}
                         <input type="hidden" name="selected_images[]" value="{{ image.id }}">
                         {% endfor %}
+                        <!-- Include conflict/setting data from the initial story -->
+                        <input type="hidden" name="conflict" value="{{ story.conflict|default('Mysterious adventure') }}">
+                        <input type="hidden" name="setting" value="{{ story.setting|default('Enchanted world') }}">
+                        <input type="hidden" name="narrative_style" value="{{ story.narrative_style|default('Engaging modern style') }}">
+                        <input type="hidden" name="mood" value="{{ story.mood|default('Exciting and adventurous') }}">
                         <button type="submit" class="choice-btn">
                             <div class="choice-text">{{ choice.text }}</div>
                         </button>

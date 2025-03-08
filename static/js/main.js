@@ -289,56 +289,63 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Story choice form submission
-    const choiceForms = document.querySelectorAll('.choice-form');
-    if (choiceForms.length > 0) {
-        choiceForms.forEach(form => {
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                const btn = this.querySelector('button');
-                btn.disabled = true;
-                btn.classList.add('loading');
+    // Story choice form submission - use delegated event handling to prevent duplicates
+    document.addEventListener('submit', async function(e) {
+        // Only process choice forms
+        if (!e.target.classList.contains('choice-form')) return;
+        
+        e.preventDefault();
+        const form = e.target;
+        const btn = form.querySelector('button');
+        
+        // Prevent double-submission
+        if (btn.disabled) return;
+        
+        btn.disabled = true;
+        btn.classList.add('loading');
 
-                const loadingPercent = createLoadingOverlay('Continuing your story...');
-                let progress = 0;
-                const progressInterval = setInterval(() => {
-                    if (progress < 90) {
-                        progress += 5;
-                        updateLoadingPercent(loadingPercent, progress);
-                    }
-                }, 500);
+        const loadingPercent = createLoadingOverlay('Continuing your story...');
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+            if (progress < 90) {
+                progress += 5;
+                updateLoadingPercent(loadingPercent, progress);
+            }
+        }, 500);
 
-                try {
-                    const response = await fetch(this.action, {
-                        method: 'POST',
-                        body: new FormData(this),
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    });
-
-                    const data = await response.json();
-                    clearInterval(progressInterval);
-
-                    if (data.success && data.redirect) {
-                        updateLoadingPercent(loadingPercent, 100);
-                        setTimeout(() => {
-                            window.location.href = data.redirect;
-                        }, 500);
-                    } else {
-                        throw new Error(data.error || 'Failed to continue story');
-                    }
-                } catch (error) {
-                    showToast('Error', error.message);
-                    btn.disabled = false;
-                    btn.classList.remove('loading');
-                    clearInterval(progressInterval);
-                    const overlay = loadingPercent.closest('.loading-overlay');
-                    if (overlay) overlay.remove();
+        try {
+            // Debug what's being sent
+            console.log('Submitting form with data:', new FormData(form));
+            
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
             });
-        });
-    }
+
+            const data = await response.json();
+            clearInterval(progressInterval);
+
+            if (data.success && data.redirect) {
+                updateLoadingPercent(loadingPercent, 100);
+                setTimeout(() => {
+                    window.location.href = data.redirect;
+                }, 500);
+            } else {
+                throw new Error(data.error || 'Failed to continue story');
+            }
+        } catch (error) {
+            console.error('Story continuation error:', error);
+            showToast('Error', error.message || 'Failed to continue the story');
+            btn.disabled = false;
+            btn.classList.remove('loading');
+            clearInterval(progressInterval);
+            const overlay = loadingPercent.closest('.loading-overlay');
+            if (overlay) overlay.remove();
+        }
+    });
 
     // Debug page enhancements
     const editModeSwitch = document.getElementById('editModeSwitch');

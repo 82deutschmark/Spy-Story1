@@ -187,9 +187,17 @@ def generate_story_route():
         # Get form data
         data = request.form
         selected_image_ids = request.form.getlist('selected_images[]')
+        
+        logger.debug(f"Form data received: {data}")
+        logger.debug(f"Selected image IDs: {selected_image_ids}")
+
+        if not selected_image_ids:
+            logger.error("No character selected - missing selected_images[] in form data")
+            return jsonify({'error': 'Please select a character for your story'}), 400
 
         if len(selected_image_ids) != 1:
-            return jsonify({'error': 'Please select a character for your story'}), 400
+            logger.error(f"Expected 1 character, got {len(selected_image_ids)}")
+            return jsonify({'error': 'Please select exactly one character for your story'}), 400
 
         # Get the story parameters
         story_params = {
@@ -204,6 +212,8 @@ def generate_story_route():
             'previous_choice': data.get('previous_choice', ''),
             'story_context': data.get('story_context', '')
         }
+        
+        logger.debug(f"Story parameters: {story_params}")
 
         # Get character information from selected images
         selected_images = ImageAnalysis.query.filter(ImageAnalysis.id.in_(selected_image_ids)).all()
