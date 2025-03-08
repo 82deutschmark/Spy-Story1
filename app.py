@@ -195,9 +195,9 @@ def generate_story_route():
             logger.error("No character selected - missing selected_images[] in form data")
             return jsonify({'error': 'Please select a character for your story'}), 400
 
-        if len(selected_image_ids) != 1:
-            logger.error(f"Expected 1 character, got {len(selected_image_ids)}")
-            return jsonify({'error': 'Please select exactly one character for your story'}), 400
+        if len(selected_image_ids) < 1:
+            logger.error(f"No characters selected, got {len(selected_image_ids)}")
+            return jsonify({'error': 'Please select at least one character for your story'}), 400
 
         # Get the story parameters
         story_params = {
@@ -220,14 +220,28 @@ def generate_story_route():
         if not selected_images:
             return jsonify({'error': 'Selected images not found'}), 404
 
-        # Get the main character information
-        main_character_img = selected_images[0]
-        analysis = main_character_img.analysis_result or {}
+        # Get information for all selected characters
+        selected_characters = []
+        for img in selected_images:
+            analysis = img.analysis_result or {}
+            char_data = {
+                'name': img.character_name or analysis.get('name', 'Unknown Character'),
+                'role': img.character_role or 'protagonist',
+                'character_traits': img.character_traits or [],
+                'style': analysis.get('style', 'A mysterious character'),
+                'plot_lines': img.plot_lines or []
+            }
+            selected_characters.append(char_data)
         
-        # Get additional characters from database (excluding the selected character)
+        # Use the first character as the main character for backward compatibility
+        main_character_img = selected_images[0]
+        character_info = selected_characters[0]
+        
+        # Get additional characters from database (excluding the selected characters)
         additional_characters = []
+        selected_ids = [img.id for img in selected_images]
         additional_chars_query = ImageAnalysis.query.filter_by(image_type='character')\
-            .filter(ImageAnalysis.id != main_character_img.id)\
+            .filter(~ImageAnalysis.id.in_(selected_ids))\
             .order_by(db.func.random())\
             .limit(3)\
             .all()
@@ -240,15 +254,13 @@ def generate_story_route():
                 'plot_lines': char.plot_lines
             }
             additional_characters.append(char_data)
-
-        # Extract character information comprehensively
-        character_info = {
-            'name': main_character_img.character_name or analysis.get('name', 'Unknown Character'),
-            'role': main_character_img.character_role or 'protagonist',
-            'character_traits': main_character_img.character_traits or [],
-            'style': analysis.get('style', 'A mysterious character'),
-            'plot_lines': main_character_img.plot_lines or []
-        }
+            
+        # Add the selected characters (except the main one) to story_params
+        if len(selected_characters) > 1:
+            # Remove the main character from the list
+            secondary_characters = selected_characters[1:]
+            # Add them to additional characters
+            additional_characters = secondary_characters + additional_characters
 
         # Generate the story
         story_params['character_info'] = character_info

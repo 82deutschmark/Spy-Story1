@@ -64,7 +64,7 @@
                     <form action="{{ url_for('generate_story_route') }}" method="POST" class="choice-form">
                         <input type="hidden" name="previous_choice" value="{{ choice.text }}">
                         <input type="hidden" name="story_context" value="{{ story.story }}">
-                        <!-- Character selection data -->
+                        <!-- Character selection data - include all characters -->
                         {% for image in character_images %}
                         <input type="hidden" name="selected_images[]" value="{{ image.id }}">
                         {% endfor %}
