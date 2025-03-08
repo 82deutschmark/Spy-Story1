@@ -30,21 +30,49 @@ document.addEventListener('DOMContentLoaded', function() {
     const generateStoryBtn = document.getElementById('generateStoryBtn');
     const characterSelectionError = document.getElementById('characterSelectionError');
 
+    // Function to handle character selection
+    function selectCharacter(cardIndex) {
+        // Clear any previous selections first
+        characterCards.forEach(c => c.classList.remove('selected'));
+        characterCheckboxes.forEach(cb => cb.checked = false);
+        
+        // Find all selection indicators and hide them
+        document.querySelectorAll('.selection-indicator').forEach(indicator => {
+            indicator.style.display = 'none';
+        });
+
+        // Select this character
+        if (characterCards[cardIndex]) {
+            characterCards[cardIndex].classList.add('selected');
+            
+            // Show the selection indicator for this card
+            const indicator = characterCards[cardIndex].querySelector('.selection-indicator');
+            if (indicator) {
+                indicator.style.display = 'block';
+            }
+        }
+        
+        if (characterCheckboxes[cardIndex]) {
+            characterCheckboxes[cardIndex].checked = true;
+        }
+
+        // Show visual feedback
+        showToast('Character Selected', 'Your character has been selected for the adventure');
+    }
+
     // Select character when card is clicked
     characterCards.forEach((card, index) => {
         card.addEventListener('click', function() {
-            // Clear any previous selections first
-            characterCards.forEach(c => c.classList.remove('selected'));
-            characterCheckboxes.forEach(cb => cb.checked = false);
-
-            // Select this character
-            card.classList.add('selected');
-            if (characterCheckboxes[index]) {
-                characterCheckboxes[index].checked = true;
-            }
-
-            // Show visual feedback
-            showToast('Character Selected', 'Your character has been selected for the adventure');
+            selectCharacter(index);
+        });
+    });
+    
+    // Select character when button is clicked
+    const selectButtons = document.querySelectorAll('.select-character-btn');
+    selectButtons.forEach((button, index) => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent the card click event from also firing
+            selectCharacter(index);
         });
     });
 

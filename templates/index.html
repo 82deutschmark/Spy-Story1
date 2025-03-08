@@ -54,12 +54,10 @@
                                                 <button type="button" class="reroll-btn" data-card-index="{{ loop.index0 }}">
                                                     <i class="fas fa-dice me-1"></i> Reroll Character
                                                 </button>
-                                                <div class="form-check">
-                                                    <input class="form-check-input character-checkbox" type="radio" name="selectedCharacter" value="{{ img.id }}" id="character{{ img.id }}">
-                                                    <label class="form-check-label" for="character{{ img.id }}">
-                                                        Select
-                                                    </label>
-                                                </div>
+                                                <button type="button" class="select-character-btn" data-character-id="{{ img.id }}">
+                                                    <i class="fas fa-check-circle me-1"></i> Select Character
+                                                </button>
+                                                <input type="radio" class="character-checkbox d-none" name="selectedCharacter" value="{{ img.id }}" id="character{{ img.id }}">
                                             </div>
                                         </div>
                                     </div>
