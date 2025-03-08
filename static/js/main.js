@@ -234,7 +234,7 @@ if (storyFormMain) {
 // Remove duplicate reroll button functionality
 
                     // Find the character name element within the container
-                    const characterContainer = cardContainer;
+                    const characterContainer = characterCard.closest('.character-container');
                     const nameElement = characterContainer ? characterContainer.querySelector('.character-name') : null;
                     if (nameElement) {
                         nameElement.textContent = data.name;
