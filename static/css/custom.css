@@ -8,7 +8,7 @@ body {
 /* Landing page (index) styling to match storyboard */
 body[data-bs-theme="dark"] {
     background-color: #f9f7ff;
-    color: #333;
+    color: #222;
 }
 
 /* Landing page background */
@@ -777,6 +777,8 @@ body[data-bs-theme="dark"] .accordion-button:not(.collapsed) {
     font-size: 1.2rem;
     margin-bottom: 0.5rem;
     text-align: center;
+    color: #222;
+    font-weight: 600;
 }
 
 .character-traits {
