@@ -23,60 +23,8 @@ function removeLoadingOverlay(overlay) {
 
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Character selection
-    const characterCards = document.querySelectorAll('.character-select-card');
-    const characterCheckboxes = document.querySelectorAll('.character-checkbox');
-    const storyForm = document.getElementById('storyForm');
-    const generateStoryBtn = document.getElementById('generateStoryBtn');
-    const characterSelectionError = document.getElementById('characterSelectionError');
-
-    // Function to handle character selection
-    function selectCharacter(cardIndex) {
-        // Clear any previous selections first
-        characterCards.forEach(c => c.classList.remove('selected'));
-        characterCheckboxes.forEach(cb => cb.checked = false);
-        
-        // Find all selection indicators and hide them
-        document.querySelectorAll('.selection-indicator').forEach(indicator => {
-            indicator.style.display = 'none';
-        });
-
-        // Select this character
-        if (characterCards[cardIndex]) {
-            characterCards[cardIndex].classList.add('selected');
-            
-            // Show the selection indicator for this card
-            const indicator = characterCards[cardIndex].querySelector('.selection-indicator');
-            if (indicator) {
-                indicator.style.display = 'block';
-            }
-        }
-        
-        if (characterCheckboxes[cardIndex]) {
-            characterCheckboxes[cardIndex].checked = true;
-        }
-
-        // Show visual feedback
-        showToast('Character Selected', 'Your character has been selected for the adventure');
-    }
-
-    // Select character when card is clicked
-    characterCards.forEach((card, index) => {
-        card.addEventListener('click', function() {
-            selectCharacter(index);
-        });
-    });
-    
-    // Select character when button is clicked
-    const selectButtons = document.querySelectorAll('.select-character-btn');
-    selectButtons.forEach((button, index) => {
-        button.addEventListener('click', function(e) {
-            e.stopPropagation(); // Prevent the card click event from also firing
-            selectCharacter(index);
-        });
-    });
-
-    // No duplicate reroll button functionality needed, as it's handled elsewhere
+    // Character selection and reroll functionality are implemented in the comprehensive 
+    // event listeners at the bottom of this file
 
     // Toast notification function
     function showToast(title, message) {
@@ -248,17 +196,28 @@ if (editModeSwitch && generatedContent) {
     });
 }
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle character selection
+    // Character selection
     const characterCards = document.querySelectorAll('.character-select-card');
     const characterCheckboxes = document.querySelectorAll('.character-checkbox');
     const generateStoryBtn = document.getElementById('generateStoryBtn');
     const storyForm = document.getElementById('storyForm');
-    const selectedCharactersList = document.querySelector('.selected-characters-list');
-    const selectedCharactersContainer = document.querySelector('.selected-characters-container');
     const characterSelectionError = document.getElementById('characterSelectionError');
+    
+    // Function to show toast notifications
+    function showToast(title, message) {
+        const toastEl = document.getElementById('notificationToast');
+        if (toastEl) {
+            const toast = new bootstrap.Toast(toastEl);
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+            toast.show();
+        }
+    }
     
     // Add hidden input fields for selected images
     function updateSelectedImagesInput() {
+        if (!storyForm) return;
+        
         // Remove any existing hidden inputs
         document.querySelectorAll('input[name="selected_images[]"]').forEach(el => el.remove());
         
@@ -272,23 +231,40 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Clear all selections
+    function clearAllSelections() {
+        characterCards.forEach(card => {
+            card.classList.remove('selected');
+            const indicator = card.querySelector('.selection-indicator');
+            if (indicator) {
+                indicator.style.display = 'none';
+            }
+        });
+        
+        characterCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    }
+    
     // Handle character selection when clicking on card
-    characterCards.forEach((card, index) => {
+    characterCards.forEach(card => {
         card.addEventListener('click', function() {
             const characterId = this.dataset.id;
             const checkbox = document.getElementById(`character${characterId}`);
             const selectionIndicator = this.querySelector('.selection-indicator');
             
-            // Toggle selection
-            if (checkbox.checked) {
-                checkbox.checked = false;
-                selectionIndicator.style.display = 'none';
-            } else {
-                checkbox.checked = true;
-                selectionIndicator.style.display = 'block';
-            }
+            // For single-select behavior
+            clearAllSelections();
+            
+            // Select this character
+            checkbox.checked = true;
+            selectionIndicator.style.display = 'block';
+            this.classList.add('selected');
             
             updateSelectedImagesInput();
+            
+            // Show toast notification
+            showToast('Character Selected', 'Character has been selected for your story.');
         });
     });
     
@@ -301,8 +277,16 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const characterId = this.dataset.characterId;
             const characterCard = document.querySelector(`.character-select-card[data-id="${characterId}"]`);
+            
+            if (!characterCard) return;
+            
             const checkbox = document.getElementById(`character${characterId}`);
             const selectionIndicator = characterCard.querySelector('.selection-indicator');
+            
+            if (!checkbox || !selectionIndicator) return;
+            
+            // For single-select behavior
+            clearAllSelections();
             
             // Select this character
             checkbox.checked = true;
@@ -312,10 +296,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updateSelectedImagesInput();
             
             // Show toast notification
-            const toast = new bootstrap.Toast(document.getElementById('notificationToast'));
-            document.getElementById('toastTitle').textContent = 'Character Selected';
-            document.getElementById('toastMessage').textContent = 'Character has been selected for your story.';
-            toast.show();
+            showToast('Character Selected', 'Character has been selected for your story.');
         });
     });
     
