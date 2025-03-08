@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from services.openai_service import analyze_artwork, generate_image_description
 from services.story_maker import generate_story, get_story_options
 from database import db
-from models import AIInstruction, ImageAnalysis, StoryGeneration
+from models import AIInstruction, ImageAnalysis, StoryGeneration, StoryNode
 from flask_cors import CORS
 from api.unity_routes import unity_api
 
@@ -615,6 +615,30 @@ def db_health_check():
         image_count = ImageAnalysis.query.count()
         character_count = ImageAnalysis.query.filter_by(image_type='character').count()
         scene_count = ImageAnalysis.query.filter_by(image_type='scene').count()
+        story_count = StoryGeneration.query.count()
+        orphaned_images = ImageAnalysis.query.filter(~ImageAnalysis.stories.any()).count()
+        empty_stories = StoryGeneration.query.filter(StoryGeneration.generated_story.is_(None)).count()
+
+        # Check for potential issues
+        issues = []
+
+        # Return health check results
+        return jsonify({
+            'success': True,
+            'stats': {
+                'image_count': image_count,
+                'character_count': character_count,
+                'scene_count': scene_count,
+                'story_count': story_count,
+                'orphaned_images': orphaned_images,
+                'empty_stories': empty_stories
+            },
+            'issues': issues,
+            'has_issues': len(issues) > 0
+        })
+    except Exception as e:
+        logger.error(f"Error performing health check: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/images/all')
 def get_all_images():
@@ -624,26 +648,26 @@ def get_all_images():
         per_page = request.args.get('per_page', 20, type=int)
         image_type = request.args.get('type')
         search = request.args.get('search')
-        
+
         query = ImageAnalysis.query
-        
+
         # Apply filters
         if image_type:
             query = query.filter_by(image_type=image_type)
-            
+
         if search:
             # Search by ID or character name
             if search.isdigit():
                 query = query.filter(ImageAnalysis.id == int(search))
             else:
                 query = query.filter(ImageAnalysis.character_name.ilike(f'%{search}%'))
-        
+
         # Execute count query
         total = query.count()
-        
+
         # Get paginated results
         images = query.order_by(ImageAnalysis.id.desc()).paginate(page=page, per_page=per_page)
-        
+
         # Format results
         results = []
         for img in images.items:
@@ -651,7 +675,7 @@ def get_all_images():
             name = img.character_name or ''
             if not name and analysis:
                 name = analysis.get('name', '')
-                
+
             results.append({
                 'id': img.id,
                 'image_url': img.image_url,
@@ -662,7 +686,7 @@ def get_all_images():
                 'role': img.character_role or '',
                 'stories_count': img.stories.count()
             })
-        
+
         return jsonify({
             'success': True,
             'images': results,
@@ -684,9 +708,9 @@ def get_all_stories():
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
         search = request.args.get('search')
-        
+
         query = StoryGeneration.query
-        
+
         # Apply search filter
         if search:
             if search.isdigit():
@@ -698,13 +722,13 @@ def get_all_stories():
                         StoryGeneration.setting.ilike(f'%{search}%')
                     )
                 )
-        
+
         # Execute count query
         total = query.count()
-        
+
         # Get paginated results
         stories = query.order_by(StoryGeneration.id.desc()).paginate(page=page, per_page=per_page)
-        
+
         # Format results
         results = []
         for story in stories.items:
@@ -717,7 +741,7 @@ def get_all_stories():
                         title = story_data['title']
                 except:
                     pass
-                    
+
             results.append({
                 'id': story.id,
                 'title': title,
@@ -727,7 +751,7 @@ def get_all_stories():
                 'character_names': [img.character_name for img in story.images if img.character_name],
                 'created_at': story.created_at.strftime('%Y-%m-%d %H:%M')
             })
-        
+
         return jsonify({
             'success': True,
             'stories': results,
@@ -748,10 +772,10 @@ def get_all_story_nodes():
     try:
         nodes = StoryNode.query.all()
         results = []
-        
+
         for node in nodes:
             choice_count = len(node.choices) if hasattr(node, 'choices') else 0
-            
+
             results.append({
                 'id': node.id,
                 'parent_node_id': node.parent_node_id,
@@ -760,7 +784,7 @@ def get_all_story_nodes():
                 'is_endpoint': node.is_endpoint,
                 'image_id': node.image_id
             })
-        
+
         return jsonify({
             'success': True,
             'nodes': results
@@ -776,30 +800,30 @@ def reanalyze_image(image_id):
         # Get the image
         image = ImageAnalysis.query.get_or_404(image_id)
         image_url = image.image_url
-        
+
         if not image_url:
             return jsonify({'error': 'Image URL is missing'}), 400
-            
+
         # Verify URL format
         if not image_url.startswith(('http://', 'https://')):
             return jsonify({'error': 'Invalid image URL format'}), 400
-            
+
         # Check API key
         if not os.environ.get("OPENAI_API_KEY"):
             return jsonify({'error': 'OpenAI API key not configured'}), 500
-            
+
         # Reanalyze the image
         analysis = analyze_artwork(image_url)
-        
+
         # Generate description
         description = generate_image_description(analysis)
-        
+
         # Get preservation option
         preserve_relations = request.json.get('preserve_relations', True)
-        
+
         # Prepare for saving to the database
         old_stories = list(image.stories) if preserve_relations else []
-        
+
         # Update the image analysis record
         is_character = False
         if 'character' in analysis and isinstance(analysis['character'], dict):
@@ -808,7 +832,7 @@ def reanalyze_image(image_id):
             is_character = True
         elif 'role' in analysis and analysis['role'] in ['hero', 'villain', 'neutral']:
             is_character = True
-            
+
         # Extract character details
         character_name = None
         if is_character:
@@ -822,13 +846,13 @@ def reanalyze_image(image_id):
                     character_name = analysis.get('name')
             if not character_name:
                 character_name = "Unnamed Character"
-                
+
         # Extract traits and other fields
         character_data = analysis.get('character', {})
         character_traits = character_data.get('character_traits') if 'character' in analysis else analysis.get('character_traits')
         character_role = character_data.get('role') if 'character' in analysis else analysis.get('role')
         plot_lines = character_data.get('plot_lines') if 'character' in analysis else analysis.get('plot_lines')
-        
+
         # Update image record
         image.image_type = 'character' if is_character else 'scene'
         image.analysis_result = analysis
@@ -836,20 +860,20 @@ def reanalyze_image(image_id):
         image.character_traits = character_traits
         image.character_role = character_role
         image.plot_lines = plot_lines
-        
+
         if not is_character:
             image.scene_type = analysis.get('scene_type')
             image.setting = analysis.get('setting')
             image.setting_description = analysis.get('setting_description')
             image.story_fit = analysis.get('story_fit')
             image.dramatic_moments = analysis.get('dramatic_moments')
-        
+
         # Restore story relationships if needed
         if preserve_relations:
             image.stories = old_stories
-        
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Image reanalyzed successfully',
@@ -857,124 +881,11 @@ def reanalyze_image(image_id):
             'analysis': analysis,
             'image_url': image_url
         })
-        
+
     except Exception as e:
         logger.error(f"Error reanalyzing image: {str(e)}")
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-
-@app.route('/api/db/health-check', methods=['GET'])
-def db_health_check():
-    """API endpoint to perform a database health check"""
-    try:
-        # Get counts
-        image_count = ImageAnalysis.query.count()
-        character_count = ImageAnalysis.query.filter_by(image_type='character').count()
-        scene_count = ImageAnalysis.query.filter_by(image_type='scene').count()
-        story_count = StoryGeneration.query.count()
-        orphaned_images = ImageAnalysis.query.filter(~ImageAnalysis.stories.any()).count()
-        empty_stories = StoryGeneration.query.filter(StoryGeneration.generated_story.is_(None)).count()
-
-        # Check for potential issues
-        issues = []
-
-        # Check for missing image URLs
-        invalid_urls = ImageAnalysis.query.filter(
-            db.or_(
-                ImageAnalysis.image_url.is_(None),
-                ImageAnalysis.image_url == '',
-                ~ImageAnalysis.image_url.like('http%')
-            )
-        ).count()
-
-        if invalid_urls > 0:
-            issues.append({
-                'severity': 'warning',
-                'message': f'Found {invalid_urls} images with invalid or missing URLs',
-                'type': 'invalid_urls'
-            })
-
-        # Check for missing analysis results
-        missing_analysis = ImageAnalysis.query.filter(
-            ImageAnalysis.analysis_result.is_(None)
-        ).count()
-
-        # We need to handle empty JSONs separately to avoid type casting issues
-        empty_json_count = db.session.execute(
-            db.text("SELECT COUNT(*) FROM image_analysis WHERE analysis_result::text = '{}'")
-        ).scalar()
-
-        missing_analysis += empty_json_count if empty_json_count else 0
-
-        # Check for characters missing plot lines
-        missing_plot_lines = ImageAnalysis.query.filter(
-            db.and_(
-                ImageAnalysis.image_type == 'character',
-                db.or_(
-                    ImageAnalysis.plot_lines.is_(None),
-                    ImageAnalysis.plot_lines == db.cast('[]', db.JSONB)
-                )
-            )
-        ).count()
-
-        if missing_plot_lines > 0:
-            issues.append({
-                'severity': 'warning',
-                'message': f'Found {missing_plot_lines} characters with missing plot lines',
-                'type': 'missing_plot_lines'
-            })
-
-        if missing_analysis > 0:
-            issues.append({
-                'severity': 'error',
-                'message': f'Found {missing_analysis} images with missing analysis results',
-                'type': 'missing_analysis'
-            })
-
-        # Check for stories with no images
-        stories_no_images = StoryGeneration.query.filter(~StoryGeneration.images.any()).count()
-
-        if stories_no_images > 0:
-            issues.append({
-                'severity': 'warning',
-                'message': f'Found {stories_no_images} stories with no associated images',
-                'type': 'stories_no_images'
-            })
-
-        # Check for malformed story JSON
-        malformed_stories = 0
-        for story in StoryGeneration.query.all():
-            if story.generated_story:
-                try:
-                    if isinstance(story.generated_story, str):
-                        json.loads(story.generated_story)
-                except:
-                    malformed_stories += 1
-
-        if malformed_stories > 0:
-            issues.append({
-                'severity': 'error',
-                'message': f'Found {malformed_stories} stories with malformed JSON',
-                'type': 'malformed_json'
-            })
-
-        return jsonify({
-            'success': True,
-            'stats': {
-                'image_count': image_count,
-                'character_count': character_count,
-                'scene_count': scene_count,
-                'story_count': story_count,
-                'orphaned_images': orphaned_images,
-                'empty_stories': empty_stories
-            },
-            'issues': issues,
-            'has_issues': len(issues) > 0
-        })
-    except Exception as e:
-        logger.error(f"Error performing health check: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
 
 app.register_blueprint(unity_api, url_prefix='/api/unity') # Blueprint registration
 
