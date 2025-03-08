@@ -21,18 +21,18 @@ function removeLoadingOverlay(overlay) {
     overlay.closest('.loading-overlay').remove();
 }
 
-// Show toast notification
-function showToast(title, message) {
-    const toastEl = document.getElementById('notificationToast');
-    if (toastEl) {
-        const toast = new bootstrap.Toast(toastEl);
-        document.getElementById('toastTitle').textContent = title;
-        document.getElementById('toastMessage').textContent = message;
-        toast.show();
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function() {
+    // Show toast notification
+    function showToast(title, message) {
+        const toastEl = document.getElementById('notificationToast');
+        if (toastEl) {
+            const toast = new bootstrap.Toast(toastEl);
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+            toast.show();
+        }
+    }
+
     // Character selection handling
     const characterCards = document.querySelectorAll('.character-select-card');
     const characterCheckboxes = document.querySelectorAll('.character-checkbox');
@@ -90,14 +90,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Submit form data
             const formData = new FormData(storyForm);
-            formData.set('selected_images[]', selectedCharacter.value);
+            formData.append('selected_images[]', selectedCharacter.value);
 
             fetch('/generate_story', {
                 method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
+                body: formData
             })
             .then(response => response.json())
             .then(data => {
@@ -145,10 +142,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 fetch('/generate_story', {
                     method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
+                    body: formData
                 })
                 .then(response => response.json())
                 .then(data => {
