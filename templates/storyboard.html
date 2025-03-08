@@ -1,10 +1,11 @@
+
 <!DOCTYPE html>
-<html data-bs-theme="dark">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Story Adventure</title>
-    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 </head>
@@ -14,66 +15,60 @@
     {% endif %}
 
     <div class="container-fluid story-main-container">
-        <div class="row">
-            <div class="col-md-3">
-                <!-- Character Showcase (Left Side) -->
-                <div class="character-showcase">
-                    {% for char in character_images[:1] %}
-                    <div class="character-portrait-container">
-                        <img src="{{ char.image_url }}" class="main-character-img" alt="{{ char.name|default('Mystery Character') }}">
-                    </div>
-                    <div class="character-info-box">
-                        <h3>{{ char.name|default('Mystery Character') }}</h3>
-                        <div class="character-traits-list">
-                            {% if char.traits %}
-                                {% for trait in char.traits %}
-                                <span class="badge trait-badge">{{ trait }}</span>
-                                {% endfor %}
-                            {% endif %}
-                        </div>
-                    </div>
+        <!-- Character Showcase (Now Central) -->
+        <div class="character-showcase">
+            {% for char in character_images[:1] %}
+            <div class="character-portrait-container">
+                <img src="{{ char.image_url }}" class="main-character-img" alt="{{ char.name|default('Mystery Character') }}">
+            </div>
+            <div class="character-info-box">
+                <h3>{{ char.name|default('Mystery Character') }}</h3>
+                <div class="character-traits-list">
+                    {% if char.traits %}
+                        {% for trait in char.traits %}
+                        <span class="badge trait-badge">{{ trait }}</span>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Story Content -->
+        <div class="story-content-container">
+            <div class="story-title-area">
+                <h1 class="story-title">{{ story.title }}</h1>
+                <p class="story-subtitle">An adventure in Uncle Mark's forest farm</p>
+            </div>
+            
+            <div class="story-scroll-container">
+                <div class="story-content">
+                    {{ story.story | safe }}
+                </div>
+
+                <!-- Choices -->
+                <div class="choices-container">
+                    {% for choice in story.choices %}
+                    <form action="{{ url_for('generate_story_route') }}" method="POST" class="choice-form">
+                        <input type="hidden" name="previous_choice" value="{{ choice.text }}">
+                        <input type="hidden" name="story_context" value="{{ story.story }}">
+                        {% for image in character_images %}
+                        <input type="hidden" name="selected_images[]" value="{{ image.id }}">
+                        {% endfor %}
+                        <button type="submit" class="choice-btn">
+                            <div class="choice-text">{{ choice.text }}</div>
+                            <div class="consequence">{{ choice.consequence }}</div>
+                        </button>
+                    </form>
                     {% endfor %}
                 </div>
             </div>
-
-            <div class="col-md-9">
-                <!-- Story Content (Right Side) -->
-                <div class="story-content-container">
-                    <div class="story-title-area">
-                        <h1 class="story-title">{{ story.title }}</h1>
-                        <p class="story-subtitle">An adventure in Uncle Mark's forest farm</p>
-                    </div>
-                    
-                    <div class="story-scroll-container">
-                        <div class="story-content">
-                            {{ story.story | safe }}
-                        </div>
-
-                        <!-- Choices -->
-                        <div class="choices-container">
-                            {% for choice in story.choices %}
-                            <form action="{{ url_for('generate_story_route') }}" method="POST" class="choice-form">
-                                <input type="hidden" name="previous_choice" value="{{ choice.text }}">
-                                <input type="hidden" name="story_context" value="{{ story.story }}">
-                                {% for image in character_images %}
-                                <input type="hidden" name="selected_images[]" value="{{ image.id }}">
-                                {% endfor %}
-                                <button type="submit" class="choice-btn">
-                                    <div class="choice-text">{{ choice.text }}</div>
-                                    <div class="consequence">{{ choice.consequence }}</div>
-                                </button>
-                            </form>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    
-                    <!-- Navigation -->
-                    <div class="navigation-area">
-                        <a href="{{ url_for('index') }}" class="btn btn-return">
-                            <i class="fas fa-arrow-left me-2"></i>Return to Home
-                        </a>
-                    </div>
-                </div>
+            
+            <!-- Navigation -->
+            <div class="navigation-area">
+                <a href="{{ url_for('index') }}" class="btn btn-return">
+                    <i class="fas fa-arrow-left me-2"></i>Return to Home
+                </a>
             </div>
         </div>
     </div>
