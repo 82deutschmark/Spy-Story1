@@ -283,9 +283,12 @@ body[data-bs-theme="dark"] .trait-badge {
 
 .consequence {
     font-style: italic;
-    color: rgba(255, 255, 255, 0.95);
+    color: #000;
+    background-color: #5dff5d;
     font-size: 0.9rem;
-    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+    padding: 0.3rem;
+    border-radius: 4px;
+    font-weight: 500;
 }
 
 /* Navigation */
