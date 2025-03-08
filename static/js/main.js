@@ -234,7 +234,7 @@ if (storyFormMain) {
 // Remove duplicate reroll button functionality
 
                     // Find the character name element within the container
-                    const characterContainer = characterCard.closest('.character-container');
+                    const characterContainer = card.closest('.character-container');
                     const nameElement = characterContainer ? characterContainer.querySelector('.character-name') : null;
                     if (nameElement) {
                         nameElement.textContent = data.name;
@@ -356,74 +356,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const cardIndex = this.dataset.cardIndex;
             const cardContainer = this.closest('.character-container');
             const characterCard = cardContainer.querySelector('.character-select-card');
-            const checkbox = cardContainer.querySelector('.character-checkbox');
             
             // Show loading state
             this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Rerolling...';
-            characterCard.style.opacity = '0.6';
             
             // Fetch a new random character
             fetch('/api/random_character')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.id) {
-                        // Update the card with new character data
-                        const characterImage = characterCard.querySelector('img');
-                        if (characterImage) {
-                            characterImage.src = data.image_url;
-                            characterImage.alt = data.name || 'Character';
-                        }
-                        
-                        // Update character name
-                        const nameElement = cardContainer.querySelector('.character-name');
-                        if (nameElement) {
-                            nameElement.textContent = data.name || 'Unknown Character';
-                        }
-                        
-                        // Update traits
-                        const traitsContainer = cardContainer.querySelector('.character-traits-list');
-                        if (traitsContainer && data.character_traits) {
-                            traitsContainer.innerHTML = '';
-                            data.character_traits.forEach(trait => {
-                                const badge = document.createElement('span');
-                                badge.className = 'trait-badge';
-                                badge.textContent = trait;
-                                traitsContainer.appendChild(badge);
-                            });
-                        }
-                        
-                        // Update checkbox value
-                        if (checkbox) {
-                            checkbox.value = data.id;
-                            checkbox.id = `character${data.id}`;
-                        }
-                        
-                        // Update select button
-                        const selectBtn = cardContainer.querySelector('.select-character-btn');
-                        if (selectBtn) {
-                            selectBtn.dataset.characterId = data.id;
-                        }
-                        
-                        // Reset selection state
-                        if (checkbox) checkbox.checked = false;
-                        const selectionIndicator = characterCard.querySelector('.selection-indicator');
-                        if (selectionIndicator) selectionIndicator.style.display = 'none';
-                        
-                        // Show toast notification
-                        showToast('Character Updated', 'A new character has been loaded!');
-                    } else {
-                        showToast('Error', 'Failed to load a new character. Please try again.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching random character:', error);
-                    showToast('Error', 'Failed to load a new character. Please try again.');
-                })
-                .finally(() => {
-                    // Reset button state
-                    characterCard.style.opacity = '1';
-                    this.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
-                });
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
