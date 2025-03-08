@@ -370,3 +370,87 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+
+// Character highlighting in story text
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to highlight characters in story text
+    function highlightCharactersInStory() {
+        const storyContent = document.querySelector('.story-content');
+        if (!storyContent) return;
+        
+        // Get all character names from the mini-portraits
+        const characterPortraits = document.querySelectorAll('.character-portrait-mini');
+        const characterNames = Array.from(characterPortraits).map(portrait => {
+            return {
+                name: portrait.querySelector('.character-mini-name').textContent.trim(),
+                image: portrait.querySelector('img').src,
+                element: portrait
+            };
+        });
+        
+        // Sort names by length (longest first) to avoid partial matches
+        characterNames.sort((a, b) => b.name.length - a.name.length);
+        
+        // Get the story text
+        let storyText = storyContent.innerHTML;
+        
+        // Replace character names with highlighted spans
+        characterNames.forEach(character => {
+            const regex = new RegExp(`\\b${character.name}\\b`, 'gi');
+            storyText = storyText.replace(regex, match => {
+                return `<span class="character-mention" data-character="${character.name.toLowerCase().replace(/\s/g, '-')}">
+                    ${match}
+                    <span class="character-tooltip">
+                        <img src="${character.image}" alt="${match}">
+                        ${match}
+                    </span>
+                </span>`;
+            });
+        });
+        
+        // Update the story content
+        storyContent.innerHTML = storyText;
+        
+        // Add click event to highlight corresponding mini-portrait
+        document.querySelectorAll('.character-mention').forEach(mention => {
+            mention.addEventListener('click', function() {
+                const characterId = this.dataset.character;
+                const targetPortrait = document.querySelector(`.character-portrait-mini[data-character-name="${characterId}"]`);
+                
+                // Remove highlight from all portraits
+                document.querySelectorAll('.character-mini-img').forEach(img => {
+                    img.classList.remove('character-mini-highlight');
+                });
+                
+                // Add highlight to this portrait
+                if (targetPortrait) {
+                    const portraitImg = targetPortrait.querySelector('.character-mini-img');
+                    portraitImg.classList.add('character-mini-highlight');
+                    
+                    // Scroll to the portrait if needed
+                    targetPortrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    
+                    // Remove highlight after 3 seconds
+                    setTimeout(() => {
+                        portraitImg.classList.remove('character-mini-highlight');
+                    }, 3000);
+                }
+            });
+        });
+    }
+    
+    // Run the highlighting function when page loads
+    highlightCharactersInStory();
+    
+    // Also run when a story choice is made (if needed)
+    const choiceForms = document.querySelectorAll('.choice-form');
+    if (choiceForms.length > 0) {
+        choiceForms.forEach(form => {
+            form.addEventListener('submit', function() {
+                // We'll re-run the function when the new page loads
+                // This is handled by the DOMContentLoaded event
+            });
+        });
+    }
+});

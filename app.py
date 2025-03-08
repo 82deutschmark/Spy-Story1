@@ -135,16 +135,43 @@ def storyboard(story_id):
     # Get random scene for background
     background_image = get_random_scene_background()
 
-    # Get associated character images
+    # Get associated character images from the story and referenced characters
     character_images = []
+    
+    # Add direct story images first
     for image in story.images:
         analysis = image.analysis_result
         character_images.append({
             'id': image.id,
             'image_url': image.image_url,
-            'name': analysis.get('name', ''),
+            'name': image.character_name or analysis.get('name', ''),
             'traits': image.character_traits
         })
+    
+    # Get all characters mentioned in the story
+    mentioned_characters = []
+    if 'characters' in story_data and isinstance(story_data['characters'], list):
+        mentioned_characters = story_data['characters']
+    
+    # Try to find images for any additional characters mentioned
+    for character_name in mentioned_characters:
+        # Skip characters we already have
+        if any(char['name'].lower() == character_name.lower() for char in character_images):
+            continue
+            
+        # Look for this character in the database
+        character_img = ImageAnalysis.query.filter(
+            ImageAnalysis.image_type == 'character',
+            ImageAnalysis.character_name.ilike(f'%{character_name}%')
+        ).first()
+        
+        if character_img:
+            character_images.append({
+                'id': character_img.id,
+                'image_url': character_img.image_url,
+                'name': character_img.character_name,
+                'traits': character_img.character_traits
+            })
 
     return render_template(
         'storyboard.html',

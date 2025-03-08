@@ -31,6 +31,19 @@
                 </div>
             </div>
             {% endfor %}
+            
+            <!-- Character Gallery for all characters -->
+            <div class="character-gallery mt-4">
+                <h4 class="text-center mb-3">Characters in Story</h4>
+                <div class="character-portraits-grid">
+                    {% for char in character_images %}
+                    <div class="character-portrait-mini" data-character-name="{{ char.name|lower|replace(' ', '-') }}">
+                        <img src="{{ char.image_url }}" alt="{{ char.name }}" class="character-mini-img">
+                        <div class="character-mini-name">{{ char.name }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
 
         <!-- Story Content -->
