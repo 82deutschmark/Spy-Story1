@@ -1,5 +1,5 @@
 // Loading overlay functions
-function createLoadingOverlay() {
+function createLoadingOverlay(message = 'Generating Story...') {
     const overlay = document.createElement('div');
     overlay.className = 'loading-overlay';
     overlay.innerHTML = `
@@ -21,7 +21,7 @@ function removeLoadingOverlay(overlay) {
     overlay.closest('.loading-overlay').remove();
 }
 
-// Show toast notification
+// Toast notification function
 function showToast(title, message) {
     const toastEl = document.getElementById('notificationToast');
     if (toastEl) {
@@ -33,63 +33,235 @@ function showToast(title, message) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Character selection handling
+    // Character selection elements
     const characterCards = document.querySelectorAll('.character-select-card');
     const characterCheckboxes = document.querySelectorAll('.character-checkbox');
     const storyForm = document.getElementById('storyForm');
     const characterSelectionError = document.getElementById('characterSelectionError');
     const generateStoryBtn = document.getElementById('generateStoryBtn');
 
-    // Handle character card selection
-    if (characterCards.length > 0) {
-        characterCards.forEach((card, index) => {
-            card.addEventListener('click', function(e) {
-                if (e.target.type !== 'radio' && !e.target.closest('.reroll-btn')) {
-                    const checkbox = characterCheckboxes[index];
-                    checkbox.checked = true;
-                    showToast('Character Selected', 'Character has been selected for your story.');
-                }
-            });
+    // Add hidden input fields for selected images
+    function updateSelectedImagesInput() {
+        if (!storyForm) return;
+
+        // Remove any existing hidden inputs
+        document.querySelectorAll('input[name="selected_images[]"]').forEach(el => el.remove());
+
+        // Add new hidden inputs for each selected character
+        document.querySelectorAll('.character-checkbox:checked').forEach(checkbox => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'selected_images[]';
+            input.value = checkbox.value;
+            storyForm.appendChild(input);
         });
     }
 
-    // Handle story generation form submission
+    // Clear all selections
+    function clearAllSelections() {
+        characterCards.forEach(card => {
+            card.classList.remove('selected');
+            const indicator = card.querySelector('.selection-indicator');
+            if (indicator) {
+                indicator.style.display = 'none';
+            }
+        });
+
+        characterCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    }
+
+    // Handle character selection when clicking on card
+    characterCards.forEach(card => {
+        card.addEventListener('click', function() {
+            const characterId = this.dataset.id;
+            const checkbox = document.getElementById(`character${characterId}`);
+            const selectionIndicator = this.querySelector('.selection-indicator');
+
+            if (!checkbox || !selectionIndicator) return;
+
+            // For single-select behavior
+            clearAllSelections();
+
+            // Select this character
+            checkbox.checked = true;
+            selectionIndicator.style.display = 'block';
+            this.classList.add('selected');
+
+            updateSelectedImagesInput();
+
+            // Show toast notification
+            showToast('Character Selected', 'Character has been selected for your story.');
+        });
+    });
+
+    // Handle select character button clicks
+    const selectButtons = document.querySelectorAll('.select-character-btn');
+    selectButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const characterId = this.dataset.characterId;
+            const characterCard = document.querySelector(`.character-select-card[data-id="${characterId}"]`);
+
+            if (!characterCard) return;
+
+            const checkbox = document.getElementById(`character${characterId}`);
+            const selectionIndicator = characterCard.querySelector('.selection-indicator');
+
+            if (!checkbox || !selectionIndicator) return;
+
+            // For single-select behavior
+            clearAllSelections();
+
+            // Select this character
+            checkbox.checked = true;
+            selectionIndicator.style.display = 'block';
+            characterCard.classList.add('selected');
+
+            updateSelectedImagesInput();
+
+            // Show toast notification
+            showToast('Character Selected', 'Character has been selected for your story.');
+        });
+    });
+
+    // Handle reroll buttons
+    const rerollButtons = document.querySelectorAll('.reroll-btn');
+    rerollButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const cardContainer = this.closest('.character-container');
+
+            if (!cardContainer) return;
+
+            const characterCard = cardContainer.querySelector('.character-select-card');
+
+            if (!characterCard) return;
+
+            // Show loading state
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Rerolling...';
+
+            // Fetch a new random character
+            fetch('/api/random_character')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update image
+                        const cardImg = characterCard.querySelector('img');
+                        if (cardImg) {
+                            cardImg.src = data.image_url;
+                        }
+
+                        // Update character ID
+                        characterCard.dataset.id = data.id;
+
+                        // Update character name
+                        const nameElement = cardContainer.querySelector('.character-name');
+                        if (nameElement) {
+                            nameElement.textContent = data.name;
+                        }
+
+                        // Update traits
+                        const traitsContainer = cardContainer.querySelector('.character-traits-list');
+                        if (traitsContainer) {
+                            traitsContainer.innerHTML = '';
+                            if (data.character_traits && data.character_traits.length > 0) {
+                                data.character_traits.forEach(trait => {
+                                    const traitBadge = document.createElement('span');
+                                    traitBadge.className = 'trait-badge';
+                                    traitBadge.textContent = trait;
+                                    traitsContainer.appendChild(traitBadge);
+                                });
+                            }
+                        }
+
+                        // Update select button data attribute
+                        const selectBtn = cardContainer.querySelector('.select-character-btn');
+                        if (selectBtn) {
+                            selectBtn.dataset.characterId = data.id;
+                        }
+
+                        // Update hidden input
+                        const checkbox = cardContainer.querySelector('.character-checkbox');
+                        if (checkbox) {
+                            checkbox.value = data.id;
+                            checkbox.id = `character${data.id}`;
+                        }
+
+                        // Show toast notification
+                        showToast('Character Updated', 'A new character has been loaded!');
+                    } else {
+                        showToast('Error', 'Failed to load a new character. Please try again.');
+                    }
+
+                    // Reset button
+                    this.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
+                })
+                .catch(error => {
+                    console.error('Error fetching random character:', error);
+                    this.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
+                    showToast('Error', 'Failed to load a new character. Please try again.');
+                });
+        });
+    });
+
+    // Form submission handling
     if (storyForm) {
-        storyForm.addEventListener('submit', async function(e) {
+        storyForm.addEventListener('submit', function(e) {
             e.preventDefault();
 
-            const selectedCharacter = document.querySelector('input[name="selectedCharacter"]:checked');
-            if (!selectedCharacter) {
-                characterSelectionError.style.display = 'block';
-                characterSelectionError.textContent = 'Please select a character for your story.';
+            // Check if at least one character is selected
+            const selectedCharacters = document.querySelectorAll('.character-checkbox:checked');
+            if (selectedCharacters.length !== 1) {
+                if (characterSelectionError) {
+                    characterSelectionError.style.display = 'block';
+                    characterSelectionError.textContent = 'Please select a character for your story';
+                    window.scrollTo(0, 0);
+                }
+                showToast('Selection Needed', 'Please select a character before continuing');
                 return;
             }
 
-            characterSelectionError.style.display = 'none';
-            const loadingPercent = createLoadingOverlay();
-            generateStoryBtn.disabled = true;
+            // Hide error message if shown
+            if (characterSelectionError) {
+                characterSelectionError.style.display = 'none';
+            }
 
-            try {
-                let progress = 0;
-                const progressInterval = setInterval(() => {
-                    if (progress < 90) {
-                        progress += 5;
-                        updateLoadingPercent(loadingPercent, progress);
-                    }
-                }, 500);
+            // Create loading overlay with percentage
+            const loadingPercent = createLoadingOverlay('Generating your adventure...');
 
-                const formData = new FormData(this);
-                formData.set('selected_images[]', selectedCharacter.value);
+            if (generateStoryBtn) {
+                generateStoryBtn.disabled = true;
+                generateStoryBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Story...';
+            }
 
-                const response = await fetch('/generate_story', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                if (progress < 90) {
+                    progress += 5;
+                    updateLoadingPercent(loadingPercent, progress);
+                }
+            }, 500);
 
-                const data = await response.json();
+            // Update selected images input
+            updateSelectedImagesInput();
+
+            // Submit the form
+            const formData = new FormData(this);
+            fetch('/generate_story', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
                 clearInterval(progressInterval);
 
                 if (data.success && data.redirect) {
@@ -100,25 +272,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     throw new Error(data.error || 'Failed to generate story');
                 }
-            } catch (error) {
-                showToast('Error', error.message);
-                generateStoryBtn.disabled = false;
-                generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
-                removeLoadingOverlay(loadingPercent);
-            }
+            })
+            .catch(error => {
+                console.error('Error generating story:', error);
+                showToast('Error', error.message || 'Failed to generate story. Please try again.');
+
+                clearInterval(progressInterval);
+                const overlay = loadingPercent.closest('.loading-overlay');
+                if (overlay) overlay.remove();
+
+                if (generateStoryBtn) {
+                    generateStoryBtn.disabled = false;
+                    generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
+                }
+            });
         });
     }
 
-    // Handle story choice form submission
+    // Story choice form submission
     const choiceForms = document.querySelectorAll('.choice-form');
     if (choiceForms.length > 0) {
         choiceForms.forEach(form => {
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
-                const submitBtn = this.querySelector('button');
-                submitBtn.disabled = true;
+                const btn = this.querySelector('button');
+                btn.disabled = true;
+                btn.classList.add('loading');
 
-                const loadingPercent = createLoadingOverlay();
+                const loadingPercent = createLoadingOverlay('Continuing your story...');
                 let progress = 0;
                 const progressInterval = setInterval(() => {
                     if (progress < 90) {
@@ -128,10 +309,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 500);
 
                 try {
-                    const formData = new FormData(this);
-                    const response = await fetch('/generate_story', {
+                    const response = await fetch(this.action, {
                         method: 'POST',
-                        body: formData,
+                        body: new FormData(this),
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest'
                         }
@@ -149,85 +329,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         throw new Error(data.error || 'Failed to continue story');
                     }
                 } catch (error) {
-                    showToast('Error', 'Failed to continue story. Please try again.');
-                    submitBtn.disabled = false;
+                    showToast('Error', error.message);
+                    btn.disabled = false;
+                    btn.classList.remove('loading');
                     clearInterval(progressInterval);
-                    removeLoadingOverlay(loadingPercent);
+                    const overlay = loadingPercent.closest('.loading-overlay');
+                    if (overlay) overlay.remove();
                 }
-            });
-        });
-    }
-    // Character highlighting in story text
-    function highlightCharactersInStory() {
-        const storyContent = document.querySelector('.story-content');
-        if (!storyContent) return;
-
-        // Get all character names from the mini-portraits
-        const characterPortraits = document.querySelectorAll('.character-portrait-mini');
-        const characterNames = Array.from(characterPortraits).map(portrait => {
-            return {
-                name: portrait.querySelector('.character-mini-name').textContent.trim(),
-                image: portrait.querySelector('img').src,
-                element: portrait
-            };
-        });
-
-        // Sort names by length (longest first) to avoid partial matches
-        characterNames.sort((a, b) => b.name.length - a.name.length);
-
-        // Get the story text
-        let storyText = storyContent.innerHTML;
-
-        // Replace character names with highlighted spans
-        characterNames.forEach(character => {
-            const regex = new RegExp(`\\b${character.name}\\b`, 'gi');
-            storyText = storyText.replace(regex, match => {
-                return `<span class="character-mention" data-character="${character.name.toLowerCase().replace(/\s/g, '-')}">${match}<span class="character-tooltip"><img src="${character.image}" alt="${match}">${match}</span></span>`;
-            });
-        });
-
-        // Update the story content
-        storyContent.innerHTML = storyText;
-
-        // Add click event to highlight corresponding mini-portrait
-        document.querySelectorAll('.character-mention').forEach(mention => {
-            mention.addEventListener('click', function() {
-                const characterId = this.dataset.character;
-                const targetPortrait = document.querySelector(`.character-portrait-mini[data-character-name="${characterId}"]`);
-
-                // Remove highlight from all portraits
-                document.querySelectorAll('.character-mini-img').forEach(img => {
-                    img.classList.remove('character-mini-highlight');
-                });
-
-                // Add highlight to this portrait
-                if (targetPortrait) {
-                    const portraitImg = targetPortrait.querySelector('.character-mini-img');
-                    portraitImg.classList.add('character-mini-highlight');
-
-                    // Scroll to the portrait if needed
-                    targetPortrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-                    // Remove highlight after 3 seconds
-                    setTimeout(() => {
-                        portraitImg.classList.remove('character-mini-highlight');
-                    }, 3000);
-                }
-            });
-        });
-    }
-
-    // Run the highlighting function when page loads
-    highlightCharactersInStory();
-
-    // Also run when a story choice is made (if needed)
-    const choiceForms2 = document.querySelectorAll('.choice-form');
-    if (choiceForms2.length > 0) {
-        choiceForms2.forEach(form => {
-            form.addEventListener('submit', function() {
-                // We'll re-run the function when the new page loads
-                // This is handled by the DOMContentLoaded event
-                highlightCharactersInStory();
             });
         });
     }
@@ -259,6 +367,84 @@ document.addEventListener('DOMContentLoaded', function() {
                     indicator.style.display = 'block';
                 }
             }
+        });
+    }
+});
+
+
+// Character highlighting in story text
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to highlight characters in story text
+    function highlightCharactersInStory() {
+        const storyContent = document.querySelector('.story-content');
+        if (!storyContent) return;
+        
+        // Get all character names from the mini-portraits
+        const characterPortraits = document.querySelectorAll('.character-portrait-mini');
+        const characterNames = Array.from(characterPortraits).map(portrait => {
+            return {
+                name: portrait.querySelector('.character-mini-name').textContent.trim(),
+                image: portrait.querySelector('img').src,
+                element: portrait
+            };
+        });
+        
+        // Sort names by length (longest first) to avoid partial matches
+        characterNames.sort((a, b) => b.name.length - a.name.length);
+        
+        // Get the story text
+        let storyText = storyContent.innerHTML;
+        
+        // Replace character names with highlighted spans
+        characterNames.forEach(character => {
+            const regex = new RegExp(`\\b${character.name}\\b`, 'gi');
+            storyText = storyText.replace(regex, match => {
+                return `<span class="character-mention" data-character="${character.name.toLowerCase().replace(/\s/g, '-')}">${match}<span class="character-tooltip"><img src="${character.image}" alt="${match}">${match}</span></span>`;
+            });
+        });
+        
+        // Update the story content
+        storyContent.innerHTML = storyText;
+        
+        // Add click event to highlight corresponding mini-portrait
+        document.querySelectorAll('.character-mention').forEach(mention => {
+            mention.addEventListener('click', function() {
+                const characterId = this.dataset.character;
+                const targetPortrait = document.querySelector(`.character-portrait-mini[data-character-name="${characterId}"]`);
+                
+                // Remove highlight from all portraits
+                document.querySelectorAll('.character-mini-img').forEach(img => {
+                    img.classList.remove('character-mini-highlight');
+                });
+                
+                // Add highlight to this portrait
+                if (targetPortrait) {
+                    const portraitImg = targetPortrait.querySelector('.character-mini-img');
+                    portraitImg.classList.add('character-mini-highlight');
+                    
+                    // Scroll to the portrait if needed
+                    targetPortrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    
+                    // Remove highlight after 3 seconds
+                    setTimeout(() => {
+                        portraitImg.classList.remove('character-mini-highlight');
+                    }, 3000);
+                }
+            });
+        });
+    }
+    
+    // Run the highlighting function when page loads
+    highlightCharactersInStory();
+    
+    // Also run when a story choice is made (if needed)
+    const choiceForms = document.querySelectorAll('.choice-form');
+    if (choiceForms.length > 0) {
+        choiceForms.forEach(form => {
+            form.addEventListener('submit', function() {
+                // We'll re-run the function when the new page loads
+                // This is handled by the DOMContentLoaded event
+            });
         });
     }
 });
