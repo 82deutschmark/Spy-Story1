@@ -173,9 +173,16 @@ def storyboard(story_id):
                 'traits': character_img.character_traits
             })
 
+    # Pass the story parameters for continuation
     return render_template(
         'storyboard.html',
-        story=story_data,
+        story={
+            **story_data,
+            'conflict': story.primary_conflict,
+            'setting': story.setting,
+            'narrative_style': story.narrative_style,
+            'mood': story.mood
+        },
         character_images=character_images,
         background_image=background_image
     )
