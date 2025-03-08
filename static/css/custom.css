@@ -193,8 +193,8 @@ body[data-bs-theme="dark"]::before {
 }
 
 body[data-bs-theme="dark"] .trait-badge {
-    background-color: #4a5df0;
-    color: white;
+    background-color: #f5f0e1;
+    color: #333;
     padding: 0.15rem 0.35rem;
     border-radius: 50px;
     font-size: 0.7rem;
@@ -323,17 +323,17 @@ body[data-bs-theme="dark"] .trait-badge {
         gap: 1.5rem;
         align-items: flex-start;
     }
-    
+
     .character-showcase {
         width: 40%;
         position: sticky;
         top: 1rem;
     }
-    
+
     .story-content-container {
         width: 60%;
     }
-    
+
     .choices-container {
         grid-template-columns: 1fr 1fr;
     }
@@ -527,15 +527,15 @@ body[data-bs-theme="dark"] .form-select {
 }
 
 body[data-bs-theme="dark"] .btn-primary {
-    background-color: #4a5df0;
-    border-color: #4a5df0;
-    color: white;
+    background-color: #f5f0e1;
+    border-color: #f5f0e1;
+    color: #333;
     font-weight: 700;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
 }
 
 body[data-bs-theme="dark"] .btn-primary:hover {
-    background-color: #3746d3;
+    background-color: #ebe5d6;
     transform: translateY(-3px);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
 }
