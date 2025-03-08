@@ -96,7 +96,7 @@ body[data-bs-theme="dark"]::before {
     width: 100%;
     height: 100%;
     z-index: -1;
-    opacity: 0.15;
+    opacity: 0.6;
     object-fit: cover;
 }
 
@@ -130,7 +130,7 @@ body[data-bs-theme="dark"]::before {
     width: 100%;
     height: 100%;
     z-index: -1;
-    opacity: 0.2;
+    opacity: 0.6;
     object-fit: cover;
 }
 
@@ -654,25 +654,25 @@ body[data-bs-theme="dark"] .card {
 }
 
 .character-select-card {
-    height: 100%;
-    transition: transform 0.2s;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    height: 300px;
+    transition: all 0.3s ease;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    border: 3px solid transparent;
 }
 
 .character-select-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-8px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
 }
 
-.character-select-card img {
-    height: 100%;
-    object-fit: cover;
-    width: 100%;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
+.character-select-card.selected {
+    border-color: #8B5CF6;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
 }
 
 .characters-grid {

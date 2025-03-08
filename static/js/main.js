@@ -21,128 +21,119 @@ function removeLoadingOverlay(overlay) {
     overlay.closest('.loading-overlay').remove();
 }
 
-// Progress bar functions (These are not used anymore, so removed)
-// function createProgressBar() { ... }
-// function updateProgress(progressBar, progress) { ... }
-// function removeProgressBar(container) { ... }
-
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Character selection elements
+    // Character selection
     const characterCards = document.querySelectorAll('.character-select-card');
     const characterCheckboxes = document.querySelectorAll('.character-checkbox');
-    const rerollButtons = document.querySelectorAll('.reroll-btn');
     const storyForm = document.getElementById('storyForm');
     const generateStoryBtn = document.getElementById('generateStoryBtn');
     const characterSelectionError = document.getElementById('characterSelectionError');
-    const notificationToast = document.getElementById('notificationToast');
 
-    // Bootstrap toast instance
-    const toast = new bootstrap.Toast(notificationToast);
+    // Select character when card is clicked
+    characterCards.forEach((card, index) => {
+        card.addEventListener('click', function() {
+            // Clear any previous selections first
+            characterCards.forEach(c => c.classList.remove('selected'));
+            characterCheckboxes.forEach(cb => cb.checked = false);
 
-    // Show toast notification
-    function showToast(title, message) {
-        document.getElementById('toastTitle').textContent = title;
-        document.getElementById('toastMessage').textContent = message;
-        toast.show();
-    }
-
-    // Character selection
-    if (characterCards.length > 0) {
-        characterCards.forEach((card, index) => {
-            card.addEventListener('click', function(e) {
-                if (e.target.type !== 'radio' && !e.target.closest('.reroll-btn')) {
-                    const checkbox = characterCheckboxes[index];
-                    checkbox.checked = true;
-                }
-            });
-        });
-    }
-
-    // Story choice form submission
-    const choiceForms = document.querySelectorAll('.choice-form');
-    if (choiceForms.length > 0) {
-        choiceForms.forEach(form => {
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                const btn = this.querySelector('button');
-                btn.disabled = true;
-                btn.classList.add('loading');
-
-                const loadingPercent = createLoadingOverlay('Continuing your story...');
-                let progress = 0;
-                const progressInterval = setInterval(() => {
-                    if (progress < 90) {
-                        progress += 5;
-                        updateLoadingPercent(loadingPercent, progress);
-                    }
-                }, 500);
-
-                try {
-                    const response = await fetch(this.action, {
-                        method: 'POST',
-                        body: new FormData(this),
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    });
-
-                    const data = await response.json();
-                    clearInterval(progressInterval);
-
-                    if (data.success && data.redirect) {
-                        updateLoadingPercent(loadingPercent, 100);
-                        setTimeout(() => {
-                            window.location.href = data.redirect;
-                        }, 500);
-                    } else {
-                        throw new Error(data.error || 'Failed to continue story');
-                    }
-                } catch (error) {
-                    showToast('Error', error.message);
-                    btn.disabled = false;
-                    btn.classList.remove('loading');
-                    clearInterval(progressInterval);
-                    const overlay = loadingPercent.closest('.loading-overlay');
-                    if (overlay) overlay.remove();
-                }
-            });
-        });
-    }
-
-    // Handle main story form submission
-    if (storyForm) {
-        storyForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const selectedCharacter = document.querySelector('input[name="selectedCharacter"]:checked');
-            if (!selectedCharacter) {
-                characterSelectionError.style.display = 'block';
-                characterSelectionError.textContent = 'Please select a character for your story.';
-                return;
+            // Select this character
+            card.classList.add('selected');
+            if (characterCheckboxes[index]) {
+                characterCheckboxes[index].checked = true;
             }
 
-            characterSelectionError.style.display = 'none';
+            // Show visual feedback
+            showToast('Character Selected', 'Your character has been selected for the adventure');
+        });
+    });
 
-            // Create loading overlay with percentage
-            const loadingPercent = createLoadingOverlay();
-            generateStoryBtn.disabled = true;
+    // Reroll buttons functionality
+    const rerollButtons = document.querySelectorAll('.reroll-btn');
+    if (rerollButtons) {
+        rerollButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation(); // Prevent triggering card selection
+
+                // Add animation to button
+                button.classList.add('rerolling');
+
+                // Add reroll functionality here
+                showToast('Rerolling Character...', 'Character traits will be refreshed momentarily');
+
+                // Simulate trait refreshing (in real implementation, this would be an API call)
+                setTimeout(() => {
+                    button.classList.remove('rerolling');
+                    showToast('Character Updated!', 'New character traits are ready for your adventure');
+                }, 1500);
+            });
+        });
+    }
+
+    // Toast notification function
+    function showToast(title, message) {
+        const toastElement = document.getElementById('notificationToast');
+        const toastTitle = document.getElementById('toastTitle');
+        const toastMessage = document.getElementById('toastMessage');
+
+        if (toastElement && toastTitle && toastMessage) {
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+        }
+    }
+
+    // Form submission
+    if (storyForm) {
+        storyForm.addEventListener('submit', function(e) {
+            // Check if a character is selected
+            const selectedCharacters = document.querySelectorAll('.character-checkbox:checked');
+
+            if (selectedCharacters.length < 1) {
+                e.preventDefault();
+                if (characterSelectionError) {
+                    characterSelectionError.style.display = 'block';
+                    characterSelectionError.textContent = 'Please select a character for your story';
+                }
+                window.scrollTo(0, 0);
+                showToast('Selection Needed', 'Please select a character before continuing');
+            }
+        });
+    }
+
+    // Check radio buttons on page load to restore selection state
+    characterCheckboxes.forEach((checkbox, index) => {
+        if (checkbox.checked) {
+            characterCards[index].classList.add('selected');
+        }
+    });
+});
+
+// Story choice form submission
+const choiceForms = document.querySelectorAll('.choice-form');
+if (choiceForms.length > 0) {
+    choiceForms.forEach(form => {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = this.querySelector('button');
+            btn.disabled = true;
+            btn.classList.add('loading');
+
+            const loadingPercent = createLoadingOverlay('Continuing your story...');
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                if (progress < 90) {
+                    progress += 5;
+                    updateLoadingPercent(loadingPercent, progress);
+                }
+            }, 500);
 
             try {
-                let progress = 0;
-                const progressInterval = setInterval(() => {
-                    if (progress < 90) {
-                        progress += 5;
-                        updateLoadingPercent(loadingPercent, progress);
-                    }
-                }, 500);
-
-                const formData = new FormData(this);
-                formData.set('selected_images[]', selectedCharacter.value);
-
-                const response = await fetch('/generate_story', {
+                const response = await fetch(this.action, {
                     method: 'POST',
-                    body: formData,
+                    body: new FormData(this),
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
                     }
@@ -157,167 +148,169 @@ document.addEventListener('DOMContentLoaded', function() {
                         window.location.href = data.redirect;
                     }, 500);
                 } else {
-                    throw new Error(data.error || 'Failed to generate story');
+                    throw new Error(data.error || 'Failed to continue story');
                 }
             } catch (error) {
                 showToast('Error', error.message);
-                generateStoryBtn.disabled = false;
-                generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
+                btn.disabled = false;
+                btn.classList.remove('loading');
+                clearInterval(progressInterval);
                 const overlay = loadingPercent.closest('.loading-overlay');
                 if (overlay) overlay.remove();
             }
         });
-    }
+    });
+}
 
-    // Reroll functionality (adapted to use new loading overlay)
-    if (rerollButtons.length > 0) {
-        rerollButtons.forEach(button => {
-            button.addEventListener('click', async function(e) {
-                e.preventDefault();
-                e.stopPropagation();
+// Handle main story form submission
+const storyFormMain = document.getElementById('storyForm');
+if (storyFormMain) {
+    storyFormMain.addEventListener('submit', async function(e) {
+        e.preventDefault();
 
-                const cardIndex = this.getAttribute('data-card-index');
-                const card = characterCards[cardIndex];
-                const cardImage = card.querySelector('img');
-                const traitsContainer = card.querySelector('.character-traits');
-                const checkbox = card.querySelector('.character-checkbox');
+        const selectedCharacter = document.querySelector('input[name="selectedCharacter"]:checked');
+        if (!selectedCharacter) {
+            characterSelectionError.style.display = 'block';
+            characterSelectionError.textContent = 'Please select a character for your story.';
+            return;
+        }
 
-                // Show loading state
-                this.disabled = true;
-                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
-                cardImage.src = 'https://via.placeholder.com/400x250?text=Loading...';
+        characterSelectionError.style.display = 'none';
 
-                const loadingPercent = createLoadingOverlay();
-                let progress = 0;
-                const progressInterval = setInterval(() => {
+        // Create loading overlay with percentage
+        const loadingPercent = createLoadingOverlay();
+        generateStoryBtn.disabled = true;
+
+        try {
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                if (progress < 90) {
                     progress += 5;
                     updateLoadingPercent(loadingPercent, progress);
-                    if (progress >= 100) {
-                        clearInterval(progressInterval);
-                        removeLoadingOverlay(loadingPercent);
-                    }
-                }, 100);
+                }
+            }, 500);
 
-                try {
-                    const response = await fetch('/api/random_character');
-                    const data = await response.json();
+            const formData = new FormData(this);
+            formData.set('selected_images[]', selectedCharacter.value);
 
-                    if (data.success) {
-                        // Update the card with the new character
-                        cardImage.src = data.image_url;
-
-                        // Find the character name element within the container
-                        const characterContainer = card.closest('.character-container');
-                        const nameElement = characterContainer ? characterContainer.querySelector('.character-name') : null;
-                        if (nameElement) {
-                            nameElement.textContent = data.name;
-                        }
-
-                        // Update character traits
-                        if (traitsContainer && data.character_traits) {
-                            traitsContainer.innerHTML = '';
-                            data.character_traits.forEach(trait => {
-                                const badge = document.createElement('span');
-                                badge.className = 'badge bg-primary me-1';
-                                badge.textContent = trait;
-                                traitsContainer.appendChild(badge);
-                            });
-                        }
-
-                        // Update checkbox value
-                        if (checkbox) {
-                            checkbox.value = data.id;
-                        }
-
-                        showToast('Success', 'Character rerolled successfully!');
-                    } else {
-                        throw new Error(data.error || 'Failed to get a new character');
-                    }
-                } catch (error) {
-                    showToast('Error', error.message);
-                } finally {
-                    // Reset button state
-                    this.disabled = false;
-                    this.innerHTML = '<i class="fas fa-dice me-1"></i>Reroll';
+            const response = await fetch('/generate_story', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
             });
-        });
-    }
 
-    // Debug page enhancements
-    const editModeSwitch = document.getElementById('editModeSwitch');
-    const generatedContent = document.getElementById('generatedContent');
+            const data = await response.json();
+            clearInterval(progressInterval);
 
-    if (editModeSwitch && generatedContent) {
-        editModeSwitch.addEventListener('change', function() {
-            if (this.checked) {
-                generatedContent.contentEditable = true;
-                generatedContent.classList.add('editable');
-                generatedContent.focus();
+            if (data.success && data.redirect) {
+                updateLoadingPercent(loadingPercent, 100);
+                setTimeout(() => {
+                    window.location.href = data.redirect;
+                }, 500);
             } else {
-                generatedContent.contentEditable = false;
-                generatedContent.classList.remove('editable');
+                throw new Error(data.error || 'Failed to generate story');
             }
-        });
-    }
-});
-document.addEventListener('DOMContentLoaded', function() {
-    // Character selection
-    const characterCards = document.querySelectorAll('.character-select-card');
-    const characterCheckboxes = document.querySelectorAll('.character-checkbox');
-    const storyForm = document.getElementById('storyForm');
-    const generateStoryBtn = document.getElementById('generateStoryBtn');
-    const characterSelectionError = document.getElementById('characterSelectionError');
-    
-    // Select character when card is clicked
-    characterCards.forEach((card, index) => {
-        card.addEventListener('click', function() {
-            if (characterCheckboxes[index]) {
-                characterCheckboxes[index].checked = true;
+        } catch (error) {
+            showToast('Error', error.message);
+            generateStoryBtn.disabled = false;
+            generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
+            const overlay = loadingPercent.closest('.loading-overlay');
+            if (overlay) overlay.remove();
+        }
+    });
+}
+
+// Reroll functionality (adapted to use new loading overlay)
+const rerollButtons2 = document.querySelectorAll('.reroll-btn');
+if (rerollButtons2.length > 0) {
+    rerollButtons2.forEach(button => {
+        button.addEventListener('click', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const cardIndex = this.getAttribute('data-card-index');
+            const card = characterCards[cardIndex];
+            const cardImage = card.querySelector('img');
+            const traitsContainer = card.querySelector('.character-traits');
+            const checkbox = card.querySelector('.character-checkbox');
+
+            // Show loading state
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+            cardImage.src = 'https://via.placeholder.com/400x250?text=Loading...';
+
+            const loadingPercent = createLoadingOverlay();
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += 5;
+                updateLoadingPercent(loadingPercent, progress);
+                if (progress >= 100) {
+                    clearInterval(progressInterval);
+                    removeLoadingOverlay(loadingPercent);
+                }
+            }, 100);
+
+            try {
+                const response = await fetch('/api/random_character');
+                const data = await response.json();
+
+                if (data.success) {
+                    // Update the card with the new character
+                    cardImage.src = data.image_url;
+
+                    // Find the character name element within the container
+                    const characterContainer = card.closest('.character-container');
+                    const nameElement = characterContainer ? characterContainer.querySelector('.character-name') : null;
+                    if (nameElement) {
+                        nameElement.textContent = data.name;
+                    }
+
+                    // Update character traits
+                    if (traitsContainer && data.character_traits) {
+                        traitsContainer.innerHTML = '';
+                        data.character_traits.forEach(trait => {
+                            const badge = document.createElement('span');
+                            badge.className = 'badge bg-primary me-1';
+                            badge.textContent = trait;
+                            traitsContainer.appendChild(badge);
+                        });
+                    }
+
+                    // Update checkbox value
+                    if (checkbox) {
+                        checkbox.value = data.id;
+                    }
+
+                    showToast('Success', 'Character rerolled successfully!');
+                } else {
+                    throw new Error(data.error || 'Failed to get a new character');
+                }
+            } catch (error) {
+                showToast('Error', error.message);
+            } finally {
+                // Reset button state
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-dice me-1"></i>Reroll';
             }
         });
     });
-    
-    // Reroll buttons functionality
-    const rerollButtons = document.querySelectorAll('.reroll-btn');
-    if (rerollButtons) {
-        rerollButtons.forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                // Add reroll functionality here
-                showToast('Rerolling character...', 'Character traits will be refreshed');
-            });
-        });
-    }
-    
-    // Toast notification function
-    function showToast(title, message) {
-        const toastElement = document.getElementById('notificationToast');
-        const toastTitle = document.getElementById('toastTitle');
-        const toastMessage = document.getElementById('toastMessage');
-        
-        if (toastElement && toastTitle && toastMessage) {
-            toastTitle.textContent = title;
-            toastMessage.textContent = message;
-            const toast = new bootstrap.Toast(toastElement);
-            toast.show();
+}
+
+// Debug page enhancements
+const editModeSwitch = document.getElementById('editModeSwitch');
+const generatedContent = document.getElementById('generatedContent');
+
+if (editModeSwitch && generatedContent) {
+    editModeSwitch.addEventListener('change', function() {
+        if (this.checked) {
+            generatedContent.contentEditable = true;
+            generatedContent.classList.add('editable');
+            generatedContent.focus();
+        } else {
+            generatedContent.contentEditable = false;
+            generatedContent.classList.remove('editable');
         }
-    }
-    
-    // Form submission
-    if (storyForm) {
-        storyForm.addEventListener('submit', function(e) {
-            // Add validation if needed before form submission
-            const selectedCharacters = document.querySelectorAll('.character-checkbox:checked');
-            
-            // Example validation - can be modified based on requirements
-            if (selectedCharacters.length < 1) {
-                e.preventDefault();
-                if (characterSelectionError) {
-                    characterSelectionError.style.display = 'block';
-                }
-                window.scrollTo(0, 0);
-            }
-        });
-    }
-});
+    });
+}
