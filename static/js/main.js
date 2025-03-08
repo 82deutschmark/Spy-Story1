@@ -47,6 +47,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (e.target.type !== 'radio' && !e.target.closest('.reroll-btn')) {
                     const checkbox = characterCheckboxes[index];
                     checkbox.checked = true;
+
+                    // Clear other selections
+                    characterCards.forEach((otherCard, i) => {
+                        if (i !== index) {
+                            characterCheckboxes[i].checked = false;
+                            otherCard.classList.remove('selected');
+                        }
+                    });
+
+                    // Add selected state to this card
+                    card.classList.add('selected');
                     showToast('Character Selected', 'Character has been selected for your story.');
                 }
             });
@@ -113,10 +124,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const choiceForms = document.querySelectorAll('.choice-form');
     if (choiceForms.length > 0) {
         choiceForms.forEach(form => {
-            form.addEventListener('submit', async function(e) {
+            form.addEventListener('submit', function(e) {
                 e.preventDefault();
                 const submitBtn = this.querySelector('button');
                 submitBtn.disabled = true;
+                submitBtn.classList.add('loading');
 
                 const loadingPercent = createLoadingOverlay();
                 let progress = 0;
@@ -127,17 +139,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }, 500);
 
-                try {
-                    const formData = new FormData(this);
-                    const response = await fetch('/generate_story', {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    });
+                const formData = new FormData(this);
 
-                    const data = await response.json();
+                fetch('/generate_story', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
                     clearInterval(progressInterval);
 
                     if (data.success && data.redirect) {
@@ -148,12 +160,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         throw new Error(data.error || 'Failed to continue story');
                     }
-                } catch (error) {
+                })
+                .catch(error => {
                     showToast('Error', 'Failed to continue story. Please try again.');
                     submitBtn.disabled = false;
+                    submitBtn.classList.remove('loading');
                     clearInterval(progressInterval);
                     removeLoadingOverlay(loadingPercent);
-                }
+                });
             });
         });
     }
