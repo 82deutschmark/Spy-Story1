@@ -863,6 +863,14 @@ def reanalyze_image(image_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/db/health-check', methods=['GET'])
+def db_health_check():
+    """API endpoint to perform a database health check"""
+    try:
+        # Get counts
+        image_count = ImageAnalysis.query.count()
+        character_count = ImageAnalysis.query.filter_by(image_type='character').count()
+        scene_count = ImageAnalysis.query.filter_by(image_type='scene').count()
         story_count = StoryGeneration.query.count()
         orphaned_images = ImageAnalysis.query.filter(~ImageAnalysis.stories.any()).count()
         empty_stories = StoryGeneration.query.filter(StoryGeneration.generated_story.is_(None)).count()
