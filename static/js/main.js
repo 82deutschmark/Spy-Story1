@@ -342,3 +342,203 @@ if (editModeSwitch && generatedContent) {
         }
     });
 }
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle character selection
+    const characterCards = document.querySelectorAll('.character-select-card');
+    const characterCheckboxes = document.querySelectorAll('.character-checkbox');
+    const generateStoryBtn = document.getElementById('generateStoryBtn');
+    const storyForm = document.getElementById('storyForm');
+    const selectedCharactersList = document.querySelector('.selected-characters-list');
+    const selectedCharactersContainer = document.querySelector('.selected-characters-container');
+    const characterSelectionError = document.getElementById('characterSelectionError');
+    
+    // Add hidden input fields for selected images
+    function updateSelectedImagesInput() {
+        // Remove any existing hidden inputs
+        document.querySelectorAll('input[name="selected_images[]"]').forEach(el => el.remove());
+        
+        // Add new hidden inputs for each selected character
+        document.querySelectorAll('.character-checkbox:checked').forEach(checkbox => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'selected_images[]';
+            input.value = checkbox.value;
+            storyForm.appendChild(input);
+        });
+    }
+    
+    // Handle character selection
+    characterCards.forEach((card, index) => {
+        card.addEventListener('click', function() {
+            const characterId = this.dataset.id;
+            const checkbox = document.getElementById(`character${characterId}`);
+            const selectionIndicator = this.querySelector('.selection-indicator');
+            
+            // Toggle selection
+            if (checkbox.checked) {
+                checkbox.checked = false;
+                selectionIndicator.style.display = 'none';
+            } else {
+                checkbox.checked = true;
+                selectionIndicator.style.display = 'block';
+            }
+            
+            updateSelectedImagesInput();
+        });
+    });
+    
+    // Handle reroll buttons
+    const rerollButtons = document.querySelectorAll('.reroll-btn');
+    rerollButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const cardIndex = this.dataset.cardIndex;
+            const cardContainer = this.closest('.character-container');
+            const characterCard = cardContainer.querySelector('.character-select-card');
+            const characterNameElement = cardContainer.querySelector('.character-name');
+            const traitsContainer = cardContainer.querySelector('.character-traits-list');
+            
+            // Show loading state
+            characterCard.style.opacity = '0.5';
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+            
+            // Fetch a random character
+            fetch('/api/random_character')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update the character card
+                        characterCard.dataset.id = data.id;
+                        characterCard.querySelector('img').src = data.image_url;
+                        characterNameElement.textContent = data.name;
+                        
+                        // Update character traits
+                        traitsContainer.innerHTML = '';
+                        if (data.character_traits && data.character_traits.length > 0) {
+                            data.character_traits.forEach(trait => {
+                                const traitBadge = document.createElement('span');
+                                traitBadge.className = 'trait-badge';
+                                traitBadge.textContent = trait;
+                                traitsContainer.appendChild(traitBadge);
+                            });
+                        }
+                        
+                        // Update checkbox
+                        const checkbox = cardContainer.querySelector('.character-checkbox');
+                        checkbox.value = data.id;
+                        checkbox.id = `character${data.id}`;
+                        
+                        // Update select button
+                        const selectBtn = cardContainer.querySelector('.select-character-btn');
+                        selectBtn.dataset.characterId = data.id;
+                        
+                        // Reset selection state
+                        checkbox.checked = false;
+                        characterCard.querySelector('.selection-indicator').style.display = 'none';
+                        
+                        // Show toast notification
+                        showToast('Character Updated', 'A new character has been loaded!');
+                    } else {
+                        showToast('Error', 'Failed to load a new character. Please try again.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching random character:', error);
+                    showToast('Error', 'Failed to load a new character. Please try again.');
+                })
+                .finally(() => {
+                    // Reset button state
+                    characterCard.style.opacity = '1';
+                    this.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
+                });
+        });
+    });
+    
+    // Handle direct character selection buttons
+    const selectCharacterButtons = document.querySelectorAll('.select-character-btn');
+    selectCharacterButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const characterId = this.dataset.characterId;
+            const card = document.querySelector(`.character-select-card[data-id="${characterId}"]`);
+            const checkbox = document.getElementById(`character${characterId}`);
+            const selectionIndicator = card.querySelector('.selection-indicator');
+            
+            // Toggle selection
+            if (checkbox.checked) {
+                checkbox.checked = false;
+                selectionIndicator.style.display = 'none';
+            } else {
+                checkbox.checked = true;
+                selectionIndicator.style.display = 'block';
+            }
+            
+            updateSelectedImagesInput();
+        });
+    });
+    
+    // Form submission
+    storyForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Check if at least one character is selected
+        const selectedCharactersCount = document.querySelectorAll('.character-checkbox:checked').length;
+        if (selectedCharactersCount !== 1) {
+            characterSelectionError.style.display = 'block';
+            return;
+        }
+        
+        // Hide error message if shown
+        characterSelectionError.style.display = 'none';
+        
+        // Show loading state
+        generateStoryBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Story...';
+        generateStoryBtn.disabled = true;
+        
+        // Update selected images input
+        updateSelectedImagesInput();
+        
+        // Submit the form
+        const formData = new FormData(this);
+        fetch('/generate_story', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.redirect) {
+                window.location.href = data.redirect;
+            } else {
+                showToast('Error', data.error || 'Failed to generate story');
+                // Reset button state
+                generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
+                generateStoryBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error generating story:', error);
+            showToast('Error', 'Failed to generate story. Please try again.');
+            // Reset button state
+            generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
+            generateStoryBtn.disabled = false;
+        });
+    });
+    
+    // Toast notification function
+    function showToast(title, message) {
+        const toastEl = document.getElementById('notificationToast');
+        const toast = new bootstrap.Toast(toastEl);
+        
+        document.getElementById('toastTitle').textContent = title;
+        document.getElementById('toastMessage').textContent = message;
+        
+        toast.show();
+    }
+});

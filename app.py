@@ -49,21 +49,6 @@ def get_random_scene_background():
 
 @app.route('/')
 def index():
-    """Main entry point - character selection screen"""
-    # Get exactly 2 random characters for selection
-    images = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).limit(2).all()
-    
-    # Get story options for the form
-    story_options = get_story_options()
-    
-    # Get a background image if available
-    background_image = get_random_scene_background()
-    
-    return render_template('index.html', 
-                          images=images, 
-                          story_options=story_options,
-                          background_image=background_image)
-def index():
     """Main page showing character selection and story options"""
     story_options = get_story_options()
     background_image = get_random_scene_background()
