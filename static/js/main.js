@@ -234,7 +234,7 @@ if (storyFormMain) {
 // Remove duplicate reroll button functionality
 
                     // Find the character name element within the container
-                    const characterContainer = card.closest('.character-container');
+                    const characterContainer = cardContainer;
                     const nameElement = characterContainer ? characterContainer.querySelector('.character-name') : null;
                     if (nameElement) {
                         nameElement.textContent = data.name;
@@ -359,6 +359,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Show loading state
             this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Rerolling...';
+            characterCard.style.opacity = '0.6';
             
             // Fetch a new random character
             fetch('/api/random_character')
