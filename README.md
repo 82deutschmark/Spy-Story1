@@ -12,10 +12,19 @@ This application allows users to generate interactive stories featuring Pawel an
 ## Features
 
 - **Character Selection**: Choose from a library of characters to feature in your story
+- **Multi-Character Support**: Select multiple characters to include in your adventures
 - **Story Customization**: Set conflict, setting, narrative style, and mood
 - **Interactive Choices**: Make decisions that affect the story's outcome
 - **Image Analysis**: Upload character/scene images for AI analysis 
 - **Debug Tools**: View and manage database records
+
+## Recent Improvements
+
+- **Multi-Character Support**: Enhanced the app to support selecting multiple characters for stories
+- **Improved Error Handling**: Fixed issues with story continuation and form submission
+- **Backend Optimization**: Updated the story generation logic to handle multiple character selections
+- **UI Enhancements**: Fixed character highlighting in story text
+- **Bug Fixes**: Resolved form submission duplicates and storyboard rendering issues
 
 ## Technology Stack
 
@@ -62,7 +71,7 @@ SESSION_SECRET=your_session_secret
 
 ### Creating a Story
 
-1. Visit the home page and select a character
+1. Visit the home page and select one or more characters
 2. Customize story options (optional)
 3. Click "Begin Your Adventure"
 4. Make choices to progress through the story
@@ -117,6 +126,12 @@ The story universe centers around Uncle Mark's forest farm with:
 - **Evil Squirrel Gangs**: Bully other animals and steal food
 - **The Rat Wizard**: Steals eggs and vegetables for potions
 - **Mice and Moles**: Forced by squirrels to help with schemes
+
+## Known Issues and Future Improvements
+
+- **UI/UX Refinements**: Further improve the user interface for character selection
+- **Performance Optimization**: Enhance loading times for story generation
+- **Mobile Responsiveness**: Improve the mobile experience
 
 ## Credits
 
