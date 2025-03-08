@@ -295,13 +295,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const choiceForms = document.querySelectorAll('.choice-form');
         if (choiceForms.length > 0) {
             choiceForms.forEach(form => {
-                form.addEventListener('submit', function(e) {
+                form.addEventListener('submit', async function(e) {
                     e.preventDefault();
-
-                    // Disable the button to prevent multiple submissions
                     const btn = this.querySelector('button');
-                    if (btn) btn.disabled = true;
-
+                    btn.disabled = true;
+                    
                     // Create loading overlay
                     const loadingPercent = createLoadingOverlay('Continuing your story...');
                     let progress = 0;
@@ -312,23 +310,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }, 500);
 
-                    // Submit the form
-                    const formData = new FormData(this);
+                    try {
+                        // Submit the form
+                        const formData = new FormData(this);
+                        const response = await fetch(this.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
 
-                    fetch(this.action, {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
+                        const data = await response.json();
                         clearInterval(progressInterval);
 
                         if (data.success && data.redirect) {
@@ -341,33 +334,26 @@ document.addEventListener('DOMContentLoaded', function() {
                             // Error in the response
                             throw new Error(data.error || 'Failed to continue story');
                         }
-                    })
-                    .catch(error => {
+                    } catch (error) {
                         // Handle any errors
                         console.error('Story continuation error:', error);
-                        showToast('Error', 'Failed to continue story. Please try again.');
-
+                        showToast('Error', error.message || 'Failed to continue story. Please try again.');
+                        
                         // Reset the button state
-                        if (btn) btn.disabled = false;
-
+                        btn.disabled = false;
+                        
                         // Remove the loading overlay
                         clearInterval(progressInterval);
-                        if (loadingPercent) {
-                            const overlay = loadingPercent.closest('.loading-overlay');
-                            if (overlay) overlay.remove();
-                        }
-                    });
+                        const overlay = loadingPercent.closest('.loading-overlay');
+                        if (overlay) overlay.remove();
+                    }
                 });
             });
         }
     }
-
+    
     // Run the setup when page loads
     setupChoiceForms();
-});
-
-// Also setup forms immediately in case we're already loaded
-setupChoiceForms();
 
     // Debug page enhancements
     const editModeSwitch = document.getElementById('editModeSwitch');
@@ -401,158 +387,13 @@ setupChoiceForms();
 });
 
 
-// Setup choice form submission
-function setupChoiceForms() {
-    const choiceForms = document.querySelectorAll('.choice-form');
-    if (choiceForms.length > 0) {
-        choiceForms.forEach(form => {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                // Disable the button to prevent multiple submissions
-                const btn = this.querySelector('button');
-                if (btn) btn.disabled = true;
-                
-                // Create loading overlay
-                const loadingPercent = createLoadingOverlay('Continuing your story...');
-                
-                let progress = 0;
-                const progressInterval = setInterval(() => {
-                    if (progress < 90) {
-                        progress += 5;
-                        updateLoadingPercent(loadingPercent, progress);
-                    }
-                }, 500);
-
-                // Submit the form
-                const formData = new FormData(this);
-                
-                fetch(this.action, {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    clearInterval(progressInterval);
-                    
-                    if (data.success && data.redirect) {
-                        // Successful response with redirect
-                        updateLoadingPercent(loadingPercent, 100);
-                        setTimeout(() => {
-                            window.location.href = data.redirect;
-                        }, 500);
-                    } else {
-                        // Error in the response
-                        throw new Error(data.error || 'Failed to continue story');
-                    }
-                })
-                .catch(error => {
-                    // Handle any errors
-                    console.error('Story continuation error:', error);
-                    showToast('Error', 'Failed to continue story. Please try again.');
-                    
-                    // Reset the button state
-                    if (btn) btn.disabled = false;
-                    
-                    // Remove the loading overlay
-                    clearInterval(progressInterval);
-                    if (loadingPercent) {
-                        const overlay = loadingPercent.closest('.loading-overlay');
-                        if (overlay) overlay.remove();
-                    }
-                });
-            });
-        });
-    }
-}
-
-// Create loading overlay with percentage display
-function createLoadingOverlay(message) {
-    const overlay = document.createElement('div');
-    overlay.className = 'loading-overlay';
-    
-    const content = document.createElement('div');
-    content.className = 'loading-content';
-    
-    const spinner = document.createElement('div');
-    spinner.className = 'spinner';
-    
-    const text = document.createElement('div');
-    text.className = 'loading-text';
-    text.textContent = message || 'Loading...';
-    
-    const percent = document.createElement('div');
-    percent.className = 'loading-percent';
-    percent.textContent = '0%';
-    
-    content.appendChild(spinner);
-    content.appendChild(text);
-    content.appendChild(percent);
-    overlay.appendChild(content);
-    
-    document.body.appendChild(overlay);
-    
-    return percent;
-}
-
-// Update loading percentage
-function updateLoadingPercent(element, percent) {
-    if (element) {
-        element.textContent = `${Math.floor(percent)}%`;
-    }
-}
-
-// Show toast notification
-function showToast(title, message) {
-    // Create toast if it doesn't exist
-    let toastContainer = document.querySelector('.toast-container');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.className = 'toast-container';
-        document.body.appendChild(toastContainer);
-    }
-    
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.innerHTML = `
-        <div class="toast-header">
-            <strong>${title}</strong>
-            <button type="button" class="btn-close"></button>
-        </div>
-        <div class="toast-body">${message}</div>
-    `;
-    
-    toastContainer.appendChild(toast);
-    
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-        toast.remove();
-    }, 5000);
-    
-    // Close button
-    const closeBtn = toast.querySelector('.btn-close');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
-            toast.remove();
-        });
-    }
-}
-
 // Character highlighting in story text
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize choice forms
-    setupChoiceForms();
-    
     // Function to highlight characters in story text
     function highlightCharactersInStory() {
         const storyContent = document.querySelector('.story-content');
         if (!storyContent) return;
-
+        
         // Get all character names from the mini-portraits
         const characterPortraits = document.querySelectorAll('.character-portrait-mini');
         const characterNames = Array.from(characterPortraits).map(portrait => {
@@ -562,13 +403,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 element: portrait
             };
         });
-
+        
         // Sort names by length (longest first) to avoid partial matches
         characterNames.sort((a, b) => b.name.length - a.name.length);
-
+        
         // Get the story text
         let storyText = storyContent.innerHTML;
-
+        
         // Replace character names with highlighted spans
         characterNames.forEach(character => {
             const regex = new RegExp(`\\b${character.name}\\b`, 'gi');
@@ -576,29 +417,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 return `<span class="character-mention" data-character="${character.name.toLowerCase().replace(/\s/g, '-')}">${match}<span class="character-tooltip"><img src="${character.image}" alt="${match}">${match}</span></span>`;
             });
         });
-
+        
         // Update the story content
         storyContent.innerHTML = storyText;
-
+        
         // Add click event to highlight corresponding mini-portrait
         document.querySelectorAll('.character-mention').forEach(mention => {
             mention.addEventListener('click', function() {
                 const characterId = this.dataset.character;
                 const targetPortrait = document.querySelector(`.character-portrait-mini[data-character-name="${characterId}"]`);
-
+                
                 // Remove highlight from all portraits
                 document.querySelectorAll('.character-mini-img').forEach(img => {
                     img.classList.remove('character-mini-highlight');
                 });
-
+                
                 // Add highlight to this portrait
                 if (targetPortrait) {
                     const portraitImg = targetPortrait.querySelector('.character-mini-img');
                     portraitImg.classList.add('character-mini-highlight');
-
+                    
                     // Scroll to the portrait if needed
                     targetPortrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
+                    
                     // Remove highlight after 3 seconds
                     setTimeout(() => {
                         portraitImg.classList.remove('character-mini-highlight');
@@ -607,10 +448,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-
+    
     // Run the highlighting function when page loads
     highlightCharactersInStory();
-
+    
     // Also run when a story choice is made (if needed)
     const choiceForms = document.querySelectorAll('.choice-form');
     if (choiceForms.length > 0) {
