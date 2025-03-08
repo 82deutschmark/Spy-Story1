@@ -76,28 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Reroll buttons functionality
-    const rerollButtons = document.querySelectorAll('.reroll-btn');
-    if (rerollButtons) {
-        rerollButtons.forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation(); // Prevent triggering card selection
-
-                // Add animation to button
-                button.classList.add('rerolling');
-
-                // Add reroll functionality here
-                showToast('Rerolling Character...', 'Character traits will be refreshed momentarily');
-
-                // Simulate trait refreshing (in real implementation, this would be an API call)
-                setTimeout(() => {
-                    button.classList.remove('rerolling');
-                    showToast('Character Updated!', 'New character traits are ready for your adventure');
-                }, 1500);
-            });
-        });
-    }
+    // No duplicate reroll button functionality needed, as it's handled elsewhere
 
     // Toast notification function
     function showToast(title, message) {
@@ -251,42 +230,8 @@ if (storyFormMain) {
 }
 
 // Reroll functionality (adapted to use new loading overlay)
-const rerollButtons2 = document.querySelectorAll('.reroll-btn');
-if (rerollButtons2.length > 0) {
-    rerollButtons2.forEach(button => {
-        button.addEventListener('click', async function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const cardIndex = this.getAttribute('data-card-index');
-            const card = characterCards[cardIndex];
-            const cardImage = card.querySelector('img');
-            const traitsContainer = card.querySelector('.character-traits');
-            const checkbox = card.querySelector('.character-checkbox');
-
-            // Show loading state
-            this.disabled = true;
-            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
-            cardImage.src = 'https://via.placeholder.com/400x250?text=Loading...';
-
-            const loadingPercent = createLoadingOverlay();
-            let progress = 0;
-            const progressInterval = setInterval(() => {
-                progress += 5;
-                updateLoadingPercent(loadingPercent, progress);
-                if (progress >= 100) {
-                    clearInterval(progressInterval);
-                    removeLoadingOverlay(loadingPercent);
-                }
-            }, 100);
-
-            try {
-                const response = await fetch('/api/random_character');
-                const data = await response.json();
-
-                if (data.success) {
-                    // Update the card with the new character
-                    cardImage.src = data.image_url;
+// No duplicate variable declarations needed
+// Remove duplicate reroll button functionality
 
                     // Find the character name element within the container
                     const characterContainer = card.closest('.character-container');
@@ -311,20 +256,7 @@ if (rerollButtons2.length > 0) {
                         checkbox.value = data.id;
                     }
 
-                    showToast('Success', 'Character rerolled successfully!');
-                } else {
-                    throw new Error(data.error || 'Failed to get a new character');
-                }
-            } catch (error) {
-                showToast('Error', error.message);
-            } finally {
-                // Reset button state
-                this.disabled = false;
-                this.innerHTML = '<i class="fas fa-dice me-1"></i>Reroll';
-            }
-        });
-    });
-}
+                    // Removed duplicate reroll handler
 
 // Debug page enhancements
 const editModeSwitch = document.getElementById('editModeSwitch');
@@ -472,6 +404,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             checkbox.value = data.id;
                             checkbox.id = `character${data.id}`;
                         }
+                        
+                        // Show toast notification
+                        showToast('Character Updated', 'A new character has been loaded!');
+                    } else {
+                        showToast('Error', 'Failed to load a new character. Please try again.');
                     }
                     
                     // Reset button
@@ -481,8 +418,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.error('Error fetching random character:', error);
                     this.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
                 });
-            const characterNameElement = cardContainer.querySelector('.character-name');
-            const traitsContainer = cardContainer.querySelector('.character-traits-list');
             
             // Show loading state
             characterCard.style.opacity = '0.5';
