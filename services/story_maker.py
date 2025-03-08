@@ -30,7 +30,7 @@ STORY_OPTIONS = {
         ("🌲", "Mysterious Woods")
     ],
     "narrative_styles": [
-        ("😎", "GenZ fresh style"),
+        ("😎", "Gen Z teen style"),
         ("✌️", "Old hippie 1960s vibe"),
         ("🤘", "Mix of both")
     ],
@@ -116,11 +116,11 @@ def generate_story(
         "This story takes place in Uncle Mark's forest farm, where animals have distinct personalities "
         "and adventures happen daily. The main cast includes:\n\n"
         "Core Characters:\n"
-        "- Pawel and Pawleen: Two Yorkshire terriers who protect the farm. Pawel is impulsive but brave, "
+        "- Pawel and Pawleen: Two Yorkshire terriers who protect the farm. Pawel is impulsive and fearless, "
         "while Pawleen is thoughtful and clever.\n"
         "- Big Red: The not-so-bright rooster who leads the chicken coop\n"
         "- The Clever Hens: Birdadette, Henrietta, and others who actually run things\n"
-        "- The White Turkeys: Well-meaning but prone to getting into silly situations\n\n"
+        "- The White Turkeys: Well-meaning but big and clumsy prone to getting into silly situations\n\n"
         "Antagonists:\n"
         "- Evil Squirrel Gangs: Think they're superior to other animals, bully others, and steal food\n"
         "- The Rat Wizard: Lives in the woods, steals eggs and vegetables for his potions, enchants other rodents to do his bidding\n"
@@ -177,7 +177,7 @@ def generate_story(
                 },
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.8,
+            temperature=0.9,
             response_format={"type": "json_object"}
         )
 
