@@ -229,34 +229,7 @@ if (storyFormMain) {
     });
 }
 
-// Reroll functionality (adapted to use new loading overlay)
-// No duplicate variable declarations needed
-// Remove duplicate reroll button functionality
-
-                    // Find the character name element within the container
-                    const characterContainer = card.closest('.character-container');
-                    const nameElement = characterContainer ? characterContainer.querySelector('.character-name') : null;
-                    if (nameElement) {
-                        nameElement.textContent = data.name;
-                    }
-
-                    // Update character traits
-                    if (traitsContainer && data.character_traits) {
-                        traitsContainer.innerHTML = '';
-                        data.character_traits.forEach(trait => {
-                            const badge = document.createElement('span');
-                            badge.className = 'badge bg-primary me-1';
-                            badge.textContent = trait;
-                            traitsContainer.appendChild(badge);
-                        });
-                    }
-
-                    // Update checkbox value
-                    if (checkbox) {
-                        checkbox.value = data.id;
-                    }
-
-                    // Removed duplicate reroll handler
+// Note: Reroll functionality is implemented in the event listeners below
 
 // Debug page enhancements
 const editModeSwitch = document.getElementById('editModeSwitch');
@@ -419,59 +392,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
                 });
             
-            // Show loading state
-            characterCard.style.opacity = '0.5';
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-            
-            // Fetch a random character
-            fetch('/api/random_character')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Update the character card
-                        characterCard.dataset.id = data.id;
-                        characterCard.querySelector('img').src = data.image_url;
-                        characterNameElement.textContent = data.name;
-                        
-                        // Update character traits
-                        traitsContainer.innerHTML = '';
-                        if (data.character_traits && data.character_traits.length > 0) {
-                            data.character_traits.forEach(trait => {
-                                const traitBadge = document.createElement('span');
-                                traitBadge.className = 'trait-badge';
-                                traitBadge.textContent = trait;
-                                traitsContainer.appendChild(traitBadge);
-                            });
-                        }
-                        
-                        // Update checkbox
-                        const checkbox = cardContainer.querySelector('.character-checkbox');
-                        checkbox.value = data.id;
-                        checkbox.id = `character${data.id}`;
-                        
-                        // Update select button
-                        const selectBtn = cardContainer.querySelector('.select-character-btn');
-                        selectBtn.dataset.characterId = data.id;
-                        
-                        // Reset selection state
-                        checkbox.checked = false;
-                        characterCard.querySelector('.selection-indicator').style.display = 'none';
-                        
-                        // Show toast notification
-                        showToast('Character Updated', 'A new character has been loaded!');
-                    } else {
-                        showToast('Error', 'Failed to load a new character. Please try again.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching random character:', error);
-                    showToast('Error', 'Failed to load a new character. Please try again.');
-                })
-                .finally(() => {
-                    // Reset button state
-                    characterCard.style.opacity = '1';
-                    this.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
-                });
+            // Note: Reroll functionality already implemented above
         });
     });
     
