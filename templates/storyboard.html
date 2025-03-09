@@ -99,7 +99,7 @@
                 <!-- Choices -->
                 <div class="choices-container">
                     {% for choice in story.choices %}
-                    <form action="{{ url_for('generate_story_route') }}" method="POST" class="choice-form">
+                    <form action="{{ url_for('main.generate_story_route') }}" method="POST" class="choice-form">
                         <input type="hidden" name="previous_choice" value="{{ choice.text }}">
                         <input type="hidden" name="story_context" value="{{ story.story }}">
                         <!-- Character selection data - include all characters -->
@@ -127,7 +127,7 @@
                     {% endfor %}
 
                     <!-- Custom Choice Option -->
-                    <form action="{{ url_for('generate_story_route') }}" method="POST" class="choice-form custom-choice-form">
+                    <form action="{{ url_for('main.generate_story_route') }}" method="POST" class="choice-form custom-choice-form">
                         <input type="hidden" name="story_context" value="{{ story.story }}">
                         <!-- Character selection data - include all characters -->
                         {% for image in character_images %}

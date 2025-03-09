@@ -16,7 +16,7 @@
                     <i class="fas fa-bug story-icon"></i>
                     <h1 class="display-4">Debug Tools</h1>
                     <p class="lead">Image Analysis & Database Management</p>
-                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left me-2"></i>Back to Story Creator
                     </a>
                 </div>
@@ -242,7 +242,7 @@
                                                 <td>{{ story.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                                                 <td>
                                                     <div class="btn-group">
-                                                        <a href="{{ url_for('storyboard', story_id=story.id) }}" class="btn btn-sm btn-info" title="View Story">
+                                                        <a href="{{ url_for('main.storyboard', story_id=story.id) }}" class="btn btn-sm btn-info" title="View Story">
                                                             <i class="fas fa-book-open"></i>
                                                         </a>
                                                         <button class="btn btn-sm btn-danger delete-story-btn" data-id="{{ story.id }}" title="Delete Record">
