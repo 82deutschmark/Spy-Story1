@@ -242,7 +242,7 @@ def generate_story(
                 messages.insert(2, {"role": "user", "content": f"Player chose: {previous_choice}"})
         
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo-16k",
+            model="gpt-4o",
             messages=messages,
             temperature=0.9,
             response_format={"type": "json_object"}
