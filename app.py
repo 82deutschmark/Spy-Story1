@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET")
+app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
@@ -26,21 +26,6 @@ from services.openai_service import analyze_artwork, generate_image_description
 from services.story_maker import generate_story, get_story_options
 from models import AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, StoryChoice
 from api.unity_routes import unity_api
-
-# Configure logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-
-load_dotenv()
-
-app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET")
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 300,
-    "pool_pre_ping": True,
-}
-db.init_app(app)
 
 # CORS configuration
 CORS(app, resources={
