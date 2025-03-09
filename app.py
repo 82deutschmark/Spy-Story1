@@ -28,27 +28,27 @@ db.init_app(app)
 # Import these after db is initialized to avoid circular imports
 from services.openai_service import analyze_artwork, generate_image_description
 from services.story_maker import generate_story, get_story_options
-from models import AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, StoryChoice, UserProgress # Added UserProgress import
+from models import AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, StoryChoice, UserProgress
 from api.unity_routes import unity_api
 
 # CORS configuration
 CORS(app, resources={
     r"/api/unity/*": {
-        "origins": "*",  # In production, replace with specific Unity client origin
+        "origins": "*",
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
     }
 })
 
-
-# Add after app configuration but before route definitions
 def get_or_create_user_progress():
     """Get or create user progress record for the current session"""
     if 'user_id' not in session:
         session['user_id'] = str(uuid.uuid4())
+        logger.debug(f"Created new user session with ID: {session['user_id']}")
 
     user_progress = UserProgress.query.filter_by(user_id=session['user_id']).first()
     if not user_progress:
+        logger.debug(f"Creating new user progress for ID: {session['user_id']}")
         user_progress = UserProgress(
             user_id=session['user_id'],
             currency_balances={
@@ -61,8 +61,19 @@ def get_or_create_user_progress():
         )
         db.session.add(user_progress)
         db.session.commit()
+        logger.debug(f"Created user progress with initial balances: {user_progress.currency_balances}")
+    else:
+        logger.debug(f"Found existing user progress for ID: {session['user_id']}")
 
     return user_progress
+
+@app.before_request
+def check_paypal_config():
+    """Log PayPal configuration status before each request"""
+    paypal_client_id = os.environ.get('PAYPAL_CLIENT_ID')
+    logger.debug(f"PayPal Client ID available: {bool(paypal_client_id)}")
+    if not paypal_client_id:
+        logger.warning("PayPal Client ID is missing from environment variables")
 
 # Create database tables
 with app.app_context():
