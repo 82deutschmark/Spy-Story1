@@ -47,6 +47,13 @@ def get_random_scene_background():
         ImageAnalysis.image_type == 'scene',
         ImageAnalysis.image_width > ImageAnalysis.image_height
     ).order_by(db.func.random()).first()
+
+    # Fallback if no scene images with right dimensions exist
+    if not scene:
+        scene = ImageAnalysis.query.filter(
+            ImageAnalysis.image_type == 'scene'
+        ).order_by(db.func.random()).first()
+
     return scene.image_url if scene else None
 
 @app.route('/')
@@ -216,7 +223,7 @@ def generate_story_route():
             'custom_mood': data.get('custom_mood', ''),
             'story_context': data.get('story_context', '')
         }
-        
+
         # Handle choice selection - either predefined or custom
         custom_choice = data.get('custom_choice', '')
         if custom_choice:
@@ -842,7 +849,7 @@ def get_all_stories():
                 'pages': (total + per_page - 1) // per_page
             }
         })
-    except Exception as e:
+    except Exception ase:
         logger.error(f"Error getting all stories: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
