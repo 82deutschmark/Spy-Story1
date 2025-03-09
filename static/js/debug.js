@@ -1907,7 +1907,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Add click handler for save button
                         document.getElementById('saveAnalysisBtn').addEventListener('click', function() {
                             this.disabled = true;
-                            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+                            this.innerHTML = '<span class="spinner-border spinnerborder-sm" role="status" aria-hidden="true"></span> Saving...';
                             document.getElementById('rejectAnalysisBtn').disabled = true;
 
                             // Use the function defined above to get edited analysis
@@ -2180,3 +2180,5 @@ function saveToDatabase() {
         }),
     })
 }
+let currentAnalysisData = null;
+let currentImageUrl = null;
