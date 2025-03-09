@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from database import db
 from flask_sqlalchemy import SQLAlchemy
@@ -9,6 +8,13 @@ story_images = db.Table('story_images',
     db.Column('story_id', db.Integer, db.ForeignKey('story_generation.id'), primary_key=True),
     db.Column('image_id', db.Integer, db.ForeignKey('image_analysis.id'), primary_key=True)
 )
+
+class Currency(db.Model):
+    """Model for tracking different types of currency"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(32), nullable=False)  # e.g. "diamond", "pound", "euro"
+    symbol = db.Column(db.String(8), nullable=False)  # e.g. "💎", "💷", "💶"
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class StoryGeneration(db.Model):
     """Model for storing generated story segments and their choices"""
@@ -53,15 +59,15 @@ class StoryNode(db.Model):
     is_endpoint = db.Column(db.Boolean, default=False)
     generated_by_ai = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    achievement_id = db.Column(db.Integer, db.ForeignKey('achievement.id'))  # New: Link to achievement
-    branch_metadata = db.Column(JSONB)  # New: Store branch-specific metadata
-    parent_node_id = db.Column(db.Integer, db.ForeignKey('story_node.id'))  # New: Track story hierarchy
+    achievement_id = db.Column(db.Integer, db.ForeignKey('achievement.id'))  # Link to achievement
+    branch_metadata = db.Column(JSONB)  # Store branch-specific metadata
+    parent_node_id = db.Column(db.Integer, db.ForeignKey('story_node.id'))  # Track story hierarchy
 
     # Relationship with ImageAnalysis
     image = db.relationship('ImageAnalysis')
 
     # Relationship with Achievement
-    achievement = db.relationship('Achievement', backref='story_nodes')  # New
+    achievement = db.relationship('Achievement', backref='story_nodes')  # 
 
     # Self-referential relationship for story hierarchy
     parent_node = db.relationship('StoryNode', remote_side=[id],
@@ -80,7 +86,10 @@ class StoryChoice(db.Model):
     choice_text = db.Column(db.String(500), nullable=False)
     next_node_id = db.Column(db.Integer, db.ForeignKey('story_node.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    choice_metadata = db.Column(JSONB)  # New: Store choice-specific metadata
+    choice_metadata = db.Column(JSONB)  # Store choice-specific metadata
+
+    # Currency costs for this choice
+    currency_requirements = db.Column(JSONB, default={})  # e.g. {"💎": 50, "💷": 1000}
 
     # Simple relationship with the next node
     next_node = db.relationship('StoryNode',
@@ -93,9 +102,18 @@ class UserProgress(db.Model):
     user_id = db.Column(db.String(255), nullable=False)  # Can be session ID for anonymous users
     current_node_id = db.Column(db.Integer, db.ForeignKey('story_node.id'))
     last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    choice_history = db.Column(JSONB)  # New: Track user's choice history
-    achievements_earned = db.Column(JSONB)  # New: Track earned achievements
-    game_state = db.Column(JSONB)  # New: Store additional game state data
+    choice_history = db.Column(JSONB)  # Track user's choice history
+    achievements_earned = db.Column(JSONB)  # Track earned achievements
+    game_state = db.Column(JSONB)  # Store additional game state data
+
+    # Currency balances stored as JSONB
+    currency_balances = db.Column(JSONB, default={
+        "💎": 500,  # Diamonds
+        "💷": 5000,  # Pounds
+        "💶": 5000,  # Euros
+        "💴": 5000,  # Yen
+        "💵": 5000,  # Dollars
+    })
 
     # Relationship with current node
     current_node = db.relationship('StoryNode')
