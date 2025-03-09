@@ -18,7 +18,12 @@ if not api_key:
 # Initialize OpenAI client with the API key
 # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
 # do not change this unless explicitly requested by the user
-client = OpenAI(api_key=api_key)
+# Initialize the OpenAI client, using the environment variable directly
+client = OpenAI()
+
+# Ensure we have the API key
+if not os.environ.get("OPENAI_API_KEY"):
+    logging.warning("OPENAI_API_KEY not found in environment variables. API calls will fail.")
 
 def analyze_artwork(image_url):
     """Analyze the artwork using OpenAI's vision model"""

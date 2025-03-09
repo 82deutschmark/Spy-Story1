@@ -3,11 +3,28 @@ import logging
 import json
 from flask import Flask, render_template, request, jsonify, url_for, redirect, flash
 from dotenv import load_dotenv
+from database import db
+from flask_cors import CORS
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+load_dotenv()
+
+app = Flask(__name__)
+app.secret_key = os.environ.get("SESSION_SECRET")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
+db.init_app(app)
+
+# Import these after db is initialized to avoid circular imports
 from services.openai_service import analyze_artwork, generate_image_description
 from services.story_maker import generate_story, get_story_options
-from database import db
-import models #Added import for models
-from flask_cors import CORS
+from models import AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, StoryChoice
 from api.unity_routes import unity_api
 
 # Configure logging

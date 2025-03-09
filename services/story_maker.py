@@ -21,24 +21,39 @@ STORY_OPTIONS = {
         ("🐿️", "Squirrel gang's mischief"),
         ("🧙‍♂️", "Rat wizard's devious plots"),
         ("🦃", "Turkey's clumsy adventures"),
-        ("🐔", "Chicken's clever conspiracies")
+        ("🐔", "Chicken's clever conspiracies"),
+        ("🦊", "Fox's cunning schemes"),
+        ("🐺", "Wolf pack's territorial disputes"),
+        ("🦉", "Owl sage's cryptic riddles"),
+        ("🦡", "Badger clan's underground secrets")
     ],
     "settings": [
         ("🌳", "Deep Forest"),
         ("🌾", "Sunny Pasture"),
         ("🏡", "Homestead"),
-        ("🌲", "Mysterious Woods")
+        ("🌲", "Mysterious Woods"),
+        ("🏔️", "Mountain Range"),
+        ("🏞️", "River Valley"),
+        ("🌄", "Desert Oasis"),
+        ("🌊", "Coastal Cliffs")
     ],
     "narrative_styles": [
         ("😎", "Gen Z teen style"),
         ("✌️", "Old hippie 1960s vibe"),
-        ("🤘", "Mix of both")
+        ("🤘", "Mix of both"),
+        ("📚", "Classic storybook"),
+        ("🎭", "Theatrical drama"),
+        ("🎬", "Cinematic screenplay")
     ],
     "moods": [
         ("😄", "Joyful and playful"),
         ("😲", "Thrilling and mysterious"),
         ("😎", "Cool and laid-back"),
-        ("😂", "Funny and quirky")
+        ("😂", "Funny and quirky"),
+        ("😱", "Tense and suspenseful"),
+        ("🤔", "Thoughtful and philosophical"),
+        ("🥺", "Heartwarming and emotional"),
+        ("🌟", "Epic and inspirational")
     ]
 }
 
