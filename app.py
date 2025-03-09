@@ -247,19 +247,20 @@ def generate_story_route():
         # Check if this is a custom choice and verify diamond balance
         if custom_choice:
             user_progress = get_or_create_user_progress()
-            diamond_balance = user_progress.currency_balances.get('💎', 0)
-
-            # Custom choices cost 100 diamonds
-            if diamond_balance < 100:
+            currency_requirements = {'💎': 100}
+            if not user_progress.can_afford(currency_requirements):
                 return jsonify({
-                    'error': 'Custom choices require 100 💎. You only have ' + 
-                            f'{diamond_balance} 💎.'
+                    'error': 'Custom choices require 100 💎. You only have ' +
+                             f'{user_progress.currency_balances.get("💎",0)} 💎.'
                 }), 400
 
-            # Deduct diamonds for custom choice
-            user_progress.currency_balances['💎'] = diamond_balance - 100
-            db.session.commit()
-
+            success = user_progress.spend_currency(
+                currency_requirements,
+                'choice',
+                f'Custom choice: {custom_choice[:50]}...' if len(custom_choice) > 50 else custom_choice
+            )
+            if not success:
+                return jsonify({'error': 'Failed to process currency transaction'}), 500
 
         logger.debug(f"Form data received: {data}")
         logger.debug(f"Selected image IDs: {selected_image_ids}")
@@ -318,10 +319,10 @@ def generate_story_route():
         # Get additional characters from database (excluding the selected characters)
         additional_characters = []
         selected_ids = [img.id for img in selected_images]
-        additional_chars_query = ImageAnalysis.query.filter_by(image_type='character')\
-            .filter(~ImageAnalysis.id.in_(selected_ids))\
-            .order_by(db.func.random())\
-            .limit(3)\
+        additional_chars_query = ImageAnalysis.query.filter_by(image_type='character') \
+            .filter(~ImageAnalysis.id.in_(selected_ids)) \
+            .order_by(db.func.random()) \
+            .limit(3) \
             .all()
 
         for char in additional_chars_query:
@@ -821,7 +822,7 @@ def get_all_images():
             analysis = img.analysis_result or {}
             name = img.character_name or ''
             if not name and analysis:
-                name = analysis.get('name', '')
+                name= analysis.get('name', '')
 
             results.append({
                 'id': img.id,
@@ -901,7 +902,8 @@ def get_all_stories():
 
         return jsonify({
             'success': True,
-            'stories': results,'pagination': {
+            'stories': results,
+            'pagination': {
                 'page': page,
                 'per_page': per_page,
                 'total': total,
@@ -1232,6 +1234,78 @@ def trade_currency():
         return jsonify({'error': str(e)}), 500
 
 app.register_blueprint(unity_api, url_prefix='/api/unity') # Blueprint registration
+
+@app.route('/make_choice', methods=['POST'])
+def make_choice():
+    """Process a story choice and handle currency requirements"""
+    try:
+        data = request.json
+        choice_id = data.get('choice_id')
+        custom_choice = data.get('custom_choice')
+
+        # Get user progress
+        user_progress = get_or_create_user_progress()
+
+        if custom_choice:
+            # Validate diamond balance for custom choice
+            currency_requirements = {'💎': 100}
+            if not user_progress.can_afford(currency_requirements):
+                return jsonify({
+                    'error': 'Insufficient diamonds',
+                    'required': 100,
+                    'current_balance': user_progress.currency_balances.get('💎', 0)
+                }), 400
+
+            # Spend diamonds and record transaction
+            success = user_progress.spend_currency(
+                currency_requirements,
+                'choice',
+                f'Custom choice: {custom_choice[:50]}...' if len(custom_choice) > 50 else custom_choice
+            )
+            if not success:
+                return jsonify({'error': 'Failed to process currency transaction'}), 500
+
+        else:
+            # Get the choice and validate currency requirements
+            choice = StoryChoice.query.get_or_404(choice_id)
+            if not choice.currency_requirements:
+                return jsonify({'error': 'Invalid choice: missing currency requirements'}), 400
+
+            # Check if user can afford the choice
+            if not user_progress.can_afford(choice.currency_requirements):
+                return jsonify({
+                    'error': 'Insufficient funds',
+                    'requirements': choice.currency_requirements,
+                    'current_balances': user_progress.currency_balances
+                }), 400
+
+            # Spend currency and record transaction
+            success = user_progress.spend_currency(
+                choice.currency_requirements,
+                'choice',
+                f'Story choice: {choice.choice_text[:50]}...' if len(choice.choice_text) > 50 else choice.choice_text,
+                choice.node_id
+            )
+            if not success:
+                return jsonify({'error': 'Failed to process currency transaction'}), 500
+
+        # Generate next part of the story
+        story_params = {
+            'custom_choice': custom_choice if custom_choice else None,
+            'previous_choice': choice.choice_text if not custom_choice else custom_choice,
+            # Add other necessary story parameters here
+        }
+
+        # Return success response with updated balances
+        return jsonify({
+            'success': True,
+            'new_balances': user_progress.currency_balances,
+            'message': 'Choice processed successfully'
+        })
+
+    except Exception as e:
+        logger.error(f"Error processing choice: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
