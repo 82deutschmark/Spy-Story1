@@ -242,6 +242,23 @@ def generate_story_route():
         selected_image_ids = request.form.getlist('selected_images[]')
         protagonist_gender = request.form.get('protagonist_gender')
         protagonist_name = request.form.get('protagonist_name')
+        custom_choice = data.get('custom_choice', '')
+
+        # Check if this is a custom choice and verify diamond balance
+        if custom_choice:
+            user_progress = get_or_create_user_progress()
+            diamond_balance = user_progress.currency_balances.get('💎', 0)
+
+            # Custom choices cost 100 diamonds
+            if diamond_balance < 100:
+                return jsonify({
+                    'error': 'Custom choices require 100 💎. You only have ' + 
+                            f'{diamond_balance} 💎.'
+                }), 400
+
+            # Deduct diamonds for custom choice
+            user_progress.currency_balances['💎'] = diamond_balance - 100
+            db.session.commit()
 
 
         logger.debug(f"Form data received: {data}")
@@ -269,7 +286,6 @@ def generate_story_route():
         }
 
         # Handle choice selection - either predefined or custom
-        custom_choice = data.get('custom_choice', '')
         if custom_choice:
             story_params['previous_choice'] = f"Custom choice: {custom_choice}"
         else:
@@ -1132,21 +1148,49 @@ def trade_currency():
         if 'user_id' not in session:
             return jsonify({'error': 'Session expired'}), 401
 
-        # Get exchange rates (example rates)
+        # Get exchange rates based on the new rules
         rates = {
-            "💎": {"💷": 100, "💶": 100, "💴": 10000, "💵": 100},  # 1 diamond = 100 of each currency
-            "💷": {"💎": 0.01, "💶": 1, "💴": 100, "💵": 1},      # 1 pound = 0.01 diamonds or 1 euro/dollar
-            "💶": {"💎": 0.01, "💷": 1, "💴": 100, "💵": 1},      # 1 euro = 0.01 diamonds or 1 pound/dollar
-            "💴": {"💎": 0.0001, "💷": 0.01, "💶": 0.01, "💵": 0.01},  # 1 yen = 0.0001 diamonds
-            "💵": {"💎": 0.01, "💷": 1, "💶": 1, "💴": 100}       # 1 dollar = 0.01 diamonds or 1 pound/euro
+            "💎": {  # Diamonds can only be converted to EUR and YEN
+                "💶": 1000,    # 1 diamond = 1000 EUR
+                "💴": 150000,  # 1 diamond = 150000 YEN
+            },
+            "💶": {  # EUR to other currencies (except diamonds)
+                "💴": 150,     # 1 EUR = 150 YEN
+                "💵": 1.1,     # 1 EUR = 1.1 USD
+                "💷": 0.85,    # 1 EUR = 0.85 GBP
+            },
+            "💴": {  # YEN to other currencies (except diamonds)
+                "💶": 0.0067,  # 1 YEN = 0.0067 EUR
+                "💵": 0.0073,  # 1 YEN = 0.0073 USD
+                "💷": 0.0057,  # 1 YEN = 0.0057 GBP
+            },
+            "💵": {  # USD to other currencies (except diamonds)
+                "💶": 0.91,    # 1 USD = 0.91 EUR
+                "💴": 136.5,   # 1 USD = 136.5 YEN
+                "💷": 0.77,    # 1 USD = 0.77 GBP
+            },
+            "💷": {  # GBP to other currencies (except diamonds)
+                "💶": 1.18,    # 1 GBP = 1.18 EUR
+                "💴": 177,     # 1 GBP = 177 YEN
+                "💵": 1.3,     # 1 GBP = 1.3 USD
+            }
         }
 
-        if from_currency not in rates or to_currency not in rates[from_currency]:
-            return jsonify({'error': 'Invalid currency pair'}), 400
+        # Check if the conversion is allowed
+        if from_currency == "💎" and to_currency not in ["💶", "💴"]:
+            return jsonify({
+                'error': 'Diamonds can only be converted to Euros (💶) or Yen (💴)'
+            }), 400
 
-        # Calculate conversion
-        conversion_rate = rates[from_currency][to_currency]
-        converted_amount = int(amount * conversion_rate)  # Use integer for currency amounts
+        if to_currency == "💎":
+            return jsonify({
+                'error': 'Cannot convert other currencies to diamonds'
+            }), 400
+
+        if from_currency not in rates or to_currency not in rates[from_currency]:
+            return jsonify({
+                'error': 'Invalid currency conversion'
+            }), 400
 
         # Get user progress
         user_progress = UserProgress.query.filter_by(user_id=session['user_id']).first()
@@ -1161,6 +1205,10 @@ def trade_currency():
                 'current_balance': current_balance,
                 'required_amount': amount
             }), 400
+
+        # Calculate conversion
+        conversion_rate = rates[from_currency][to_currency]
+        converted_amount = int(amount * conversion_rate)  # Use integer for currency amounts
 
         # Perform the exchange
         user_progress.currency_balances[from_currency] = current_balance - amount

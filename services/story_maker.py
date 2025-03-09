@@ -3,6 +3,7 @@ import json
 import logging
 from typing import Dict, List, Tuple, Optional, Any
 from openai import OpenAI
+import random
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -94,17 +95,17 @@ def generate_story(
         traits = character_info.get('character_traits', [])
         if not traits and 'traits' in character_info:
             traits = character_info['traits']
-        
+
         # Extract plot lines with fallback options
         plot_lines = character_info.get('plot_lines', [])
         if not plot_lines and 'plot_lines' in character_info:
             plot_lines = character_info['plot_lines']
-        
+
         # Get character style/visual description
         style = character_info.get('style', '')
         if not style and character_info.get('visual_description'):
             style = character_info.get('visual_description')
-            
+
         # Build the character prompt section with all available data
         selected_character_prompt = (
             f"\nSelected Character to Feature:\n"
@@ -113,13 +114,13 @@ def generate_story(
             f"Traits: {', '.join(traits)}\n"
             f"Visual Description: {style}\n"
         )
-        
+
         # Add plot lines with emphasis to ensure they're incorporated into the story
         if plot_lines:
             selected_character_prompt += f"Suggested Plot Lines (MUST USE AT LEAST ONE):\n"
             for plot in plot_lines:
                 selected_character_prompt += f"- {plot}\n"
-    
+
     # Build information about additional characters from the database
     additional_characters_prompt = ""
     if additional_characters and len(additional_characters) > 0:
@@ -129,11 +130,11 @@ def generate_story(
             if isinstance(char_traits, str):
                 # Handle case where traits might be a string
                 char_traits = [char_traits]
-            
+
             char_name = char.get('name', char.get('character_name', 'Unnamed Character'))
             char_role = char.get('role', char.get('character_role', 'neutral'))
             traits_str = ', '.join(char_traits) if char_traits else 'No specified traits'
-            
+
             additional_characters_prompt += (
                 f"- Name: {char_name}\n"
                 f"  Role: {char_role}\n"
@@ -145,7 +146,7 @@ def generate_story(
     if story_context and previous_choice:
         # Check if it's a custom choice
         is_custom_choice = previous_choice.startswith("Custom choice:")
-        
+
         if is_custom_choice:
             context_prompt = (
                 f"\nPrevious story context: {story_context}\n"
@@ -165,7 +166,7 @@ def generate_story(
     protagonist_info = ""
     if protagonist_name and protagonist_gender:
         protagonist_info = f"The story revolves around {protagonist_name}, a {protagonist_gender} protagonist who is totally incompetent, woefully ignorant, but very charismatic, arrogant, and constantly receives romantic advances from practically everybody they meet. "
-    
+
     universe_prompt = (
         f"This is set in the hormone-fueled high stakes sexy dramatic international spy network. {protagonist_info}"
         "The story is set in the year 2070, and the world is in the midst of a global crisis that the protagonist doesn't care enough to understand. "
@@ -193,21 +194,40 @@ def generate_story(
         "4. CRITICAL: If additional characters from the database are provided, you MUST introduce at least one new character from this list into the story\n"
         "5. Includes betrayal, romantic flings, and over-the-top action sequences\n"
         "6. Uses the character's traits to guide their behavior and dialogue\n"
-        "7. Provides exactly two meaningful choice options that:\n"
+        "7. In some story segments, include characters offering to buy diamonds (💎) from the player:\n"
+        "   - Characters can offer to trade dollars (💵) or pounds (💷) for diamonds\n"
+        "   - Make offers sound enticing but slightly suspicious\n"
+        "   - Each diamond is worth €1000 or ¥150000\n"
+        "8. Provides exactly two meaningful choice options that:\n"
         "   - Lead to different potential outcomes (one should be more absurd than the other)\n"
         "   - Stay true to the characters' established traits\n"
         "   - Relate to at least one of the plot lines if provided\n"
         "   - IMPORTANT: Include at least one new character from the database in the choices when possible\n"
+        "   - REQUIRED: Each choice must have a random dollar (💵) cost between $1000-$20000\n"
         "   - Avoid dead ends but escalate the ridiculousness with each choice\n"
-        "8. Include clear consequences for each choice that involve romantic encounters, betrayal, or absurd action scenarios\n\n"
+        "9. Include clear consequences for each choice that involve romantic encounters, betrayal, or absurd action scenarios\n\n"
         "Format the response as a JSON object with:\n"
         "{\n"
         "  'title': 'Episode title',\n"
         "  'story': 'The story text',\n"
         "  'choices': [\n"
-        "    {'text': 'First choice', 'consequence': 'Brief outcome hint'},\n"
-        "    {'text': 'Second choice', 'consequence': 'Brief outcome hint'}\n"
+        "    {\n"
+        "      'text': 'First choice',\n"
+        "      'consequence': 'Brief outcome hint',\n"
+        "      'currency_requirements': {'💵': 1000 + random.randint(0, 19000)}\n"
+        "    },\n"
+        "    {\n"
+        "      'text': 'Second choice',\n"
+        "      'consequence': 'Brief outcome hint',\n"
+        "      'currency_requirements': {'💵': 1000 + random.randint(0, 19000)}\n"
+        "    }\n"
         "  ],\n"
+        "  'currency_trade_offer': {\n"
+        "    'text': 'Optional currency trade offer from a character',\n"
+        "    'from_currency': '💎',\n"
+        "    'to_currency': '💵 or 💷',\n"
+        "    'rate': 'Proposed exchange rate'\n"
+        "  },\n"
         "  'characters': ['List of character names featured, including new characters']\n"
         "}"
     )
@@ -215,7 +235,7 @@ def generate_story(
     try:
         # Note: gpt-4o is the newest model, released May 13, 2024.
         # do not change this unless explicitly requested by the user
-        
+
         # Prepare messages with system prompt and user query
         messages = [
             {
@@ -232,22 +252,22 @@ def generate_story(
             },
             {"role": "user", "content": prompt}
         ]
-        
+
         # If story_context exists, it means we're continuing a story, so we should include previous context
         if story_context:
             # Insert the context as part of the message history
             messages.insert(1, {"role": "assistant", "content": f"Previous story context: {story_context}"})
-            
+
             if previous_choice:
                 messages.insert(2, {"role": "user", "content": f"Player chose: {previous_choice}"})
-        
+
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=messages,
             temperature=0.9,
             response_format={"type": "json_object"}
         )
-        
+
         # Add the response to the message history for potential future continuations
         messages.append({
             "role": "assistant",
