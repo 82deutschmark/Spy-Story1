@@ -458,11 +458,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (nameElement && imageElement) {
                 const name = nameElement.textContent.trim();
                 if (name) { // Only add if name is not empty
+                    const dataName = portrait.getAttribute('data-character-name') || name.toLowerCase().replace(/\s/g, '-');
                     characterNames.push({
                         name: name,
                         image: imageElement.src,
-                        element: portrait,
-                        dataName: portrait.getAttribute('data-character-name') || name.toLowerCase().replace(/\s/g, '-')
+                        dataName: dataName
                     });
                 }
             }
@@ -478,16 +478,18 @@ document.addEventListener('DOMContentLoaded', function() {
         // Sort names by length (longest first) to avoid partial matches
         characterNames.sort((a, b) => b.name.length - a.name.length);
 
-        // Get the story text and preserve for comparison
-        const originalStoryText = storyContent.innerHTML;
-        let storyText = originalStoryText;
+        // Get the story text content
+        let storyHTML = storyContent.innerHTML;
+        const originalHTML = storyHTML;
 
-        // Replace character names with highlighted spans, using escaped regex
+        // Replace character names with highlighted spans
         characterNames.forEach(character => {
             try {
                 const escapedName = escapeRegExp(character.name);
-                const regex = new RegExp(`\\b${escapedName}\\b`, 'gi');
-                storyText = storyText.replace(regex, match => {
+                // Only match whole words
+                const regex = new RegExp(`\\b${escapedName}\\b(?![^<]*>)`, 'gi');
+                
+                storyHTML = storyHTML.replace(regex, match => {
                     return `<span class="character-mention" data-character="${character.dataName}">${match}<span class="character-tooltip"><img src="${character.image}" alt="${match}">${match}</span></span>`;
                 });
             } catch (error) {
@@ -495,42 +497,36 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Only update if changes were made (prevent infinite loops)
-        if (storyText !== originalStoryText) {
-            // Update the story content
-            storyContent.innerHTML = storyText;
-
+        // Only update if changes were made
+        if (storyHTML !== originalHTML) {
+            storyContent.innerHTML = storyHTML;
+            
             // Add click event to highlight corresponding mini-portrait
             document.querySelectorAll('.character-mention').forEach(mention => {
                 mention.addEventListener('click', function() {
-                    try {
-                        const characterId = this.dataset.character;
-                        if (!characterId) return;
-                        
-                        const targetPortrait = document.querySelector(`.character-portrait-mini[data-character-name="${characterId}"]`);
+                    const characterId = this.dataset.character;
+                    if (!characterId) return;
+                    
+                    // Remove highlight from all portraits
+                    document.querySelectorAll('.character-mini-img').forEach(img => {
+                        img.classList.remove('character-mini-highlight');
+                    });
 
-                        // Remove highlight from all portraits
-                        document.querySelectorAll('.character-mini-img').forEach(img => {
-                            img.classList.remove('character-mini-highlight');
-                        });
+                    // Add highlight to this portrait
+                    const targetPortrait = document.querySelector(`.character-portrait-mini[data-character-name="${characterId}"]`);
+                    if (targetPortrait) {
+                        const portraitImg = targetPortrait.querySelector('.character-mini-img');
+                        if (portraitImg) {
+                            portraitImg.classList.add('character-mini-highlight');
 
-                        // Add highlight to this portrait
-                        if (targetPortrait) {
-                            const portraitImg = targetPortrait.querySelector('.character-mini-img');
-                            if (portraitImg) {
-                                portraitImg.classList.add('character-mini-highlight');
+                            // Scroll to the portrait if needed
+                            targetPortrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-                                // Scroll to the portrait if needed
-                                targetPortrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-                                // Remove highlight after 3 seconds
-                                setTimeout(() => {
-                                    portraitImg.classList.remove('character-mini-highlight');
-                                }, 3000);
-                            }
+                            // Remove highlight after 3 seconds
+                            setTimeout(() => {
+                                portraitImg.classList.remove('character-mini-highlight');
+                            }, 3000);
                         }
-                    } catch (error) {
-                        console.error('Error handling character mention click:', error);
                     }
                 });
             });
