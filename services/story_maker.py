@@ -143,11 +143,22 @@ def generate_story(
     # Add context from previous choices if available
     context_prompt = ""
     if story_context and previous_choice:
-        context_prompt = (
-            f"\nPrevious story context: {story_context}\n"
-            f"Player chose: {previous_choice}\n"
-            "Continue the story based on this choice, maintaining consistency with previous events."
-        )
+        # Check if it's a custom choice
+        is_custom_choice = previous_choice.startswith("Custom choice:")
+        
+        if is_custom_choice:
+            context_prompt = (
+                f"\nPrevious story context: {story_context}\n"
+                f"Player entered a custom choice: {previous_choice[14:].strip()}\n"
+                "Continue the story based on this custom input from the player, treating it as a direct action or decision made by the protagonist. "
+                "Be creative and incorporate their specific input naturally into the story flow, maintaining consistency with previous events."
+            )
+        else:
+            context_prompt = (
+                f"\nPrevious story context: {story_context}\n"
+                f"Player chose: {previous_choice}\n"
+                "Continue the story based on this choice, maintaining consistency with previous events."
+            )
 
     # Core story universe description
     # Handle protagonist information
@@ -214,7 +225,9 @@ def generate_story(
                         "Your stories feature a charismatic but incompetent protagonist who constantly receives romantic advances "
                         "while navigating an over-the-top world of betrayal, action, and absurdity. Keep the tone dramatic and provocative, "
                         "with excessive action scenes, romantic encounters, and ridiculous plot twists. The protagonist doesn't care about "
-                        "the global crisis, they just want to party hard and have James Bond style adventures."
+                        "the global crisis, they just want to party hard and have James Bond style adventures. "
+                        "You can adapt to both predefined choices and custom user inputs, seamlessly incorporating their creative ideas "
+                        "into the ongoing narrative while maintaining the established tone and character traits."
                     )
                 },
                 {"role": "user", "content": prompt}

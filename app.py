@@ -214,9 +214,15 @@ def generate_story_route():
             'custom_setting': data.get('custom_setting', ''),
             'custom_narrative': data.get('custom_narrative', ''),
             'custom_mood': data.get('custom_mood', ''),
-            'previous_choice': data.get('previous_choice', ''),
             'story_context': data.get('story_context', '')
         }
+        
+        # Handle choice selection - either predefined or custom
+        custom_choice = data.get('custom_choice', '')
+        if custom_choice:
+            story_params['previous_choice'] = f"Custom choice: {custom_choice}"
+        else:
+            story_params['previous_choice'] = data.get('previous_choice', '')
 
         logger.debug(f"Story parameters: {story_params}")
 

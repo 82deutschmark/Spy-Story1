@@ -78,6 +78,24 @@
                         </button>
                     </form>
                     {% endfor %}
+                    
+                    <!-- Custom Choice Option -->
+                    <form action="{{ url_for('generate_story_route') }}" method="POST" class="choice-form custom-choice-form">
+                        <input type="hidden" name="story_context" value="{{ story.story }}">
+                        <!-- Character selection data - include all characters -->
+                        {% for image in character_images %}
+                        <input type="hidden" name="selected_images[]" value="{{ image.id }}">
+                        {% endfor %}
+                        <!-- Include conflict/setting data from the initial story -->
+                        <input type="hidden" name="conflict" value="{{ story.conflict|default('Mysterious adventure') }}">
+                        <input type="hidden" name="setting" value="{{ story.setting|default('Enchanted world') }}">
+                        <input type="hidden" name="narrative_style" value="{{ story.narrative_style|default('Engaging modern style') }}">
+                        <input type="hidden" name="mood" value="{{ story.mood|default('Exciting and adventurous') }}">
+                        <input type="text" name="custom_choice" class="form-control custom-choice-input" placeholder="Write your own choice...">
+                        <button type="submit" class="choice-btn custom-choice-btn">
+                            <div class="choice-text">Make Your Own Choice</div>
+                        </button>
+                    </form>
                 </div>
             </div>
 
