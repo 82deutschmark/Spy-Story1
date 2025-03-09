@@ -5,6 +5,9 @@ from flask import Flask, render_template, request, jsonify, url_for, redirect, f
 from dotenv import load_dotenv
 from database import db
 from flask_cors import CORS
+import logging
+import paypalrestsdk
+from decimal import Decimal
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -24,7 +27,7 @@ db.init_app(app)
 # Import these after db is initialized to avoid circular imports
 from services.openai_service import analyze_artwork, generate_image_description
 from services.story_maker import generate_story, get_story_options
-from models import AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, StoryChoice
+from models import AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, StoryChoice, UserProgress # Added UserProgress import
 from api.unity_routes import unity_api
 
 # CORS configuration
@@ -841,8 +844,7 @@ def get_all_stories():
 
         return jsonify({
             'success': True,
-            'stories': results,
-            'pagination': {
+            'stories': results,'pagination': {
                 'page': page,
                 'per_page': per_page,
                 'total': total,
@@ -972,6 +974,158 @@ def reanalyze_image(image_id):
     except Exception as e:
         logger.error(f"Error reanalyzing image: {str(e)}")
         db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/purchase/diamonds', methods=['POST'])
+def create_diamond_purchase():
+    """Create a PayPal payment for diamond purchase"""
+    try:
+        # Configure PayPal SDK
+        paypalrestsdk.configure({
+            "mode": "sandbox",  # or "live" for production
+            "client_id": os.environ.get("PAYPAL_CLIENT_ID"),
+            "client_secret": os.environ.get("PAYPAL_SECRET")
+        })
+
+        # Get purchase amount from request
+        data = request.json
+        diamond_amount = data.get('amount', 100)  # Default to 100 diamonds
+        price_per_diamond = Decimal('0.01')  # $0.01 per diamond
+        total_price = diamond_amount * price_per_diamond
+
+        # Create PayPal payment
+        payment = paypalrestsdk.Payment({
+            "intent": "sale",
+            "payer": {
+                "payment_method": "paypal"
+            },
+            "transactions": [{
+                "amount": {
+                    "total": str(total_price),
+                    "currency": "USD"
+                },
+                "description": f"Purchase {diamond_amount} diamonds 💎"
+            }],
+            "redirect_urls": {
+                "return_url": f"https://{os.environ.get('REPLIT_DOMAINS').split(',')[0]}/api/purchase/diamonds/success",
+                "cancel_url": f"https://{os.environ.get('REPLIT_DOMAINS').split(',')[0]}/api/purchase/diamonds/cancel"
+            }
+        })
+
+        if payment.create():
+            # Get approval URL
+            for link in payment.links:
+                if link.method == "REDIRECT":
+                    redirect_url = link.href
+                    return jsonify({
+                        'success': True,
+                        'redirect_url': redirect_url,
+                        'payment_id': payment.id
+                    })
+        else:
+            return jsonify({'error': payment.error}), 400
+
+    except Exception as e:
+        logger.error(f"Error creating PayPal payment: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/purchase/diamonds/success')
+def diamond_purchase_success():
+    """Handle successful PayPal payment and credit diamonds"""
+    try:
+        payment_id = request.args.get('paymentId')
+        payer_id = request.args.get('PayerID')
+
+        payment = paypalrestsdk.Payment.find(payment_id)
+
+        if payment.execute({"payer_id": payer_id}):
+            # Get diamond amount from transaction description
+            description = payment.transactions[0].description
+            diamond_amount = int(''.join(filter(str.isdigit, description)))
+
+            # Get user progress
+            user_id = request.args.get('user_id')  # Or get from session
+            user_progress = UserProgress.query.filter_by(user_id=user_id).first()
+
+            if user_progress:
+                # Update diamond balance
+                current_balance = user_progress.currency_balances.get("💎", 0)
+                user_progress.currency_balances["💎"] = current_balance + diamond_amount
+                db.session.commit()
+
+                return jsonify({
+                    'success': True,
+                    'message': f'Successfully purchased {diamond_amount} diamonds',
+                    'new_balance': user_progress.currency_balances["💎"]
+                })
+            else:
+                return jsonify({'error': 'User progress not found'}), 404
+        else:
+            return jsonify({'error': payment.error}), 400
+
+    except Exception as e:
+        logger.error(f"Error processing PayPal payment: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/purchase/diamonds/cancel')
+def diamond_purchase_cancel():
+    """Handle cancelled PayPal payment"""
+    return jsonify({
+        'success': False,
+        'message': 'Diamond purchase cancelled'
+    })
+
+@app.route('/api/currency/trade', methods=['POST'])
+def trade_currency():
+    """Trade between different currency types"""
+    try:
+        data = request.json
+        user_id = data.get('user_id')  # Or get from session
+        from_currency = data.get('from_currency')
+        to_currency = data.get('to_currency')
+        amount = data.get('amount')
+
+        if not all([user_id, from_currency, to_currency, amount]):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        # Get exchange rates (example rates)
+        rates = {
+            "💎": {"💷": 100, "💶": 100, "💴": 10000, "💵": 100},  # 1 diamond = 100 of each currency
+            "💷": {"💎": 0.01, "💶": 1, "💴": 100, "💵": 1},      # 1 pound = 0.01 diamonds or 1 euro/dollar
+            "💶": {"💎": 0.01, "💷": 1, "💴": 100, "💵": 1},      # 1 euro = 0.01 diamonds or 1 pound/dollar
+            "💴": {"💎": 0.0001, "💷": 0.01, "💶": 0.01, "💵": 0.01},  # 1 yen = 0.0001 diamonds
+            "💵": {"💎": 0.01, "💷": 1, "💶": 1, "💴": 100}       # 1 dollar = 0.01 diamonds or 1 pound/euro
+        }
+
+        if from_currency not in rates or to_currency not in rates[from_currency]:
+            return jsonify({'error': 'Invalid currency pair'}), 400
+
+        # Calculate conversion
+        conversion_rate = rates[from_currency][to_currency]
+        converted_amount = amount * conversion_rate
+
+        # Update user balances
+        user_progress = UserProgress.query.filter_by(user_id=user_id).first()
+        if not user_progress:
+            return jsonify({'error': 'User progress not found'}), 404
+
+        # Check if user has enough currency
+        if user_progress.currency_balances.get(from_currency, 0) < amount:
+            return jsonify({'error': 'Insufficient funds'}), 400
+
+        # Perform the exchange
+        user_progress.currency_balances[from_currency] -= amount
+        user_progress.currency_balances[to_currency] = user_progress.currency_balances.get(to_currency, 0) + converted_amount
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully traded {amount} {from_currency} for {converted_amount} {to_currency}',
+            'new_balances': user_progress.currency_balances
+        })
+
+    except Exception as e:
+        logger.error(f"Error trading currency: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 app.register_blueprint(unity_api, url_prefix='/api/unity') # Blueprint registration
