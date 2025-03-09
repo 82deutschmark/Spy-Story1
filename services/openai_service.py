@@ -176,21 +176,3 @@ Respond in JSON format with the appropriate keys based on the image type. Use sn
         logger.error(f"Error analyzing artwork: {str(e)}")
         raise Exception(f"Failed to analyze artwork: {str(e)}")
 
-def generate_image_description(analysis):
-    """Generate a concise description of the analyzed image"""
-    if "name" in analysis:
-        # It's a character
-        description = (
-            f"Character: {analysis['name']} - {'Hero' if analysis.get('role') == 'hero' else 'Neutral' if analysis.get('role') == 'neutral' else 'Villain'}\n\n"
-            f"Character Traits: {', '.join(analysis.get('character_traits', [])[:3])}\n\n"
-            f"Potential Plot: {analysis.get('plot_lines', [''])[0]}\n\n"
-            f"Art Style: {analysis.get('style', '')}"
-        )
-    else:
-        # It's a scene
-        description = (
-            f"Scene Type: {analysis.get('scene_type', 'Adventure')}\n\n"
-            f"Setting: {analysis.get('setting', '')}\n\n"
-            f"Dramatic Moment: {analysis.get('dramatic_moments', [''])[0]}"
-        )
-    return description
