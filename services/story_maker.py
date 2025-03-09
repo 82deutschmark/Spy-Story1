@@ -58,7 +58,9 @@ def generate_story(
     custom_mood: Optional[str] = None,
     previous_choice: Optional[str] = None,
     story_context: Optional[str] = None,
-    additional_characters: Optional[List[Dict[str, Any]]] = None
+    additional_characters: Optional[List[Dict[str, Any]]] = None,
+    protagonist_name: Optional[str] = None,
+    protagonist_gender: Optional[str] = None
 ) -> Dict[str, Any]:
     """Generate a story based on selected or custom parameters and character info"""
     if not api_key:
@@ -133,19 +135,18 @@ def generate_story(
         )
 
     # Core story universe description
+    # Handle protagonist information
+    protagonist_info = ""
+    if protagonist_name and protagonist_gender:
+        protagonist_info = f"The story revolves around {protagonist_name}, a {protagonist_gender} protagonist based in various world cities. "
+    
     universe_prompt = (
-        "This story takes place in Uncle Mark's forest farm, where animals have distinct personalities "
-        "and adventures happen daily. The main cast includes:\n\n"
-        "Core Characters:\n"
-        "- Pawel and Pawleen: Two Yorkshire terriers who protect the farm. Pawel is impulsive and fearless, "
-        "while Pawleen is thoughtful and clever.\n"
-        "- Big Red: The not-so-bright rooster who leads the chicken coop\n"
-        "- The Clever Hens: Birdadette, Henrietta, and others who actually run things\n"
-        "- The White Turkeys: Well-meaning but big and clumsy prone to getting into silly situations\n\n"
-        "Antagonists:\n"
-        "- Evil Squirrel Gangs: Think they're superior to other animals, bully others, and steal food\n"
-        "- The Rat Wizard: Lives in the woods, steals eggs and vegetables for his potions, enchants other rodents to do his bidding\n"
-        "- Various mice and moles: Forced by squirrels to help with their schemes\n"
+        f"This is a gritty crime noir spy mystery novel for adults. {protagonist_info}"
+        "The story takes place across various major world cities, with characters having distinct personalities "
+        "and backgrounds tied to their home cities. The world is full of espionage, betrayal, and moral ambiguity.\n\n"
+        "The narrative should maintain a dark, suspenseful atmosphere typical of noir fiction, "
+        "with complex characters navigating dangerous situations in an international spy network.\n\n"
+        "Each character has a home city that influences their background, methods, and connections."
     )
 
     # Construct the main prompt
