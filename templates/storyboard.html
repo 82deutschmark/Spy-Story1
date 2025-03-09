@@ -141,9 +141,31 @@
                         <input type="text" name="custom_choice" class="form-control custom-choice-input" placeholder="Write your own choice...">
                         <button type="submit" class="choice-btn custom-choice-btn">
                             <div class="choice-text">Make Your Own Choice</div>
+                            <div class="choice-currency-req">
+                                <span class="currency-req-item {% if user_progress.currency_balances.get('💎', 0) < 100 %}currency-req-insufficient{% endif %}">
+                                    💎100
+                                </span>
+                            </div>
                         </button>
                     </form>
                 </div>
+                
+                {% if story.currency_trade_offer %}
+                <div class="currency-trade-offer">
+                    <div class="trade-offer-text">{{ story.currency_trade_offer.text }}</div>
+                    <div class="trade-offer-details">
+                        Trade {{ story.currency_trade_offer.from_currency }} for {{ story.currency_trade_offer.to_currency }} 
+                        at rate: {{ story.currency_trade_offer.rate }}
+                    </div>
+                    <button class="btn btn-outline-primary accept-trade-btn" 
+                            data-from="{{ story.currency_trade_offer.from_currency }}"
+                            data-to="{{ story.currency_trade_offer.to_currency }}"
+                            data-rate="{{ story.currency_trade_offer.rate }}">
+                        Accept Trade Offer
+                    </button>
+                </div>
+                {% endif %}
+
             </div>
 
             <!-- Navigation -->

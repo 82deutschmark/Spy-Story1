@@ -978,7 +978,7 @@ body[data-bs-theme="dark"] .character-select-card {
     0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7); }
     70% { box-shadow: 0 0 0 6px rgba(139, 92, 246, 0); }
     100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
-}
+}}
 
 /* Character mention styles */
 .character-mention {
@@ -1020,113 +1020,52 @@ body[data-bs-theme="dark"] .character-select-card {
     margin: 0 auto 5px;
     display: block;
 }
-/* Custom choice styling */
-.custom-choice-form {
-    margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-    border-top: 1px dashed rgba(255, 255, 255, 0.3);
-    padding-top: 20px;
-}
-
-.custom-choice-input {
-    margin-bottom: 15px;
-    padding: 12px;
-    background-color: rgba(0, 0, 0, 0.6);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 5px;
-}
-
-.custom-choice-input:focus {
-    background-color: rgba(0, 0, 0, 0.8);
-    color: white;
-    border-color: #0097FB;
-    outline: none;
-    box-shadow: 0 0 0 0.25rem rgba(0, 151, 251, 0.25);
-}
-
-.custom-choice-btn {
-    background: linear-gradient(135deg, #444 0%, #222 100%);
-}
-
-.custom-choice-btn:hover {
-    background: linear-gradient(135deg, #0097FB 0%, #0057AB 100%);
-}
-
-/* Currency display styles */
-.currency-bar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
+/* Currency trade offer styles */
+.currency-trade-offer {
     background: rgba(255, 255, 255, 0.95);
-    padding: 0.5rem 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 1rem;
-    z-index: 1000;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid #8B5CF6;
 }
 
-.currency-item {
+.trade-offer-text {
+    font-size: 1.1rem;
+    color: #333;
+    margin-bottom: 1rem;
+    font-style: italic;
+}
+
+.trade-offer-details {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.25rem 0.5rem;
-    border-radius: 20px;
-    background: rgba(0, 0, 0, 0.05);
-}
-
-.currency-symbol {
-    font-size: 1.2rem;
-}
-
-.currency-amount {
     font-weight: 600;
-    color: #333;
-}
-
-/* Diamond purchase modal styles */
-.diamond-packages {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
+    color: #1a1a1a;
     margin-bottom: 1rem;
 }
 
-.diamond-package {
-    padding: 1rem;
-    text-align: center;
-    font-weight: 600;
+.accept-trade-btn {
+    color: #8B5CF6;
+    border-color: #8B5CF6;
     transition: all 0.2s ease;
 }
 
-.diamond-package:hover {
+.accept-trade-btn:hover {
+    background-color: #8B5CF6;
+    color: white;
     transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2);
 }
 
-/* Currency trade modal styles */
-#tradeForm .form-label {
-    font-weight: 600;
-    color: #333;
-}
-
-#tradeForm .form-select,
-#tradeForm .form-control {
-    border-color: rgba(0, 0, 0, 0.1);
-}
-
-/* Story choice currency requirements */
+/* Currency requirement styles for story choices */
 .choice-currency-req {
-    font-size: 0.9rem;
-    color: #666;
     margin-top: 0.5rem;
     display: flex;
     gap: 0.5rem;
     align-items: center;
+    justify-content: center;
 }
 
 .currency-req-item {
@@ -1134,10 +1073,35 @@ body[data-bs-theme="dark"] .character-select-card {
     align-items: center;
     gap: 0.25rem;
     background: rgba(0, 0, 0, 0.05);
-    padding: 0.15rem 0.5rem;
+    padding: 0.25rem 0.75rem;
     border-radius: 12px;
+    font-weight: 600;
+    color: #333;
 }
 
 .currency-req-insufficient {
     color: #dc3545;
+    background: rgba(220, 53, 69, 0.1);
+}
+
+/* Custom choice styling */
+.custom-choice-form {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.custom-choice-input {
+    margin-bottom: 1rem;
+}
+
+.custom-choice-btn {
+    background: linear-gradient(135deg, #0077CC 0%, #004499 100%);
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.custom-choice-btn:hover {
+    background: linear-gradient(135deg, #0097FB 0%, #0057AB 100%);
 }
