@@ -18,42 +18,42 @@ client = OpenAI(api_key=api_key)
 # Default story options
 STORY_OPTIONS = {
     "conflicts": [
-        ("🐿️", "Squirrel gang's mischief"),
-        ("🧙‍♂️", "Rat wizard's devious plots"),
-        ("🦃", "Turkey's clumsy adventures"),
-        ("🐔", "Chicken's clever conspiracies"),
-        ("🦊", "Fox's cunning schemes"),
-        ("🐺", "Wolf pack's territorial disputes"),
-        ("🦉", "Owl sage's cryptic riddles"),
-        ("🦡", "Badger clan's underground secrets")
+        ("💣", "Double agent exposed"),
+        ("💼", "Corporate espionage"),
+        ("🧪", "Bioweapon heist"),
+        ("💰", "Trillion-dollar ransom"),
+        ("🔍", "Assassination conspiracy"),
+        ("🕵️", "Elite spy tournament"),
+        ("🌌", "Space station takeover"),
+        ("🧠", "Mind control experiment")
     ],
     "settings": [
-        ("🌳", "Deep Forest"),
-        ("🌾", "Sunny Pasture"),
-        ("🏡", "Homestead"),
-        ("🌲", "Mysterious Woods"),
-        ("🏔️", "Mountain Range"),
-        ("🏞️", "River Valley"),
-        ("🌄", "Desert Oasis"),
-        ("🌊", "Coastal Cliffs")
+        ("🗼", "Neo-Tokyo Nightclub"),
+        ("🏝️", "Private Luxury Island"),
+        ("🏙️", "Dubai Mega-Skyscraper"),
+        ("🚢", "Orbital Cruise Liner"),
+        ("❄️", "Arctic Research Base"),
+        ("🏰", "Monaco Casino"),
+        ("🏜️", "Sahara Desert Compound"),
+        ("🌋", "Volcanic Lair")
     ],
     "narrative_styles": [
-        ("😎", "Gen Z teen style"),
-        ("✌️", "Old hippie 1960s vibe"),
-        ("🤘", "Mix of both"),
-        ("📚", "Classic storybook"),
-        ("🎭", "Theatrical drama"),
-        ("🎬", "Cinematic screenplay")
+        ("😎", "Snarky action hero"),
+        ("🔥", "Steamy romance novel"),
+        ("🤪", "Absurdist comedy"),
+        ("🎭", "Melodramatic soap opera"),
+        ("🎬", "High-budget action movie"),
+        ("🤵", "Classic Bond film")
     ],
     "moods": [
-        ("😄", "Joyful and playful"),
-        ("😲", "Thrilling and mysterious"),
-        ("😎", "Cool and laid-back"),
-        ("😂", "Funny and quirky"),
-        ("😱", "Tense and suspenseful"),
-        ("🤔", "Thoughtful and philosophical"),
-        ("🥺", "Heartwarming and emotional"),
-        ("🌟", "Epic and inspirational")
+        ("🍸", "Sexy and seductive"),
+        ("💥", "Explosive and chaotic"),
+        ("😂", "Ridiculously over-the-top"),
+        ("😱", "Suspenseful and betrayal-filled"),
+        ("🌟", "Glamorous and extravagant"),
+        ("🥂", "Party-focused hedonism"),
+        ("🔫", "Action-packed gunfights"),
+        ("🕶️", "Cool and stylish")
     ]
 }
 
@@ -153,15 +153,16 @@ def generate_story(
     # Handle protagonist information
     protagonist_info = ""
     if protagonist_name and protagonist_gender:
-        protagonist_info = f"The story revolves around {protagonist_name}, a {protagonist_gender} protagonist based in various world cities. "
+        protagonist_info = f"The story revolves around {protagonist_name}, a {protagonist_gender} protagonist who is totally incompetent, woefully ignorant, but very charismatic, arrogant, and constantly receives romantic advances from practically everybody they meet. "
     
     universe_prompt = (
-        f"This is a gritty crime noir spy mystery novel for adults. {protagonist_info}"
-        "The story takes place across various major world cities, with characters having distinct personalities "
-        "and backgrounds tied to their home cities. The world is full of espionage, betrayal, and moral ambiguity.\n\n"
-        "The narrative should maintain a dark, suspenseful atmosphere typical of noir fiction, "
-        "with complex characters navigating dangerous situations in an international spy network.\n\n"
-        "Each character has a home city that influences their background, methods, and connections."
+        f"This is set in the hormone-fueled high stakes sexy dramatic international spy network. {protagonist_info}"
+        "The story is set in the year 2070, and the world is in the midst of a global crisis that the protagonist doesn't care enough to understand. "
+        "The world is in a state of emergency, and the only way to save it is to party hard, have James Bond style adventures with crazy action scenes and gunfights, "
+        "involving more and more beautiful people and increasingly ridiculous scenarios and global settings.\n\n"
+        "All the characters are constantly betraying each other and having romantic flings. The narrative should be over-the-top, "
+        "with excessive action scenes, dramatic romantic encounters, and constant plot twists where allies become enemies and vice versa.\n\n"
+        "Each character has international connections and unique skills they use in increasingly absurd ways."
     )
 
     # Construct the main prompt
@@ -175,19 +176,19 @@ def generate_story(
         f"{additional_characters_prompt}\n"
         f"{context_prompt}\n\n"
         "Create an engaging story segment that:\n"
-        "1. Features Pawel and/or Pawleen as the main story drivers\n"
-        "2. Introduces the selected character (if provided) into the farm's ongoing adventures\n"
+        "1. Features the incompetent but charismatic protagonist as the main story driver\n"
+        "2. Introduces the selected character (if provided) into a ridiculous international spy scenario\n"
         "3. IMPORTANT: If plot lines are provided for the character, you MUST incorporate at least one into the story\n"
         "4. CRITICAL: If additional characters from the database are provided, you MUST introduce at least one new character from this list into the story\n"
-        "5. Maintains the established personalities and relationships\n"
+        "5. Includes betrayal, romantic flings, and over-the-top action sequences\n"
         "6. Uses the character's traits to guide their behavior and dialogue\n"
         "7. Provides exactly two meaningful choice options that:\n"
-        "   - Lead to different potential outcomes\n"
+        "   - Lead to different potential outcomes (one should be more absurd than the other)\n"
         "   - Stay true to the characters' established traits\n"
         "   - Relate to at least one of the plot lines if provided\n"
         "   - IMPORTANT: Include at least one new character from the database in the choices when possible\n"
-        "   - Avoid dead ends or quick conclusions\n"
-        "8. Include clear consequences for each choice that follow from the plot lines\n\n"
+        "   - Avoid dead ends but escalate the ridiculousness with each choice\n"
+        "8. Include clear consequences for each choice that involve romantic encounters, betrayal, or absurd action scenarios\n\n"
         "Format the response as a JSON object with:\n"
         "{\n"
         "  'title': 'Episode title',\n"
@@ -209,10 +210,11 @@ def generate_story(
                 {
                     "role": "system",
                     "content": (
-                        "You are a master storyteller creating stories set in Uncle Mark's forest farm. "
-                        "Your stories feature the adventures of the farm's animal residents, "
-                        "especially Pawel and Pawleen the Yorkshire terriers. Keep the tone playful and engaging, "
-                        "with clear moral lessons about friendship, courage, and standing up to bullies."
+                        "You are a master storyteller creating stories set in a hormone-fueled, high-stakes international spy network in 2070. "
+                        "Your stories feature a charismatic but incompetent protagonist who constantly receives romantic advances "
+                        "while navigating an over-the-top world of betrayal, action, and absurdity. Keep the tone dramatic and provocative, "
+                        "with excessive action scenes, romantic encounters, and ridiculous plot twists. The protagonist doesn't care about "
+                        "the global crisis, they just want to party hard and have James Bond style adventures."
                     )
                 },
                 {"role": "user", "content": prompt}
