@@ -358,5 +358,230 @@ def generate_story_route():
             flash('Error generating story: ' + str(e), 'error')
             return redirect(url_for('main.index'))
 
-# Add all remaining routes from app.py, updating them to use main_bp
-# ...
+# API endpoints for debug page
+@main_bp.route('/api/images/all')
+def get_all_images():
+    """API endpoint to get all images with pagination"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        image_type = request.args.get('type')
+        search = request.args.get('search')
+
+        query = ImageAnalysis.query
+
+        # Apply filters
+        if image_type:
+            query = query.filter_by(image_type=image_type)
+
+        if search:
+            # Search by ID or character name
+            if search.isdigit():
+                query = query.filter(ImageAnalysis.id == int(search))
+            else:
+                query = query.filter(ImageAnalysis.character_name.ilike(f'%{search}%'))
+
+        # Execute count query
+        total = query.count()
+
+        # Get paginated results
+        images = query.order_by(ImageAnalysis.id.desc()).paginate(page=page, per_page=per_page)
+
+        # Format results
+        results = []
+        for img in images.items:
+            analysis = img.analysis_result or {}
+            name = img.character_name or ''
+            if not name and analysis:
+                name= analysis.get('name', '')
+
+            results.append({
+                'id': img.id,
+                'image_url': img.image_url,
+                'image_type': img.image_type,
+                'name': name,
+                'created_at': img.created_at.strftime('%Y-%m-%d %H:%M'),
+                'traits': img.character_traits or [],
+                'role': img.character_role or '',
+                'stories_count': img.stories.count()
+            })
+
+        return jsonify({
+            'success': True,
+            'images': results,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': total,
+                'pages': (total + per_page - 1) // per_page
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error getting all images: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/stories/all')
+def get_all_stories():
+    """API endpoint to get all stories with pagination"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        search = request.args.get('search')
+
+        query = StoryGeneration.query
+
+        # Apply search filter
+        if search:
+            if search.isdigit():
+                query = query.filter(StoryGeneration.id == int(search))
+            else:
+                query = query.filter(
+                    db.or_(
+                        StoryGeneration.primary_conflict.ilike(f'%{search}%'),
+                        StoryGeneration.setting.ilike(f'%{search}%')
+                    )
+                )
+
+        # Execute count query
+        total = query.count()
+
+        # Get paginated results
+        stories = query.order_by(StoryGeneration.id.desc()).paginate(page=page, per_page=per_page)
+
+        # Format results
+        results = []
+        for story in stories.items:
+            # Extract title from JSON if available
+            title = "Untitled Story"
+            if story.generated_story:
+                try:
+                    story_data = json.loads(story.generated_story)
+                    if isinstance(story_data, dict) and 'title' in story_data:
+                        title = story_data['title']
+                except:
+                    pass
+
+            results.append({
+                'id': story.id,
+                'title': title,
+                'conflict': story.primary_conflict,
+                'setting': story.setting,
+                'images_count': len(story.images),
+                'character_names': [img.character_name for img in story.images if img.character_name],
+                'created_at': story.created_at.strftime('%Y-%m-%d %H:%M')
+            })
+
+        return jsonify({
+            'success': True,
+            'stories': results,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': total,
+                'pages': (total + per_page - 1) // per_page
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error getting all stories: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/story_nodes/all')
+def get_all_story_nodes():
+    """API endpoint to get all story nodes"""
+    try:
+        nodes = StoryNode.query.all()
+        results = []
+
+        for node in nodes:
+            choice_count = len(node.choices) if hasattr(node, 'choices') else 0
+
+            results.append({
+                'id': node.id,
+                'parent_node_id': node.parent_node_id,
+                'text_preview': node.narrative_text[:100] + '...' if len(node.narrative_text) > 100 else node.narrative_text,
+                'choices_count': choice_count,
+                'is_endpoint': node.is_endpoint,
+                'image_id': node.image_id
+            })
+
+        return jsonify({
+            'success': True,
+            'nodes': results
+        })
+    except Exception as e:
+        logger.error(f"Error getting all story nodes: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/db/health-check', methods=['GET'])
+def db_health_check():
+    """API endpoint to perform a database health check"""
+    try:
+        # Get counts
+        image_count = ImageAnalysis.query.count()
+        character_count = ImageAnalysis.query.filter_by(image_type='character').count()
+        scene_count = ImageAnalysis.query.filter_by(image_type='scene').count()
+        story_count = StoryGeneration.query.count()
+        orphaned_images = ImageAnalysis.query.filter(~ImageAnalysis.stories.any()).count()
+        empty_stories = StoryGeneration.query.filter(StoryGeneration.generated_story.is_(None)).count()
+
+        # Check for potential issues
+        issues = []
+
+        # Return health check results
+        return jsonify({
+            'success': True,
+            'stats': {
+                'image_count': image_count,
+                'character_count': character_count,
+                'scene_count': scene_count,
+                'story_count': story_count,
+                'orphaned_images': orphaned_images,
+                'empty_stories': empty_stories
+            },
+            'issues': issues,
+            'has_issues': len(issues) > 0
+        })
+    except Exception as e:
+        logger.error(f"Error performing health check: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/image/<int:image_id>')
+def get_image_details(image_id):
+    """API endpoint to get details of a specific image"""
+    try:
+        image = ImageAnalysis.query.get_or_404(image_id)
+
+        return jsonify({
+            'success': True,
+            'id': image.id,
+            'image_url': image.image_url,
+            'image_type': image.image_type,
+            'analysis': image.analysis_result,
+            'created_at': image.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        })
+    except Exception as e:
+        logger.error(f"Error getting image details: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/save_analysis', methods=['POST'])
+def save_analysis():
+    """Save edited analysis from debug page"""
+    try:
+        data = request.json
+        image_id = data.get('image_id')
+        analysis = data.get('analysis')
+
+        if not image_id or not analysis:
+            return jsonify({'error': 'Missing image_id or analysis'}), 400
+
+        image = ImageAnalysis.query.get_or_404(image_id)
+        image.analysis_result = analysis
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Analysis updated successfully'
+        })
+    except Exception as e:
+        logger.error(f"Error saving analysis: {str(e)}")
+        return jsonify({'error': str(e)}), 500
