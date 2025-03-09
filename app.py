@@ -540,7 +540,7 @@ def save_analysis_original():
             is_character = True
             logger.debug("Detected character from top-level character fields")
         # Or check for character-specific role field
-        elif 'role' in analysis and analysis['role'] in ['hero', 'villain', 'neutral']:
+        elif 'role' in analysis and analysis['role'] in ['hero', 'villain', 'neutral', 'undetermined']:
             is_character = True
             logger.debug("Detected character from role field")
 
@@ -552,9 +552,11 @@ def save_analysis_original():
         # Get character name - check all possible locations in a consistent manner
         character_name = None
         if is_character:
-            # Try to find name in all possible locations
+            # Try to find code_name in character object
             if 'character' in analysis and isinstance(analysis['character'], dict):
-                if 'name' in analysis['character']:
+                if 'code_name' in analysis['character']:
+                    character_name = analysis['character'].get('code_name')
+                elif 'name' in analysis['character']:
                     character_name = analysis['character'].get('name')
 
             # If not found in character object, check top level fields
@@ -563,6 +565,8 @@ def save_analysis_original():
                     character_name = analysis.get('character_name')
                 elif 'name' in analysis:
                     character_name = analysis.get('name')
+                elif 'code_name' in analysis:
+                    character_name = analysis.get('code_name')
 
             # Log character name extraction for debugging
             logger.debug(f"Extracted character name: {character_name} from analysis structure")

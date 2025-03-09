@@ -1,5 +1,295 @@
 
 // Debug page JavaScript for managing image analysis and database records
+document.addEventListener('DOMContentLoaded', function() {
+    const editModeSwitch = document.getElementById('editModeSwitch');
+    const editContainer = document.getElementById('editContainer');
+    const generatedContent = document.getElementById('generatedContent');
+    const imageName = document.getElementById('imageName');
+    const imageType = document.getElementById('imageType');
+    const characterRole = document.getElementById('characterRole');
+    const characterTraits = document.getElementById('characterTraits');
+    const plotLines = document.getElementById('plotLines');
+    const codeName = document.getElementById('codeName');
+    const characterStyle = document.getElementById('characterStyle');
+    const backstory = document.getElementById('backstory');
+    const characterFields = document.getElementById('characterFields');
+    const sceneFields = document.getElementById('sceneFields');
+    const applyChangesBtn = document.getElementById('applyChangesBtn');
+    const imageForm = document.getElementById('imageForm');
+    const generateBtn = document.getElementById('generateBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    
+    // Handle image analysis form submission
+    if (imageForm) {
+        imageForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const imageUrl = document.getElementById('imageUrl').value;
+            if (!imageUrl) {
+                showToast('Error', 'Please enter an image URL', 'error');
+                return;
+            }
+            
+            // Show loading state
+            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Analyzing...';
+            generateBtn.disabled = true;
+            
+            // Call the API to analyze the image
+            fetch('/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'image_url': imageUrl
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Reset button
+                generateBtn.innerHTML = '<i class="fas fa-magic me-2"></i>Analyze Image';
+                generateBtn.disabled = false;
+                
+                if (data.error) {
+                    showToast('Error', data.error, 'error');
+                    return;
+                }
+                
+                // Display the results
+                document.getElementById('result').style.display = 'block';
+                generatedContent.textContent = JSON.stringify(data.analysis, null, 2);
+                
+                // Enable edit mode
+                editModeSwitch.checked = false;
+                editContainer.style.display = 'none';
+                
+                // Store for later use
+                generatedContent.dataset.imageUrl = imageUrl;
+                generatedContent.dataset.analysis = JSON.stringify(data.analysis);
+            })
+            .catch(error => {
+                generateBtn.innerHTML = '<i class="fas fa-magic me-2"></i>Analyze Image';
+                generateBtn.disabled = false;
+                showToast('Error', 'Failed to analyze image: ' + error.message, 'error');
+            });
+        });
+    }
+    
+    // Toggle edit mode
+    if (editModeSwitch) {
+        editModeSwitch.addEventListener('change', function() {
+            if (this.checked) {
+                editContainer.style.display = 'block';
+                populateEditForm();
+            } else {
+                editContainer.style.display = 'none';
+            }
+        });
+    }
+    
+    // Handle image type change
+    if (imageType) {
+        imageType.addEventListener('change', function() {
+            if (this.value === 'character') {
+                characterFields.style.display = 'block';
+                sceneFields.style.display = 'none';
+            } else {
+                characterFields.style.display = 'none';
+                sceneFields.style.display = 'block';
+            }
+        });
+    }
+    
+    // Apply changes button
+    if (applyChangesBtn) {
+        applyChangesBtn.addEventListener('click', function() {
+            const analysisData = JSON.parse(generatedContent.dataset.analysis);
+            
+            // Update the analysis based on form inputs
+            let updatedAnalysis = { ...analysisData };
+            
+            if (imageType.value === 'character') {
+                // Handle nested character structure
+                if (!updatedAnalysis.character) {
+                    updatedAnalysis.character = {};
+                }
+                
+                updatedAnalysis.character.code_name = codeName.value;
+                updatedAnalysis.character.role = characterRole.value;
+                updatedAnalysis.character.style = characterStyle.value;
+                updatedAnalysis.character.backstory = backstory.value;
+                
+                // Handle character traits
+                updatedAnalysis.character.character_traits = characterTraits.value
+                    .split(',')
+                    .map(trait => trait.trim())
+                    .filter(trait => trait);
+                
+                // Handle plot lines
+                updatedAnalysis.character.plot_lines = plotLines.value
+                    .split('\n')
+                    .map(line => line.trim())
+                    .filter(line => line);
+                
+                // Also store name at top level for compatibility
+                updatedAnalysis.name = codeName.value;
+            } else {
+                // Handle scene data
+                updatedAnalysis.scene_type = document.getElementById('sceneType').value;
+                updatedAnalysis.setting = document.getElementById('sceneSetting').value;
+                updatedAnalysis.dramatic_moments = document.getElementById('dramaticMoments').value
+                    .split('\n')
+                    .map(moment => moment.trim())
+                    .filter(moment => moment);
+            }
+            
+            // Update the displayed JSON
+            generatedContent.textContent = JSON.stringify(updatedAnalysis, null, 2);
+            generatedContent.dataset.analysis = JSON.stringify(updatedAnalysis);
+            
+            showToast('Success', 'Changes applied to analysis', 'success');
+        });
+    }
+    
+    // Copy to clipboard button
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+            navigator.clipboard.writeText(generatedContent.textContent)
+                .then(() => {
+                    showToast('Success', 'Copied to clipboard', 'success');
+                })
+                .catch(err => {
+                    showToast('Error', 'Failed to copy: ' + err, 'error');
+                });
+        });
+    }
+    
+    // Save button (add this to your page)
+    document.getElementById('saveToDbBtn')?.addEventListener('click', function() {
+        const imageUrl = generatedContent.dataset.imageUrl;
+        const analysis = JSON.parse(generatedContent.dataset.analysis);
+        
+        fetch('/save_analysis', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                image_url: imageUrl,
+                analysis: analysis
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                showToast('Error', data.error, 'error');
+                return;
+            }
+            
+            showToast('Success', 'Analysis saved to database', 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        })
+        .catch(error => {
+            showToast('Error', 'Failed to save analysis: ' + error.message, 'error');
+        });
+    });
+    
+    // Function to populate the edit form from the analysis
+    function populateEditForm() {
+        const analysisData = JSON.parse(generatedContent.dataset.analysis);
+        
+        // Determine if this is a character or scene
+        let isCharacter = false;
+        if (analysisData.character && typeof analysisData.character === 'object') {
+            isCharacter = true;
+            imageType.value = 'character';
+        } else if (analysisData.scene_type || analysisData.setting) {
+            imageType.value = 'scene';
+        } else {
+            // Default to character if unclear
+            imageType.value = 'character';
+            isCharacter = true;
+        }
+        
+        // Show appropriate fields
+        if (isCharacter) {
+            characterFields.style.display = 'block';
+            sceneFields.style.display = 'none';
+            
+            // Extract character info
+            const characterData = analysisData.character || {};
+            
+            // Set name (from either nested or top level)
+            imageName.value = characterData.code_name || analysisData.name || '';
+            codeName.value = characterData.code_name || '';
+            
+            // Set role
+            characterRole.value = characterData.role || 'undetermined';
+            
+            // Set style
+            characterStyle.value = characterData.style || '';
+            
+            // Set backstory
+            backstory.value = characterData.backstory || '';
+            
+            // Set character traits
+            if (characterData.character_traits && Array.isArray(characterData.character_traits)) {
+                characterTraits.value = characterData.character_traits.join(', ');
+            } else {
+                characterTraits.value = '';
+            }
+            
+            // Set plot lines
+            if (characterData.plot_lines && Array.isArray(characterData.plot_lines)) {
+                plotLines.value = characterData.plot_lines.join('\n');
+            } else {
+                plotLines.value = '';
+            }
+        } else {
+            characterFields.style.display = 'none';
+            sceneFields.style.display = 'block';
+            
+            // Extract scene info
+            imageName.value = analysisData.setting || '';
+            document.getElementById('sceneType').value = analysisData.scene_type || '';
+            document.getElementById('sceneSetting').value = analysisData.setting || '';
+            
+            // Set dramatic moments
+            if (analysisData.dramatic_moments && Array.isArray(analysisData.dramatic_moments)) {
+                document.getElementById('dramaticMoments').value = analysisData.dramatic_moments.join('\n');
+            } else {
+                document.getElementById('dramaticMoments').value = '';
+            }
+        }
+    }
+    
+    // Toast notification function
+    function showToast(title, message, type) {
+        const toastTitle = document.getElementById('toastTitle');
+        const toastMessage = document.getElementById('toastMessage');
+        const toast = document.getElementById('notificationToast');
+        
+        if (toastTitle && toastMessage && toast) {
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+            
+            // Add bootstrap classes for different types
+            toast.classList.remove('bg-success', 'bg-danger', 'bg-info');
+            if (type === 'success') {
+                toast.classList.add('bg-success', 'text-white');
+            } else if (type === 'error') {
+                toast.classList.add('bg-danger', 'text-white');
+            } else {
+                toast.classList.add('bg-info', 'text-white');
+            }
+            
+            // Show the toast
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+        }
+    }
+});
 
 document.addEventListener('DOMContentLoaded', function() {
     // Image analysis form

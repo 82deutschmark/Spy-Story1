@@ -100,12 +100,14 @@ The story is set in the year 2070, and the world is in the midst of a global cri
 
 Analyze the image and determine:
 1. If it's a CHARACTER:
-   - Suggest a creative code name consisting of an adjective and noun
-   - Suggest a character backstory 
-   - Determine if they are, villain, undetermined, or neutral character.   (use 'role' field with appropriate value 'undetermined', 'villain', or 'neutral')
-   - List 9 unusual and creative character traits or backstory elements (in 'character_traits' array)
-   - Suggest 3 potential international plot lines involving this character (in 'plot_lines' array)
-   - Suggested motivations and goals (in 'style' field)
+   - Format the response with a nested 'character' object containing all character details
+   - Inside the character object include:
+     - 'code_name': A creative code name consisting of an adjective and noun
+     - 'backstory': A detailed character backstory 
+     - 'role': Set as 'villain', 'undetermined', or 'neutral'
+     - 'character_traits': Array of 9 unusual and creative character traits
+     - 'plot_lines': Array of 3 potential international plot lines involving this character
+     - 'style': Character motivations and goals
 
 2. If it's a SCENE:
    - Determine the scene type (narrative, choice moment, action, etc.) (in 'scene_type' field)
@@ -113,7 +115,17 @@ Analyze the image and determine:
    - Suggest how this scene fits into the story (in 'story_fit' field)
    - Potential dramatic moments that could occur (in 'dramatic_moments' array)
 
-Respond in JSON format with the appropriate keys based on the image type. Use snake_case for all field names (e.g., 'scene_type', 'story_fit', 'dramatic_moments')."""
+Respond in JSON format with the appropriate keys based on the image type. Use snake_case for all field names. For CHARACTER images, ensure the response follows this structure:
+{
+  "character": {
+    "code_name": "Adjective Noun",
+    "backstory": "Character backstory...",
+    "role": "undetermined|villain|neutral",
+    "character_traits": ["trait1", "trait2", ...],
+    "plot_lines": ["plot line 1", "plot line 2", "plot line 3"],
+    "style": "Character motivations and goals"
+  }
+}"""
                 },
                 {
                     "role": "user",
