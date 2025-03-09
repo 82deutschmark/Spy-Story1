@@ -60,8 +60,11 @@
                                     </div>
                                     <div class="border rounded p-4 mt-2 result-content" id="generatedContent"></div>
                                     <div class="text-center mt-3">
-                                        <button class="btn btn-outline-secondary btn-sm" id="copyBtn">
+                                        <button class="btn btn-outline-secondary btn-sm me-2" id="copyBtn">
                                             <i class="fas fa-copy me-2"></i>Copy to Clipboard
+                                        </button>
+                                        <button class="btn btn-outline-primary btn-sm" id="saveToDbBtn">
+                                            <i class="fas fa-save me-2"></i>Save to Database
                                         </button>
                                     </div>
                                 </div>
@@ -80,6 +83,10 @@
                                     </div>
                                     <div id="characterFields">
                                         <div class="mb-3">
+                                            <label for="codeName" class="form-label">Code Name</label>
+                                            <input type="text" class="form-control" id="codeName">
+                                        </div>
+                                        <div class="mb-3">
                                             <label for="characterRole" class="form-label">Character Role</label>
                                             <select class="form-select" id="characterRole">
                                                 <option value="protagonist">Protagonist</option>
@@ -87,7 +94,16 @@
                                                 <option value="neutral">Neutral</option>
                                                 <option value="villain">Villain</option>
                                                 <option value="hero">Hero</option>
+                                                <option value="undetermined">Undetermined</option>
                                             </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="characterStyle" class="form-label">Character Style</label>
+                                            <input type="text" class="form-control" id="characterStyle">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="backstory" class="form-label">Character Backstory</label>
+                                            <textarea class="form-control" id="backstory" rows="3"></textarea>
                                         </div>
                                         <div class="mb-3">
                                             <label for="characterTraits" class="form-label">Character Traits (comma separated)</label>
