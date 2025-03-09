@@ -24,15 +24,15 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             const imageUrl = document.getElementById('imageUrl').value;
             if (!imageUrl) {
-                showToast('Error', 'Please enter an image URL', 'error');
+                showNotification('Error', 'Please enter an image URL', true);
                 return;
             }
 
             // Show loading state
-            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Analyzing...';
-            generateBtn.disabled = true;
+            generatedContent.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p>Analyzing image...</p></div>';
+            result.style.display = 'block';
 
-            // Call the API to analyze the image
+            // Call the API to analyze the image - this is the ONLY API call we should make
             fetch('/generate', {
                 method: 'POST',
                 headers: {
@@ -44,31 +44,33 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => response.json())
             .then(data => {
-                // Reset button
-                generateBtn.innerHTML = '<i class="fas fa-magic me-2"></i>Analyze Image';
-                generateBtn.disabled = false;
+                if (data.success) {
+                    // Display the generated content
+                    generatedContent.textContent = data.description;
 
-                if (data.error) {
-                    showToast('Error', data.error, 'error');
-                    return;
+                    // Store the image data for later use
+                    currentImageData = {
+                        image_url: data.image_url,
+                        analysis: data.analysis,
+                        saved_to_db: data.saved_to_db || false
+                    };
+
+                    // Setup the edit form
+                    setupAnalysisEditing(data.analysis);
+
+                    // Show the save to DB button if not already saved
+                    if (!data.saved_to_db) {
+                        saveToDbBtn.style.display = 'inline-block';
+                    } else {
+                        saveToDbBtn.style.display = 'none';
+                    }
+                } else {
+                    throw new Error(data.error || 'Failed to analyze image');
                 }
-
-                // Display the results
-                document.getElementById('result').style.display = 'block';
-                generatedContent.textContent = JSON.stringify(data.analysis, null, 2);
-
-                // Enable edit mode
-                editModeSwitch.checked = false;
-                editContainer.style.display = 'none';
-
-                // Store for later use
-                generatedContent.dataset.imageUrl = imageUrl;
-                generatedContent.dataset.analysis = JSON.stringify(data.analysis);
             })
             .catch(error => {
-                generateBtn.innerHTML = '<i class="fas fa-magic me-2"></i>Analyze Image';
-                generateBtn.disabled = false;
-                showToast('Error', 'Failed to analyze image: ' + error.message, 'error');
+                generatedContent.textContent = 'Error: ' + error.message;
+                showNotification('Error', error.message, true);
             });
         });
     }
@@ -145,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
             generatedContent.textContent = JSON.stringify(updatedAnalysis, null, 2);
             generatedContent.dataset.analysis = JSON.stringify(updatedAnalysis);
 
-            showToast('Success', 'Changes applied to analysis', 'success');
+            showNotification('Success', 'Changes applied to analysis', 'success');
         });
     }
 
@@ -154,10 +156,10 @@ document.addEventListener('DOMContentLoaded', function() {
         copyBtn.addEventListener('click', function() {
             navigator.clipboard.writeText(generatedContent.textContent)
                 .then(() => {
-                    showToast('Success', 'Copied to clipboard', 'success');
+                    showNotification('Success', 'Copied to clipboard', 'success');
                 })
                 .catch(err => {
-                    showToast('Error', 'Failed to copy: ' + err, 'error');
+                    showNotification('Error', 'Failed to copy: ' + err, 'error');
                 });
         });
     }
@@ -180,17 +182,17 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.error) {
-                showToast('Error', data.error, 'error');
+                showNotification('Error', data.error, 'error');
                 return;
             }
 
-            showToast('Success', 'Analysis saved to database', 'success');
+            showNotification('Success', 'Analysis saved to database', 'success');
             setTimeout(() => {
                 location.reload();
             }, 2000);
         })
         .catch(error => {
-            showToast('Error', 'Failed to save analysis: ' + error.message, 'error');
+            showNotification('Error', 'Failed to save analysis: ' + error.message, 'error');
         });
     });
 
@@ -264,7 +266,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Toast notification function
-    function showToast(title, message, type) {
+    function showNotification(title, message, type) {
         const toastTitle = document.getElementById('toastTitle');
         const toastMessage = document.getElementById('toastMessage');
         const toast = document.getElementById('notificationToast');
@@ -372,67 +374,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Handle image analysis form submission
-    // COMMENTED OUT - Duplicate event listener (keeping the one at the bottom of the file)
-    /*
-    if (imageForm) {
-        imageForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            if (!imageUrl.value) {
-                showNotification('Error', 'Please enter an image URL', true);
-                return;
-            }
-
-            // Show loading state
-            generateBtn.disabled = true;
-            generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Analyzing...';
-
-            // Send request to analyze image
-            fetch('/generate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    'image_url': imageUrl.value
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                // Reset loading state
-                generateBtn.disabled = false;
-                generateBtn.innerHTML = '<i class="fas fa-magic me-2"></i>Analyze Image';
-
-                if (data.error) {
-                    showNotification('Error', data.error, true);
-                    return;
-                }
-
-                // Show the result
-                result.style.display = 'block';
-
-                // Format the JSON for display
-                const prettyJson = JSON.stringify(data.analysis, null, 2);
-                generatedContent.textContent = prettyJson;
-
-                // Store the current image data
-                currentImageData = {
-                    image_url: data.image_url,
-                    analysis: data.analysis
-                };
-
-                // Reset edit mode
-                editModeSwitch.checked = false;
-                editContainer.style.display = 'none';
-            })
-            .catch(error => {
-                generateBtn.disabled = false;
-                generateBtn.innerHTML = '<i class="fas fa-magic me-2"></i>Analyze Image';
-                showNotification('Error', 'Failed to analyze image: ' + error.message, true);
-            });
-        });
-    }
-    */
 
     // Handle copy button click
     if (copyBtn) {
@@ -1005,8 +946,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <li class="list-group-item list-group-item-${severityClass}">
                                     <i class="fas fa-exclamation-triangle me-2"></i>
                                     ${issue.message}
-                                </li>
-                            `;
+                                </li>                            `;
                         });
                     } else {
                         noIssuesAlert.style.display = 'block';
