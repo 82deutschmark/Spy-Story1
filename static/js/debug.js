@@ -1,4 +1,3 @@
-
 // Debug page JavaScript for managing image analysis and database records
 document.addEventListener('DOMContentLoaded', function() {
     const editModeSwitch = document.getElementById('editModeSwitch');
@@ -18,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const imageForm = document.getElementById('imageForm');
     const generateBtn = document.getElementById('generateBtn');
     const copyBtn = document.getElementById('copyBtn');
-    
+
     // Handle image analysis form submission
     if (imageForm) {
         imageForm.addEventListener('submit', function(e) {
@@ -28,11 +27,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 showToast('Error', 'Please enter an image URL', 'error');
                 return;
             }
-            
+
             // Show loading state
             generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Analyzing...';
             generateBtn.disabled = true;
-            
+
             // Call the API to analyze the image
             fetch('/generate', {
                 method: 'POST',
@@ -48,20 +47,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Reset button
                 generateBtn.innerHTML = '<i class="fas fa-magic me-2"></i>Analyze Image';
                 generateBtn.disabled = false;
-                
+
                 if (data.error) {
                     showToast('Error', data.error, 'error');
                     return;
                 }
-                
+
                 // Display the results
                 document.getElementById('result').style.display = 'block';
                 generatedContent.textContent = JSON.stringify(data.analysis, null, 2);
-                
+
                 // Enable edit mode
                 editModeSwitch.checked = false;
                 editContainer.style.display = 'none';
-                
+
                 // Store for later use
                 generatedContent.dataset.imageUrl = imageUrl;
                 generatedContent.dataset.analysis = JSON.stringify(data.analysis);
@@ -73,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
+
     // Toggle edit mode
     if (editModeSwitch) {
         editModeSwitch.addEventListener('change', function() {
@@ -85,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Handle image type change
     if (imageType) {
         imageType.addEventListener('change', function() {
@@ -98,38 +97,38 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Apply changes button
     if (applyChangesBtn) {
         applyChangesBtn.addEventListener('click', function() {
             const analysisData = JSON.parse(generatedContent.dataset.analysis);
-            
+
             // Update the analysis based on form inputs
             let updatedAnalysis = { ...analysisData };
-            
+
             if (imageType.value === 'character') {
                 // Handle nested character structure
                 if (!updatedAnalysis.character) {
                     updatedAnalysis.character = {};
                 }
-                
+
                 updatedAnalysis.character.code_name = codeName.value;
                 updatedAnalysis.character.role = characterRole.value;
                 updatedAnalysis.character.style = characterStyle.value;
                 updatedAnalysis.character.backstory = backstory.value;
-                
+
                 // Handle character traits
                 updatedAnalysis.character.character_traits = characterTraits.value
                     .split(',')
                     .map(trait => trait.trim())
                     .filter(trait => trait);
-                
+
                 // Handle plot lines
                 updatedAnalysis.character.plot_lines = plotLines.value
                     .split('\n')
                     .map(line => line.trim())
                     .filter(line => line);
-                
+
                 // Also store name at top level for compatibility
                 updatedAnalysis.name = codeName.value;
             } else {
@@ -141,15 +140,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     .map(moment => moment.trim())
                     .filter(moment => moment);
             }
-            
+
             // Update the displayed JSON
             generatedContent.textContent = JSON.stringify(updatedAnalysis, null, 2);
             generatedContent.dataset.analysis = JSON.stringify(updatedAnalysis);
-            
+
             showToast('Success', 'Changes applied to analysis', 'success');
         });
     }
-    
+
     // Copy to clipboard button
     if (copyBtn) {
         copyBtn.addEventListener('click', function() {
@@ -162,12 +161,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         });
     }
-    
+
     // Save button (add this to your page)
     document.getElementById('saveToDbBtn')?.addEventListener('click', function() {
         const imageUrl = generatedContent.dataset.imageUrl;
         const analysis = JSON.parse(generatedContent.dataset.analysis);
-        
+
         fetch('/save_analysis', {
             method: 'POST',
             headers: {
@@ -184,7 +183,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 showToast('Error', data.error, 'error');
                 return;
             }
-            
+
             showToast('Success', 'Analysis saved to database', 'success');
             setTimeout(() => {
                 location.reload();
@@ -194,11 +193,11 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('Error', 'Failed to save analysis: ' + error.message, 'error');
         });
     });
-    
+
     // Function to populate the edit form from the analysis
     function populateEditForm() {
         const analysisData = JSON.parse(generatedContent.dataset.analysis);
-        
+
         // Determine if this is a character or scene
         let isCharacter = false;
         if (analysisData.character && typeof analysisData.character === 'object') {
@@ -211,35 +210,35 @@ document.addEventListener('DOMContentLoaded', function() {
             imageType.value = 'character';
             isCharacter = true;
         }
-        
+
         // Show appropriate fields
         if (isCharacter) {
             characterFields.style.display = 'block';
             sceneFields.style.display = 'none';
-            
+
             // Extract character info
             const characterData = analysisData.character || {};
-            
+
             // Set name (from either nested or top level)
             imageName.value = characterData.code_name || analysisData.name || '';
             codeName.value = characterData.code_name || '';
-            
+
             // Set role
             characterRole.value = characterData.role || 'undetermined';
-            
+
             // Set style
             characterStyle.value = characterData.style || '';
-            
+
             // Set backstory
             backstory.value = characterData.backstory || '';
-            
+
             // Set character traits
             if (characterData.character_traits && Array.isArray(characterData.character_traits)) {
                 characterTraits.value = characterData.character_traits.join(', ');
             } else {
                 characterTraits.value = '';
             }
-            
+
             // Set plot lines
             if (characterData.plot_lines && Array.isArray(characterData.plot_lines)) {
                 plotLines.value = characterData.plot_lines.join('\n');
@@ -249,12 +248,12 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             characterFields.style.display = 'none';
             sceneFields.style.display = 'block';
-            
+
             // Extract scene info
             imageName.value = analysisData.setting || '';
             document.getElementById('sceneType').value = analysisData.scene_type || '';
             document.getElementById('sceneSetting').value = analysisData.setting || '';
-            
+
             // Set dramatic moments
             if (analysisData.dramatic_moments && Array.isArray(analysisData.dramatic_moments)) {
                 document.getElementById('dramaticMoments').value = analysisData.dramatic_moments.join('\n');
@@ -263,17 +262,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
-    
+
     // Toast notification function
     function showToast(title, message, type) {
         const toastTitle = document.getElementById('toastTitle');
         const toastMessage = document.getElementById('toastMessage');
         const toast = document.getElementById('notificationToast');
-        
+
         if (toastTitle && toastMessage && toast) {
             toastTitle.textContent = title;
             toastMessage.textContent = message;
-            
+
             // Add bootstrap classes for different types
             toast.classList.remove('bg-success', 'bg-danger', 'bg-info');
             if (type === 'success') {
@@ -283,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 toast.classList.add('bg-info', 'text-white');
             }
-            
+
             // Show the toast
             const bsToast = new bootstrap.Toast(toast);
             bsToast.show();
@@ -302,7 +301,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const editModeSwitch = document.getElementById('editModeSwitch');
     const editContainer = document.getElementById('editContainer');
     const applyChangesBtn = document.getElementById('applyChangesBtn');
-    
+
     // Database management elements
     const refreshImagesBtn = document.getElementById('refreshImagesBtn');
     const refreshStoriesBtn = document.getElementById('refreshStoriesBtn');
@@ -311,7 +310,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const imagesTableBody = document.getElementById('imagesTableBody');
     const storiesTableBody = document.getElementById('storiesTableBody');
     const runHealthCheckBtn = document.getElementById('runHealthCheckBtn');
-    
+
     // Advanced database browser elements
     const loadAllImagesBtn = document.getElementById('loadAllImagesBtn');
     const imageSearchBtn = document.getElementById('imageSearchBtn');
@@ -319,75 +318,75 @@ document.addEventListener('DOMContentLoaded', function() {
     const allImagesTableBody = document.getElementById('allImagesTableBody');
     const imagesPagination = document.getElementById('imagesPagination');
     const filterButtons = document.querySelectorAll('.filter-btn');
-    
+
     // Story search elements
     const storySearchBtn = document.getElementById('storySearchBtn');
     const storySearchInput = document.getElementById('storySearchInput');
     const allStoriesTableBody = document.getElementById('allStoriesTableBody');
     const storiesPagination = document.getElementById('storiesPagination');
-    
+
     // Story nodes elements
     const loadNodesBtn = document.getElementById('loadNodesBtn');
     const storyNodesTableBody = document.getElementById('storyNodesTableBody');
-    
+
     // Modal elements
     const detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
     const modalImage = document.getElementById('modalImage');
     const modalContent = document.getElementById('modalContent');
     const saveAnalysisBtn = document.getElementById('saveAnalysisBtn');
     const reanalyzeImageBtn = document.getElementById('reanalyzeImageBtn');
-    
+
     // Reanalysis confirmation modal
     const reanalyzeConfirmModal = new bootstrap.Modal(document.getElementById('reanalyzeConfirmModal'));
     const confirmReanalyzeBtn = document.getElementById('confirmReanalyzeBtn');
     const preserveRelationsCheck = document.getElementById('preserveRelationsCheck');
-    
+
     // Toast notification
     const notificationToast = new bootstrap.Toast(document.getElementById('notificationToast'));
     const toastTitle = document.getElementById('toastTitle');
     const toastMessage = document.getElementById('toastMessage');
-    
+
     // Current image data for editing
     let currentImageData = null;
-    
+
     // Pagination state
     let currentImagePage = 1;
     let currentStoryPage = 1;
     let currentImageFilter = '';
     let currentImageSearch = '';
     let currentStorySearch = '';
-    
+
     // Show notification toast
     function showNotification(title, message, isError = false) {
         toastTitle.textContent = title;
         toastMessage.textContent = message;
-        
+
         const toastElement = document.getElementById('notificationToast');
         if (isError) {
             toastElement.classList.add('bg-danger', 'text-white');
         } else {
             toastElement.classList.remove('bg-danger', 'text-white');
         }
-        
+
         notificationToast.show();
     }
-    
+
     // Handle image analysis form submission
     // COMMENTED OUT - Duplicate event listener (keeping the one at the bottom of the file)
     /*
     if (imageForm) {
         imageForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            
+
             if (!imageUrl.value) {
                 showNotification('Error', 'Please enter an image URL', true);
                 return;
             }
-            
+
             // Show loading state
             generateBtn.disabled = true;
             generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Analyzing...';
-            
+
             // Send request to analyze image
             fetch('/generate', {
                 method: 'POST',
@@ -403,25 +402,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Reset loading state
                 generateBtn.disabled = false;
                 generateBtn.innerHTML = '<i class="fas fa-magic me-2"></i>Analyze Image';
-                
+
                 if (data.error) {
                     showNotification('Error', data.error, true);
                     return;
                 }
-                
+
                 // Show the result
                 result.style.display = 'block';
-                
+
                 // Format the JSON for display
                 const prettyJson = JSON.stringify(data.analysis, null, 2);
                 generatedContent.textContent = prettyJson;
-                
+
                 // Store the current image data
                 currentImageData = {
                     image_url: data.image_url,
                     analysis: data.analysis
                 };
-                
+
                 // Reset edit mode
                 editModeSwitch.checked = false;
                 editContainer.style.display = 'none';
@@ -434,7 +433,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     */
-    
+
     // Handle copy button click
     if (copyBtn) {
         copyBtn.addEventListener('click', function() {
@@ -447,45 +446,45 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         });
     }
-    
+
     // Handle edit mode toggle
     if (editModeSwitch) {
         editModeSwitch.addEventListener('change', function() {
             if (this.checked) {
                 editContainer.style.display = 'block';
                 saveAnalysisBtn.style.display = 'block';
-                
+
                 // Parse the current analysis JSON
                 try {
                     const analysis = JSON.parse(generatedContent.textContent);
-                    
+
                     // Populate the form fields
                     document.getElementById('imageName').value = 
                         analysis.character?.name || 
                         analysis.name || 
                         analysis.character_name || 
                         '';
-                        
+
                     // Determine if character or scene
                     const isCharacter = 
                         (analysis.character && typeof analysis.character === 'object') || 
                         analysis.character_traits || 
                         (analysis.role && ['protagonist', 'antagonist', 'neutral', 'villain', 'hero'].includes(analysis.role));
-                        
+
                     document.getElementById('imageType').value = isCharacter ? 'character' : 'scene';
                     toggleTypeFields();
-                    
+
                     if (isCharacter) {
                         // Fill character fields
                         document.getElementById('characterRole').value = 
                             analysis.character?.role || 
                             analysis.role || 
                             'neutral';
-                            
+
                         document.getElementById('characterTraits').value = 
                             (Array.isArray(analysis.character_traits) ? analysis.character_traits.join(', ') : '') || 
                             (Array.isArray(analysis.character?.character_traits) ? analysis.character.character_traits.join(', ') : '');
-                            
+
                         document.getElementById('plotLines').value = 
                             (Array.isArray(analysis.plot_lines) ? analysis.plot_lines.join('\n') : '') || 
                             (Array.isArray(analysis.character?.plot_lines) ? analysis.character.plot_lines.join('\n') : '');
@@ -496,7 +495,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('dramaticMoments').value = 
                             (Array.isArray(analysis.dramatic_moments) ? analysis.dramatic_moments.join('\n') : '');
                     }
-                    
+
                 } catch (error) {
                     showNotification('Error', 'Failed to parse analysis JSON: ' + error.message, true);
                 }
@@ -506,15 +505,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Toggle fields based on image type
     document.getElementById('imageType')?.addEventListener('change', toggleTypeFields);
-    
+
     function toggleTypeFields() {
         const imageType = document.getElementById('imageType').value;
         const characterFields = document.getElementById('characterFields');
         const sceneFields = document.getElementById('sceneFields');
-        
+
         if (imageType === 'character') {
             characterFields.style.display = 'block';
             sceneFields.style.display = 'none';
@@ -523,62 +522,62 @@ document.addEventListener('DOMContentLoaded', function() {
             sceneFields.style.display = 'block';
         }
     }
-    
+
     // Handle apply changes button click
     if (applyChangesBtn) {
         applyChangesBtn.addEventListener('click', function() {
             try {
                 // Get the original analysis
                 const analysis = JSON.parse(generatedContent.textContent);
-                
+
                 // Get form values
                 const imageType = document.getElementById('imageType').value;
                 const name = document.getElementById('imageName').value;
-                
+
                 // Update the analysis based on image type
                 if (imageType === 'character') {
                     const role = document.getElementById('characterRole').value;
                     const traitsText = document.getElementById('characterTraits').value;
                     const plotLinesText = document.getElementById('plotLines').value;
-                    
+
                     // Parse traits and plot lines
                     const traits = traitsText.split(',').map(t => t.trim()).filter(t => t);
                     const plotLines = plotLinesText.split('\n').map(p => p.trim()).filter(p => p);
-                    
+
                     // Create or update character data
                     if (!analysis.character) {
                         analysis.character = {};
                     }
-                    
+
                     // Update nested and top-level properties for maximum compatibility
                     analysis.character.name = name;
                     analysis.name = name;
                     analysis.character_name = name;
-                    
+
                     analysis.character.role = role;
                     analysis.role = role;
-                    
+
                     analysis.character.character_traits = traits;
                     analysis.character_traits = traits;
-                    
+
                     analysis.character.plot_lines = plotLines;
                     analysis.plot_lines = plotLines;
-                    
+
                 } else {
                     // Scene fields
                     const sceneType = document.getElementById('sceneType').value;
                     const setting = document.getElementById('sceneSetting').value;
                     const dramaticMomentsText = document.getElementById('dramaticMoments').value;
-                    
+
                     // Parse dramatic moments
                     const dramaticMoments = dramaticMomentsText.split('\n').map(m => m.trim()).filter(m => m);
-                    
+
                     // Update scene properties
                     analysis.name = name;
                     analysis.scene_type = sceneType;
                     analysis.setting = setting;
                     analysis.dramatic_moments = dramaticMoments;
-                    
+
                     // Remove character-specific fields
                     delete analysis.character;
                     delete analysis.character_name;
@@ -586,22 +585,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     delete analysis.role;
                     delete analysis.plot_lines;
                 }
-                
+
                 // Update the displayed JSON
                 const prettyJson = JSON.stringify(analysis, null, 2);
                 generatedContent.textContent = prettyJson;
-                
+
                 // Update current image data
                 currentImageData.analysis = analysis;
-                
+
                 showNotification('Success', 'Analysis updated');
-                
+
             } catch (error) {
                 showNotification('Error', 'Failed to update analysis: ' + error.message, true);
             }
         });
     }
-    
+
     // Handle save analysis button click for updating existing records
     if (saveAnalysisBtn) {
         saveAnalysisBtn.addEventListener('click', function() {
@@ -609,7 +608,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 showNotification('Error', 'No image data to save', true);
                 return;
             }
-            
+
             // If this is a new analysis, save it to the database
             if (!currentImageData.image_id) {
                 fetch('/save_analysis', {
@@ -628,10 +627,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         showNotification('Error', data.error, true);
                         return;
                     }
-                    
+
                     showNotification('Success', 'Analysis saved to database');
                     currentImageData.image_id = data.image_id;
-                    
+
                     // Refresh the images table
                     refreshImagesList();
                 })
@@ -656,9 +655,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         showNotification('Error', data.error, true);
                         return;
                     }
-                    
+
                     showNotification('Success', 'Analysis updated');
-                    
+
                     // Refresh the images table
                     refreshImagesList();
                 })
@@ -668,13 +667,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Handle view details button click (delegated to parent)
     document.addEventListener('click', function(e) {
         if (e.target.closest('.view-details-btn')) {
             const button = e.target.closest('.view-details-btn');
             const imageId = button.getAttribute('data-id');
-            
+
             fetch(`/api/image/${imageId}`)
                 .then(response => response.json())
                 .then(data => {
@@ -682,22 +681,22 @@ document.addEventListener('DOMContentLoaded', function() {
                         showNotification('Error', data.error, true);
                         return;
                     }
-                    
+
                     // Set modal content
                     modalImage.src = data.image_url;
                     modalContent.textContent = JSON.stringify(data.analysis, null, 2);
-                    
+
                     // Store current image data
                     currentImageData = {
                         image_id: data.id,
                         image_url: data.image_url,
                         analysis: data.analysis
                     };
-                    
+
                     // Reset edit mode
                     document.getElementById('editModeSwitch').checked = false;
                     saveAnalysisBtn.style.display = 'none';
-                    
+
                     // Show the modal
                     detailsModal.show();
                 })
@@ -706,13 +705,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         }
     });
-    
+
     // Handle delete image button click (delegated)
     document.addEventListener('click', function(e) {
         if (e.target.closest('.delete-image-btn')) {
             const button = e.target.closest('.delete-image-btn');
             const imageId = button.getAttribute('data-id');
-            
+
             if (confirm('Are you sure you want to delete this image record?')) {
                 fetch(`/api/image/${imageId}`, {
                     method: 'DELETE'
@@ -723,15 +722,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         showNotification('Error', data.error, true);
                         return;
                     }
-                    
+
                     showNotification('Success', data.message);
-                    
+
                     // Remove the row from the table
                     const row = button.closest('tr');
                     if (row) {
                         row.remove();
                     }
-                    
+
                     // Refresh both image tables
                     refreshImagesList();
                     loadAllImages();
@@ -742,13 +741,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-    
+
     // Handle delete story button click (delegated)
     document.addEventListener('click', function(e) {
         if (e.target.closest('.delete-story-btn')) {
             const button = e.target.closest('.delete-story-btn');
             const storyId = button.getAttribute('data-id');
-            
+
             if (confirm('Are you sure you want to delete this story record?')) {
                 fetch(`/api/story/${storyId}`, {
                     method: 'DELETE'
@@ -759,15 +758,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         showNotification('Error', data.error, true);
                         return;
                     }
-                    
+
                     showNotification('Success', data.message);
-                    
+
                     // Remove the row from the table
                     const row = button.closest('tr');
                     if (row) {
                         row.remove();
                     }
-                    
+
                     // Refresh story tables
                     refreshStoriesList();
                     loadAllStories();
@@ -778,7 +777,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-    
+
     // Handle delete all images button
     if (deleteAllImagesBtn) {
         deleteAllImagesBtn.addEventListener('click', function() {
@@ -792,9 +791,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         showNotification('Error', data.error, true);
                         return;
                     }
-                    
+
                     showNotification('Success', data.message);
-                    
+
                     // Refresh image tables
                     refreshImagesList();
                     loadAllImages();
@@ -805,7 +804,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Handle delete all stories button
     if (deleteAllStoriesBtn) {
         deleteAllStoriesBtn.addEventListener('click', function() {
@@ -819,9 +818,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         showNotification('Error', data.error, true);
                         return;
                     }
-                    
+
                     showNotification('Success', data.message);
-                    
+
                     // Refresh story tables
                     refreshStoriesList();
                     loadAllStories();
@@ -832,21 +831,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Handle refresh images button
     if (refreshImagesBtn) {
         refreshImagesBtn.addEventListener('click', refreshImagesList);
     }
-    
+
     // Handle refresh stories button
     if (refreshStoriesBtn) {
         refreshStoriesBtn.addEventListener('click', refreshStoriesList);
     }
-    
+
     // Function to refresh the images list
     function refreshImagesList() {
         if (!imagesTableBody) return;
-        
+
         imagesTableBody.innerHTML = `
             <tr>
                 <td colspan="6" class="text-center">
@@ -856,7 +855,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </td>
             </tr>
         `;
-        
+
         fetch('/api/images/all?per_page=10')
             .then(response => response.json())
             .then(data => {
@@ -864,7 +863,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     showNotification('Error', data.error, true);
                     return;
                 }
-                
+
                 if (data.images.length === 0) {
                     imagesTableBody.innerHTML = `
                         <tr>
@@ -873,7 +872,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
                     return;
                 }
-                
+
                 // Populate the table
                 imagesTableBody.innerHTML = '';
                 data.images.forEach(img => {
@@ -904,11 +903,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 showNotification('Error', 'Failed to load images: ' + error.message, true);
             });
     }
-    
+
     // Function to refresh the stories list
     function refreshStoriesList() {
         if (!storiesTableBody) return;
-        
+
         storiesTableBody.innerHTML = `
             <tr>
                 <td colspan="6" class="text-center">
@@ -918,7 +917,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </td>
             </tr>
         `;
-        
+
         fetch('/api/stories/all?per_page=10')
             .then(response => response.json())
             .then(data => {
@@ -926,7 +925,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     showNotification('Error', data.error, true);
                     return;
                 }
-                
+
                 if (data.stories.length === 0) {
                     storiesTableBody.innerHTML = `
                         <tr>
@@ -935,7 +934,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
                     return;
                 }
-                
+
                 // Populate the table
                 storiesTableBody.innerHTML = '';
                 data.stories.forEach(story => {
@@ -964,24 +963,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 showNotification('Error', 'Failed to load stories: ' + error.message, true);
             });
     }
-    
+
     // Handle health check button
     if (runHealthCheckBtn) {
         runHealthCheckBtn.addEventListener('click', function() {
             runHealthCheckBtn.disabled = true;
             runHealthCheckBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
-            
+
             fetch('/api/db/health-check')
                 .then(response => response.json())
                 .then(data => {
                     runHealthCheckBtn.disabled = false;
                     runHealthCheckBtn.innerHTML = '<i class="fas fa-stethoscope me-1"></i>Run Health Check';
-                    
+
                     if (data.error) {
                         showNotification('Error', data.error, true);
                         return;
                     }
-                    
+
                     // Update statistics
                     document.getElementById('totalImages').textContent = data.stats.image_count;
                     document.getElementById('characterImages').textContent = data.stats.character_count;
@@ -989,15 +988,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('totalStories').textContent = data.stats.story_count;
                     document.getElementById('orphanedImages').textContent = data.stats.orphaned_images;
                     document.getElementById('emptyStories').textContent = data.stats.empty_stories;
-                    
+
                     // Show/hide issues
                     const noIssuesAlert = document.getElementById('noIssuesAlert');
                     const issuesList = document.getElementById('issuesList');
-                    
+
                     if (data.has_issues) {
-                        noIssuesAlert.style.display = 'none';
+                        noIssuesAlert.style.display = 'block';
                         issuesList.style.display = 'block';
-                        
+
                         // Populate issues list
                         issuesList.innerHTML = '';
                         data.issues.forEach(issue => {
@@ -1013,7 +1012,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         noIssuesAlert.style.display = 'block';
                         issuesList.style.display = 'none';
                     }
-                    
+
                     showNotification('Success', 'Health check completed');
                 })
                 .catch(error => {
@@ -1023,17 +1022,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         });
     }
-    
+
     // Advanced database browser functionality
-    
+
     // Load all images with pagination
     function loadAllImages(page = 1, filter = '', search = '') {
         if (!allImagesTableBody) return;
-        
+
         currentImagePage = page;
         currentImageFilter = filter;
         currentImageSearch = search;
-        
+
         allImagesTableBody.innerHTML = `
             <tr>
                 <td colspan="6" class="text-center">
@@ -1043,11 +1042,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 </td>
             </tr>
         `;
-        
+
         let url = `/api/images/all?page=${page}&per_page=20`;
         if (filter) url += `&type=${filter}`;
         if (search) url += `&search=${encodeURIComponent(search)}`;
-        
+
         fetch(url)
             .then(response => response.json())
             .then(data => {
@@ -1055,7 +1054,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     showNotification('Error', data.error, true);
                     return;
                 }
-                
+
                 if (data.images.length === 0) {
                     allImagesTableBody.innerHTML = `
                         <tr>
@@ -1065,7 +1064,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     imagesPagination.innerHTML = '';
                     return;
                 }
-                
+
                 // Populate the table
                 allImagesTableBody.innerHTML = '';
                 data.images.forEach(img => {
@@ -1091,7 +1090,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </tr>
                     `;
                 });
-                
+
                 // Create pagination controls
                 createImagePagination(data.pagination);
             })
@@ -1104,17 +1103,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 imagesPagination.innerHTML = '';
             });
     }
-    
+
     // Create image pagination controls
     function createImagePagination(pagination) {
         if (!imagesPagination) return;
-        
+
         imagesPagination.innerHTML = '';
-        
+
         // Previous button
         const prevItem = document.createElement('li');
         prevItem.className = `page-item ${pagination.page <= 1 ? 'disabled' : ''}`;
-        
+
         const prevLink = document.createElement('a');
         prevLink.className = 'page-link';
         prevLink.href = '#';
@@ -1126,38 +1125,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 loadAllImages(pagination.page - 1, currentImageFilter, currentImageSearch);
             });
         }
-        
+
         prevItem.appendChild(prevLink);
         imagesPagination.appendChild(prevItem);
-        
+
         // Page numbers
         const startPage = Math.max(1, pagination.page - 2);
         const endPage = Math.min(pagination.pages, pagination.page + 2);
-        
+
         for (let i = startPage; i <= endPage; i++) {
             const pageItem = document.createElement('li');
             pageItem.className = `page-item ${i === pagination.page ? 'active' : ''}`;
-            
+
             const pageLink = document.createElement('a');
             pageLink.className = 'page-link';
             pageLink.href = '#';
             pageLink.textContent = i;
-            
+
             if (i !== pagination.page) {
                 pageLink.addEventListener('click', (e) => {
                     e.preventDefault();
                     loadAllImages(i, currentImageFilter, currentImageSearch);
                 });
             }
-            
+
             pageItem.appendChild(pageLink);
             imagesPagination.appendChild(pageItem);
         }
-        
+
         // Next button
         const nextItem = document.createElement('li');
         nextItem.className = `page-item ${pagination.page >= pagination.pages ? 'disabled' : ''}`;
-        
+
         const nextLink = document.createElement('a');
         nextLink.className = 'page-link';
         nextLink.href = '#';
@@ -1169,18 +1168,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 loadAllImages(pagination.page + 1, currentImageFilter, currentImageSearch);
             });
         }
-        
+
         nextItem.appendChild(nextLink);
         imagesPagination.appendChild(nextItem);
     }
-    
+
     // Handle load all images button
     if (loadAllImagesBtn) {
         loadAllImagesBtn.addEventListener('click', () => {
             loadAllImages(1, currentImageFilter, currentImageSearch);
         });
     }
-    
+
     // Handle image filter buttons
     if (filterButtons) {
         filterButtons.forEach(button => {
@@ -1190,14 +1189,14 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
+
     // Handle image search
     if (imageSearchBtn && imageSearchInput) {
         imageSearchBtn.addEventListener('click', () => {
             const search = imageSearchInput.value.trim();
             loadAllImages(1, currentImageFilter, search);
         });
-        
+
         imageSearchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 const search = imageSearchInput.value.trim();
@@ -1205,14 +1204,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Load all stories with pagination
     function loadAllStories(page = 1, search = '') {
         if (!allStoriesTableBody) return;
-        
+
         currentStoryPage = page;
         currentStorySearch = search;
-        
+
         allStoriesTableBody.innerHTML = `
             <tr>
                 <td colspan="7" class="text-center">
@@ -1222,10 +1221,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 </td>
             </tr>
         `;
-        
+
         let url = `/api/stories/all?page=${page}&per_page=20`;
         if (search) url += `&search=${encodeURIComponent(search)}`;
-        
+
         fetch(url)
             .then(response => response.json())
             .then(data => {
@@ -1233,7 +1232,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     showNotification('Error', data.error, true);
                     return;
                 }
-                
+
                 if (data.stories.length === 0) {
                     allStoriesTableBody.innerHTML = `
                         <tr>
@@ -1243,12 +1242,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     storiesPagination.innerHTML = '';
                     return;
                 }
-                
+
                 // Populate the table
                 allStoriesTableBody.innerHTML = '';
                 data.stories.forEach(story => {
                     const charactersList = story.character_names.join(', ') || 'N/A';
-                    
+
                     allStoriesTableBody.innerHTML += `
                         <tr data-id="${story.id}">
                             <td>${story.id}</td>
@@ -1270,7 +1269,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </tr>
                     `;
                 });
-                
+
                 // Create pagination controls
                 createStoryPagination(data.pagination);
             })
@@ -1283,17 +1282,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 storiesPagination.innerHTML = '';
             });
     }
-    
+
     // Create story pagination controls
     function createStoryPagination(pagination) {
         if (!storiesPagination) return;
-        
+
         storiesPagination.innerHTML = '';
-        
+
         // Previous button
         const prevItem = document.createElement('li');
         prevItem.className = `page-item ${pagination.page <= 1 ? 'disabled' : ''}`;
-        
+
         const prevLink = document.createElement('a');
         prevLink.className = 'page-link';
         prevLink.href = '#';
@@ -1305,38 +1304,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 loadAllStories(pagination.page - 1, currentStorySearch);
             });
         }
-        
+
         prevItem.appendChild(prevLink);
         storiesPagination.appendChild(prevItem);
-        
+
         // Page numbers
         const startPage = Math.max(1, pagination.page - 2);
         const endPage = Math.min(pagination.pages, pagination.page + 2);
-        
+
         for (let i = startPage; i <= endPage; i++) {
             const pageItem = document.createElement('li');
             pageItem.className = `page-item ${i === pagination.page ? 'active' : ''}`;
-            
+
             const pageLink = document.createElement('a');
             pageLink.className = 'page-link';
             pageLink.href = '#';
             pageLink.textContent = i;
-            
+
             if (i !== pagination.page) {
                 pageLink.addEventListener('click', (e) => {
                     e.preventDefault();
                     loadAllStories(i, currentStorySearch);
                 });
             }
-            
+
             pageItem.appendChild(pageLink);
             storiesPagination.appendChild(pageItem);
         }
-        
+
         // Next button
         const nextItem = document.createElement('li');
         nextItem.className = `page-item ${pagination.page >= pagination.pages ? 'disabled' : ''}`;
-        
+
         const nextLink = document.createElement('a');
         nextLink.className = 'page-link';
         nextLink.href = '#';
@@ -1348,18 +1347,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 loadAllStories(pagination.page + 1, currentStorySearch);
             });
         }
-        
+
         nextItem.appendChild(nextLink);
         storiesPagination.appendChild(nextItem);
     }
-    
+
     // Handle story search
     if (storySearchBtn && storySearchInput) {
         storySearchBtn.addEventListener('click', () => {
             const search = storySearchInput.value.trim();
             loadAllStories(1, search);
         });
-        
+
         storySearchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 const search = storySearchInput.value.trim();
@@ -1367,11 +1366,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Load story nodes
     function loadStoryNodes() {
         if (!storyNodesTableBody) return;
-        
+
         storyNodesTableBody.innerHTML = `
             <tr>
                 <td colspan="6" class="text-center">
@@ -1381,7 +1380,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </td>
             </tr>
         `;
-        
+
         fetch('/api/story_nodes/all')
             .then(response => response.json())
             .then(data => {
@@ -1389,7 +1388,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     showNotification('Error', data.error, true);
                     return;
                 }
-                
+
                 if (data.nodes.length === 0) {
                     storyNodesTableBody.innerHTML = `
                         <tr>
@@ -1398,7 +1397,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
                     return;
                 }
-                
+
                 // Populate the table
                 storyNodesTableBody.innerHTML = '';
                 data.nodes.forEach(node => {
@@ -1428,12 +1427,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
             });
     }
-    
+
     // Handle load nodes button
     if (loadNodesBtn) {
         loadNodesBtn.addEventListener('click', loadStoryNodes);
     }
-    
+
     // Handle reanalyze image button
     if (reanalyzeImageBtn) {
         reanalyzeImageBtn.addEventListener('click', function() {
@@ -1441,28 +1440,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 showNotification('Error', 'No image selected for reanalysis', true);
                 return;
             }
-            
+
             // Show confirmation modal
             reanalyzeConfirmModal.show();
         });
     }
-    
+
     // Handle confirm reanalyze button
     if (confirmReanalyzeBtn) {
         confirmReanalyzeBtn.addEventListener('click', function() {
             reanalyzeConfirmModal.hide();
-            
+
             if (!currentImageData || !currentImageData.image_id) {
                 showNotification('Error', 'No image selected for reanalysis', true);
                 return;
             }
-            
+
             // Show loading state
             confirmReanalyzeBtn.disabled = true;
             confirmReanalyzeBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
-            
+
             const preserveRelations = preserveRelationsCheck.checked;
-            
+
             // Send reanalysis request
             fetch(`/api/reanalyze/${currentImageData.image_id}`, {
                 method: 'POST',
@@ -1477,20 +1476,20 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 confirmReanalyzeBtn.disabled = false;
                 confirmReanalyzeBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Reanalyze';
-                
+
                 if (data.error) {
                     showNotification('Error', data.error, true);
                     return;
                 }
-                
+
                 // Update the modal content
                 modalContent.textContent = JSON.stringify(data.analysis, null, 2);
-                
+
                 // Update current image data
                 currentImageData.analysis = data.analysis;
-                
+
                 showNotification('Success', 'Image reanalyzed successfully');
-                
+
                 // Refresh image tables
                 refreshImagesList();
                 loadAllImages(currentImagePage, currentImageFilter, currentImageSearch);
@@ -1502,7 +1501,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
+
     // Initial loading of data
     if (imagesTableBody) refreshImagesList();
     if (storiesTableBody) refreshStoriesList();
@@ -1634,7 +1633,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const issuesList = document.getElementById('issuesList');
 
         if (hasIssues) {
-            noIssuesAlert.style.display = 'none';
+            noIssuesAlert.style.display = 'block';
             issuesList.style.display = 'block';
 
             // Clear previous issues
@@ -2171,3 +2170,73 @@ document.addEventListener('DOMContentLoaded', function() {
         runHealthCheck();
     }
 });
+
+function updateEditForm(analysis) {
+    // Determine if it's a character by checking for nested character object or character fields
+    const isCharacter = analysis.character || 
+                       (analysis.name && (analysis.character_traits || analysis.role)) ||
+                       (analysis.role && ['hero', 'villain', 'neutral', 'undetermined'].includes(analysis.role));
+
+    const imageType = isCharacter ? 'character' : 'scene';
+    document.getElementById('imageType').value = imageType;
+
+    // Fill character fields
+    if (imageType === 'character') {
+        // Get character data from either nested character object or top level
+        const character = analysis.character || analysis;
+
+        // Get character name with fallbacks
+        let characterName = '';
+        if (character.name) characterName = character.name;
+        else if (character.code_name) characterName = character.code_name;
+        else if (analysis.name) characterName = analysis.name;
+
+        document.getElementById('imageName').value = characterName;
+        document.getElementById('codeName').value = character.code_name || '';
+        document.getElementById('characterRole').value = character.role || 'undetermined';
+        document.getElementById('characterStyle').value = character.style || '';
+        document.getElementById('backstory').value = character.backstory || '';
+
+        // Handle character traits and plot lines
+        const traits = character.character_traits || analysis.character_traits || [];
+        const plots = character.plot_lines || analysis.plot_lines || [];
+
+        document.getElementById('characterTraits').value = Array.isArray(traits) ? traits.join(', ') : traits;
+        document.getElementById('plotLines').value = Array.isArray(plots) ? plots.join('\n') : plots;
+
+        // Show character fields, hide scene fields
+        document.getElementById('characterFields').style.display = 'block';
+        document.getElementById('sceneFields').style.display = 'none';
+    } else {
+        // Fill scene fields
+        document.getElementById('imageName').value = analysis.scene_type || '';
+        document.getElementById('sceneType').value = analysis.scene_type || 'action';
+        document.getElementById('sceneSetting').value = analysis.setting || '';
+
+        const moments = analysis.dramatic_moments || [];
+        document.getElementById('dramaticMoments').value = Array.isArray(moments) ? moments.join('\n') : moments;
+
+        // Show scene fields, hide character fields
+        document.getElementById('characterFields').style.display = 'none';
+        document.getElementById('sceneFields').style.display = 'block';
+    }
+}
+
+function saveToDatabase() {
+    const imageUrl = document.getElementById('imageUrl').value;
+    // Make sure we're using the original analysis data, not any modified data
+    const currentAnalysis = JSON.parse(localStorage.getItem('currentAnalysis') || '{}');
+
+    console.log("Saving original analysis:", currentAnalysis);
+
+    fetch('/save_analysis', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            image_url: imageUrl,
+            analysis: currentAnalysis
+        }),
+    })
+}

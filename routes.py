@@ -655,7 +655,8 @@ def save_analysis_original():
 
     try:
         image_url = data.get('image_url')
-        analysis = data.get('analysis')
+        analysis = data.get('analysis')  # Use the analysis data that was sent from the client
+                                         # This is from the first analyze call - don't re-analyze
 
         # Extract image metadata
         metadata = analysis.get('image_metadata', {})
@@ -688,6 +689,8 @@ def save_analysis_original():
             if 'character' in analysis and isinstance(analysis['character'], dict):
                 if 'name' in analysis['character']:
                     character_name = analysis['character'].get('name')
+                elif 'code_name' in analysis['character']:
+                    character_name = analysis['character'].get('code_name')
 
             # If not found in character object, check top level fields
             if not character_name:
@@ -695,6 +698,8 @@ def save_analysis_original():
                     character_name = analysis.get('character_name')
                 elif 'name' in analysis:
                     character_name = analysis.get('name')
+                elif 'code_name' in analysis:
+                    character_name = analysis.get('code_name')
 
             # Log character name extraction for debugging
             logger.debug(f"Extracted character name: {character_name} from analysis structure")
