@@ -627,11 +627,14 @@ def generate_post():
         if not os.environ.get("OPENAI_API_KEY"):
             return jsonify({'error': 'OpenAI API key not configured. Please add it to your Replit Secrets.'}), 500
 
-        # Analyze the artwork using OpenAI
+        # Analyze the artwork using OpenAI - this should only happen ONCE
         analysis = analyze_artwork(image_url)
 
         # Generate a description of the analyzed image
         description = generate_image_description(analysis)
+        
+        # Log that we've processed this image to help with debugging
+        logger.debug(f"Successfully analyzed image at URL: {image_url}")
 
         return jsonify({
             'success': True,
