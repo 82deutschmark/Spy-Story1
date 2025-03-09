@@ -146,6 +146,25 @@ Respond in JSON format with the appropriate keys based on the image type. Use sn
             
             # Call OpenAI API with the prepared messages
             response = client.chat.completions.create(
+
+
+def generate_image_description(analysis):
+    """Generate a human-readable description from the image analysis"""
+    try:
+        if isinstance(analysis, dict):
+            if 'character' in analysis and isinstance(analysis['character'], dict):
+                character = analysis['character']
+                return f"{character.get('name', 'Character')} - {character.get('code_name', 'No code name')} - {character.get('role', 'Role unknown')}"
+            elif 'scene_type' in analysis:
+                return f"Scene: {analysis.get('scene_type', 'Unknown scene')} - {analysis.get('setting', 'Unknown setting')}"
+            elif 'name' in analysis:
+                return f"{analysis.get('name', 'Character')} - {analysis.get('role', 'Role unknown')}"
+        return "Image analyzed successfully"
+    except Exception as e:
+        logger.error(f"Error generating image description: {str(e)}")
+        return "Image analysis processed"
+
+
                 model="gpt-4o",
                 messages=messages,
                 response_format={"type": "json_object"}
