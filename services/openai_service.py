@@ -103,7 +103,7 @@ Analyze the image and determine:
    - Suggest a creative code name consisting of an adjective and noun
    - Suggest a character backstory 
    - Determine if they are, villain, undetermined, or neutral character.   (use 'role' field with appropriate value 'undetermined', 'villain', or 'neutral')
-   - List 9 unrelated and unusual character traits (in 'character_traits' array)
+   - List 9 unusual and creative character traits or backstory elements (in 'character_traits' array)
    - Suggest 3 potential international plot lines involving this character (in 'plot_lines' array)
    - Suggested motivations and goals (in 'style' field)
 

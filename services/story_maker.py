@@ -29,7 +29,7 @@ STORY_OPTIONS = {
         ("🧠", "Mind control experiment")
     ],
     "settings": [
-        ("🗼", "Neo-Tokyo Nightclub"),
+        ("🗼", "DC Nightclub"),
         ("🏝️", "Private Luxury Island"),
         ("🏙️", "Dubai Mega-Skyscraper"),
         ("🚢", "Orbital Cruise Liner"),
@@ -39,7 +39,7 @@ STORY_OPTIONS = {
         ("🌋", "Volcanic Lair")
     ],
     "narrative_styles": [
-        ("😎", "Snarky action hero"),
+        ("😎", "Gen Z Teenage Drama"),
         ("🔥", "Steamy romance novel"),
         ("🤪", "Absurdist comedy"),
         ("🎭", "Melodramatic soap opera"),
@@ -165,12 +165,12 @@ def generate_story(
     # Handle protagonist information
     protagonist_info = ""
     if protagonist_name and protagonist_gender:
-        protagonist_info = f"The story revolves around {protagonist_name}, a {protagonist_gender} protagonist who is totally incompetent, woefully ignorant, but very charismatic, arrogant, and constantly receives romantic advances from practically everybody they meet. "
+        protagonist_info = f"The story revolves around {protagonist_name}, a {protagonist_gender} protagonist who is totally debauched, woefully ignorant, but very charismatic, arrogant, and constantly receives romantic advances from practically everybody they meet. "
 
     universe_prompt = (
         f"This is set in the hormone-fueled high stakes sexy dramatic international spy network. {protagonist_info}"
-        "The story is set in the year 2070, and the world is in the midst of a global crisis that the protagonist doesn't care enough to understand. "
-        "The world is in a state of emergency, and the only way to save it is to party hard, have James Bond style adventures with crazy action scenes and gunfights, "
+        "The story is set in the year 2070, and the world is in the midst of a global crisis that the protagonist is never really sure about. "
+        "The world is in a state of emergency, and the only way to save it is to party hard, seduce as many people as possible, and have James Bond style adventures with crazy action scenes and gunfights, "
         "involving more and more beautiful people and increasingly ridiculous scenarios and global settings.\n\n"
         "All the characters are constantly betraying each other and having romantic flings. The narrative should be over-the-top, "
         "with excessive action scenes, dramatic romantic encounters, and constant plot twists where allies become enemies and vice versa.\n\n"
@@ -188,8 +188,8 @@ def generate_story(
         f"{additional_characters_prompt}\n"
         f"{context_prompt}\n\n"
         "Create an engaging story segment that:\n"
-        "1. Features the incompetent but charismatic protagonist as the main story driver\n"
-        "2. Introduces the selected character (if provided) into a ridiculous international spy scenario\n"
+        "1. Features the charismatic protagonist as the main story driver\n"
+        "2. Introduces the selected character (if provided) into a complex international spy scenario\n"
         "3. IMPORTANT: If plot lines are provided for the character, you MUST incorporate at least one into the story\n"
         "4. CRITICAL: If additional characters from the database are provided, you MUST introduce at least one new character from this list into the story\n"
         "5. Includes betrayal, romantic flings, and over-the-top action sequences\n"
@@ -199,10 +199,10 @@ def generate_story(
         "   - Make offers sound enticing but slightly suspicious\n"
         "   - Each diamond is worth €1000 or ¥150000\n"
         "8. Provides exactly two meaningful choice options that:\n"
-        "   - Lead to different potential outcomes (one should be more absurd than the other)\n"
+        "   - Lead to different potential outcomes (each one should sound sexy and dangerous)\n"
         "   - Stay true to the characters' established traits\n"
         "   - Relate to at least one of the plot lines if provided\n"
-        "   - IMPORTANT: Include at least one new character from the database in the choices when possible\n"
+        "   - IMPORTANT: Include one new character from the database in the choices when needed\n"
         "   - REQUIRED: Each choice must have a random dollar (💵) cost between $1000-$20000\n"
         "   - Avoid dead ends but escalate the ridiculousness with each choice\n"
         "9. Include clear consequences for each choice that involve romantic encounters, betrayal, or absurd action scenarios\n\n"
