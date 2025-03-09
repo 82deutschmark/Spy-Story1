@@ -849,7 +849,7 @@ def get_all_stories():
                 'pages': (total + per_page - 1) // per_page
             }
         })
-    except Exception ase:
+    except Exception as e:
         logger.error(f"Error getting all stories: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
