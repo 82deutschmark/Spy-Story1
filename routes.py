@@ -2,7 +2,7 @@
 import os
 import logging
 import json
-from flask import render_template, request, jsonify, url_for, redirect, flash, session
+from flask import Blueprint, render_template, request, jsonify, url_for, redirect, flash, session
 import uuid
 import paypalrestsdk
 from decimal import Decimal
@@ -11,10 +11,12 @@ from database import db
 from models import AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, StoryChoice, UserProgress, Transaction
 from services.openai_service import analyze_artwork, generate_image_description
 from services.story_maker import generate_story, get_story_options
-from main import app
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+# Create Blueprint
+main_bp = Blueprint('main', __name__)
 
 def get_or_create_user_progress():
     """Get or create user progress record for the current session"""
@@ -43,7 +45,7 @@ def get_or_create_user_progress():
 
     return user_progress
 
-@app.before_request
+@main_bp.before_request
 def check_paypal_config():
     """Log PayPal configuration status before each request"""
     paypal_client_id = os.environ.get('PAYPAL_CLIENT_ID')
@@ -66,7 +68,7 @@ def get_random_scene_background():
 
     return scene.image_url if scene else None
 
-@app.route('/')
+@main_bp.route('/')
 def index():
     """Main page showing character selection and story options"""
     story_options = get_story_options()
@@ -121,8 +123,10 @@ def index():
         paypal_client_id=os.environ.get('PAYPAL_CLIENT_ID')
     )
 
+# Add the rest of your routes from app.py, but change from @app.route to @main_bp.route
+# For example:
 
-@app.route('/debug')
+@main_bp.route('/debug')
 def debug():
     """Debug page with image analysis tool and database view"""
     recent_images = ImageAnalysis.query.order_by(ImageAnalysis.created_at.desc()).limit(10).all()
@@ -148,7 +152,7 @@ def debug():
         empty_stories=empty_stories
     )
 
-@app.route('/storyboard/<int:story_id>')
+@main_bp.route('/storyboard/<int:story_id>')
 def storyboard(story_id):
     """Display the current story progress and choices"""
     story = StoryGeneration.query.get_or_404(story_id)
@@ -205,7 +209,7 @@ def storyboard(story_id):
         paypal_client_id=os.environ.get('PAYPAL_CLIENT_ID')
     )
 
-@app.route('/generate_story', methods=['POST'])
+@main_bp.route('/generate_story', methods=['POST'])
 def generate_story_route():
     """Generate a new story or continue an existing one"""
     try:
@@ -340,11 +344,11 @@ def generate_story_route():
             # If AJAX request, return JSON
             return jsonify({
                 'success': True,
-                'redirect': url_for('storyboard', story_id=story.id)
+                'redirect': url_for('main.storyboard', story_id=story.id)
             })
         else:
             # If regular form submit, redirect to storyboard
-            return redirect(url_for('storyboard', story_id=story.id))
+            return redirect(url_for('main.storyboard', story_id=story.id))
 
     except Exception as e:
         logger.error(f"Error generating story: {str(e)}")
@@ -352,9 +356,7 @@ def generate_story_route():
             return jsonify({'error': str(e)}), 500
         else:
             flash('Error generating story: ' + str(e), 'error')
-            return redirect(url_for('index'))
+            return redirect(url_for('main.index'))
 
-# Add the rest of your routes from app.py here...
-# (This would include all the other routes from app.py)
-
-# Import other routes or add more route definitions as needed
+# Add all remaining routes from app.py, updating them to use main_bp
+# ...
