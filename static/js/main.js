@@ -428,68 +428,125 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Character highlighting in story text
 document.addEventListener('DOMContentLoaded', function() {
+    // Function to safely escape special regex characters
+    function escapeRegExp(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
     // Function to highlight characters in story text
     function highlightCharactersInStory() {
         const storyContent = document.querySelector('.story-content');
-        if (!storyContent) return;
+        if (!storyContent) {
+            console.log('Story content element not found');
+            return;
+        }
 
         // Get all character names from the mini-portraits
         const characterPortraits = document.querySelectorAll('.character-portrait-mini');
-        const characterNames = Array.from(characterPortraits).map(portrait => {
-            return {
-                name: portrait.querySelector('.character-mini-name').textContent.trim(),
-                image: portrait.querySelector('img').src,
-                element: portrait
-            };
+        if (characterPortraits.length === 0) {
+            console.log('No character portraits found');
+            return;
+        }
+
+        const characterNames = [];
+        
+        // Collect character data, handling possible missing elements
+        characterPortraits.forEach(portrait => {
+            const nameElement = portrait.querySelector('.character-mini-name');
+            const imageElement = portrait.querySelector('img');
+            
+            if (nameElement && imageElement) {
+                const name = nameElement.textContent.trim();
+                if (name) { // Only add if name is not empty
+                    characterNames.push({
+                        name: name,
+                        image: imageElement.src,
+                        element: portrait,
+                        dataName: portrait.getAttribute('data-character-name') || name.toLowerCase().replace(/\s/g, '-')
+                    });
+                }
+            }
         });
 
+        if (characterNames.length === 0) {
+            console.log('No valid character names found');
+            return;
+        }
+
+        console.log(`Found ${characterNames.length} characters to highlight`);
+        
         // Sort names by length (longest first) to avoid partial matches
         characterNames.sort((a, b) => b.name.length - a.name.length);
 
-        // Get the story text
-        let storyText = storyContent.innerHTML;
+        // Get the story text and preserve for comparison
+        const originalStoryText = storyContent.innerHTML;
+        let storyText = originalStoryText;
 
-        // Replace character names with highlighted spans
+        // Replace character names with highlighted spans, using escaped regex
         characterNames.forEach(character => {
-            const regex = new RegExp(`\\b${character.name}\\b`, 'gi');
-            storyText = storyText.replace(regex, match => {
-                return `<span class="character-mention" data-character="${character.name.toLowerCase().replace(/\s/g, '-')}">${match}<span class="character-tooltip"><img src="${character.image}" alt="${match}">${match}</span></span>`;
-            });
-        });
-
-        // Update the story content
-        storyContent.innerHTML = storyText;
-
-        // Add click event to highlight corresponding mini-portrait
-        document.querySelectorAll('.character-mention').forEach(mention => {
-            mention.addEventListener('click', function() {
-                const characterId = this.dataset.character;
-                const targetPortrait = document.querySelector(`.character-portrait-mini[data-character-name="${characterId}"]`);
-
-                // Remove highlight from all portraits
-                document.querySelectorAll('.character-mini-img').forEach(img => {
-                    img.classList.remove('character-mini-highlight');
+            try {
+                const escapedName = escapeRegExp(character.name);
+                const regex = new RegExp(`\\b${escapedName}\\b`, 'gi');
+                storyText = storyText.replace(regex, match => {
+                    return `<span class="character-mention" data-character="${character.dataName}">${match}<span class="character-tooltip"><img src="${character.image}" alt="${match}">${match}</span></span>`;
                 });
-
-                // Add highlight to this portrait
-                if (targetPortrait) {
-                    const portraitImg = targetPortrait.querySelector('.character-mini-img');
-                    portraitImg.classList.add('character-mini-highlight');
-
-                    // Scroll to the portrait if needed
-                    targetPortrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-                    // Remove highlight after 3 seconds
-                    setTimeout(() => {
-                        portraitImg.classList.remove('character-mini-highlight');
-                    }, 3000);
-                }
-            });
+            } catch (error) {
+                console.error(`Error highlighting character ${character.name}:`, error);
+            }
         });
+
+        // Only update if changes were made (prevent infinite loops)
+        if (storyText !== originalStoryText) {
+            // Update the story content
+            storyContent.innerHTML = storyText;
+
+            // Add click event to highlight corresponding mini-portrait
+            document.querySelectorAll('.character-mention').forEach(mention => {
+                mention.addEventListener('click', function() {
+                    try {
+                        const characterId = this.dataset.character;
+                        if (!characterId) return;
+                        
+                        const targetPortrait = document.querySelector(`.character-portrait-mini[data-character-name="${characterId}"]`);
+
+                        // Remove highlight from all portraits
+                        document.querySelectorAll('.character-mini-img').forEach(img => {
+                            img.classList.remove('character-mini-highlight');
+                        });
+
+                        // Add highlight to this portrait
+                        if (targetPortrait) {
+                            const portraitImg = targetPortrait.querySelector('.character-mini-img');
+                            if (portraitImg) {
+                                portraitImg.classList.add('character-mini-highlight');
+
+                                // Scroll to the portrait if needed
+                                targetPortrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+                                // Remove highlight after 3 seconds
+                                setTimeout(() => {
+                                    portraitImg.classList.remove('character-mini-highlight');
+                                }, 3000);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error handling character mention click:', error);
+                    }
+                });
+            });
+            
+            console.log('Character highlighting applied successfully');
+        } else {
+            console.log('No character names matched in the story text');
+        }
     }
 
     // Run the highlighting function when page loads
-    highlightCharactersInStory();
+    try {
+        highlightCharactersInStory();
+    } catch (error) {
+        console.error('Error in character highlighting:', error);
+    }
 
     // Also run when a story choice is made (if needed)
     const choiceForms = document.querySelectorAll('.choice-form');
@@ -528,7 +585,8 @@ function updateCurrencyDisplays(balances) {
 }
 
 
-// PayPal button rendering
+// PayPal button rendering - COMMENTED OUT
+/*
 function initializePayPal() {
     console.log('Initializing PayPal integration...');
     const container = document.getElementById('paypal-button-container');
@@ -652,6 +710,18 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         initializePayPal();
     }, 1000);
+});
+*/
+
+// Temporary placeholder for PayPal functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const purchaseModal = document.getElementById('purchaseModal');
+    if (purchaseModal) {
+        const paypalContainer = document.getElementById('paypal-button-container');
+        if (paypalContainer) {
+            paypalContainer.innerHTML = '<div class="alert alert-info">Payment functionality is temporarily disabled.</div>';
+        }
+    }
 });
 
 // Handle currency trading
