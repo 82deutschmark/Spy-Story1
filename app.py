@@ -137,7 +137,7 @@ def storyboard(story_id):
 
     # Get associated character images from the story and referenced characters
     character_images = []
-    
+
     # Add direct story images first
     for image in story.images:
         analysis = image.analysis_result
@@ -147,24 +147,24 @@ def storyboard(story_id):
             'name': image.character_name or analysis.get('name', ''),
             'traits': image.character_traits
         })
-    
+
     # Get all characters mentioned in the story
     mentioned_characters = []
     if 'characters' in story_data and isinstance(story_data['characters'], list):
         mentioned_characters = story_data['characters']
-    
+
     # Try to find images for any additional characters mentioned
     for character_name in mentioned_characters:
         # Skip characters we already have
         if any(char['name'].lower() == character_name.lower() for char in character_images):
             continue
-            
+
         # Look for this character in the database
         character_img = ImageAnalysis.query.filter(
             ImageAnalysis.image_type == 'character',
             ImageAnalysis.character_name.ilike(f'%{character_name}%')
         ).first()
-        
+
         if character_img:
             character_images.append({
                 'id': character_img.id,
@@ -187,7 +187,10 @@ def generate_story_route():
         # Get form data
         data = request.form
         selected_image_ids = request.form.getlist('selected_images[]')
-        
+        protagonist_gender = request.form.get('protagonist_gender')
+        protagonist_name = request.form.get('protagonist_name')
+
+
         logger.debug(f"Form data received: {data}")
         logger.debug(f"Selected image IDs: {selected_image_ids}")
 
@@ -212,7 +215,7 @@ def generate_story_route():
             'previous_choice': data.get('previous_choice', ''),
             'story_context': data.get('story_context', '')
         }
-        
+
         logger.debug(f"Story parameters: {story_params}")
 
         # Get character information from selected images
@@ -232,11 +235,11 @@ def generate_story_route():
                 'plot_lines': img.plot_lines or []
             }
             selected_characters.append(char_data)
-        
+
         # Use the first character as the main character for backward compatibility
         main_character_img = selected_images[0]
         character_info = selected_characters[0]
-        
+
         # Get additional characters from database (excluding the selected characters)
         additional_characters = []
         selected_ids = [img.id for img in selected_images]
@@ -245,7 +248,7 @@ def generate_story_route():
             .order_by(db.func.random())\
             .limit(3)\
             .all()
-            
+
         for char in additional_chars_query:
             char_data = {
                 'name': char.character_name,
@@ -254,7 +257,7 @@ def generate_story_route():
                 'plot_lines': char.plot_lines
             }
             additional_characters.append(char_data)
-            
+
         # Add the selected characters (except the main one) to story_params
         if len(selected_characters) > 1:
             # Remove the main character from the list
@@ -265,6 +268,8 @@ def generate_story_route():
         # Generate the story
         story_params['character_info'] = character_info
         story_params['additional_characters'] = additional_characters
+        story_params['protagonist_name'] = protagonist_name
+        story_params['protagonist_gender'] = protagonist_gender
         result = generate_story(**story_params)
 
         # Store the generated story
