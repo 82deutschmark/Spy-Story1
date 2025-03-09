@@ -545,6 +545,523 @@ def db_health_check():
         logger.error(f"Error performing health check: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@main_bp.route('/make_choice', methods=['POST'])
+def make_choice():
+    """Process a story choice and handle currency requirements"""
+    try:
+        data = request.json
+        choice_id = data.get('choice_id')
+        custom_choice = data.get('custom_choice')
+
+        # Get user progress
+        user_progress = get_or_create_user_progress()
+
+        if custom_choice:
+            # Validate diamond balance for custom choice
+            currency_requirements = {'💎': 100}
+            if not user_progress.can_afford(currency_requirements):
+                return jsonify({
+                    'error': 'Insufficient diamonds',
+                    'required': 100,
+                    'current_balance': user_progress.currency_balances.get('💎', 0)
+                }), 400
+
+            # Spend diamonds and record transaction
+            success = user_progress.spend_currency(
+                currency_requirements,
+                'choice',
+                f'Custom choice: {custom_choice[:50]}...' if len(custom_choice) > 50 else custom_choice
+            )
+            if not success:
+                return jsonify({'error': 'Failed to process currency transaction'}), 500
+
+        else:
+            # Get the choice and validate currency requirements
+            choice = StoryChoice.query.get_or_404(choice_id)
+            if not choice.currency_requirements:
+                return jsonify({'error': 'Invalid choice: missing currency requirements'}), 400
+
+            # Check if user can afford the choice
+            if not user_progress.can_afford(choice.currency_requirements):
+                return jsonify({
+                    'error': 'Insufficient funds',
+                    'requirements': choice.currency_requirements,
+                    'current_balances': user_progress.currency_balances
+                }), 400
+
+            # Spend currency and record transaction
+            success = user_progress.spend_currency(
+                choice.currency_requirements,
+                'choice',
+                f'Story choice: {choice.choice_text[:50]}...' if len(choice.choice_text) > 50 else choice.choice_text,
+                choice.node_id
+            )
+            if not success:
+                return jsonify({'error': 'Failed to process currency transaction'}), 500
+
+        # Return success response with updated balances
+        return jsonify({
+            'success': True,
+            'new_balances': user_progress.currency_balances,
+            'message': 'Choice processed successfully'
+        })
+
+    except Exception as e:
+        logger.error(f"Error processing choice: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/generate', methods=['POST'])
+def generate_post():
+    """Handle image analysis requests from debug page"""
+    image_url = request.form.get('image_url')
+
+    if not image_url:
+        return jsonify({'error': 'No image URL provided'}), 400
+
+    try:
+        # Validate URL format
+        if not image_url.startswith(('http://', 'https://')):
+            return jsonify({'error': 'Invalid image URL format'}), 400
+
+        # Check for OpenAI API key
+        if not os.environ.get("OPENAI_API_KEY"):
+            return jsonify({'error': 'OpenAI API key not configured. Please add it to your Replit Secrets.'}), 500
+
+        # Analyze the artwork using OpenAI
+        analysis = analyze_artwork(image_url)
+
+        # Generate a description of the analyzed image
+        description = generate_image_description(analysis)
+
+        return jsonify({
+            'success': True,
+            'description': description,
+            'analysis': analysis,
+            'saved_to_db': False,
+            'image_url': image_url
+        })
+
+    except Exception as e:
+        logger.error(f"Error generating post: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/save_analysis', methods=['POST'])
+def save_analysis_original():
+    """Save the analyzed image data to the database after user confirmation"""
+    data = request.json
+
+    if not data or not data.get('analysis') or not data.get('image_url'):
+        return jsonify({'error': 'Missing required data'}), 400
+
+    try:
+        image_url = data.get('image_url')
+        analysis = data.get('analysis')
+
+        # Extract image metadata
+        metadata = analysis.get('image_metadata', {})
+
+        # Determine if it's a character or scene based on character indicators
+        is_character = False
+
+        # Check for nested character object
+        if 'character' in analysis and isinstance(analysis['character'], dict):
+            is_character = True
+            logger.debug("Detected character from nested 'character' object")
+        # Or check for character-specific fields at the top level
+        elif any(key in analysis for key in ['character_name', 'character_traits', 'plot_lines']):
+            is_character = True
+            logger.debug("Detected character from top-level character fields")
+        # Or check for character-specific role field
+        elif 'role' in analysis and analysis['role'] in ['hero', 'villain', 'neutral']:
+            is_character = True
+            logger.debug("Detected character from role field")
+
+        logger.info(f"Image classified as: {'character' if is_character else 'scene'}")
+
+        # Extract character details if this is a character image
+        character_data = analysis.get('character', {})
+
+        # Get character name - check all possible locations in a consistent manner
+        character_name = None
+        if is_character:
+            # Try to find name in all possible locations
+            if 'character' in analysis and isinstance(analysis['character'], dict):
+                if 'name' in analysis['character']:
+                    character_name = analysis['character'].get('name')
+
+            # If not found in character object, check top level fields
+            if not character_name:
+                if 'character_name' in analysis:
+                    character_name = analysis.get('character_name')
+                elif 'name' in analysis:
+                    character_name = analysis.get('name')
+
+            # Log character name extraction for debugging
+            logger.debug(f"Extracted character name: {character_name} from analysis structure")
+
+            # Ensure we always have a name for characters
+            if not character_name:
+                logger.warning(f"Could not find a name in the API response. Using default name.")
+                character_name = "Unnamed Character"
+
+        # Extract traits and plot lines either from character object or top level
+        character_traits = None
+        if is_character:
+            if 'character' in analysis and 'character_traits' in character_data:
+                character_traits = character_data.get('character_traits')
+            else:
+                character_traits = analysis.get('character_traits')
+
+        character_role = None
+        if is_character:
+            if 'character' in analysis and 'role' in character_data:
+                character_role = character_data.get('role')
+            else:
+                character_role = analysis.get('role')
+
+        plot_lines = None
+        if is_character:
+            if 'character' in analysis and 'plot_lines' in character_data:
+                plot_lines = character_data.get('plot_lines')
+            else:
+                plot_lines = analysis.get('plot_lines')
+
+        # Create new ImageAnalysis record
+        image_analysis = ImageAnalysis(
+            image_url=image_url,
+            image_width=metadata.get('width'),
+            image_height=metadata.get('height'),
+            image_format=metadata.get('format'),
+            image_size_bytes=metadata.get('size_bytes'),
+            image_type='character' if is_character else 'scene',
+            analysis_result=analysis,
+            character_name=character_name,  # Get name with our new logic
+            character_traits=character_traits,
+            character_role=character_role,
+            plot_lines=plot_lines,
+            scene_type=analysis.get('scene_type') if not is_character else None,
+            setting=analysis.get('setting') if not is_character else None,
+            setting_description=analysis.get('setting_description') if not is_character else None,
+            story_fit=analysis.get('story_fit') if not is_character else None,
+            dramatic_moments=analysis.get('dramatic_moments') if not is_character else None
+        )
+
+        db.session.add(image_analysis)
+        db.session.commit()
+        logger.info(f"Saved image analysis: {image_analysis.id}")
+
+        return jsonify({
+            'success': True,
+            'message': 'Analysis saved to database',
+            'image_id': image_analysis.id
+        })
+
+    except Exception as e:
+        logger.error(f"Error saving analysis: {str(e)}")
+        # Rollback and close the session to release any locks
+        try:
+            db.session.rollback()
+        except:
+            pass
+
+        # Make sure we return a valid JSON response
+        return jsonify({
+            'success': False,
+            'error': f"Database error: {str(e)}"
+        }), 500
+
+@main_bp.route('/api/random_character')
+def random_character():
+    """API endpoint to get a random character from the database"""
+    try:
+        random_image = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).first()
+
+        if not random_image:
+            return jsonify({'error': 'No character images found in database'}), 404
+
+        analysis = random_image.analysis_result
+        return jsonify({
+            'success': True,
+            'id': random_image.id,
+            'image_url': random_image.image_url,
+            'name': analysis.get('name', ''),
+            'style': analysis.get('style', ''),
+            'character_traits': random_image.character_traits or []
+        })
+    except Exception as e:
+        logger.error(f"Error getting random character: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/image/<int:image_id>', methods=['DELETE'])
+def delete_image(image_id):
+    """API endpoint to delete a specific image record"""
+    try:
+        image = ImageAnalysis.query.get_or_404(image_id)
+
+        # Remove associations with stories
+        for story in image.stories:
+            story.images.remove(image)
+
+        db.session.delete(image)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Image record {image_id} deleted successfully'
+        })
+    except Exception as e:
+        logger.error(f"Error deleting image: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/story/<int:story_id>', methods=['DELETE'])
+def delete_story(story_id):
+    """API endpoint to delete a specific story record"""
+    try:
+        story = StoryGeneration.query.get_or_404(story_id)
+        db.session.delete(story)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Story record {story_id} deleted successfully'
+        })
+    except Exception as e:
+        logger.error(f"Error deleting story: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/db/delete-all-images', methods=['POST'])
+def delete_all_images():
+    """API endpoint to delete all image records"""
+    try:
+        # First remove associations with stories
+        for image in ImageAnalysis.query.all():
+            for story in image.stories:
+                story.images.remove(image)
+
+        # Then delete all images
+        num_deleted = db.session.query(ImageAnalysis).delete()
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Deleted {num_deleted} image records'
+        })
+    except Exception as e:
+        logger.error(f"Error deleting all images: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/db/delete-all-stories', methods=['POST'])
+def delete_all_stories():
+    """API endpoint to delete all story records"""
+    try:
+        num_deleted = db.session.query(StoryGeneration).delete()
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Deleted {num_deleted} story records'
+        })
+    except Exception as e:
+        logger.error(f"Error deleting all stories: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/reanalyze/<int:image_id>', methods=['POST'])
+def reanalyze_image(image_id):
+    """API endpoint to reanalyze an existing image"""
+    try:
+        # Get the image
+        image = ImageAnalysis.query.get_or_404(image_id)
+        image_url = image.image_url
+
+        if not image_url:
+            return jsonify({'error': 'Image URL is missing'}), 400
+
+        # Verify URL format
+        if not image_url.startswith(('http://', 'https://')):
+            return jsonify({'error': 'Invalid image URL format'}), 400
+
+        # Check API key
+        if not os.environ.get("OPENAI_API_KEY"):
+            return jsonify({'error': 'OpenAI API key not configured'}), 500
+
+        # Reanalyze the image
+        analysis = analyze_artwork(image_url)
+
+        # Generate description
+        description = generate_image_description(analysis)
+
+        # Get preservation option
+        preserve_relations = request.json.get('preserve_relations', True)
+
+        # Prepare for saving to the database
+        old_stories = list(image.stories) if preserve_relations else []
+
+        # Update the image analysis record
+        is_character = False
+        if 'character' in analysis and isinstance(analysis['character'], dict):
+            is_character = True
+        elif any(key in analysis for key in ['character_name', 'character_traits', 'plot_lines']):
+            is_character = True
+        elif 'role' in analysis and analysis['role'] in ['hero', 'villain', 'neutral']:
+            is_character = True
+
+        # Extract character details
+        character_name = None
+        if is_character:
+            if 'character' in analysis and isinstance(analysis['character'], dict):
+                if 'name' in analysis['character']:
+                    character_name = analysis['character'].get('name')
+            if not character_name:
+                if 'character_name' in analysis:
+                    character_name = analysis.get('character_name')
+                elif 'name' in analysis:
+                    character_name = analysis.get('name')
+            if not character_name:
+                character_name = "Unnamed Character"
+
+        # Extract traits and other fields
+        character_data = analysis.get('character', {})
+        character_traits = character_data.get('character_traits') if 'character' in analysis else analysis.get('character_traits')
+        character_role = character_data.get('role') if 'character' in analysis else analysis.get('role')
+        plot_lines = character_data.get('plot_lines') if 'character' in analysis else analysis.get('plot_lines')
+
+        # Update image record
+        image.image_type = 'character' if is_character else 'scene'
+        image.analysis_result = analysis
+        image.character_name = character_name
+        image.character_traits = character_traits
+        image.character_role = character_role
+        image.plot_lines = plot_lines
+
+        if not is_character:
+            image.scene_type = analysis.get('scene_type')
+            image.setting = analysis.get('setting')
+            image.setting_description = analysis.get('setting_description')
+            image.story_fit = analysis.get('story_fit')
+            image.dramatic_moments = analysis.get('dramatic_moments')
+
+        # Restore story relationships if needed
+        if preserve_relations:
+            image.stories = old_stories
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Image reanalyzed successfully',
+            'description': description,
+            'analysis': analysis,
+            'image_url': image_url
+        })
+
+    except Exception as e:
+        logger.error(f"Error reanalyzing image: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/currency/trade', methods=['POST'])
+def trade_currency():
+    """Trade between different currency types"""
+    try:
+        data = request.json
+        from_currency = data.get('from_currency')
+        to_currency = data.get('to_currency')
+        amount = data.get('amount')
+
+        if not all([from_currency, to_currency, amount]):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        # Get user from session
+        if 'user_id' not in session:
+            return jsonify({'error': 'Session expired'}), 401
+
+        # Get exchange rates based on the new rules
+        rates = {
+            "💎": {  # Diamonds can only be converted to EUR and YEN
+                "💶": 1000,    # 1 diamond = 1000 EUR
+                "💴": 150000,  # 1 diamond = 150000 YEN
+            },
+            "💶": {  # EUR to other currencies (except diamonds)
+                "💴": 150,     # 1 EUR = 150 YEN
+                "💵": 1.1,     # 1 EUR = 1.1 USD
+                "💷": 0.85,    # 1 EUR = 0.85 GBP
+            },
+            "💴": {  # YEN to other currencies (except diamonds)
+                "💶": 0.0067,  # 1 YEN = 0.0067 EUR
+                "💵": 0.0073,  # 1 YEN = 0.0073 USD
+                "💷": 0.0057,  # 1 YEN = 0.0057 GBP
+            },
+            "💵": {  # USD to other currencies (except diamonds)
+                "💶": 0.91,    # 1 USD = 0.91 EUR
+                "💴": 136.5,   # 1 USD = 136.5 YEN
+                "💷": 0.77,    # 1 USD = 0.77 GBP
+            },
+            "💷": {  # GBP to other currencies (except diamonds)
+                "💶": 1.18,    # 1 GBP = 1.18 EUR
+                "💴": 177,     # 1 GBP = 177 YEN
+                "💵": 1.3,     # 1 GBP = 1.3 USD
+            }
+        }
+
+        # Check if the conversion is allowed
+        if from_currency == "💎" and to_currency not in ["💶", "💴"]:
+            return jsonify({
+                'error': 'Diamonds can only be converted to Euros (💶) or Yen (💴)'
+            }), 400
+
+        if to_currency == "💎":
+            return jsonify({
+                'error': 'Cannot convert other currencies to diamonds'
+            }), 400
+
+        if from_currency not in rates or to_currency not in rates[from_currency]:
+            return jsonify({
+                'error': 'Invalid currency conversion'
+            }), 400
+
+        # Get user progress
+        user_progress = UserProgress.query.filter_by(user_id=session['user_id']).first()
+        if not user_progress:
+            return jsonify({'error': 'User progress not found'}), 404
+
+        # Check if user has enough currency
+        current_balance = user_progress.currency_balances.get(from_currency, 0)
+        if current_balance < amount:
+            return jsonify({
+                'error': 'Insufficient funds',
+                'current_balance': current_balance,
+                'required_amount': amount
+            }), 400
+
+        # Calculate conversion
+        conversion_rate = rates[from_currency][to_currency]
+        converted_amount = int(amount * conversion_rate)  # Use integer for currency amounts
+
+        # Perform the exchange
+        user_progress.currency_balances[from_currency] = current_balance - amount
+        user_progress.currency_balances[to_currency] = user_progress.currency_balances.get(to_currency, 0) + converted_amount
+
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Database error during currency trade: {str(e)}")
+            return jsonify({'error': 'Failed to process trade'}), 500
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully traded {amount} {from_currency} for {converted_amount} {to_currency}',
+            'new_balances': user_progress.currency_balances
+        })
+
+    except Exception as e:
+        logger.error(f"Error trading currency: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @main_bp.route('/api/image/<int:image_id>')
 def get_image_details(image_id):
     """API endpoint to get details of a specific image"""
