@@ -102,6 +102,7 @@ Analyze the image and determine:
 1. If it's a CHARACTER:
    - Format the response with a nested 'character' object containing all character details
    - Inside the character object include:
+     - 'name': Choose an unusual Slavic or German first name 
      - 'code_name': A creative code name consisting of an adjective and noun
      - 'backstory': A detailed character backstory 
      - 'role': Set as 'villain', 'undetermined', or 'neutral'
@@ -118,6 +119,7 @@ Analyze the image and determine:
 Respond in JSON format with the appropriate keys based on the image type. Use snake_case for all field names. For CHARACTER images, ensure the response follows this structure:
 {
   "character": {
+    "name": "John Doe",
     "code_name": "Adjective Noun",
     "backstory": "Character backstory...",
     "role": "undetermined|villain|neutral",
