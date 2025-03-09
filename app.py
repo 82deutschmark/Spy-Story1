@@ -56,7 +56,7 @@ def index():
     background_image = get_random_scene_background()
 
     # Get 2 random images for character selection
-    images = models.ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).limit(2).all()
+    images = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).limit(2).all()
     image_data = []
     for img in images:
         analysis = img.analysis_result or {}
@@ -105,16 +105,16 @@ def index():
 @app.route('/debug')
 def debug():
     """Debug page with image analysis tool and database view"""
-    recent_images = models.ImageAnalysis.query.order_by(models.ImageAnalysis.created_at.desc()).limit(10).all()
-    recent_stories = models.StoryGeneration.query.order_by(models.StoryGeneration.created_at.desc()).limit(10).all()
+    recent_images = ImageAnalysis.query.order_by(ImageAnalysis.created_at.desc()).limit(10).all()
+    recent_stories = StoryGeneration.query.order_by(StoryGeneration.created_at.desc()).limit(10).all()
 
     # Database statistics
-    image_count = models.ImageAnalysis.query.count()
-    character_count = models.ImageAnalysis.query.filter_by(image_type='character').count()
-    scene_count = models.ImageAnalysis.query.filter_by(image_type='scene').count()
-    story_count = models.StoryGeneration.query.count()
-    orphaned_images = models.ImageAnalysis.query.filter(~models.ImageAnalysis.stories.any()).count()
-    empty_stories = models.StoryGeneration.query.filter(models.StoryGeneration.generated_story.is_(None)).count()
+    image_count = ImageAnalysis.query.count()
+    character_count = ImageAnalysis.query.filter_by(image_type='character').count()
+    scene_count = ImageAnalysis.query.filter_by(image_type='scene').count()
+    story_count = StoryGeneration.query.count()
+    orphaned_images = ImageAnalysis.query.filter(~ImageAnalysis.stories.any()).count()
+    empty_stories = StoryGeneration.query.filter(StoryGeneration.generated_story.is_(None)).count()
 
     return render_template(
         'debug.html',
@@ -131,7 +131,7 @@ def debug():
 @app.route('/storyboard/<int:story_id>')
 def storyboard(story_id):
     """Display the current story progress and choices"""
-    story = models.StoryGeneration.query.get_or_404(story_id)
+    story = StoryGeneration.query.get_or_404(story_id)
     story_data = json.loads(story.generated_story)
 
     # Get random scene for background
@@ -162,9 +162,9 @@ def storyboard(story_id):
             continue
 
         # Look for this character in the database
-        character_img = models.ImageAnalysis.query.filter(
-            models.ImageAnalysis.image_type == 'character',
-            models.ImageAnalysis.character_name.ilike(f'%{character_name}%')
+        character_img = ImageAnalysis.query.filter(
+            ImageAnalysis.image_type == 'character',
+            ImageAnalysis.character_name.ilike(f'%{character_name}%')
         ).first()
 
         if character_img:
@@ -221,7 +221,7 @@ def generate_story_route():
         logger.debug(f"Story parameters: {story_params}")
 
         # Get character information from selected images
-        selected_images = models.ImageAnalysis.query.filter(models.ImageAnalysis.id.in_(selected_image_ids)).all()
+        selected_images = ImageAnalysis.query.filter(ImageAnalysis.id.in_(selected_image_ids)).all()
         if not selected_images:
             return jsonify({'error': 'Selected images not found'}), 404
 
@@ -245,8 +245,8 @@ def generate_story_route():
         # Get additional characters from database (excluding the selected characters)
         additional_characters = []
         selected_ids = [img.id for img in selected_images]
-        additional_chars_query = models.ImageAnalysis.query.filter_by(image_type='character')\
-            .filter(~models.ImageAnalysis.id.in_(selected_ids))\
+        additional_chars_query = ImageAnalysis.query.filter_by(image_type='character')\
+            .filter(~ImageAnalysis.id.in_(selected_ids))\
             .order_by(db.func.random())\
             .limit(3)\
             .all()
@@ -275,7 +275,7 @@ def generate_story_route():
         result = generate_story(**story_params)
 
         # Store the generated story
-        story = models.StoryGeneration(
+        story = StoryGeneration(
             primary_conflict=result['conflict'],
             setting=result['setting'],
             narrative_style=result['narrative_style'],
@@ -319,7 +319,7 @@ def save_analysis():
         if not image_id or not analysis:
             return jsonify({'error': 'Missing image_id or analysis'}), 400
 
-        image = models.ImageAnalysis.query.get_or_404(image_id)
+        image = ImageAnalysis.query.get_or_404(image_id)
         image.analysis_result = analysis
         db.session.commit()
 
@@ -336,7 +336,7 @@ def validate_image_types():
     """API endpoint to validate image type storage and check for inconsistencies"""
     try:
         # Get all images
-        images = models.ImageAnalysis.query.all()
+        images = ImageAnalysis.query.all()
 
         results = {
             'character_images': 0,
@@ -521,7 +521,7 @@ def save_analysis_original():
                 plot_lines = analysis.get('plot_lines')
 
         # Create new ImageAnalysis record
-        image_analysis = models.ImageAnalysis(
+        image_analysis = ImageAnalysis(
             image_url=image_url,
             image_width=metadata.get('width'),
             image_height=metadata.get('height'),
@@ -568,7 +568,7 @@ def save_analysis_original():
 def random_character():
     """API endpoint to get a random character from the database"""
     try:
-        random_image = models.ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).first()
+        random_image = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).first()
 
         if not random_image:
             return jsonify({'error': 'No character images found in database'}), 404
@@ -590,7 +590,7 @@ def random_character():
 def get_image_details(image_id):
     """API endpoint to get details of a specific image"""
     try:
-        image = models.ImageAnalysis.query.get_or_404(image_id)
+        image = ImageAnalysis.query.get_or_404(image_id)
 
         return jsonify({
             'success': True,
@@ -608,7 +608,7 @@ def get_image_details(image_id):
 def delete_image(image_id):
     """API endpoint to delete a specific image record"""
     try:
-        image = models.ImageAnalysis.query.get_or_404(image_id)
+        image = ImageAnalysis.query.get_or_404(image_id)
 
         # Remove associations with stories
         for story in image.stories:
@@ -630,7 +630,7 @@ def delete_image(image_id):
 def delete_story(story_id):
     """API endpoint to delete a specific story record"""
     try:
-        story = models.StoryGeneration.query.get_or_404(story_id)
+        story = StoryGeneration.query.get_or_404(story_id)
         db.session.delete(story)
         db.session.commit()
 
@@ -648,12 +648,12 @@ def delete_all_images():
     """API endpoint to delete all image records"""
     try:
         # First remove associations with stories
-        for image in models.ImageAnalysis.query.all():
+        for image in ImageAnalysis.query.all():
             for story in image.stories:
                 story.images.remove(image)
 
         # Then delete all images
-        num_deleted = db.session.query(models.ImageAnalysis).delete()
+        num_deleted = db.session.query(ImageAnalysis).delete()
         db.session.commit()
 
         return jsonify({
@@ -669,7 +669,7 @@ def delete_all_images():
 def delete_all_stories():
     """API endpoint to delete all story records"""
     try:
-        num_deleted = db.session.query(models.StoryGeneration).delete()
+        num_deleted = db.session.query(StoryGeneration).delete()
         db.session.commit()
 
         return jsonify({
@@ -686,12 +686,12 @@ def db_health_check():
     """API endpoint to perform a database health check"""
     try:
         # Get counts
-        image_count = models.ImageAnalysis.query.count()
-        character_count = models.ImageAnalysis.query.filter_by(image_type='character').count()
-        scene_count = models.ImageAnalysis.query.filter_by(image_type='scene').count()
-        story_count = models.StoryGeneration.query.count()
-        orphaned_images = models.ImageAnalysis.query.filter(~models.ImageAnalysis.stories.any()).count()
-        empty_stories = models.StoryGeneration.query.filter(models.StoryGeneration.generated_story.is_(None)).count()
+        image_count = ImageAnalysis.query.count()
+        character_count = ImageAnalysis.query.filter_by(image_type='character').count()
+        scene_count = ImageAnalysis.query.filter_by(image_type='scene').count()
+        story_count = StoryGeneration.query.count()
+        orphaned_images = ImageAnalysis.query.filter(~ImageAnalysis.stories.any()).count()
+        empty_stories = StoryGeneration.query.filter(StoryGeneration.generated_story.is_(None)).count()
 
         # Check for potential issues
         issues = []
@@ -723,7 +723,7 @@ def get_all_images():
         image_type = request.args.get('type')
         search = request.args.get('search')
 
-        query = models.ImageAnalysis.query
+        query = ImageAnalysis.query
 
         # Apply filters
         if image_type:
@@ -732,15 +732,15 @@ def get_all_images():
         if search:
             # Search by ID or character name
             if search.isdigit():
-                query = query.filter(models.ImageAnalysis.id == int(search))
+                query = query.filter(ImageAnalysis.id == int(search))
             else:
-                query = query.filter(models.ImageAnalysis.character_name.ilike(f'%{search}%'))
+                query = query.filter(ImageAnalysis.character_name.ilike(f'%{search}%'))
 
         # Execute count query
         total = query.count()
 
         # Get paginated results
-        images = query.order_by(models.ImageAnalysis.id.desc()).paginate(page=page, per_page=per_page)
+        images = query.order_by(ImageAnalysis.id.desc()).paginate(page=page, per_page=per_page)
 
         # Format results
         results = []
@@ -783,17 +783,17 @@ def get_all_stories():
         per_page = request.args.get('per_page', 20, type=int)
         search = request.args.get('search')
 
-        query = models.StoryGeneration.query
+        query = StoryGeneration.query
 
         # Apply search filter
         if search:
             if search.isdigit():
-                query = query.filter(models.StoryGeneration.id == int(search))
+                query = query.filter(StoryGeneration.id == int(search))
             else:
                 query = query.filter(
                     db.or_(
-                        models.StoryGeneration.primary_conflict.ilike(f'%{search}%'),
-                        models.StoryGeneration.setting.ilike(f'%{search}%')
+                        StoryGeneration.primary_conflict.ilike(f'%{search}%'),
+                        StoryGeneration.setting.ilike(f'%{search}%')
                     )
                 )
 
@@ -801,7 +801,7 @@ def get_all_stories():
         total = query.count()
 
         # Get paginated results
-        stories = query.order_by(models.StoryGeneration.id.desc()).paginate(page=page, per_page=per_page)
+        stories = query.order_by(StoryGeneration.id.desc()).paginate(page=page, per_page=per_page)
 
         # Format results
         results = []
@@ -844,7 +844,7 @@ def get_all_stories():
 def get_all_story_nodes():
     """API endpoint to get all story nodes"""
     try:
-        nodes = models.StoryNode.query.all()
+        nodes = StoryNode.query.all()
         results = []
 
         for node in nodes:
@@ -872,7 +872,7 @@ def reanalyze_image(image_id):
     """API endpoint to reanalyze an existing image"""
     try:
         # Get the image
-        image = models.ImageAnalysis.query.get_or_404(image_id)
+        image = ImageAnalysis.query.get_or_404(image_id)
         image_url = image.image_url
 
         if not image_url:
