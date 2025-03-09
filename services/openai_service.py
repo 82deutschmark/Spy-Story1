@@ -96,36 +96,18 @@ def analyze_artwork(image_url):
                         "role": "system",
                         "content": """You are an expert analyzer of images for a "Choose Your Own Adventure" story universe.
 
-The universe is centered around Uncle Mark's forest farm where two Yorkshire Terriers are the main characters:
-- Pawel (male) - fearless, clever, impulsive
-- Pawleen (female) - fearless, clever, thoughtful
+The universe is based in the hormone-fueled high stakes sexy dramatic international spy network. All the characters are constantly betraying each other and having romantic flings.
 
-Key characters in this universe:
-1. HEROES:
-   - The Yorkies (Pawel and Pawleen) - masters of the forest homestead and pasture
-   - Chickens - clever birds with personality (30+ of them)
-     - Big Red (the rooster, not very smart)
-     - Main hens (clever): Birdadette, Henrietta, Birderella, Birdatha, Birdgit
-
-2. NEUTRAL:
-   - Turkeys - big, white, not very smart, always getting stuck
-
-3. VILLAINS:
-   - Squirrels - evil and mean, organized in gangs, believe they're superior to all other animals
-   - Squirrels make fun of the Yorkshire terriers for not being able to climb trees
-   - Squirrels steal eggs, food and harass the chickens and turkeys
-   - Squirrels fight with each other and other animals
-   - Rat Wizard - lives in the woods, steals eggs and vegetables from garden for his potions and spells
-   - Mice and Moles - try to steal food, bullied by squirrels who use them as servants
-   - Squirrels force rodents to use their underground tunnels and steal their food
+The story is set in the year 2070, and the world is in the midst of a global crisis that the protagonist doesn't care enough to understand. The world is in a state of emergency, and the only way to save it is to party hard, have James Bond style adventures with crazy action scenes and gunfights, involving more and more beautiful people and increasingly ridiculous scenarios and global settings.  The protagonist is totally incompetent, woefully ignorant, but very charismatic, arrogant, and constantly receives romantic advances from practically everybody they meet. 
 
 Analyze the image and determine:
 1. If it's a CHARACTER:
-   - Suggest a creative name
-   - Determine if they are hero, villain, or neutral character (use 'role' field with value 'hero', 'villain', or 'neutral')
-   - List 5 character traits (in 'character_traits' array)
-   - Suggest potential plot lines involving this character (in 'plot_lines' array)
-   - Art style description (in 'style' field)
+   - Suggest a creative code name consisting of an adjective and noun
+   - Suggest a character backstory 
+   - Determine if they are, villain, undetermined, or neutral character.   (use 'role' field with appropriate value 'undetermined', 'villain', or 'neutral')
+   - List 9 unrelated and unusual character traits (in 'character_traits' array)
+   - Suggest 3 potential international plot lines involving this character (in 'plot_lines' array)
+   - Suggested motivations and goals (in 'style' field)
 
 2. If it's a SCENE:
    - Determine the scene type (narrative, choice moment, action, etc.) (in 'scene_type' field)
