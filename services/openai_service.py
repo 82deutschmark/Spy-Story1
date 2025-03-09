@@ -88,13 +88,11 @@ def analyze_artwork(image_url):
 
             logger.debug(f"Successfully downloaded and encoded image. Analyzing artwork...")
 
-            # Call OpenAI API with the base64 encoded image
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """You are an expert analyzer of images for a "Choose Your Own Adventure" story universe.
+            # Prepare the messages with system prompt and user query
+            messages = [
+                {
+                    "role": "system",
+                    "content": """You are an expert analyzer of images for a "Choose Your Own Adventure" story universe.
 
 The universe is based in the hormone-fueled high stakes sexy dramatic international spy network. All the characters are constantly betraying each other and having romantic flings.
 
@@ -116,23 +114,34 @@ Analyze the image and determine:
    - Potential dramatic moments that could occur (in 'dramatic_moments' array)
 
 Respond in JSON format with the appropriate keys based on the image type. Use snake_case for all field names (e.g., 'scene_type', 'story_fit', 'dramatic_moments')."""
-                    },
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": "Please analyze this image for our Choose Your Own Adventure story:"
-                            },
-                            {
-                                "type": "image_url",
-                                "image_url": {"url": base64_url}
-                            }
-                        ]
-                    }
-                ],
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Please analyze this image for our Choose Your Own Adventure story:"
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": base64_url}
+                        }
+                    ]
+                }
+            ]
+            
+            # Call OpenAI API with the prepared messages
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=messages,
                 response_format={"type": "json_object"}
             )
+            
+            # Add the assistant's response to the conversation history
+            messages.append({
+                "role": "assistant",
+                "content": response.choices[0].message.content
+            })
         except requests.exceptions.RequestException as req_err:
             logger.error(f"Error downloading image: {str(req_err)}")
             raise Exception(f"Failed to download image from {image_url}: {str(req_err)}")

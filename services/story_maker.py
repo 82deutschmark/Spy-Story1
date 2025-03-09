@@ -215,26 +215,44 @@ def generate_story(
     try:
         # Note: gpt-4o is the newest model, released May 13, 2024.
         # do not change this unless explicitly requested by the user
+        
+        # Prepare messages with system prompt and user query
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are a master storyteller creating stories set in a hormone-fueled, high-stakes international spy network in 2070. "
+                    "Your stories feature a charismatic but incompetent protagonist who constantly receives romantic advances "
+                    "while navigating an over-the-top world of betrayal, action, and absurdity. Keep the tone dramatic and provocative, "
+                    "with excessive action scenes, romantic encounters, and ridiculous plot twists. The protagonist doesn't care about "
+                    "the global crisis, they just want to party hard and have James Bond style adventures. "
+                    "You can adapt to both predefined choices and custom user inputs, seamlessly incorporating their creative ideas "
+                    "into the ongoing narrative while maintaining the established tone and character traits."
+                )
+            },
+            {"role": "user", "content": prompt}
+        ]
+        
+        # If story_context exists, it means we're continuing a story, so we should include previous context
+        if story_context:
+            # Insert the context as part of the message history
+            messages.insert(1, {"role": "assistant", "content": f"Previous story context: {story_context}"})
+            
+            if previous_choice:
+                messages.insert(2, {"role": "user", "content": f"Player chose: {previous_choice}"})
+        
         response = client.chat.completions.create(
             model="gpt-4o",
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a master storyteller creating stories set in a hormone-fueled, high-stakes international spy network in 2070. "
-                        "Your stories feature a charismatic but incompetent protagonist who constantly receives romantic advances "
-                        "while navigating an over-the-top world of betrayal, action, and absurdity. Keep the tone dramatic and provocative, "
-                        "with excessive action scenes, romantic encounters, and ridiculous plot twists. The protagonist doesn't care about "
-                        "the global crisis, they just want to party hard and have James Bond style adventures. "
-                        "You can adapt to both predefined choices and custom user inputs, seamlessly incorporating their creative ideas "
-                        "into the ongoing narrative while maintaining the established tone and character traits."
-                    )
-                },
-                {"role": "user", "content": prompt}
-            ],
+            messages=messages,
             temperature=0.9,
             response_format={"type": "json_object"}
         )
+        
+        # Add the response to the message history for potential future continuations
+        messages.append({
+            "role": "assistant",
+            "content": response.choices[0].message.content
+        })
 
         # Parse and return the generated story
         result = json.loads(response.choices[0].message.content)
