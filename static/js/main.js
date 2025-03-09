@@ -456,84 +456,110 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// PayPal button rendering
-if (document.getElementById('paypal-button-container')) {
-    let selectedAmount = 100; // Default amount
-    let selectedPrice = 1;    // Default price
+// Function to update all currency displays
+function updateCurrencyDisplays(balances) {
+    if (!balances) return;
 
-    // Handle diamond package selection
-    document.querySelectorAll('.diamond-package').forEach(button => {
-        button.addEventListener('click', function() {
-            selectedAmount = parseInt(this.dataset.amount);
-            selectedPrice = parseInt(this.dataset.price);
-
-            // Update active state
-            document.querySelectorAll('.diamond-package').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            this.classList.add('active');
-
-            // Re-render PayPal buttons with new amount
-            renderPayPalButtons();
+    Object.entries(balances).forEach(([currency, balance]) => {
+        const displays = document.querySelectorAll(`.currency-item .currency-symbol:contains(${currency})`);
+        displays.forEach(display => {
+            const amountElement = display.nextElementSibling;
+            if (amountElement && amountElement.classList.contains('currency-amount')) {
+                amountElement.textContent = balance;
+            }
         });
     });
+}
 
-    function renderPayPalButtons() {
-        const container = document.getElementById('paypal-button-container');
-        container.innerHTML = ''; // Clear existing buttons
 
-        paypal.Buttons({
-            createOrder: function(data, actions) {
-                return actions.order.create({
-                    purchase_units: [{
-                        amount: {
-                            value: selectedPrice.toString()
-                        },
-                        description: `Purchase ${selectedAmount} diamonds 💎`
-                    }]
+// PayPal button rendering
+function initializePayPal() {
+    if (document.getElementById('paypal-button-container')) {
+        let selectedAmount = 100; // Default amount
+        let selectedPrice = 1;    // Default price
+
+        // Handle diamond package selection
+        document.querySelectorAll('.diamond-package').forEach(button => {
+            button.addEventListener('click', function() {
+                selectedAmount = parseInt(this.dataset.amount);
+                selectedPrice = parseInt(this.dataset.price);
+
+                // Update active state
+                document.querySelectorAll('.diamond-package').forEach(btn => {
+                    btn.classList.remove('active');
                 });
-            },
-            onApprove: function(data, actions) {
-                return actions.order.capture().then(function(details) {
-                    // Handle successful payment
-                    fetch('/api/purchase/diamonds/success', {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Update UI with new balance
-                            const diamondBalance = document.querySelector('.currency-amount');
-                            if (diamondBalance) {
-                                diamondBalance.textContent = data.new_balance;
-                            }
+                this.classList.add('active');
 
-                            // Show success message
-                            showToast('Success', `Successfully purchased ${selectedAmount} diamonds!`);
+                // Re-render PayPal buttons with new amount
+                renderPayPalButtons();
+            });
+        });
 
-                            // Close modal
-                            const modal = bootstrap.Modal.getInstance(document.getElementById('purchaseModal'));
-                            if (modal) {
-                                modal.hide();
-                            }
-                        } else {
-                            showToast('Error', data.error || 'Failed to process purchase');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error processing purchase:', error);
-                        showToast('Error', 'Failed to process purchase');
-                    });
-                });
+        function renderPayPalButtons() {
+            const container = document.getElementById('paypal-button-container');
+            container.innerHTML = ''; // Clear existing buttons
+
+            if (typeof paypal !== 'undefined') {
+                paypal.Buttons({
+                    createOrder: function(data, actions) {
+                        return actions.order.create({
+                            purchase_units: [{
+                                amount: {
+                                    value: selectedPrice.toString(),
+                                    currency_code: 'USD'
+                                },
+                                description: `Purchase ${selectedAmount} diamonds 💎`
+                            }]
+                        });
+                    },
+                    onApprove: function(data, actions) {
+                        return actions.order.capture().then(function(details) {
+                            // Show loading state
+                            const loadingPercent = createLoadingOverlay('Processing payment...');
+                            updateLoadingPercent(loadingPercent, 50);
+
+                            // Handle successful payment
+                            fetch('/api/purchase/diamonds/success', {
+                                method: 'GET',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                updateLoadingPercent(loadingPercent, 100);
+                                if (data.success) {
+                                    // Update all currency displays with new balance
+                                    updateCurrencyDisplays(data.new_balances);
+                                    showToast('Success', `Successfully purchased ${selectedAmount} diamonds!`);
+
+                                    // Close modal
+                                    const modal = bootstrap.Modal.getInstance(document.getElementById('purchaseModal'));
+                                    if (modal) {
+                                        modal.hide();
+                                    }
+                                } else {
+                                    showToast('Error', data.error || 'Failed to process purchase');
+                                }
+                                removeLoadingOverlay(loadingPercent);
+                            })
+                            .catch(error => {
+                                console.error('Error processing purchase:', error);
+                                showToast('Error', 'Failed to process purchase');
+                                removeLoadingOverlay(loadingPercent);
+                            });
+                        });
+                    }
+                }).render('#paypal-button-container');
+            } else {
+                console.error('PayPal SDK not loaded');
+                showToast('Error', 'Payment system not available');
             }
-        }).render('#paypal-button-container');
-    }
+        }
 
-    // Initial render of PayPal buttons
-    renderPayPalButtons();
+        // Initial render of PayPal buttons
+        renderPayPalButtons();
+    }
 }
 
 // Handle currency trading
@@ -556,6 +582,10 @@ if (tradeForm) {
             return;
         }
 
+        // Show loading state
+        const loadingPercent = createLoadingOverlay('Processing trade...');
+        updateLoadingPercent(loadingPercent, 50);
+
         fetch('/api/currency/trade', {
             method: 'POST',
             headers: {
@@ -569,16 +599,14 @@ if (tradeForm) {
         })
         .then(response => response.json())
         .then(data => {
+            updateLoadingPercent(loadingPercent, 100);
             if (data.success) {
                 // Update all currency displays
-                Object.entries(data.new_balances).forEach(([currency, balance]) => {
-                    const display = document.querySelector(`.currency-item:has(.currency-symbol:contains('${currency}')) .currency-amount`);
-                    if (display) {
-                        display.textContent = balance;
-                    }
-                });
-
+                updateCurrencyDisplays(data.new_balances);
                 showToast('Success', data.message);
+
+                // Reset form
+                document.getElementById('tradeAmount').value = '';
 
                 // Close modal
                 const modal = bootstrap.Modal.getInstance(document.getElementById('tradeModal'));
@@ -588,13 +616,20 @@ if (tradeForm) {
             } else {
                 showToast('Error', data.error || 'Failed to trade currencies');
             }
+            removeLoadingOverlay(loadingPercent);
         })
         .catch(error => {
             console.error('Error trading currencies:', error);
             showToast('Error', 'Failed to trade currencies');
+            removeLoadingOverlay(loadingPercent);
         });
     });
 }
+
+// Initialize PayPal when the script is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initializePayPal();
+});
 
 // Update choice buttons to show currency requirements
 document.querySelectorAll('.choice-form').forEach(form => {

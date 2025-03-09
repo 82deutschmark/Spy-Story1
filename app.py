@@ -41,8 +41,6 @@ CORS(app, resources={
 })
 
 
-# Add these imports at the top with other imports
-
 # Add after app configuration but before route definitions
 def get_or_create_user_progress():
     """Get or create user progress record for the current session"""
@@ -1112,13 +1110,16 @@ def trade_currency():
     """Trade between different currency types"""
     try:
         data = request.json
-        user_id = data.get('user_id')  # Or get from session
         from_currency = data.get('from_currency')
         to_currency = data.get('to_currency')
         amount = data.get('amount')
 
-        if not all([user_id, from_currency, to_currency, amount]):
+        if not all([from_currency, to_currency, amount]):
             return jsonify({'error': 'Missing required fields'}), 400
+
+        # Get user from session
+        if 'user_id' not in session:
+            return jsonify({'error': 'Session expired'}), 401
 
         # Get exchange rates (example rates)
         rates = {
@@ -1134,21 +1135,32 @@ def trade_currency():
 
         # Calculate conversion
         conversion_rate = rates[from_currency][to_currency]
-        converted_amount = amount * conversion_rate
+        converted_amount = int(amount * conversion_rate)  # Use integer for currency amounts
 
-        # Update user balances
-        user_progress = UserProgress.query.filter_by(user_id=user_id).first()
+        # Get user progress
+        user_progress = UserProgress.query.filter_by(user_id=session['user_id']).first()
         if not user_progress:
             return jsonify({'error': 'User progress not found'}), 404
 
         # Check if user has enough currency
-        if user_progress.currency_balances.get(from_currency, 0) < amount:
-            return jsonify({'error': 'Insufficient funds'}), 400
+        current_balance = user_progress.currency_balances.get(from_currency, 0)
+        if current_balance < amount:
+            return jsonify({
+                'error': 'Insufficient funds',
+                'current_balance': current_balance,
+                'required_amount': amount
+            }), 400
 
         # Perform the exchange
-        user_progress.currency_balances[from_currency] -= amount
+        user_progress.currency_balances[from_currency] = current_balance - amount
         user_progress.currency_balances[to_currency] = user_progress.currency_balances.get(to_currency, 0) + converted_amount
-        db.session.commit()
+
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Database error during currency trade: {str(e)}")
+            return jsonify({'error': 'Failed to process trade'}), 500
 
         return jsonify({
             'success': True,
