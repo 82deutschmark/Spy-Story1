@@ -43,9 +43,9 @@ with app.app_context():
 
 def get_random_scene_background():
     """Get a random scene image suitable for background"""
-    scene = models.ImageAnalysis.query.filter(
-        models.ImageAnalysis.image_type == 'scene',
-        models.ImageAnalysis.image_width > models.ImageAnalysis.image_height
+    scene = ImageAnalysis.query.filter(
+        ImageAnalysis.image_type == 'scene',
+        ImageAnalysis.image_width > ImageAnalysis.image_height
     ).order_by(db.func.random()).first()
     return scene.image_url if scene else None
 
