@@ -1053,3 +1053,91 @@ body[data-bs-theme="dark"] .character-select-card {
 .custom-choice-btn:hover {
     background: linear-gradient(135deg, #0097FB 0%, #0057AB 100%);
 }
+
+/* Currency display styles */
+.currency-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1rem;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.currency-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.currency-symbol {
+    font-size: 1.2rem;
+}
+
+.currency-amount {
+    font-weight: 600;
+    color: #333;
+}
+
+/* Diamond purchase modal styles */
+.diamond-packages {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.diamond-package {
+    padding: 1rem;
+    text-align: center;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.diamond-package:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Currency trade modal styles */
+#tradeForm .form-label {
+    font-weight: 600;
+    color: #333;
+}
+
+#tradeForm .form-select,
+#tradeForm .form-control {
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Story choice currency requirements */
+.choice-currency-req {
+    font-size: 0.9rem;
+    color: #666;
+    margin-top: 0.5rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.currency-req-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 0.15rem 0.5rem;
+    border-radius: 12px;
+}
+
+.currency-req-insufficient {
+    color: #dc3545;
+}

@@ -1,13 +1,14 @@
 import os
 import logging
 import json
-from flask import Flask, render_template, request, jsonify, url_for, redirect, flash
+from flask import Flask, render_template, request, jsonify, url_for, redirect, flash, session
 from dotenv import load_dotenv
 from database import db
 from flask_cors import CORS
 import logging
 import paypalrestsdk
 from decimal import Decimal
+import uuid
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -40,6 +41,31 @@ CORS(app, resources={
 })
 
 
+# Add these imports at the top with other imports
+
+# Add after app configuration but before route definitions
+def get_or_create_user_progress():
+    """Get or create user progress record for the current session"""
+    if 'user_id' not in session:
+        session['user_id'] = str(uuid.uuid4())
+
+    user_progress = UserProgress.query.filter_by(user_id=session['user_id']).first()
+    if not user_progress:
+        user_progress = UserProgress(
+            user_id=session['user_id'],
+            currency_balances={
+                "💎": 500,  # Diamonds
+                "💷": 5000,  # Pounds
+                "💶": 5000,  # Euros
+                "💴": 5000,  # Yen
+                "💵": 5000,  # Dollars
+            }
+        )
+        db.session.add(user_progress)
+        db.session.commit()
+
+    return user_progress
+
 # Create database tables
 with app.app_context():
     db.create_all()
@@ -64,6 +90,7 @@ def index():
     """Main page showing character selection and story options"""
     story_options = get_story_options()
     background_image = get_random_scene_background()
+    user_progress = get_or_create_user_progress()
 
     # Get 2 random images for character selection
     images = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).limit(2).all()
@@ -108,7 +135,9 @@ def index():
         'index.html',
         story_options=story_options,
         images=image_data,
-        background_image=background_image
+        background_image=background_image,
+        user_progress=user_progress,
+        paypal_client_id=os.environ.get('PAYPAL_CLIENT_ID')
     )
 
 
@@ -143,6 +172,7 @@ def storyboard(story_id):
     """Display the current story progress and choices"""
     story = StoryGeneration.query.get_or_404(story_id)
     story_data = json.loads(story.generated_story)
+    user_progress = get_or_create_user_progress()
 
     # Get random scene for background
     background_image = get_random_scene_background()
@@ -189,7 +219,9 @@ def storyboard(story_id):
         'storyboard.html',
         story=story_data,
         character_images=character_images,
-        background_image=background_image
+        background_image=background_image,
+        user_progress=user_progress,
+        paypal_client_id=os.environ.get('PAYPAL_CLIENT_ID')
     )
 
 @app.route('/generate_story', methods=['POST'])

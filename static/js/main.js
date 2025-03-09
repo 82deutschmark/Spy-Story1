@@ -293,14 +293,14 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('submit', async function(e) {
         // Only process choice forms
         if (!e.target.classList.contains('choice-form')) return;
-        
+
         e.preventDefault();
         const form = e.target;
         const btn = form.querySelector('button');
-        
+
         // Prevent double-submission
         if (btn.disabled) return;
-        
+
         btn.disabled = true;
         btn.classList.add('loading');
 
@@ -316,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             // Debug what's being sent
             console.log('Submitting form with data:', new FormData(form));
-            
+
             const response = await fetch(form.action, {
                 method: 'POST',
                 body: new FormData(form),
@@ -385,7 +385,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function highlightCharactersInStory() {
         const storyContent = document.querySelector('.story-content');
         if (!storyContent) return;
-        
+
         // Get all character names from the mini-portraits
         const characterPortraits = document.querySelectorAll('.character-portrait-mini');
         const characterNames = Array.from(characterPortraits).map(portrait => {
@@ -395,13 +395,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 element: portrait
             };
         });
-        
+
         // Sort names by length (longest first) to avoid partial matches
         characterNames.sort((a, b) => b.name.length - a.name.length);
-        
+
         // Get the story text
         let storyText = storyContent.innerHTML;
-        
+
         // Replace character names with highlighted spans
         characterNames.forEach(character => {
             const regex = new RegExp(`\\b${character.name}\\b`, 'gi');
@@ -409,29 +409,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 return `<span class="character-mention" data-character="${character.name.toLowerCase().replace(/\s/g, '-')}">${match}<span class="character-tooltip"><img src="${character.image}" alt="${match}">${match}</span></span>`;
             });
         });
-        
+
         // Update the story content
         storyContent.innerHTML = storyText;
-        
+
         // Add click event to highlight corresponding mini-portrait
         document.querySelectorAll('.character-mention').forEach(mention => {
             mention.addEventListener('click', function() {
                 const characterId = this.dataset.character;
                 const targetPortrait = document.querySelector(`.character-portrait-mini[data-character-name="${characterId}"]`);
-                
+
                 // Remove highlight from all portraits
                 document.querySelectorAll('.character-mini-img').forEach(img => {
                     img.classList.remove('character-mini-highlight');
                 });
-                
+
                 // Add highlight to this portrait
                 if (targetPortrait) {
                     const portraitImg = targetPortrait.querySelector('.character-mini-img');
                     portraitImg.classList.add('character-mini-highlight');
-                    
+
                     // Scroll to the portrait if needed
                     targetPortrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                    
+
                     // Remove highlight after 3 seconds
                     setTimeout(() => {
                         portraitImg.classList.remove('character-mini-highlight');
@@ -440,10 +440,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
+
     // Run the highlighting function when page loads
     highlightCharactersInStory();
-    
+
     // Also run when a story choice is made (if needed)
     const choiceForms = document.querySelectorAll('.choice-form');
     if (choiceForms.length > 0) {
@@ -453,5 +453,164 @@ document.addEventListener('DOMContentLoaded', function() {
                 // This is handled by the DOMContentLoaded event
             });
         });
+    }
+});
+
+// PayPal button rendering
+if (document.getElementById('paypal-button-container')) {
+    let selectedAmount = 100; // Default amount
+    let selectedPrice = 1;    // Default price
+
+    // Handle diamond package selection
+    document.querySelectorAll('.diamond-package').forEach(button => {
+        button.addEventListener('click', function() {
+            selectedAmount = parseInt(this.dataset.amount);
+            selectedPrice = parseInt(this.dataset.price);
+
+            // Update active state
+            document.querySelectorAll('.diamond-package').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+
+            // Re-render PayPal buttons with new amount
+            renderPayPalButtons();
+        });
+    });
+
+    function renderPayPalButtons() {
+        const container = document.getElementById('paypal-button-container');
+        container.innerHTML = ''; // Clear existing buttons
+
+        paypal.Buttons({
+            createOrder: function(data, actions) {
+                return actions.order.create({
+                    purchase_units: [{
+                        amount: {
+                            value: selectedPrice.toString()
+                        },
+                        description: `Purchase ${selectedAmount} diamonds 💎`
+                    }]
+                });
+            },
+            onApprove: function(data, actions) {
+                return actions.order.capture().then(function(details) {
+                    // Handle successful payment
+                    fetch('/api/purchase/diamonds/success', {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update UI with new balance
+                            const diamondBalance = document.querySelector('.currency-amount');
+                            if (diamondBalance) {
+                                diamondBalance.textContent = data.new_balance;
+                            }
+
+                            // Show success message
+                            showToast('Success', `Successfully purchased ${selectedAmount} diamonds!`);
+
+                            // Close modal
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('purchaseModal'));
+                            if (modal) {
+                                modal.hide();
+                            }
+                        } else {
+                            showToast('Error', data.error || 'Failed to process purchase');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error processing purchase:', error);
+                        showToast('Error', 'Failed to process purchase');
+                    });
+                });
+            }
+        }).render('#paypal-button-container');
+    }
+
+    // Initial render of PayPal buttons
+    renderPayPalButtons();
+}
+
+// Handle currency trading
+const tradeForm = document.getElementById('tradeForm');
+if (tradeForm) {
+    tradeForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const fromCurrency = document.getElementById('fromCurrency').value;
+        const toCurrency = document.getElementById('toCurrency').value;
+        const amount = parseInt(document.getElementById('tradeAmount').value);
+
+        if (fromCurrency === toCurrency) {
+            showToast('Error', 'Please select different currencies to trade');
+            return;
+        }
+
+        if (isNaN(amount) || amount <= 0) {
+            showToast('Error', 'Please enter a valid amount');
+            return;
+        }
+
+        fetch('/api/currency/trade', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                from_currency: fromCurrency,
+                to_currency: toCurrency,
+                amount: amount
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update all currency displays
+                Object.entries(data.new_balances).forEach(([currency, balance]) => {
+                    const display = document.querySelector(`.currency-item:has(.currency-symbol:contains('${currency}')) .currency-amount`);
+                    if (display) {
+                        display.textContent = balance;
+                    }
+                });
+
+                showToast('Success', data.message);
+
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('tradeModal'));
+                if (modal) {
+                    modal.hide();
+                }
+            } else {
+                showToast('Error', data.error || 'Failed to trade currencies');
+            }
+        })
+        .catch(error => {
+            console.error('Error trading currencies:', error);
+            showToast('Error', 'Failed to trade currencies');
+        });
+    });
+}
+
+// Update choice buttons to show currency requirements
+document.querySelectorAll('.choice-form').forEach(form => {
+    const button = form.querySelector('button');
+    if (button && button.dataset.currencyReq) {
+        const requirements = JSON.parse(button.dataset.currencyReq);
+        const reqDiv = document.createElement('div');
+        reqDiv.className = 'choice-currency-req';
+
+        Object.entries(requirements).forEach(([currency, amount]) => {
+            const reqItem = document.createElement('span');
+            reqItem.className = 'currency-req-item';
+            reqItem.innerHTML = `${currency}${amount}`;
+            reqDiv.appendChild(reqItem);
+        });
+
+        button.parentNode.insertBefore(reqDiv, button.nextSibling);
     }
 });

@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html data-bs-theme="dark">
 <head>
@@ -10,6 +9,36 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 </head>
 <body data-bs-theme="dark">
+    <!-- Currency Display -->
+    <div class="currency-bar">
+        <div class="currency-item">
+            <span class="currency-symbol">💎</span>
+            <span class="currency-amount">{{ user_progress.currency_balances.get('💎', 500) }}</span>
+            <button class="btn btn-sm btn-outline-primary buy-currency" data-bs-toggle="modal" data-bs-target="#purchaseModal">
+                <i class="fas fa-plus-circle"></i>
+            </button>
+        </div>
+        <div class="currency-item">
+            <span class="currency-symbol">💷</span>
+            <span class="currency-amount">{{ user_progress.currency_balances.get('💷', 5000) }}</span>
+        </div>
+        <div class="currency-item">
+            <span class="currency-symbol">💶</span>
+            <span class="currency-amount">{{ user_progress.currency_balances.get('💶', 5000) }}</span>
+        </div>
+        <div class="currency-item">
+            <span class="currency-symbol">💴</span>
+            <span class="currency-amount">{{ user_progress.currency_balances.get('💴', 5000) }}</span>
+        </div>
+        <div class="currency-item">
+            <span class="currency-symbol">💵</span>
+            <span class="currency-amount">{{ user_progress.currency_balances.get('💵', 5000) }}</span>
+        </div>
+        <button class="btn btn-sm btn-outline-secondary ms-2" data-bs-toggle="modal" data-bs-target="#tradeModal">
+            <i class="fas fa-exchange-alt"></i> Trade
+        </button>
+    </div>
+
     {% if background_image %}
     <img src="{{ background_image }}" class="story-background" alt="Story Background">
     {% endif %}
@@ -28,7 +57,7 @@
                         <h3 class="card-title mb-4 text-dark">
                             <i class="fas fa-user me-2"></i>Select a Character
                         </h3>
-                        
+
                         <h4 class="text-dark text-center mb-4">Choose a Character (Select One)</h4>
                         <div class="characters-grid mb-4">
                             <div class="row justify-content-center">
@@ -65,13 +94,13 @@
                                 {% endfor %}
                             </div>
                         </div>
-                        
+
                         <form id="storyForm" method="POST" action="{{ url_for('generate_story_route') }}">
                             <div class="selected-characters-container mb-3" style="display: none;">
                                 <h4>Selected Characters:</h4>
                                 <div class="selected-characters-list d-flex flex-wrap"></div>
                             </div>
-                            
+
                             <div class="accordion" id="storyOptionsAccordion">
                                 <div class="accordion-item">
                                     <h2 class="accordion-header" id="storyOptionsHeading">
@@ -148,11 +177,11 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div id="characterSelectionError" class="alert alert-danger mt-3" style="display: none;">
                                 Please select exactly 3 characters for your story.
                             </div>
-                            
+
                             <div class="text-center mt-4">
                                 <button type="submit" class="btn btn-primary btn-lg" id="generateStoryBtn">
                                     <i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure
@@ -161,12 +190,81 @@
                         </form>
                     </div>
                 </div>
-                
+
                 <!-- Debug Link -->
                 <div class="text-center mt-4 mb-5">
                     <a href="{{ url_for('debug') }}" class="btn btn-outline-secondary">
                         <i class="fas fa-bug me-2"></i>Debug Tools
                     </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Purchase Modal -->
+    <div class="modal fade" id="purchaseModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Purchase Diamonds 💎</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="diamond-packages">
+                        <button class="btn btn-outline-primary diamond-package" data-amount="100" data-price="1">
+                            100 💎 for $1
+                        </button>
+                        <button class="btn btn-outline-primary diamond-package" data-amount="500" data-price="4">
+                            500 💎 for $4
+                        </button>
+                        <button class="btn btn-outline-primary diamond-package" data-amount="1000" data-price="7">
+                            1000 💎 for $7
+                        </button>
+                    </div>
+                    <div class="mt-3">
+                        <div id="paypal-button-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trade Modal -->
+    <div class="modal fade" id="tradeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Trade Currencies</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="tradeForm">
+                        <div class="mb-3">
+                            <label class="form-label">From Currency</label>
+                            <select class="form-select" id="fromCurrency">
+                                <option value="💎">💎 Diamonds</option>
+                                <option value="💷">💷 Pounds</option>
+                                <option value="💶">💶 Euros</option>
+                                <option value="💴">💴 Yen</option>
+                                <option value="💵">💵 Dollars</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Amount</label>
+                            <input type="number" class="form-control" id="tradeAmount" min="1">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">To Currency</label>
+                            <select class="form-select" id="toCurrency">
+                                <option value="💎">💎 Diamonds</option>
+                                <option value="💷">💷 Pounds</option>
+                                <option value="💶">💶 Euros</option>
+                                <option value="💴">💴 Yen</option>
+                                <option value="💵">💵 Dollars</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Trade</button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -186,5 +284,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}"></script>
 </body>
 </html>
