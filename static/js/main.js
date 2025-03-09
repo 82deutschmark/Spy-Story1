@@ -260,32 +260,32 @@ document.addEventListener('DOMContentLoaded', function() {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             })
-            .then(response => response.json())
-            .then(data => {
-                clearInterval(progressInterval);
+                .then(response => response.json())
+                .then(data => {
+                    clearInterval(progressInterval);
 
-                if (data.success && data.redirect) {
-                    updateLoadingPercent(loadingPercent, 100);
-                    setTimeout(() => {
-                        window.location.href = data.redirect;
-                    }, 500);
-                } else {
-                    throw new Error(data.error || 'Failed to generate story');
-                }
-            })
-            .catch(error => {
-                console.error('Error generating story:', error);
-                showToast('Error', error.message || 'Failed to generate story. Please try again.');
+                    if (data.success && data.redirect) {
+                        updateLoadingPercent(loadingPercent, 100);
+                        setTimeout(() => {
+                            window.location.href = data.redirect;
+                        }, 500);
+                    } else {
+                        throw new Error(data.error || 'Failed to generate story');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error generating story:', error);
+                    showToast('Error', error.message || 'Failed to generate story. Please try again.');
 
-                clearInterval(progressInterval);
-                const overlay = loadingPercent.closest('.loading-overlay');
-                if (overlay) overlay.remove();
+                    clearInterval(progressInterval);
+                    const overlay = loadingPercent.closest('.loading-overlay');
+                    if (overlay) overlay.remove();
 
-                if (generateStoryBtn) {
-                    generateStoryBtn.disabled = false;
-                    generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
-                }
-            });
+                    if (generateStoryBtn) {
+                        generateStoryBtn.disabled = false;
+                        generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
+                    }
+                });
         });
     }
 
@@ -301,10 +301,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // Prevent double-submission
         if (btn.disabled) return;
 
+        // Get currency requirements from data attribute
+        const currencyReq = btn.dataset.currencyReq ? JSON.parse(btn.dataset.currencyReq) : null;
+        const isCustomChoice = form.querySelector('.custom-choice-input') !== null;
+
         btn.disabled = true;
         btn.classList.add('loading');
 
-        const loadingPercent = createLoadingOverlay('Continuing your story...');
+        const loadingPercent = createLoadingOverlay('Processing your choice...');
         let progress = 0;
         const progressInterval = setInterval(() => {
             if (progress < 90) {
@@ -314,31 +318,74 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 500);
 
         try {
-            // Debug what's being sent
-            console.log('Submitting form with data:', new FormData(form));
+            // Make the choice
+            const formData = new FormData(form);
+            const isCustom = form.querySelector('.custom-choice-input') !== null;
 
-            const response = await fetch(form.action, {
+            const response = await fetch('/make_choice', {
                 method: 'POST',
-                body: new FormData(form),
                 headers: {
+                    'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
-                }
+                },
+                body: JSON.stringify({
+                    choice_id: formData.get('choice_id'),
+                    custom_choice: isCustom ? formData.get('custom_choice') : null,
+                    currency_requirements: currencyReq
+                })
             });
 
             const data = await response.json();
             clearInterval(progressInterval);
 
-            if (data.success && data.redirect) {
-                updateLoadingPercent(loadingPercent, 100);
-                setTimeout(() => {
-                    window.location.href = data.redirect;
-                }, 500);
+            if (!response.ok) {
+                // Handle insufficient funds error
+                if (response.status === 400 && data.error.includes('Insufficient')) {
+                    let errorMessage = isCustomChoice ?
+                        `Insufficient diamonds. You need 100 💎 but only have ${data.current_balance} 💎.` :
+                        'Insufficient funds for this choice.';
+
+                    showToast('Error', errorMessage);
+                    btn.disabled = false;
+                    btn.classList.remove('loading');
+                    const overlay = loadingPercent.closest('.loading-overlay');
+                    if (overlay) overlay.remove();
+                    return;
+                }
+                throw new Error(data.error || 'Failed to process choice');
+            }
+
+            if (data.success) {
+                // Update currency displays with new balances
+                if (data.new_balances) {
+                    updateCurrencyDisplays(data.new_balances);
+                }
+
+                // Generate next part of the story
+                const storyResponse = await fetch('/generate_story', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const storyData = await storyResponse.json();
+
+                if (storyData.success && storyData.redirect) {
+                    updateLoadingPercent(loadingPercent, 100);
+                    setTimeout(() => {
+                        window.location.href = storyData.redirect;
+                    }, 500);
+                } else {
+                    throw new Error(storyData.error || 'Failed to generate next story part');
+                }
             } else {
-                throw new Error(data.error || 'Failed to continue story');
+                throw new Error(data.error || 'Failed to process choice');
             }
         } catch (error) {
-            console.error('Story continuation error:', error);
-            showToast('Error', error.message || 'Failed to continue the story');
+            console.error('Error processing choice:', error);
+            showToast('Error', error.message || 'Failed to process your choice');
             btn.disabled = false;
             btn.classList.remove('loading');
             clearInterval(progressInterval);
@@ -456,16 +503,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Function to update all currency displays
+// Update currency displays function
 function updateCurrencyDisplays(balances) {
     if (!balances) return;
 
     Object.entries(balances).forEach(([currency, balance]) => {
-        const displays = document.querySelectorAll(`.currency-item .currency-symbol:contains(${currency})`);
+        const displays = document.querySelectorAll(`.currency-item[data-currency="${currency}"] .currency-amount`);
         displays.forEach(display => {
-            const amountElement = display.nextElementSibling;
-            if (amountElement && amountElement.classList.contains('currency-amount')) {
-                amountElement.textContent = balance;
+            display.textContent = balance;
+        });
+
+        // Update currency requirement indicators
+        document.querySelectorAll(`.currency-req-item`).forEach(reqItem => {
+            if (reqItem.textContent.includes(currency)) {
+                const required = parseInt(reqItem.textContent.replace(currency, ''));
+                if (required > balance) {
+                    reqItem.classList.add('currency-req-insufficient');
+                } else {
+                    reqItem.classList.remove('currency-req-insufficient');
+                }
             }
         });
     });
@@ -542,29 +598,29 @@ function initializePayPal() {
                                 'Content-Type': 'application/json'
                             }
                         })
-                        .then(response => response.json())
-                        .then(data => {
-                            updateLoadingPercent(loadingPercent, 100);
-                            if (data.success) {
-                                // Update all currency displays with new balance
-                                updateCurrencyDisplays(data.new_balances);
-                                showToast('Success', `Successfully purchased ${selectedAmount} diamonds!`);
+                            .then(response => response.json())
+                            .then(data => {
+                                updateLoadingPercent(loadingPercent, 100);
+                                if (data.success) {
+                                    // Update all currency displays with new balance
+                                    updateCurrencyDisplays(data.new_balances);
+                                    showToast('Success', `Successfully purchased ${selectedAmount} diamonds!`);
 
-                                // Close modal
-                                const modal = bootstrap.Modal.getInstance(document.getElementById('purchaseModal'));
-                                if (modal) {
-                                    modal.hide();
+                                    // Close modal
+                                    const modal = bootstrap.Modal.getInstance(document.getElementById('purchaseModal'));
+                                    if (modal) {
+                                        modal.hide();
+                                    }
+                                } else {
+                                    showToast('Error', data.error || 'Failed to process purchase');
                                 }
-                            } else {
-                                showToast('Error', data.error || 'Failed to process purchase');
-                            }
-                            removeLoadingOverlay(loadingPercent);
-                        })
-                        .catch(error => {
-                            console.error('Error processing purchase:', error);
-                            showToast('Error', 'Failed to process purchase');
-                            removeLoadingOverlay(loadingPercent);
-                        });
+                                removeLoadingOverlay(loadingPercent);
+                            })
+                            .catch(error => {
+                                console.error('Error processing purchase:', error);
+                                showToast('Error', 'Failed to process purchase');
+                                removeLoadingOverlay(loadingPercent);
+                            });
                     });
                 },
                 onError: function(err) {
@@ -572,13 +628,13 @@ function initializePayPal() {
                     showToast('Error', 'Payment system error. Please try again later.');
                 }
             }).render('#paypal-button-container')
-            .then(() => {
-                console.log('PayPal buttons rendered successfully');
-            })
-            .catch(err => {
-                console.error('Error rendering PayPal buttons:', err);
-                showToast('Error', 'Failed to initialize payment system');
-            });
+                .then(() => {
+                    console.log('PayPal buttons rendered successfully');
+                })
+                .catch(err => {
+                    console.error('Error rendering PayPal buttons:', err);
+                    showToast('Error', 'Failed to initialize payment system');
+                });
         } catch (error) {
             console.error('Error setting up PayPal buttons:', error);
             showToast('Error', 'Failed to set up payment system');
@@ -633,32 +689,32 @@ if (tradeForm) {
                 amount: amount
             })
         })
-        .then(response => response.json())
-        .then(data => {
-            updateLoadingPercent(loadingPercent, 100);
-            if (data.success) {
-                // Update all currency displays
-                updateCurrencyDisplays(data.new_balances);
-                showToast('Success', data.message);
+            .then(response => response.json())
+            .then(data => {
+                updateLoadingPercent(loadingPercent, 100);
+                if (data.success) {
+                    // Update all currency displays
+                    updateCurrencyDisplays(data.new_balances);
+                    showToast('Success', data.message);
 
-                // Reset form
-                document.getElementById('tradeAmount').value = '';
+                    // Reset form
+                    document.getElementById('tradeAmount').value = '';
 
-                // Close modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('tradeModal'));
-                if (modal) {
-                    modal.hide();
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('tradeModal'));
+                    if (modal) {
+                        modal.hide();
+                    }
+                } else {
+                    showToast('Error', data.error || 'Failed to trade currencies');
                 }
-            } else {
-                showToast('Error', data.error || 'Failed to trade currencies');
-            }
-            removeLoadingOverlay(loadingPercent);
-        })
-        .catch(error => {
-            console.error('Error trading currencies:', error);
-            showToast('Error', 'Failed to trade currencies');
-            removeLoadingOverlay(loadingPercent);
-        });
+                removeLoadingOverlay(loadingPercent);
+            })
+            .catch(error => {
+                console.error('Error trading currencies:', error);
+                showToast('Error', 'Failed to trade currencies');
+                removeLoadingOverlay(loadingPercent);
+            });
     });
 }
 
