@@ -1105,3 +1105,90 @@ body[data-bs-theme="dark"] .character-select-card {
 .custom-choice-btn:hover {
     background: linear-gradient(135deg, #0097FB 0%, #0057AB 100%);
 }
+
+/* Enhanced character highlighting styles */
+.character-mention {
+    position: relative;
+    color: #8B5CF6;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: underline dotted;
+    transition: all 0.2s ease;
+}
+
+.character-mention:hover {
+    color: #6D28D9;
+    background-color: rgba(139, 92, 246, 0.1);
+}
+
+.character-tooltip {
+    position: absolute;
+    display: none;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    width: 120px;
+    text-align: center;
+    font-size: 0.85rem;
+    color: #4A5568;
+}
+
+.character-tooltip img {
+    width: 100%;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
+
+.character-mention:hover .character-tooltip {
+    display: block;
+}
+
+.character-mini-highlight {
+    border: 3px solid #8B5CF6;
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.6);
+    transition: all 0.3s ease;
+}
+
+/* Character portrait gallery improvements */
+.character-portraits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.character-portrait-mini {
+    transition: transform 0.2s ease;
+    cursor: pointer;
+}
+
+.character-portrait-mini:hover {
+    transform: translateY(-3px);
+}
+
+.character-mini-img {
+    width: 100%;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.character-mini-name {
+    font-size: 0.8rem;
+    text-align: center;
+    margin-top: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
