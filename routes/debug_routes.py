@@ -1,0 +1,347 @@
+
+import os
+import logging
+import json
+import uuid
+from flask import Blueprint, render_template, request, jsonify, url_for, redirect, flash, session
+
+from database import db
+from models import AIInstruction, ImageAnalysis, StoryGeneration
+from services.openai_service import analyze_artwork, generate_image_description
+from routes.main_routes import get_or_create_user_progress
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+# Create Debug Blueprint
+debug_bp = Blueprint('debug', __name__)
+
+@debug_bp.route('/')
+def debug_dashboard():
+    """Debug page with image analysis tool and database view"""
+    recent_images = ImageAnalysis.query.order_by(ImageAnalysis.created_at.desc()).limit(10).all()
+    recent_stories = StoryGeneration.query.order_by(StoryGeneration.created_at.desc()).limit(10).all()
+
+    # Database statistics
+    image_count = ImageAnalysis.query.count()
+    character_count = ImageAnalysis.query.filter_by(image_type='character').count()
+    scene_count = ImageAnalysis.query.filter_by(image_type='scene').count()
+    story_count = StoryGeneration.query.count()
+    orphaned_images = ImageAnalysis.query.filter(~ImageAnalysis.stories.any()).count()
+    empty_stories = StoryGeneration.query.filter(StoryGeneration.generated_story.is_(None)).count()
+
+    return render_template(
+        'debug.html',
+        recent_images=recent_images,
+        recent_stories=recent_stories,
+        image_count=image_count,
+        character_count=character_count,
+        scene_count=scene_count,
+        story_count=story_count,
+        orphaned_images=orphaned_images,
+        empty_stories=empty_stories
+    )
+
+@debug_bp.route('/images')
+def debug_images():
+    """API endpoint for debug page to get images with pagination"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        limit = request.args.get('limit', 10, type=int)
+        image_type = request.args.get('type')
+        search = request.args.get('search')
+
+        query = ImageAnalysis.query
+
+        # Apply filters
+        if image_type:
+            query = query.filter_by(image_type=image_type)
+
+        if search:
+            # Search by ID or character name
+            if search.isdigit():
+                query = query.filter(ImageAnalysis.id == int(search))
+            else:
+                query = query.filter(ImageAnalysis.character_name.ilike(f'%{search}%'))
+
+        # Execute count query
+        total = query.count()
+
+        # Get paginated results
+        images = query.order_by(ImageAnalysis.id.desc()).paginate(page=page, per_page=limit)
+
+        # Format results
+        results = []
+        for img in images.items:
+            analysis = img.analysis_result or {}
+            name = img.character_name or ''
+            if not name and analysis:
+                name = analysis.get('name', '')
+
+            results.append({
+                'id': img.id,
+                'image_url': img.image_url,
+                'image_type': img.image_type,
+                'name': name,
+                'created_at': img.created_at.strftime('%Y-%m-%d %H:%M'),
+                'traits': img.character_traits or [],
+                'role': img.character_role or '',
+                'stories_count': img.stories.count()
+            })
+
+        return jsonify({
+            'success': True,
+            'images': results,
+            'pagination': {
+                'page': page,
+                'per_page': limit,
+                'total': total,
+                'pages': (total + limit - 1) // limit
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error getting debug images: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@debug_bp.route('/stories')
+def debug_stories():
+    """API endpoint for debug page to get stories with pagination"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        limit = request.args.get('limit', 10, type=int)
+        search = request.args.get('search')
+
+        query = StoryGeneration.query
+
+        # Apply search filter
+        if search:
+            if search.isdigit():
+                query = query.filter(StoryGeneration.id == int(search))
+            else:
+                query = query.filter(
+                    db.or_(
+                        StoryGeneration.primary_conflict.ilike(f'%{search}%'),
+                        StoryGeneration.setting.ilike(f'%{search}%')
+                    )
+                )
+
+        # Execute count query
+        total = query.count()
+
+        # Get paginated results
+        stories = query.order_by(StoryGeneration.id.desc()).paginate(page=page, per_page=limit)
+
+        # Format results
+        results = []
+        for story in stories.items:
+            # Extract title from JSON if available
+            title = "Untitled Story"
+            if story.generated_story:
+                try:
+                    story_data = json.loads(story.generated_story)
+                    if isinstance(story_data, dict) and 'title' in story_data:
+                        title = story_data['title']
+                except:
+                    pass
+
+            results.append({
+                'id': story.id,
+                'title': title,
+                'conflict': story.primary_conflict,
+                'setting': story.setting,
+                'images_count': len(story.images),
+                'character_names': [img.character_name for img in story.images if img.character_name],
+                'created_at': story.created_at.strftime('%Y-%m-%d %H:%M')
+            })
+
+        return jsonify({
+            'success': True,
+            'stories': results,
+            'pagination': {
+                'page': page,
+                'per_page': limit,
+                'total': total,
+                'pages': (total + limit - 1) // limit
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error getting debug stories: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@debug_bp.route('/generate', methods=['POST'])
+def generate_post():
+    """Handle image analysis requests from debug page"""
+    image_url = request.form.get('image_url')
+
+    if not image_url:
+        return jsonify({'error': 'No image URL provided'}), 400
+
+    try:
+        # Validate URL format
+        if not image_url.startswith(('http://', 'https://')):
+            return jsonify({'error': 'Invalid image URL format. URL must start with http:// or https://'}), 400
+
+        # Check for OpenAI API key
+        if not os.environ.get("OPENAI_API_KEY"):
+            return jsonify({'error': 'OpenAI API key not configured. Please add it to your Replit Secrets.'}), 500
+
+        # Analyze the artwork using OpenAI
+        analysis = analyze_artwork(image_url)
+
+        # Generate a description of the analyzed image
+        description = generate_image_description(analysis)
+
+        return jsonify({
+            'success': True,
+            'description': description,
+            'analysis': analysis,
+            'saved_to_db': False,
+            'image_url': image_url
+        })
+
+    except Exception as e:
+        logger.error(f"Error generating post: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@debug_bp.route('/save_analysis', methods=['POST'])
+def save_analysis():
+    """Save the analyzed image data to the database after user confirmation"""
+    data = request.json
+
+    if not data or not data.get('analysis') or not data.get('image_url'):
+        return jsonify({'error': 'Missing required data'}), 400
+
+    try:
+        image_url = data.get('image_url')
+        analysis = data.get('analysis')
+
+        # Extract image metadata
+        metadata = analysis.get('image_metadata', {})
+
+        # Determine if it's a character or scene based on character indicators
+        is_character = False
+
+        # Check for nested character object
+        if 'character' in analysis and isinstance(analysis['character'], dict):
+            is_character = True
+            logger.debug("Detected character from nested 'character' object")
+        # Or check for character-specific fields at the top level
+        elif any(key in analysis for key in ['character_name', 'character_traits', 'plot_lines']):
+            is_character = True
+            logger.debug("Detected character from top-level character fields")
+        # Or check for character-specific role field
+        elif 'role' in analysis and analysis['role'] in ['hero', 'villain', 'neutral']:
+            is_character = True
+            logger.debug("Detected character from role field")
+
+        logger.info(f"Image classified as: {'character' if is_character else 'scene'}")
+
+        # Extract character details if this is a character image
+        character_data = analysis.get('character', {})
+
+        # Get character name - check all possible locations in a consistent manner
+        character_name = None
+        if is_character:
+            # Try to find name in all possible locations
+            if 'character' in analysis and isinstance(analysis['character'], dict):
+                if 'name' in analysis['character']:
+                    character_name = analysis['character'].get('name')
+
+            # If not found in character object, check top level fields
+            if not character_name:
+                if 'character_name' in analysis:
+                    character_name = analysis.get('character_name')
+                elif 'name' in analysis:
+                    character_name = analysis.get('name')
+
+            # Log character name extraction for debugging
+            logger.debug(f"Extracted character name: {character_name} from analysis structure")
+
+            # Ensure we always have a name for characters
+            if not character_name:
+                logger.warning(f"Could not find a name in the API response. Using default name.")
+                character_name = "Unnamed Character"
+
+        # Extract traits and plot lines either from character object or top level
+        character_traits = None
+        if is_character:
+            if 'character' in analysis and 'character_traits' in character_data:
+                character_traits = character_data.get('character_traits')
+            else:
+                character_traits = analysis.get('character_traits')
+
+        character_role = None
+        if is_character:
+            if 'character' in analysis and 'role' in character_data:
+                character_role = character_data.get('role')
+            else:
+                character_role = analysis.get('role')
+
+            # Standardize character role to one of the valid options
+            valid_roles = ['undetermined', 'villain', 'neutral', 'mission-giver']
+
+            if character_role is None or character_role == '':
+                character_role = 'undetermined'
+            elif character_role.lower() == 'antagonist' or character_role.lower() == 'villain':
+                character_role = 'villain'
+            elif character_role.lower() == 'protagonist' or character_role.lower() == 'hero':
+                character_role = 'neutral'
+            elif character_role.lower() == 'mission giver':
+                character_role = 'mission-giver'
+            elif character_role.lower() not in valid_roles:
+                character_role = 'undetermined'
+            else:
+                character_role = character_role.lower()
+
+            logger.debug(f"Standardized character role: {character_role}")
+
+        plot_lines = None
+        if is_character:
+            if 'character' in analysis and 'plot_lines' in character_data:
+                plot_lines = character_data.get('plot_lines')
+            else:
+                plot_lines = analysis.get('plot_lines')
+
+        # Create new ImageAnalysis record
+        image_analysis = ImageAnalysis(
+            image_url=image_url,
+            image_width=metadata.get('width'),
+            image_height=metadata.get('height'),
+            image_format=metadata.get('format'),
+            image_size_bytes=metadata.get('size_bytes'),
+            image_type='character' if is_character else 'scene',
+            analysis_result=analysis,
+            character_name=character_name,  # Get name with our new logic
+            character_traits=character_traits,
+            character_role=character_role,
+            plot_lines=plot_lines,
+            scene_type=analysis.get('scene_type') if not is_character else None,
+            setting=analysis.get('setting') if not is_character else None,
+            setting_description=analysis.get('setting_description') if not is_character else None,
+            story_fit=analysis.get('story_fit') if not is_character else None,
+            dramatic_moments=analysis.get('dramatic_moments') if not is_character else None
+        )
+
+        db.session.add(image_analysis)
+        db.session.commit()
+        logger.info(f"Saved image analysis: {image_analysis.id}")
+
+        return jsonify({
+            'success': True,
+            'message': 'Analysis saved to database',
+            'image_id': image_analysis.id
+        })
+
+    except Exception as e:
+        logger.error(f"Error saving analysis: {str(e)}")
+        # Rollback and close the session to release any locks
+        try:
+            db.session.rollback()
+        except:
+            pass
+
+        # Make sure we return a valid JSON response
+        return jsonify({
+            'success': False,
+            'error': f"Database error: {str(e)}"
+        }), 500
