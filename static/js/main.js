@@ -992,7 +992,7 @@ $(document).ready(function() {
                             $('#progressUpdatesList').append(updateHtml);
                         });
                     } else {
-                        $('#progressUpdatesList').append('<p class="text-muted">No progress updates yet.</p>');
+                        $('#progressUpdatesList').append('<p class="textmuted">No progress updates yet.</p>');
                     }
 
                     //                    // Show content, hide loading
@@ -1084,3 +1084,22 @@ document.querySelectorAll('.choice-form').forEach(form => {
         button.parentNode.insertBefore(reqDiv, button.nextSibling);
     }
 });
+
+function showNotification(title, message) {
+    const toastTitle = document.getElementById('toastTitle');
+    const toastMessage = document.getElementById('toastMessage');
+    const toast = document.getElementById('notificationToast');
+
+    if (toastTitle) toastTitle.textContent = title;
+    if (toastMessage) toastMessage.textContent = message;
+
+    if (toast) {
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+    }
+}
+
+// Alias for showNotification to support both naming conventions
+function showToast(title, message) {
+    showNotification(title, message);
+}
