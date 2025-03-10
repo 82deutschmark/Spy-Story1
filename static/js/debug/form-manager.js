@@ -25,12 +25,6 @@ export const formManager = {
                 if (editModeSwitch.checked && this.currentAnalysis) {
                     this.populateEditForm(this.currentAnalysis);
                 }
-
-                // Show/hide save button based on edit mode
-                const saveBtn = document.getElementById('saveAnalysisBtn');
-                if (saveBtn) {
-                    saveBtn.style.display = editModeSwitch.checked ? 'inline-block' : 'none';
-                }
             });
         }
 
@@ -41,7 +35,7 @@ export const formManager = {
         }
 
         // Initialize save button
-        const saveBtn = document.getElementById('saveAnalysisBtn');
+        const saveBtn = document.getElementById('saveToDbBtn');
         if (saveBtn) {
             saveBtn.addEventListener('click', () => this.saveToDatabase(saveBtn));
         }
