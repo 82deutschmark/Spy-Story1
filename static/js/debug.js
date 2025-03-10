@@ -242,6 +242,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const targetMoments = formType === 'main' ? dramaticMoments : modalDramaticMoments;
             const targetCharFields = formType === 'main' ? characterFields : modalCharacterFields;
             const targetSceneFields = formType === 'main' ? sceneFields : modalSceneFields;
+            
+            // Add description field
+            const targetDescription = formType === 'main' ? 
+                document.getElementById('descriptionField') : 
+                document.getElementById('modalDescriptionField');
 
             if (!targetName || !targetType) return; // Required elements missing
 
@@ -263,6 +268,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Set name (prioritize nested character name, then top-level)
             targetName.value = character.name || analysis.name || analysis.character_name || '';
+            
+            // Set description field (should exist in both character and scene)
+            if (targetDescription && analysis.description) {
+                targetDescription.value = analysis.description;
+            }
 
             if (isCharacter) {
                 // Set role (with fallbacks for different formats)
@@ -303,23 +313,36 @@ document.addEventListener('DOMContentLoaded', function() {
         const targetSceneType = formType === 'main' ? sceneType : modalSceneType;
         const targetSetting = formType === 'main' ? sceneSetting : modalSceneSetting;
         const targetMoments = formType === 'main' ? dramaticMoments : modalDramaticMoments;
+        const targetDescription = formType === 'main' ? 
+            document.getElementById('descriptionField') : 
+            document.getElementById('modalDescriptionField');
 
         if (!currentImageData || !targetType) return {};
 
-        // Start with original analysis data
-        let editedData = JSON.parse(JSON.stringify(currentImageData.analysis));
+        // Create a new empty object instead of copying the original to ensure changes replace, not append
+        let editedData = {};
         
-        // Check if this is a new format or old format response
-        const isNewFormat = editedData.type === 'CHARACTER' || editedData.type === 'SCENE';
-
+        // Preserve image metadata
+        if (currentImageData.analysis.image_metadata) {
+            editedData.image_metadata = currentImageData.analysis.image_metadata;
+        }
+        
+        // Determine format - new or old
+        const isNewFormat = currentImageData.analysis.type === 'CHARACTER' || currentImageData.analysis.type === 'SCENE';
+        
         // Update with form values
         const isCharacter = targetType.value === 'character';
 
-        // Update image type
+        // Set image type
         if (isNewFormat) {
             editedData.type = isCharacter ? 'CHARACTER' : 'SCENE';
         } else {
             editedData.image_type = targetType.value;
+        }
+        
+        // Set description regardless of character or scene
+        if (targetDescription && targetDescription.value) {
+            editedData.description = targetDescription.value;
         }
 
         if (isCharacter) {
@@ -349,26 +372,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 editedData.character_traits = traits;
                 editedData.plot_lines = plots;
                 
-                // Ensure character object exists for compatibility
-                if (!editedData.character) {
-                    editedData.character = {};
-                }
-                
-                // Update character object fields
-                editedData.character.name = name;
-                editedData.character.role = role;
-                editedData.character.character_traits = traits;
-                editedData.character.plot_lines = plots;
+                // Add character object for compatibility
+                editedData.character = {
+                    name: name,
+                    role: role,
+                    character_traits: traits,
+                    plot_lines: plots
+                };
                 
                 // Add new format fields for future compatibility
                 editedData.personality_traits = traits;
                 editedData.potential_plot_lines = plots;
             }
-
-            // Remove scene-specific fields
-            delete editedData.scene_type;
-            delete editedData.setting;
-            delete editedData.dramatic_moments;
+            
+            // Add style and visual characteristics if present in original
+            if (currentImageData.analysis.style_and_visual_characteristics) {
+                editedData.style_and_visual_characteristics = currentImageData.analysis.style_and_visual_characteristics;
+            }
         } else {
             // Scene fields
             editedData.scene_type = targetSceneType ? targetSceneType.value : 'narrative';
@@ -376,15 +396,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const moments = targetMoments ? targetMoments.value.split('\n').map(m => m.trim()).filter(m => m) : [];
             editedData.dramatic_moments = moments;
-
-            // Remove character-specific fields for scenes
-            delete editedData.character;
-            delete editedData.character_name;
-            delete editedData.character_traits;
-            delete editedData.personality_traits;
-            delete editedData.role;
-            delete editedData.plot_lines;
-            delete editedData.potential_plot_lines;
+            
+            // Add story_fit if present in original
+            if (currentImageData.analysis.story_fit) {
+                editedData.story_fit = currentImageData.analysis.story_fit;
+            }
         }
 
         return editedData;
