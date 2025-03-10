@@ -196,7 +196,7 @@ def generate_story(
         "All the characters are constantly betraying each other and having romantic flings. The narrative should be told directly to the reader (using 'you'), be over-the-top, "
         "with excessive action scenes, dramatic romantic encounters, and constant plot twists where allies become enemies and vice versa.\n\n"
         "Each character has international connections and unique skills they use in increasingly absurd ways.\n\n"
-        "Dr. Ugh, an eccentric genius, appears in the first episode to give you missions targeting villains. These missions offer currency rewards when completed."
+        "Dr. Ugh, a nasty woman who dislikes you, appears in the first episode to give you missions targeting villains. These missions offer currency rewards when completed. She reminds you not to screw up again."
     )
 
     # Construct the main prompt
@@ -220,7 +220,7 @@ def generate_story(
         "7. In early story segments, Dr. Ugh should give the player a mission that targets a villain character with these components:\n"
         "   - A clear objective (steal an item, sabotage a plan, investigate a location, etc.)\n"
         "   - A target character who has the 'villain' role\n"
-        "   - A reward in one of the game currencies (💎, 💵, 💷, 💶, 💴)\n"
+        "   - A reward in one of the game currencies (💵, 💷, 💶, 💴)\n"
         "   - A deadline or sense of urgency\n"
         "8. In some story segments, include characters offering to buy diamonds (💎) from the player:\n"
         "   - Characters can offer to trade dollars (💵) or pounds (💷) for diamonds\n"
