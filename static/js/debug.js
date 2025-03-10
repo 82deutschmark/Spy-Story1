@@ -110,13 +110,31 @@ document.addEventListener('DOMContentLoaded', function() {
             this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
 
             try {
-                // Get form data directly from the form manager
-                // This will use the edited form data that the user has modified
+                // First, make sure form manager has the current analysis data
+                const dataElement = document.getElementById('analysisData');
+                if (dataElement && dataElement.dataset.analysis) {
+                    // Parse the analysis data
+                    try {
+                        // Parse if it's a string, or use as-is if already an object
+                        let analysisData = dataElement.dataset.analysis;
+                        if (typeof analysisData === 'string') {
+                            analysisData = JSON.parse(analysisData);
+                        }
+                        
+                        // Update formManager with the current data
+                        formManager.currentAnalysis = analysisData;
+                    } catch (e) {
+                        console.warn('Could not parse analysis data:', e);
+                    }
+                }
+                
+                // Call form manager to save the data
                 const formSaveResult = await formManager.saveToDatabase(this);
                 
                 if (!formSaveResult) {
-                    // If form save fails, try the direct save method
-                    const dataElement = document.getElementById('analysisData');
+                    // If form save fails, try the direct save method as a fallback
+                    console.log('Form save failed, trying direct save method');
+                    
                     if (!dataElement || !dataElement.dataset.analysis) {
                         throw new Error('Analysis data not found');
                     }
@@ -124,7 +142,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Parse or use the analysis data
                     let analysisData;
                     try {
-                        analysisData = JSON.parse(dataElement.dataset.analysis);
+                        analysisData = typeof dataElement.dataset.analysis === 'string' 
+                            ? JSON.parse(dataElement.dataset.analysis) 
+                            : dataElement.dataset.analysis;
                     } catch (e) {
                         console.warn('Could not parse analysis, using as-is');
                         analysisData = dataElement.dataset.analysis;
