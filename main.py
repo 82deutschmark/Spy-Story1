@@ -1,4 +1,3 @@
-
 import os
 from __init__ import create_app
 import logging
@@ -11,4 +10,16 @@ logger = logging.getLogger(__name__)
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    # Ensure JS modules are served with correct MIME type
+    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+    app.add_url_rule(
+        '/static/<path:filename>',
+        endpoint='static',
+        view_func=app.send_static_file,
+        defaults={'add_etags': True, 'conditional': True}
+    )
+    # Register custom MIME types for ES modules
+    import mimetypes
+    mimetypes.add_type('application/javascript', '.js')
+
+    app.run(host='0.0.0.0', port=5000, debug=True)
