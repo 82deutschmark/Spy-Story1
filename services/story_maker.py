@@ -62,6 +62,35 @@ def get_story_options() -> Dict[str, List[Tuple[str, str]]]:
     """Return available story options for UI display"""
     return STORY_OPTIONS
 
+def extract_character_traits(character_data: Dict[str, Any]) -> List[str]:
+    """Extract character traits from different data structures"""
+    traits = character_data.get('character_traits', [])
+    if not traits and 'traits' in character_data:
+        traits = character_data['traits']
+    return traits
+
+def extract_plot_lines(character_data: Dict[str, Any]) -> List[str]:
+    """Extract plot lines from different data structures"""
+    plot_lines = character_data.get('plot_lines', [])
+    if not plot_lines and 'plot_lines' in character_data:
+        plot_lines = character_data['plot_lines']
+    return plot_lines
+
+def extract_character_style(character_data: Dict[str, Any]) -> str:
+    """Extract character visual style/description from different data structures"""
+    style = character_data.get('style', '')
+    if not style and character_data.get('visual_description'):
+        style = character_data.get('visual_description')
+    return style
+
+def extract_character_name(character_data: Dict[str, Any]) -> str:
+    """Extract character name from different data structures"""
+    return character_data.get('name', character_data.get('character_name', 'Unnamed Character'))
+
+def extract_character_role(character_data: Dict[str, Any]) -> str:
+    """Extract character role from different data structures"""
+    return character_data.get('role', character_data.get('character_role', 'neutral'))
+
 def generate_story(
     conflict: str,
     setting: str,
@@ -91,20 +120,10 @@ def generate_story(
     # Build character information for the prompt
     selected_character_prompt = ""
     if character_info and character_info.get('name'):
-        # Extract character traits with fallback options for different data structures
-        traits = character_info.get('character_traits', [])
-        if not traits and 'traits' in character_info:
-            traits = character_info['traits']
-
-        # Extract plot lines with fallback options
-        plot_lines = character_info.get('plot_lines', [])
-        if not plot_lines and 'plot_lines' in character_info:
-            plot_lines = character_info['plot_lines']
-
-        # Get character style/visual description
-        style = character_info.get('style', '')
-        if not style and character_info.get('visual_description'):
-            style = character_info.get('visual_description')
+        # Extract character data using helper functions
+        traits = extract_character_traits(character_info)
+        plot_lines = extract_plot_lines(character_info)
+        style = extract_character_style(character_info)
 
         # Build the character prompt section with all available data
         selected_character_prompt = (
@@ -126,13 +145,13 @@ def generate_story(
     if additional_characters and len(additional_characters) > 0:
         additional_characters_prompt = "\nAdditional Characters from Database (MUST INCLUDE AT LEAST ONE NEW CHARACTER):\n"
         for char in additional_characters:
-            char_traits = char.get('character_traits', [])
+            char_traits = extract_character_traits(char)
             if isinstance(char_traits, str):
                 # Handle case where traits might be a string
                 char_traits = [char_traits]
 
-            char_name = char.get('name', char.get('character_name', 'Unnamed Character'))
-            char_role = char.get('role', char.get('character_role', 'neutral'))
+            char_name = extract_character_name(char)
+            char_role = extract_character_role(char)
             traits_str = ', '.join(char_traits) if char_traits else 'No specified traits'
 
             additional_characters_prompt += (
