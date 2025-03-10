@@ -76,43 +76,48 @@ def index():
     user_progress = get_or_create_user_progress()
 
     # Get 2 random images for character selection
-    images = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).limit(2).all()
-    image_data = []
-    for img in images:
-        analysis = img.analysis_result or {}
-        char_name = img.character_name or ''
-        if not char_name and analysis:
-            if 'character' in analysis and 'name' in analysis['character']:
-                char_name = analysis['character'].get('name', '')
-            elif 'character_name' in analysis:
-                char_name = analysis.get('character_name', '')
-            elif 'name' in analysis:
-                char_name = analysis.get('name', '')
+    try:
+        images = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).limit(2).all()
+        image_data = []
+        for img in images:
+            analysis = img.analysis_result or {}
+            char_name = img.character_name or ''
+            if not char_name and analysis:
+                if 'character' in analysis and 'name' in analysis['character']:
+                    char_name = analysis['character'].get('name', '')
+                elif 'character_name' in analysis:
+                    char_name = analysis.get('character_name', '')
+                elif 'name' in analysis:
+                    char_name = analysis.get('name', '')
 
-        char_traits = []
-        plot_lines = []
-        try:
-            if hasattr(img, 'character_traits') and img.character_traits:
-                char_traits = img.character_traits
-            elif analysis and 'character_traits' in analysis:
-                char_traits = analysis.get('character_traits', [])
+            char_traits = []
+            plot_lines = []
+            try:
+                if hasattr(img, 'character_traits') and img.character_traits:
+                    char_traits = img.character_traits
+                elif analysis and 'character_traits' in analysis:
+                    char_traits = analysis.get('character_traits', [])
 
-            if hasattr(img, 'plot_lines') and img.plot_lines:
-                plot_lines = img.plot_lines
-            elif analysis and 'plot_lines' in analysis:
-                plot_lines = analysis.get('plot_lines', [])
-        except:
-            pass
+                if hasattr(img, 'plot_lines') and img.plot_lines:
+                    plot_lines = img.plot_lines
+                elif analysis and 'plot_lines' in analysis:
+                    plot_lines = analysis.get('plot_lines', [])
+            except Exception as e:
+                logger.error(f"Error processing character traits: {str(e)}")
+                pass
 
-        image_data.append({
-            'id': img.id,
-            'image_url': img.image_url,
-            'name': char_name,
-            'style': analysis.get('style', ''),
-            'story': analysis.get('story', ''),
-            'character_traits': char_traits,
-            'plot_lines': plot_lines
-        })
+            image_data.append({
+                'id': img.id,
+                'image_url': img.image_url,
+                'name': char_name or 'Mystery Character',
+                'style': analysis.get('style', ''),
+                'story': analysis.get('story', ''),
+                'character_traits': char_traits or [],
+                'plot_lines': plot_lines or []
+            })
+    except Exception as e:
+        logger.error(f"Error loading character images: {str(e)}")
+        image_data = []
 
     return render_template(
         'index.html',
