@@ -292,12 +292,9 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- PayPal SDK with required parameters -->
     <script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id|urlencode }}&currency=USD&intent=capture"></script>
-    <!-- Module JS files -->
-    <script src="{{ url_for('static', filename='js/modules/ui-manager.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/modules/currency-handler.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/modules/story-handler.js') }}"></script>
-    <!-- Main JS file -->
+    <!-- Our main JS file -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/currency_manager.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize currency manager with user balances
