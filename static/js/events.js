@@ -10,13 +10,38 @@ export const events = {
      */
     init: () => {
         document.addEventListener('DOMContentLoaded', () => {
+            // Character selection
+            document.querySelectorAll('.select-character-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const characterId = e.target.dataset.characterId;
+                    const checkbox = document.getElementById(`character${characterId}`);
+                    if (checkbox) {
+                        checkbox.checked = !checkbox.checked;
+                        // Update visual selection
+                        const card = e.target.closest('.character-container');
+                        const indicator = card.querySelector('.selection-indicator');
+                        if (indicator) {
+                            indicator.style.display = checkbox.checked ? 'block' : 'none';
+                        }
+                    }
+                });
+            });
+
             // Story generation form
-            const generateStoryForm = document.getElementById('generateStoryForm');
-            if (generateStoryForm) {
-                generateStoryForm.addEventListener('submit', async (e) => {
+            const storyForm = document.getElementById('storyForm');
+            if (storyForm) {
+                storyForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
+                    const selectedCharacters = document.querySelectorAll('.character-checkbox:checked');
+
+                    if (selectedCharacters.length === 0) {
+                        dom.showToast('Error', 'Please select at least one character for your story');
+                        return;
+                    }
+
                     const btn = e.target.querySelector('button[type="submit"]');
                     if (btn) btn.disabled = true;
+
                     await story.generate(new FormData(e.target));
                     if (btn) btn.disabled = false;
                 });

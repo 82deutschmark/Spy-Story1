@@ -3,7 +3,6 @@
  */
 import { api } from './utils/api.js';
 import { dom } from './utils/dom.js';
-import { currency } from './currency.js';
 
 export const story = {
     /**
@@ -22,6 +21,13 @@ export const story = {
         }, 500);
 
         try {
+            // Get selected character IDs
+            const selectedCharacters = document.querySelectorAll('.character-checkbox:checked');
+            const selectedIds = Array.from(selectedCharacters).map(checkbox => checkbox.value);
+
+            // Add selected character IDs to form data
+            selectedIds.forEach(id => formData.append('selected_images[]', id));
+
             const data = await api.postForm('/generate_story', formData);
             clearInterval(progressInterval);
 
@@ -46,37 +52,21 @@ export const story = {
     /**
      * Process a story choice
      * @param {FormData} formData - The choice form data
-     * @param {Object} currencyReq - Currency requirements for the choice
      * @returns {Promise<boolean>} - Success status
      */
-    makeChoice: async (formData, currencyReq) => {
+    makeChoice: async (formData) => {
         const loadingPercent = dom.createLoadingOverlay('Processing your choice...');
         const isCustomChoice = formData.has('custom_choice');
 
         try {
-            // Process the choice and currency requirements
-            const choiceData = {
+            // Make the choice
+            const response = await api.post('/make_choice', {
                 choice_id: formData.get('choice_id'),
-                custom_choice: isCustomChoice ? formData.get('custom_choice') : null,
-                currency_requirements: currencyReq
-            };
-
-            const response = await api.post('/make_choice', choiceData);
+                custom_choice: isCustomChoice ? formData.get('custom_choice') : null
+            });
 
             if (!response.success) {
-                if (response.error.includes('Insufficient')) {
-                    const errorMessage = isCustomChoice ?
-                        `Insufficient diamonds. You need 100 💎 but only have ${response.current_balance} 💎.` :
-                        'Insufficient funds for this choice.';
-                    dom.showToast('Error', errorMessage, true);
-                    return false;
-                }
                 throw new Error(response.error || 'Failed to process choice');
-            }
-
-            // Update currency displays if needed
-            if (response.new_balances) {
-                currency.updateDisplays(response.new_balances);
             }
 
             // Generate next story part
