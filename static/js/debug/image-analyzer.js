@@ -11,19 +11,25 @@ export const imageAnalyzer = {
      * @returns {Promise<Object>} Analysis result
      */
     analyze: async (imageUrl) => {
+        console.log('Starting image analysis for URL:', imageUrl);
+
         if (!imageUrl) {
-            dom.showToast('Error', 'Please enter an image URL', 'error');
+            dom.showToast('Error', 'Please enter an image URL', true);
             return null;
         }
 
         const loadingPercent = dom.createLoadingOverlay('Analyzing image...');
-        
+
         try {
+            console.log('Making API request to /generate');
             const response = await api.post('/generate', {
                 image_url: imageUrl
             });
 
+            console.log('Received API response:', response);
+
             if (response.success) {
+                console.log('Analysis successful:', response.analysis);
                 return {
                     analysis: response.analysis,
                     imageUrl: response.image_url,
@@ -33,7 +39,8 @@ export const imageAnalyzer = {
                 throw new Error(response.error || 'Failed to analyze image');
             }
         } catch (error) {
-            dom.showToast('Error', error.message, 'error');
+            console.error('Error in image analysis:', error);
+            dom.showToast('Error', error.message, true);
             return null;
         } finally {
             dom.removeLoadingOverlay(loadingPercent);
@@ -46,8 +53,10 @@ export const imageAnalyzer = {
      * @returns {Promise<boolean>} Success status
      */
     saveToDatabase: async (data) => {
+        console.log('Attempting to save analysis to database:', data);
+
         if (!data.imageUrl || !data.analysis) {
-            dom.showToast('Error', 'No image URL or analysis found', 'error');
+            dom.showToast('Error', 'No image URL or analysis found', true);
             return false;
         }
 
@@ -59,14 +68,17 @@ export const imageAnalyzer = {
                 analysis: data.analysis
             });
 
+            console.log('Save response:', response);
+
             if (response.error) {
                 throw new Error(response.error);
             }
 
-            dom.showToast('Success', 'Analysis saved to database', 'success');
+            dom.showToast('Success', 'Analysis saved to database');
             return true;
         } catch (error) {
-            dom.showToast('Error', `Failed to save analysis: ${error.message}`, 'error');
+            console.error('Error saving analysis:', error);
+            dom.showToast('Error', `Failed to save analysis: ${error.message}`, true);
             return false;
         } finally {
             dom.removeLoadingOverlay(loadingPercent);
