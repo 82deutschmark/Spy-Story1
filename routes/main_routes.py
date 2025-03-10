@@ -1,4 +1,3 @@
-
 import os
 import logging
 import json
@@ -531,6 +530,103 @@ def make_choice():
                 'message': 'Choice processed successfully'
             })
 
+    except Exception as e:
+        logger.error(f"Error processing choice: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/process_choice', methods=['POST'])
+def process_choice():
+    """Process a selected choice and update progress"""
+    try:
+        choice_id = request.form.get('choice_id')
+        choice_text = request.form.get('choice_text')
+
+        if not choice_id or not choice_text:
+            return jsonify({'error': 'Missing choice ID or text'}), 400
+
+        logger.debug(f"Processing choice: {choice_id} - '{choice_text}'")
+
+        # Get the choice from the database
+        choice = StoryChoice.query.get_or_404(choice_id)
+
+        # Get user progress
+        user_progress = get_or_create_user_progress()
+
+        # Check if user can afford the choice
+        if choice.currency_requirements and not user_progress.can_afford(choice.currency_requirements):
+            return jsonify({
+                'error': 'Cannot afford this choice',
+                'currency_requirements': choice.currency_requirements,
+                'current_balances': user_progress.currency_balances
+            }), 403
+
+        # Process the payment if needed
+        payment_success = True
+        if choice.currency_requirements:
+            payment_success = user_progress.spend_currency(
+                choice.currency_requirements,
+                'choice',
+                f"Spent on choice: {choice_text}",
+                choice.node_id
+            )
+
+        if not payment_success:
+            return jsonify({'error': 'Failed to process payment for choice'}), 500
+
+        # Record the choice in user history
+        user_progress.record_choice(
+            choice_text=choice_text,
+            choice_id=choice_id,
+            node_id=choice.next_node_id, 
+            story_id=choice.source_node.story_id if hasattr(choice.source_node, 'story_id') else None
+        )
+
+        # Get characters related to this node/choice
+        characters = []
+        if choice.next_node:
+            # Get characters from the next node's image
+            if choice.next_node.image:
+                character = {
+                    'id': choice.next_node.image.id,
+                    'name': choice.next_node.image.character_name,
+                    'initial_relationship': 0  # Default initial relationship
+                }
+                characters.append(character)
+
+                # Record encounter in the database
+                user_progress.encounter_character(
+                    character['id'],
+                    character['name'],
+                    character['initial_relationship']
+                )
+
+            # Additional tracking for characters in choice metadata
+            if choice.choice_metadata and 'characters' in choice.choice_metadata:
+                for char_data in choice.choice_metadata['characters']:
+                    if 'id' in char_data and 'name' in char_data:
+                        char = {
+                            'id': char_data['id'],
+                            'name': char_data['name'],
+                            'initial_relationship': char_data.get('initial_relationship', 0)
+                        }
+                        characters.append(char)
+
+                        # Record encounter in the database
+                        user_progress.encounter_character(
+                            char['id'],
+                            char['name'],
+                            char['initial_relationship']
+                        )
+
+        return jsonify({
+            'success': True,
+            'message': 'Choice processed successfully',
+            'next_node_id': choice.next_node_id,
+            'new_balances': user_progress.currency_balances,
+            'level': user_progress.level,
+            'experience': user_progress.experience_points,
+            'characters': characters
+        })
     except Exception as e:
         logger.error(f"Error processing choice: {str(e)}")
         return jsonify({'error': str(e)}), 500

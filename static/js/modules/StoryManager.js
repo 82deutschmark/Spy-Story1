@@ -1,4 +1,3 @@
-
 /**
  * Story Generation Module
  * Handles story generation and choice processing
@@ -16,7 +15,7 @@ export default {
     generateStory(formData) {
         // Create loading overlay with percentage
         const loadingPercent = UIUtils.createLoadingOverlay('Generating your adventure...');
-        
+
         const generateStoryBtn = document.getElementById('generateStoryBtn');
         if (generateStoryBtn) {
             generateStoryBtn.disabled = true;
@@ -56,12 +55,12 @@ export default {
                 console.error('Error generating story:', error);
                 UIUtils.showToast('Error', error.message || 'Failed to generate story. Please try again.');
                 clearInterval(progressInterval);
-                
+
                 if (generateStoryBtn) {
                     generateStoryBtn.disabled = false;
                     generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
                 }
-                
+
                 UIUtils.removeLoadingOverlay(loadingPercent);
                 throw error;
             });
@@ -118,7 +117,7 @@ export default {
                             let errorMessage = isCustomChoice ?
                                 `Insufficient diamonds. You need 100 💎 but only have ${data.current_balance} 💎.` :
                                 'Insufficient funds for this choice.';
-                    
+
                             throw new Error(errorMessage);
                         }
                         throw new Error(data.error || 'Failed to process choice');
@@ -140,6 +139,24 @@ export default {
                 if (data.level && data.experience) {
                     UserProgress.updateUserProgress(data.level, data.experience);
                 }
+
+                // Record character encounters if any
+                if (data.characters) {
+                    data.characters.forEach(character => {
+                        if (character.id && character.name) {
+                            // Record character encounter
+                            import('./CharacterManager.js').then(module => {
+                                const CharacterManager = module.default;
+                                CharacterManager.recordCharacterEncounter(
+                                    character.id,
+                                    character.name,
+                                    character.initial_relationship || 0
+                                ).catch(err => console.error('Error recording character encounter:', err));
+                            });
+                        }
+                    });
+                }
+
 
                 // Generate next part of the story
                 return fetch('/generate_story', {
