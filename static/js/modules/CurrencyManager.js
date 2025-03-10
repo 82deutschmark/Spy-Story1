@@ -1,4 +1,3 @@
-
 /**
  * Currency Manager Module
  * Handles currency display and trading functionality
@@ -7,10 +6,10 @@ class CurrencyManager {
     constructor() {
         // Initialize currency system
         console.log('CurrencyManager initialized');
-        
+
         // Store current balances
         this.currentBalances = {};
-        
+
         // Fetch initial balances
         this.fetchCurrentBalances();
     }
@@ -31,35 +30,28 @@ class CurrencyManager {
             });
     }
 
-    // Update all currency displays with new balances
-    updateCurrencyDisplay(balances) {
-        if (!balances) {
-            console.error('No balances provided to updateCurrencyDisplay');
+    // Update currency display with new balance
+    updateCurrencyDisplay(newBalances) {
+        console.log('Updating currency display with:', newBalances);
+        if (!newBalances) {
+            console.warn('No balances provided to updateCurrencyDisplay');
             return;
         }
 
-        console.log('Updating currency displays with:', balances);
-        
-        // Update each currency display element
-        Object.keys(balances).forEach(currency => {
-            const amount = balances[currency];
-            
-            // Find all elements that display this currency
-            const elements = document.querySelectorAll(`.currency-amount[data-currency="${currency}"]`);
-            if (elements.length === 0) {
-                console.log(`No display elements found for currency ${currency}`);
-                return;
-            }
-            
-            elements.forEach(element => {
-                element.textContent = amount;
-            });
-        });
+        const currencyAmounts = document.querySelectorAll('.currency-amount');
+        if (currencyAmounts.length === 0) {
+            console.warn('No currency display elements found');
+        }
 
-        console.log('Updated currency UI with new balances:', balances);
-        
-        // Update our stored balances
-        this.currentBalances = {...balances};
+        currencyAmounts.forEach(element => {
+            const currency = element.dataset.currency;
+            if (currency && newBalances[currency] !== undefined) {
+                element.textContent = newBalances[currency];
+                console.log(`Updated ${currency} display to ${newBalances[currency]}`);
+            } else if (currency) {
+                console.warn(`Currency ${currency} not found in new balances`);
+            }
+        });
     }
 
     // Trade one currency for another
@@ -69,7 +61,7 @@ class CurrencyManager {
                 reject('Missing required parameters for currency trade');
                 return;
             }
-            
+
             // Send trade request to server
             fetch('/api/currency/trade', {
                 method: 'POST',
@@ -87,7 +79,7 @@ class CurrencyManager {
                 if (data.success) {
                     // Update display with new balances
                     this.updateCurrencyDisplay(data.new_balances);
-                    
+
                     // Notify any listeners
                     document.dispatchEvent(new CustomEvent('currency-updated', {
                         detail: { 
@@ -95,7 +87,7 @@ class CurrencyManager {
                             message: data.message
                         }
                     }));
-                    
+
                     resolve(data);
                 } else {
                     console.error('Trade failed:', data.error);
