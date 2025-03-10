@@ -7,7 +7,7 @@ import paypalrestsdk
 from decimal import Decimal
 
 from database import db
-from models import AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, StoryChoice, UserProgress, Transaction
+from models import AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, StoryChoice, UserProgress, Transaction, PlotArc, CharacterEvolution
 from services.openai_service import analyze_artwork, generate_image_description
 from services.story_maker import generate_story, get_story_options
 
