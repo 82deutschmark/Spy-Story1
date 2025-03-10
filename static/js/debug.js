@@ -245,10 +245,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (!targetName || !targetType) return; // Required elements missing
 
-            // Determine if this is a character or scene
-            const isCharacter = (analysis.image_type === 'character') || 
+            // Determine if this is a character or scene by checking type or other fields
+            const isCharacter = (analysis.type === 'CHARACTER') || 
+                             (analysis.image_type === 'character') || 
                              (analysis.character && typeof analysis.character === 'object') ||
-                             (analysis.character_traits || analysis.role);
+                             (analysis.character_traits || analysis.personality_traits || analysis.role);
 
             // Set the image type
             targetType.value = isCharacter ? 'character' : 'scene';
@@ -264,15 +265,15 @@ document.addEventListener('DOMContentLoaded', function() {
             targetName.value = character.name || analysis.name || analysis.character_name || '';
 
             if (isCharacter) {
-                // Set role
+                // Set role (with fallbacks for different formats)
                 if (targetRole) targetRole.value = character.role || analysis.role || 'neutral';
 
-                // Set traits
-                const traits = character.character_traits || analysis.character_traits || [];
+                // Set traits - handle different formats of traits data
+                const traits = character.personality_traits || character.character_traits || analysis.character_traits || analysis.personality_traits || [];
                 if (targetTraits) targetTraits.value = Array.isArray(traits) ? traits.join(', ') : traits;
 
-                // Set plot lines
-                const plots = character.plot_lines || analysis.plot_lines || [];
+                // Set plot lines - handle different formats
+                const plots = character.potential_plot_lines || character.plot_lines || analysis.plot_lines || analysis.potential_plot_lines || [];
                 if (targetPlots) targetPlots.value = Array.isArray(plots) ? plots.join('\n') : plots;
             } else {
                 // Set scene fields
@@ -283,6 +284,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const moments = analysis.dramatic_moments || [];
                 if (targetMoments) targetMoments.value = Array.isArray(moments) ? moments.join('\n') : moments;
             }
+            
+            console.log('Populated edit form with data:', analysis);
         } catch (error) {
             console.error('Error populating edit form:', error);
             showToast('Error', 'Failed to populate edit form: ' + error.message, true);
@@ -305,12 +308,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Start with original analysis data
         let editedData = JSON.parse(JSON.stringify(currentImageData.analysis));
+        
+        // Check if this is a new format or old format response
+        const isNewFormat = editedData.type === 'CHARACTER' || editedData.type === 'SCENE';
 
         // Update with form values
         const isCharacter = targetType.value === 'character';
 
         // Update image type
-        editedData.image_type = targetType.value;
+        if (isNewFormat) {
+            editedData.type = isCharacter ? 'CHARACTER' : 'SCENE';
+        } else {
+            editedData.image_type = targetType.value;
+        }
 
         if (isCharacter) {
             // Character fields
@@ -319,24 +329,41 @@ document.addEventListener('DOMContentLoaded', function() {
             const traits = targetTraits ? targetTraits.value.split(',').map(t => t.trim()).filter(t => t) : [];
             const plots = targetPlots ? targetPlots.value.split('\n').map(p => p.trim()).filter(p => p) : [];
 
-            // Ensure character object exists
-            if (!editedData.character) {
-                editedData.character = {};
-            }
-
-            // Update character fields in both locations for compatibility
+            // Update character fields based on format
             editedData.name = name;
-            editedData.character_name = name;
-            if (editedData.character) editedData.character.name = name;
-
-            editedData.role = role;
-            if (editedData.character) editedData.character.role = role;
-
-            editedData.character_traits = traits;
-            if (editedData.character) editedData.character.character_traits = traits;
-
-            editedData.plot_lines = plots;
-            if (editedData.character) editedData.character.plot_lines = plots;
+            
+            if (isNewFormat) {
+                // New format fields
+                editedData.role = role;
+                editedData.personality_traits = traits;
+                editedData.potential_plot_lines = plots;
+                
+                // Ensure backward compatibility
+                editedData.character_name = name;
+                editedData.character_traits = traits;
+                editedData.plot_lines = plots;
+            } else {
+                // Old format fields and compatibility
+                editedData.character_name = name;
+                editedData.role = role;
+                editedData.character_traits = traits;
+                editedData.plot_lines = plots;
+                
+                // Ensure character object exists for compatibility
+                if (!editedData.character) {
+                    editedData.character = {};
+                }
+                
+                // Update character object fields
+                editedData.character.name = name;
+                editedData.character.role = role;
+                editedData.character.character_traits = traits;
+                editedData.character.plot_lines = plots;
+                
+                // Add new format fields for future compatibility
+                editedData.personality_traits = traits;
+                editedData.potential_plot_lines = plots;
+            }
 
             // Remove scene-specific fields
             delete editedData.scene_type;
@@ -354,8 +381,10 @@ document.addEventListener('DOMContentLoaded', function() {
             delete editedData.character;
             delete editedData.character_name;
             delete editedData.character_traits;
+            delete editedData.personality_traits;
             delete editedData.role;
             delete editedData.plot_lines;
+            delete editedData.potential_plot_lines;
         }
 
         return editedData;
