@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Store image data
                 currentImageData = result;
+                console.log('Analysis result:', result);
                 
                 // Update UI to show image thumbnail
                 const imagePreview = document.createElement('div');
@@ -47,16 +48,29 @@ document.addEventListener('DOMContentLoaded', function() {
                     <img src="${result.imageUrl}" class="img-fluid rounded shadow-sm" alt="Analyzed Image" style="max-height: 300px;">
                     <div class="mt-3 mb-3">
                         <h5>Image Analysis Results</h5>
-                        <p class="text-muted">${result.description || 'Analysis complete. You can edit the details below.'}</p>
+                        <p class="text-muted">${result.description || 'Analysis complete. Edit the details below before saving.'}</p>
                     </div>
                 `;
                 
                 generatedContent.innerHTML = '';
                 generatedContent.appendChild(imagePreview);
                 
-                // Store analysis data in hidden form
-                generatedContent.dataset.analysis = JSON.stringify(result.analysis);
-                generatedContent.dataset.imageUrl = result.imageUrl;
+                // Store analysis data for future reference
+                if (typeof result.analysis === 'string') {
+                    try {
+                        result.analysis = JSON.parse(result.analysis);
+                    } catch (err) {
+                        console.warn('Could not parse analysis as JSON, using as-is');
+                    }
+                }
+                
+                // Create a data element to store the complete analysis
+                const dataElement = document.createElement('div');
+                dataElement.id = 'analysisData';
+                dataElement.style.display = 'none';
+                dataElement.dataset.analysis = JSON.stringify(result.analysis);
+                dataElement.dataset.imageUrl = result.imageUrl;
+                generatedContent.appendChild(dataElement);
 
                 // Enable edit mode by default
                 const editModeSwitch = document.getElementById('editModeSwitch');
@@ -96,23 +110,44 @@ document.addEventListener('DOMContentLoaded', function() {
             this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
 
             try {
-                // Get the analysis data from the dataset attributes we stored
-                const generatedContent = document.getElementById('generatedContent');
-                const success = await imageAnalyzer.saveToDatabase({
-                    imageUrl: currentImageData.imageUrl,
-                    analysis: JSON.parse(generatedContent.dataset.analysis)
-                });
+                // Get form data directly from the form manager
+                // This will use the edited form data that the user has modified
+                const formSaveResult = await formManager.saveToDatabase(this);
+                
+                if (!formSaveResult) {
+                    // If form save fails, try the direct save method
+                    const dataElement = document.getElementById('analysisData');
+                    if (!dataElement || !dataElement.dataset.analysis) {
+                        throw new Error('Analysis data not found');
+                    }
+                    
+                    // Parse or use the analysis data
+                    let analysisData;
+                    try {
+                        analysisData = JSON.parse(dataElement.dataset.analysis);
+                    } catch (e) {
+                        console.warn('Could not parse analysis, using as-is');
+                        analysisData = dataElement.dataset.analysis;
+                    }
+                    
+                    // Save to database using the data directly
+                    const success = await imageAnalyzer.saveToDatabase({
+                        imageUrl: currentImageData.imageUrl,
+                        analysis: analysisData
+                    });
 
-                if (success) {
-                    this.innerHTML = '<i class="fas fa-check me-2"></i>Saved';
-                    setTimeout(() => {
-                        location.reload();
-                    }, 2000);
+                    if (success) {
+                        this.innerHTML = '<i class="fas fa-check me-2"></i>Saved';
+                        setTimeout(() => {
+                            location.reload();
+                        }, 2000);
+                    }
                 }
             } catch (error) {
                 this.disabled = false;
                 this.innerHTML = '<i class="fas fa-save me-2"></i>Save to Database';
                 console.error('Save error:', error);
+                dom.showToast('Error', 'Failed to save analysis: ' + error.message, true);
             }
         });
     }
