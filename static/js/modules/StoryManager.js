@@ -29,6 +29,21 @@ export default {
                 UIUtils.updateLoadingPercent(loadingPercent, progress);
             }
         }, 500);
+        
+        // Add loading UI element to show percentage
+        const loadingUI = document.createElement('div');
+        loadingUI.className = 'loading-percentage-display';
+        loadingUI.innerHTML = '<div class="loading-text">Crafting your adventure...</div><div class="progress"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%"></div></div>';
+        document.body.appendChild(loadingUI);
+        
+        // Update loading bar
+        const progressBar = loadingUI.querySelector('.progress-bar');
+        const progressUpdate = setInterval(() => {
+            if (progress < 90) {
+                progressBar.style.width = progress + '%';
+                progressBar.setAttribute('aria-valuenow', progress);
+            }
+        }, 500);
 
         return fetch('/generate_story', {
             method: 'POST',
@@ -43,7 +58,14 @@ export default {
 
                 if (data.success && data.redirect) {
                     UIUtils.updateLoadingPercent(loadingPercent, 100);
+                    if (progressBar) {
+                        progressBar.style.width = '100%';
+                        progressBar.setAttribute('aria-valuenow', 100);
+                    }
                     setTimeout(() => {
+                        if (loadingUI && loadingUI.parentNode) {
+                            loadingUI.parentNode.removeChild(loadingUI);
+                        }
                         window.location.href = data.redirect;
                     }, 500);
                     return data;
@@ -55,6 +77,7 @@ export default {
                 console.error('Error generating story:', error);
                 UIUtils.showToast('Error', error.message || 'Failed to generate story. Please try again.');
                 clearInterval(progressInterval);
+                clearInterval(progressUpdate);
 
                 if (generateStoryBtn) {
                     generateStoryBtn.disabled = false;
@@ -62,6 +85,9 @@ export default {
                 }
 
                 UIUtils.removeLoadingOverlay(loadingPercent);
+                if (loadingUI && loadingUI.parentNode) {
+                    loadingUI.parentNode.removeChild(loadingUI);
+                }
                 throw error;
             });
     },
@@ -90,6 +116,21 @@ export default {
             if (progress < 90) {
                 progress += 5;
                 UIUtils.updateLoadingPercent(loadingPercent, progress);
+            }
+        }, 500);
+        
+        // Add loading UI element to show percentage
+        const loadingUI = document.createElement('div');
+        loadingUI.className = 'choice-loading-display';
+        loadingUI.innerHTML = '<div class="loading-text">Crafting the next part of your adventure...</div><div class="progress"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%"></div></div>';
+        document.body.appendChild(loadingUI);
+        
+        // Update loading bar
+        const progressBar = loadingUI.querySelector('.progress-bar');
+        const progressBarUpdate = setInterval(() => {
+            if (progress < 90) {
+                progressBar.style.width = progress + '%';
+                progressBar.setAttribute('aria-valuenow', progress);
             }
         }, 500);
 
@@ -173,7 +214,14 @@ export default {
 
                 if (storyData.success && storyData.redirect) {
                     UIUtils.updateLoadingPercent(loadingPercent, 100);
+                    if (progressBar) {
+                        progressBar.style.width = '100%';
+                        progressBar.setAttribute('aria-valuenow', 100);
+                    }
                     setTimeout(() => {
+                        if (loadingUI && loadingUI.parentNode) {
+                            loadingUI.parentNode.removeChild(loadingUI);
+                        }
                         window.location.href = storyData.redirect;
                     }, 500);
                     return storyData;
@@ -187,7 +235,11 @@ export default {
                 btn.disabled = false;
                 btn.classList.remove('loading');
                 clearInterval(progressInterval);
+                clearInterval(progressBarUpdate);
                 UIUtils.removeLoadingOverlay(loadingPercent);
+                if (loadingUI && loadingUI.parentNode) {
+                    loadingUI.parentNode.removeChild(loadingUI);
+                }
                 throw error;
             });
     }
