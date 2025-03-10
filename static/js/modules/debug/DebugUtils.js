@@ -1,73 +1,44 @@
 /**
- * Debug utilities for SpyTails
+ * DebugUtils.js - Utility functions for the debug interface
  */
-const DebugUtils = {
-    /**
-     * Log API calls with optional detailed data
-     */
-    logApiCall: function(endpoint, method, data, response) {
-        console.log(`API Call: ${method} ${endpoint}`);
-        if (data) console.log('Request data:', data);
-        if (response) console.log('Response:', response);
+export default {
+    showToast(title, message, isError = false) {
+        const toastEl = document.getElementById('notificationToast');
+        if (toastEl) {
+            const toast = new bootstrap.Toast(toastEl);
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+
+            if (isError) {
+                toastEl.classList.add('bg-danger', 'text-white');
+            } else {
+                toastEl.classList.remove('bg-danger', 'text-white');
+            }
+
+            toast.show();
+        }
     },
 
-    /**
-     * Monitor currency transactions
-     */
-    monitorCurrencyTransaction: function(fromCurrency, toCurrency, amount, newBalances) {
-        console.log(`Currency transaction monitored: ${amount} ${fromCurrency} -> ${toCurrency}`);
-        console.log('New balances:', newBalances);
-
-        // Force an immediate UI update with the new balances
-        if (window.CurrencyManager && typeof window.CurrencyManager.updateCurrencyDisplays === 'function') {
-            console.log('Forcing currency display update with new balances');
-            window.CurrencyManager.updateCurrencyDisplays(newBalances);
-        } else {
-            console.warn('CurrencyManager not available to update displays');
+    deepClone(obj) {
+        try {
+            return JSON.parse(JSON.stringify(obj));
+        } catch (e) {
+            console.error('Error cloning object:', e);
+            return {};
         }
-
-        // Double-check after a short delay to ensure UI reflects the correct values
-        setTimeout(() => {
-            // Check if UI has been updated correctly
-            const fromElements = document.querySelectorAll(`.currency-${fromCurrency}, .currency[data-currency="${fromCurrency}"]`);
-            const toElements = document.querySelectorAll(`.currency-${toCurrency}, .currency[data-currency="${toCurrency}"]`);
-
-            // Check "from" currency displays
-            fromElements.forEach(el => {
-                const displayedAmount = parseInt(el.textContent.trim());
-                const expectedAmount = newBalances[fromCurrency];
-
-                if (displayedAmount !== expectedAmount) {
-                    console.error(`Source currency display mismatch: ${el.className} shows ${displayedAmount} instead of ${expectedAmount}`);
-                    // Try to fix it
-                    el.textContent = expectedAmount;
-                }
-            });
-
-            // Check "to" currency displays
-            toElements.forEach(el => {
-                const displayedAmount = parseInt(el.textContent.trim());
-                const expectedAmount = newBalances[toCurrency];
-
-                if (displayedAmount !== expectedAmount) {
-                    console.error(`Target currency display mismatch: ${el.className} shows ${displayedAmount} instead of ${expectedAmount}`);
-                    // Try to fix it
-                    el.textContent = expectedAmount;
-                }
-            });
-        }, 1000);
     },
 
-    /**
-     * Check API response status
-     */
-    validateApiResponse: function(response) {
-        if (!response.success) {
-            console.error('API Error:', response.error || 'Unknown error');
-            return false;
+    logDebug(title, data) {
+        console.log(`${title}:`, data);
+    },
+
+    safeParseJSON(text) {
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            console.error('Error parsing JSON:', e);
+            this.showToast('Error', 'Failed to parse JSON: ' + e.message, true);
+            return null;
         }
-        return true;
     }
 };
-
-export default DebugUtils;

@@ -1,101 +1,93 @@
+
 /**
  * Currency Manager Module
  * Handles currency display and trading functionality
  */
 import UIUtils from './UIUtils.js';
 
-// CurrencyManager.js - Handles all currency operations
-class CurrencyManager {
-    constructor() {
-        // Initialize currency system
-        console.log('CurrencyManager initialized');
-
-        // Store current balances
-        this.currentBalances = {};
-    }
-
-    // Update all currency displays with new balances
+export default {
+    /**
+     * Updates all currency displays in the UI
+     * @param {Object} balances - Object containing currency balances
+     */
     updateCurrencyDisplays(balances) {
-        if (!balances) {
-            console.warn('No balances provided to updateCurrencyDisplays');
-            return;
-        }
+        if (!balances) return;
 
-        try {
-            // Store the new balances
-            this.currentBalances = {...balances};
-
-            Object.keys(balances).forEach(currency => {
-                // Find all elements that display this currency
-                const elements = document.querySelectorAll(`.currency-${currency}, .currency[data-currency="${currency}"]`);
-                if (elements.length === 0) {
-                    console.log(`No display elements found for currency ${currency}`);
-                    return;
+        Object.entries(balances).forEach(([currency, balance]) => {
+            const displays = document.querySelectorAll(`.currency-item .currency-amount`);
+            displays.forEach(display => {
+                const currencySymbol = display.previousElementSibling;
+                if (currencySymbol && currencySymbol.textContent === currency) {
+                    display.textContent = balance;
                 }
-
-                // Update the displayed value in each element
-                elements.forEach(el => {
-                    el.textContent = balances[currency];
-                    console.log(`Updated currency display for ${currency} to ${balances[currency]}`);
-                });
             });
 
-            // Dispatch currency-updated event for other modules to listen to
-            document.dispatchEvent(new CustomEvent('currency-updated', { 
-                detail: { balances }
-            }));
-        } catch (error) {
-            console.error('Error updating currency displays:', error);
+            // Update currency requirement indicators
+            document.querySelectorAll(`.currency-req-item`).forEach(reqItem => {
+                if (reqItem.textContent.includes(currency)) {
+                    const required = parseInt(reqItem.textContent.replace(currency, ''));
+                    if (required > balance) {
+                        reqItem.classList.add('currency-req-insufficient');
+                    } else {
+                        reqItem.classList.remove('currency-req-insufficient');
+                    }
+                }
+            });
+        });
+    },
+
+    /**
+     * Processes a currency trade request
+     * @param {string} fromCurrency - Source currency
+     * @param {string} toCurrency - Target currency
+     * @param {number} amount - Amount to trade
+     * @returns {Promise} - Promise resolving to trade result
+     */
+    processTradeRequest(fromCurrency, toCurrency, amount) {
+        if (fromCurrency === toCurrency) {
+            UIUtils.showToast('Error', 'Please select different currencies to trade');
+            return Promise.reject('Same currency');
         }
-    }
 
-    // Get current balances
-    getCurrentBalances() {
-        return this.currentBalances;
-    }
+        if (isNaN(amount) || amount <= 0) {
+            UIUtils.showToast('Error', 'Please enter a valid amount');
+            return Promise.reject('Invalid amount');
+        }
 
-    // Trade currencies
-    tradeCurrency(fromCurrency, toCurrency, amount) {
-        return new Promise((resolve, reject) => {
-            if (!fromCurrency || !toCurrency || !amount) {
-                reject('Missing required fields for currency trade');
-                return;
-            }
+        // Show loading state
+        const loadingPercent = UIUtils.createLoadingOverlay('Processing trade...');
+        UIUtils.updateLoadingPercent(loadingPercent, 50);
 
-            fetch('/api/currency/trade', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    from_currency: fromCurrency,
-                    to_currency: toCurrency,
-                    amount: amount
-                })
+        return fetch('/api/currency/trade', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                from_currency: fromCurrency,
+                to_currency: toCurrency,
+                amount: amount
             })
+        })
             .then(response => response.json())
             .then(data => {
+                UIUtils.updateLoadingPercent(loadingPercent, 100);
                 if (data.success) {
-                    console.log('Trade successful:', data.message);
-
-                    // Update the UI with new balances
-                    if (data.new_balances) {
-                        this.updateCurrencyDisplays(data.new_balances);
-                    }
-
-                    resolve(data);
+                    // Update all currency displays
+                    this.updateCurrencyDisplays(data.new_balances);
+                    UIUtils.showToast('Success', data.message);
+                    return data;
                 } else {
-                    console.error('Trade failed:', data.error);
-                    reject(data.error);
+                    throw new Error(data.error || 'Failed to trade currencies');
                 }
             })
             .catch(error => {
-                console.error('Error during trade:', error);
-                reject(error);
+                console.error('Error trading currencies:', error);
+                UIUtils.showToast('Error', error.message || 'Failed to trade currencies');
+                throw error;
+            })
+            .finally(() => {
+                UIUtils.removeLoadingOverlay(loadingPercent);
             });
-        });
     }
-}
-
-// Create and export singleton instance
-export default new CurrencyManager();
+};
