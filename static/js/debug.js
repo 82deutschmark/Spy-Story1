@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
         imageForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             const imageUrl = document.getElementById('imageUrl').value;
-            
+
             if (!imageUrl) {
                 dom.showToast('Error', 'Please enter an image URL', true);
                 return;
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             try {
                 const success = await imageAnalyzer.saveToDatabase({
-                    imageUrl: currentImageData.image_url,
+                    imageUrl: currentImageData.imageUrl,
                     analysis: JSON.parse(document.getElementById('generatedContent').textContent)
                 });
 
@@ -123,11 +123,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Handle delete all images button
         document.getElementById('deleteAllImagesBtn')?.addEventListener('click', async () => {
-            if (confirm('WARNING: Are you sure you want to delete ALL image records? This cannot be undone.')) {
-                const success = await databaseManager.deleteAllImages();
-                if (success) {
-                    databaseManager.refreshImagesList(imagesTableBody);
-                }
+            const success = await databaseManager.deleteAllImages();
+            if (success) {
+                databaseManager.refreshImagesList(imagesTableBody);
             }
         });
     }
@@ -141,17 +139,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!imageId) return;
 
         try {
-            const response = await fetch(`/api/image/${imageId}`);
-            const data = await response.json();
-
-            if (data.error) {
-                throw new Error(data.error);
-            }
+            const data = await databaseManager.loadImageDetails(imageId);
+            if (!data) return;
 
             // Update modal content
             const modalImage = document.getElementById('modalImage');
             const modalContent = document.getElementById('modalContent');
-            
+
             if (modalImage && modalContent) {
                 modalImage.src = data.image_url;
                 modalContent.textContent = JSON.stringify(data.analysis, null, 2);
@@ -159,8 +153,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Store current image data
             currentImageData = {
-                image_id: data.id,
-                image_url: data.image_url,
+                id: data.id,
+                imageUrl: data.image_url,
                 analysis: data.analysis
             };
 
@@ -171,9 +165,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show modal
             const detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
             detailsModal.show();
-
         } catch (error) {
-            dom.showToast('Error', 'Failed to load image details: ' + error.message, true);
+            console.error('Failed to load image details:', error);
         }
     });
 
@@ -185,12 +178,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const imageId = deleteBtn.getAttribute('data-id');
         if (!imageId) return;
 
-        if (confirm('Are you sure you want to delete this image record?')) {
-            const success = await databaseManager.deleteImage(imageId);
-            if (success) {
-                deleteBtn.closest('tr')?.remove();
-                databaseManager.refreshImagesList(imagesTableBody);
-            }
+        const success = await databaseManager.deleteImage(imageId);
+        if (success) {
+            deleteBtn.closest('tr')?.remove();
+            databaseManager.refreshImagesList(imagesTableBody);
         }
     });
 });
