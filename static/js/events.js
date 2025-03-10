@@ -18,20 +18,21 @@ export const events = {
                 const checkbox = container.querySelector('.character-checkbox');
                 const indicator = card.querySelector('.selection-indicator');
 
-                console.log('Setting up card:', card.dataset.id, 'Initial checkbox state:', checkbox?.checked);
+                console.log('Setting up card:', card.dataset.id);
 
-                // Initialize selected state if checkbox is checked
+                // Initialize selection state
                 if (checkbox?.checked) {
-                    console.log('Card initially selected:', card.dataset.id);
                     card.classList.add('selected');
                     indicator.style.display = 'flex';
+                    console.log('Card initially selected:', card.dataset.id);
                 }
 
-                // Handle click events for character selection
-                card.addEventListener('click', () => {
+                // Handle click events
+                card.addEventListener('click', (e) => {
+                    if (e.target.closest('.reroll-btn')) return; // Don't handle if clicking reroll
+
                     console.log('Card clicked:', card.dataset.id);
                     checkbox.checked = !checkbox.checked;
-                    console.log('New checkbox state:', checkbox.checked);
 
                     card.classList.toggle('selected', checkbox.checked);
                     indicator.style.display = checkbox.checked ? 'flex' : 'none';
@@ -39,19 +40,43 @@ export const events = {
                     console.log('Updated card state:', {
                         id: card.dataset.id,
                         checked: checkbox.checked,
-                        selected: card.classList.contains('selected'),
-                        indicatorDisplay: indicator.style.display
+                        selected: card.classList.contains('selected')
                     });
                 });
             });
 
             // Reroll functionality
             document.querySelectorAll('.reroll-btn').forEach(btn => {
-                console.log('Setting up reroll button:', btn.dataset.id);
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation(); // Prevent triggering card selection
-                    console.log('Reroll clicked for character:', btn.dataset.id);
-                    // TODO: Implement reroll functionality
+                btn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const characterId = btn.dataset.id;
+                    console.log('Reroll clicked for character:', characterId);
+
+                    const loadingPercent = dom.createLoadingOverlay('Rerolling character...');
+
+                    try {
+                        const response = await fetch('/api/random_character', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ current_id: characterId })
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            window.location.reload(); // Refresh to show new character
+                        } else {
+                            throw new Error(data.error || 'Failed to reroll character');
+                        }
+                    } catch (error) {
+                        console.error('Reroll error:', error);
+                        dom.showToast('Error', 'Failed to reroll character');
+                    } finally {
+                        dom.removeLoadingOverlay(loadingPercent);
+                    }
                 });
             });
 
@@ -75,16 +100,13 @@ export const events = {
 
                     try {
                         const formData = new FormData(e.target);
-                        // Ensure selected characters are properly added to form data
                         selectedCharacters.forEach(checkbox => {
                             formData.append('selected_images[]', checkbox.value);
                         });
 
-                        // Log form data for debugging
-                        console.log('Form data entries:', 
-                            Array.from(formData.entries())
-                                .map(([key, value]) => `${key}: ${value}`)
-                                .join(', ')
+                        console.log('Form data:', Array.from(formData.entries())
+                            .map(([key, value]) => `${key}: ${value}`)
+                            .join(', ')
                         );
 
                         await story.generate(formData);
@@ -94,44 +116,6 @@ export const events = {
                     } finally {
                         if (btn) btn.disabled = false;
                     }
-                });
-            }
-
-            // Handle trade form if it exists (backend processing)
-            const tradeForm = document.getElementById('tradeForm');
-            if (tradeForm) {
-                tradeForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const btn = e.target.querySelector('button[type="submit"]');
-                    if (btn) btn.disabled = true;
-
-                    const formData = new FormData(e.target);
-                    fetch('/api/currency/trade', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            from_currency: formData.get('fromCurrency'),
-                            to_currency: formData.get('toCurrency'),
-                            amount: parseInt(formData.get('amount'))
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            window.location.reload(); // Refresh to show updated balances
-                        } else {
-                            dom.showToast('Error', data.error || 'Trade failed');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        dom.showToast('Error', 'Failed to process trade');
-                    })
-                    .finally(() => {
-                        if (btn) btn.disabled = false;
-                    });
                 });
             }
         });

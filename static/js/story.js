@@ -4,6 +4,28 @@
 import { api } from './utils/api.js';
 import { dom } from './utils/dom.js';
 
+function createLoadingOverlay(message = 'Generating Story...') {
+    const overlay = document.createElement('div');
+    overlay.className = 'loading-overlay';
+    overlay.innerHTML = `
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-percentage">0%</div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.style.display = 'flex';
+    return overlay.querySelector('.loading-percentage');
+}
+
+function updateLoadingPercent(element, percent) {
+    element.textContent = `${Math.round(percent)}%`;
+}
+
+function removeLoadingOverlay(overlay) {
+    overlay.closest('.loading-overlay').remove();
+}
+
 export const story = {
     /**
      * Generate a new story
@@ -11,28 +33,24 @@ export const story = {
      * @returns {Promise<boolean>} - Success status
      */
     generate: async (formData) => {
-        const loadingPercent = dom.createLoadingOverlay('Generating your story...');
+        const loadingPercent = createLoadingOverlay('Generating your adventure...');
         let progress = 0;
         const progressInterval = setInterval(() => {
             if (progress < 90) {
                 progress += 5;
-                dom.updateLoadingPercent(loadingPercent, progress);
+                updateLoadingPercent(loadingPercent, progress);
             }
         }, 500);
 
         try {
-            // Get selected character IDs
-            const selectedCharacters = document.querySelectorAll('.character-checkbox:checked');
-            const selectedIds = Array.from(selectedCharacters).map(checkbox => checkbox.value);
-
-            // Add selected character IDs to form data
-            selectedIds.forEach(id => formData.append('selected_images[]', id));
+            // Debug log form data
+            console.log('Submitting form with data:', Array.from(formData.entries()));
 
             const data = await api.postForm('/generate_story', formData);
             clearInterval(progressInterval);
 
             if (data.success && data.redirect) {
-                dom.updateLoadingPercent(loadingPercent, 100);
+                updateLoadingPercent(loadingPercent, 100);
                 setTimeout(() => {
                     window.location.href = data.redirect;
                 }, 500);
@@ -41,11 +59,12 @@ export const story = {
                 throw new Error(data.error || 'Failed to generate story');
             }
         } catch (error) {
-            clearInterval(progressInterval);
+            console.error('Error generating story:', error);
             dom.showToast('Error', error.message || 'Failed to generate story', true);
             return false;
         } finally {
-            dom.removeLoadingOverlay(loadingPercent);
+            clearInterval(progressInterval);
+            removeLoadingOverlay(loadingPercent);
         }
     },
 
@@ -55,37 +74,36 @@ export const story = {
      * @returns {Promise<boolean>} - Success status
      */
     makeChoice: async (formData) => {
-        const loadingPercent = dom.createLoadingOverlay('Processing your choice...');
-        const isCustomChoice = formData.has('custom_choice');
+        const loadingPercent = createLoadingOverlay('Processing your choice...');
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+            if (progress < 90) {
+                progress += 5;
+                updateLoadingPercent(loadingPercent, progress);
+            }
+        }, 500);
 
         try {
-            // Make the choice
-            const response = await api.post('/make_choice', {
-                choice_id: formData.get('choice_id'),
-                custom_choice: isCustomChoice ? formData.get('custom_choice') : null
-            });
+            const response = await api.postForm('/make_choice', formData);
 
             if (!response.success) {
                 throw new Error(response.error || 'Failed to process choice');
             }
 
-            // Generate next story part
-            const storyData = await api.postForm('/generate_story', formData);
-
-            if (storyData.success && storyData.redirect) {
-                dom.updateLoadingPercent(loadingPercent, 100);
-                setTimeout(() => {
-                    window.location.href = storyData.redirect;
-                }, 500);
-                return true;
-            } else {
-                throw new Error(storyData.error || 'Failed to generate next story part');
-            }
+            updateLoadingPercent(loadingPercent, 100);
+            setTimeout(() => {
+                if (response.redirect) {
+                    window.location.href = response.redirect;
+                }
+            }, 500);
+            return true;
         } catch (error) {
+            console.error('Error processing choice:', error);
             dom.showToast('Error', error.message || 'Failed to process your choice', true);
             return false;
         } finally {
-            dom.removeLoadingOverlay(loadingPercent);
+            clearInterval(progressInterval);
+            removeLoadingOverlay(loadingPercent);
         }
     }
 };
