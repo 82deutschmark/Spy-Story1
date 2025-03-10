@@ -24,21 +24,35 @@ This application allows users to generate interactive stories featuring images f
 
 ## Recent Improvements
 
-- **main.js Refactoring**: Modularized JavaScript with module pattern for better maintainability, separating concerns into UIUtils, CurrencyManager, UserProgressManager, CharacterManager, StoryManager, MissionManager, and PaymentManager modules
-- **Debug Tools Modularization**: Refactored debug.js for better maintainability and organization with clearer separation of concerns
-- **Character Role Standardization**: Ensured all characters use consistent role types (undetermined, villain, neutral, mission-giver)
-- **Form Validation Improvements**: Fixed form handling in debug interface to properly validate and save character data
-- **Mission System**: Added mission tracking and objectives to story generation
-- **Character Dynamics**: Improved how new characters are introduced (limited to 10% chance after 4 characters)
-- **Debug Tools Enhancement**: Improved image analysis workflow with proper editing and saving
-- **Currency System**: Implemented virtual currencies with exchange features
-- **Plot Arc Tracking**: Added system to track story progress across multiple sessions
-- **Character Evolution**: Characters now evolve based on story interactions
-- **Multi-Character Support**: Enhanced the app to support selecting multiple characters for stories
-- **Improved Error Handling**: Fixed issues with story continuation and form submission
-- **Backend Optimization**: Updated the story generation logic to handle multiple character selections
-- **UI Enhancements**: Fixed character highlighting in story text and added progress display
-- **Bug Fixes**: Resolved form submission duplicates and storyboard rendering issues
+- **JavaScript Modularization**: 
+  - Restructured frontend code with ES6 modules for better maintainability and organization
+  - Separated main.js into UIUtils, CurrencyManager, UserProgressManager, CharacterManager, StoryManager, MissionManager, and PaymentManager modules
+  - Refactored debug.js into multiple modules (DebugUI, DebugAPI, FormHandler, DataHandler, ModalHandler, ImageHandler, EventHandler, DebugUtils)
+  - Implemented proper dependency injection pattern to resolve circular references
+
+- **Debug Interface Improvements**:
+  - Fixed API endpoints for debug page functionality (/debug/images and /debug/stories)
+  - Enhanced debug interface with better image analysis workflow
+  - Improved form handling for character data editing and saving
+  - Added detailed statistics and health checks for database records
+
+- **Character System Enhancements**:
+  - Standardized character roles (undetermined, villain, neutral, mission-giver)
+  - Improved character introduction logic (limited to 10% chance after 4 characters)
+  - Enhanced character evolution based on story interactions
+
+- **Gameplay Features**:
+  - Added mission tracking and objectives to story generation
+  - Implemented virtual currencies with exchange features
+  - Created plot arc tracking across multiple story sessions
+
+- **Technical Improvements**:
+  - Resolved circular dependencies in JavaScript modules
+  - Fixed DOM manipulation timing issues
+  - Improved error handling in story continuation
+  - Updated backend story generation logic for multiple character selection
+  - Enhanced UI with better character highlighting and progress display
+  - Fixed form submission duplicates and storyboard rendering issues
 
 ## Technology Stack
 
