@@ -31,82 +31,89 @@ export default {
      */
     setupEvents() {
         // Setup image refresh button
-        document.getElementById('refreshImagesBtn').addEventListener('click', () => this.loadImages());
+        const refreshImagesBtn = document.getElementById('refreshImagesBtn');
+        if (refreshImagesBtn) {
+            refreshImagesBtn.addEventListener('click', () => this.loadImages());
+        }
 
         // Setup story refresh button
-        document.getElementById('refreshStoriesBtn').addEventListener('click', () => this.loadStories());
+        const refreshStoriesBtn = document.getElementById('refreshStoriesBtn');
+        if (refreshStoriesBtn) {
+            refreshStoriesBtn.addEventListener('click', () => this.loadStories());
+        }
 
         // Setup image search
-        document.getElementById('imageSearchBtn').addEventListener('click', () => {
-            const searchTerm = document.getElementById('imageSearchInput').value;
-            this.searchImages(searchTerm);
-        });
+        const imageSearchBtn = document.getElementById('imageSearchBtn');
+        if (imageSearchBtn) {
+            imageSearchBtn.addEventListener('click', () => {
+                const searchTerm = document.getElementById('imageSearchInput').value;
+                this.searchImages(searchTerm);
+            });
+        }
 
         // Setup story search
-        document.getElementById('storySearchBtn').addEventListener('click', () => {
-            const searchTerm = document.getElementById('storySearchInput').value;
-            this.searchStories(searchTerm);
-        });
+        const storySearchBtn = document.getElementById('storySearchBtn');
+        if (storySearchBtn) {
+            storySearchBtn.addEventListener('click', () => {
+                const searchTerm = document.getElementById('storySearchInput').value;
+                this.searchStories(searchTerm);
+            });
+        }
 
         // Setup delete all images button
-        document.getElementById('deleteAllImagesBtn').addEventListener('click', () => {
-            if (confirm('Are you sure you want to delete ALL images? This cannot be undone!')) {
-                this.deleteAllImages();
-            }
-        });
+        const deleteAllImagesBtn = document.getElementById('deleteAllImagesBtn');
+        if (deleteAllImagesBtn) {
+            deleteAllImagesBtn.addEventListener('click', () => {
+                if (confirm('Are you sure you want to delete ALL images? This cannot be undone!')) {
+                    this.deleteAllImages();
+                }
+            });
+        }
 
         // Setup delete all stories button
-        document.getElementById('deleteAllStoriesBtn').addEventListener('click', () => {
-            if (confirm('Are you sure you want to delete ALL stories? This cannot be undone!')) {
-                this.deleteAllStories();
-            }
-        });
+        const deleteAllStoriesBtn = document.getElementById('deleteAllStoriesBtn');
+        if (deleteAllStoriesBtn) {
+            deleteAllStoriesBtn.addEventListener('click', () => {
+                if (confirm('Are you sure you want to delete ALL stories? This cannot be undone!')) {
+                    this.deleteAllStories();
+                }
+            });
+        }
 
         // Setup health check button
-        document.getElementById('runHealthCheckBtn').addEventListener('click', () => this.runHealthCheck());
+        const runHealthCheckBtn = document.getElementById('runHealthCheckBtn');
+        if (runHealthCheckBtn) {
+            runHealthCheckBtn.addEventListener('click', () => this.runHealthCheck());
+        }
     },
 
-    /**
-     * Filter images by type
-     * @param {string} filter - Filter value
-     */
     filterImages(filter) {
         this.currentFilter = filter;
         this.currentPage = 1;
         this.loadImages();
-
-        // Update active filter button
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.classList.toggle('active', btn.getAttribute('data-filter') === filter);
         });
     },
 
-    /**
-     * Search images
-     * @param {string} term - Search term
-     */
     searchImages(term) {
         this.searchTerm = term;
         this.currentPage = 1;
         this.loadImages();
     },
 
-    /**
-     * Search stories
-     * @param {string} term - Search term
-     */
     searchStories(term) {
         this.storySearchTerm = term;
         this.storyCurrentPage = 1;
         this.loadStories();
     },
 
-    /**
-     * Load images with pagination
-     */
     async loadImages() {
         try {
-            DebugUI.elements.imagesTableBody.innerHTML = `
+            const imagesTableBody = document.getElementById('imagesTableBody');
+            if (!imagesTableBody) return;
+            
+            imagesTableBody.innerHTML = `
                 <tr>
                     <td colspan="6" class="text-center">
                         <div class="spinner-border text-primary" role="status">
@@ -115,22 +122,18 @@ export default {
                     </td>
                 </tr>
             `;
-
             let url = `/debug/images?page=${this.currentPage}&limit=${this.pageSize}`;
-
             if (this.currentFilter) {
                 url += `&type=${this.currentFilter}`;
             }
-
             if (this.searchTerm) {
                 url += `&search=${encodeURIComponent(this.searchTerm)}`;
             }
-
             const data = await DebugAPI.get(url);
 
             if (data.success) {
                 this.renderImagesTable(data.images);
-                DebugUI.createPagination('imagesPagination', data.total_pages, this.currentPage, 
+                DebugUI.createPagination('imagesPagination', data.total_pages, this.currentPage,
                     (page) => {
                         this.currentPage = page;
                         this.loadImages();
@@ -140,23 +143,25 @@ export default {
                 DebugUtils.showToast('Error', data.message || 'Failed to load images', true);
             }
         } catch (error) {
-            DebugUI.elements.imagesTableBody.innerHTML = `
-                <tr>
-                    <td colspan="6" class="text-center text-danger">
-                        Failed to load images: ${error.message}
-                    </td>
-                </tr>
-            `;
+            const imagesTableBody = document.getElementById('imagesTableBody');
+            if (imagesTableBody) {
+                imagesTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center text-danger">
+                            Failed to load images: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            }
         }
     },
 
-    /**
-     * Render images table
-     * @param {Array} images - Array of image objects
-     */
     renderImagesTable(images) {
+        const imagesTableBody = document.getElementById('imagesTableBody');
+        if (!imagesTableBody) return;
+        
         if (!images || images.length === 0) {
-            DebugUI.elements.imagesTableBody.innerHTML = `
+            imagesTableBody.innerHTML = `
                 <tr>
                     <td colspan="6" class="text-center">No images found</td>
                 </tr>
@@ -164,12 +169,10 @@ export default {
             return;
         }
 
-        DebugUI.elements.imagesTableBody.innerHTML = '';
+        imagesTableBody.innerHTML = '';
 
         images.forEach(image => {
             const row = document.createElement('tr');
-
-            // Create image thumbnail with modal trigger
             const thumbnailCell = document.createElement('td');
             const thumbnail = document.createElement('img');
             thumbnail.src = image.image_url;
@@ -179,8 +182,6 @@ export default {
             thumbnail.style.cursor = 'pointer';
             thumbnail.addEventListener('click', () => this.openImageDetails(image));
             thumbnailCell.appendChild(thumbnail);
-
-            // Create table cells
             row.innerHTML = `
                 <td>${image.id}</td>
                 <td>${image.type || 'Unknown'}</td>
@@ -197,122 +198,125 @@ export default {
                     </div>
                 </td>
             `;
-
-            // Insert thumbnail cell at the beginning
             row.insertBefore(thumbnailCell, row.firstChild);
-
-            DebugUI.elements.imagesTableBody.appendChild(row);
-
-            // Add event listeners for buttons
-            row.querySelector('.view-btn').addEventListener('click', () => this.openImageDetails(image));
-            row.querySelector('.delete-btn').addEventListener('click', () => this.deleteImage(image.id));
+            imagesTableBody.appendChild(row);
+            
+            const viewBtn = row.querySelector('.view-btn');
+            if (viewBtn) {
+                viewBtn.addEventListener('click', () => this.openImageDetails(image));
+            }
+            
+            const deleteBtn = row.querySelector('.delete-btn');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', () => this.deleteImage(image.id));
+            }
         });
     },
 
-    /**
-     * Open image details modal
-     * @param {object} image - Image object
-     */
     openImageDetails(image) {
-        const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
-
-        // Set modal content
+        const detailsModal = document.getElementById('detailsModal');
+        if (!detailsModal) return;
+        
+        const modal = new bootstrap.Modal(detailsModal);
         document.getElementById('modalImage').src = image.image_url;
         document.getElementById('modalContent').textContent = JSON.stringify(image, null, 2);
-
-        // Setup edit mode switch
         const editSwitch = document.getElementById('modalEditModeSwitch');
         const editContainer = document.getElementById('modalEditContainer');
-
         editSwitch.checked = false;
         editContainer.style.display = 'none';
-
-        // Populate edit form
         this.populateModalEditForm(image);
-
-        // Set up reanalyze button
-        document.getElementById('reanalyzeImageBtn').onclick = () => {
-            const reanalyzeModal = new bootstrap.Modal(document.getElementById('reanalyzeConfirmModal'));
-            document.getElementById('confirmReanalyzeBtn').onclick = () => {
-                this.reanalyzeImage(image.id, document.getElementById('preserveRelationsCheck').checked);
-                reanalyzeModal.hide();
+        
+        const reanalyzeBtn = document.getElementById('reanalyzeImageBtn');
+        if (reanalyzeBtn) {
+            reanalyzeBtn.onclick = () => {
+                const reanalyzeModal = new bootstrap.Modal(document.getElementById('reanalyzeConfirmModal'));
+                document.getElementById('confirmReanalyzeBtn').onclick = () => {
+                    this.reanalyzeImage(image.id, document.getElementById('preserveRelationsCheck').checked);
+                    reanalyzeModal.hide();
+                };
+                reanalyzeModal.show();
             };
-            reanalyzeModal.show();
-        };
-
-        // Set up save changes button
+        }
+        
         const saveBtn = document.getElementById('saveAnalysisBtn');
-        saveBtn.style.display = 'none';
-        saveBtn.onclick = () => this.saveModalChanges(image.id);
-
-        // Edit mode toggle
-        editSwitch.onchange = () => {
-            editContainer.style.display = editSwitch.checked ? 'block' : 'none';
-            saveBtn.style.display = editSwitch.checked ? 'inline-block' : 'none';
-        };
-
-        // Type change handler
-        document.getElementById('modalImageType').onchange = () => {
-            const type = document.getElementById('modalImageType').value;
-            document.getElementById('modalCharacterFields').style.display = type === 'character' ? 'block' : 'none';
-            document.getElementById('modalSceneFields').style.display = type === 'scene' ? 'block' : 'none';
-        };
-
+        if (saveBtn) {
+            saveBtn.style.display = 'none';
+            saveBtn.onclick = () => this.saveModalChanges(image.id);
+        }
+        
+        if (editSwitch) {
+            editSwitch.onchange = () => {
+                editContainer.style.display = editSwitch.checked ? 'block' : 'none';
+                saveBtn.style.display = editSwitch.checked ? 'inline-block' : 'none';
+            };
+        }
+        
+        const modalImageType = document.getElementById('modalImageType');
+        if (modalImageType) {
+            modalImageType.onchange = () => {
+                const type = modalImageType.value;
+                document.getElementById('modalCharacterFields').style.display = type === 'character' ? 'block' : 'none';
+                document.getElementById('modalSceneFields').style.display = type === 'scene' ? 'block' : 'none';
+            };
+        }
+        
         modal.show();
     },
 
-    /**
-     * Populate modal edit form
-     * @param {object} image - Image object
-     */
     populateModalEditForm(image) {
-        // Basic fields
-        document.getElementById('modalImageName').value = image.name || '';
-        document.getElementById('modalImageType').value = image.image_type || 'character';
-        document.getElementById('modalDescriptionField').value = image.description || '';
-
-        // Set fields visibility based on type
+        const modalImageName = document.getElementById('modalImageName');
+        const modalImageType = document.getElementById('modalImageType');
+        const modalDescriptionField = document.getElementById('modalDescriptionField');
+        const modalCharacterFields = document.getElementById('modalCharacterFields');
+        const modalSceneFields = document.getElementById('modalSceneFields');
+        
+        if (modalImageName) modalImageName.value = image.name || '';
+        if (modalImageType) modalImageType.value = image.image_type || 'character';
+        if (modalDescriptionField) modalDescriptionField.value = image.description || '';
+        
         const type = image.image_type || 'character';
-        document.getElementById('modalCharacterFields').style.display = type === 'character' ? 'block' : 'none';
-        document.getElementById('modalSceneFields').style.display = type === 'scene' ? 'block' : 'none';
-
-        // Character-specific fields
+        if (modalCharacterFields) modalCharacterFields.style.display = type === 'character' ? 'block' : 'none';
+        if (modalSceneFields) modalSceneFields.style.display = type === 'scene' ? 'block' : 'none';
+        
         if (type === 'character') {
-            document.getElementById('modalCharacterRole').value = image.role || 'neutral';
-
-            const traits = image.personality_traits || image.character_traits || image.traits || [];
-            document.getElementById('modalCharacterTraits').value = 
-                Array.isArray(traits) ? traits.join(', ') : '';
-
-            const plotLines = image.plot_lines || image.potential_plot_lines || [];
-            document.getElementById('modalPlotLines').value = 
-                Array.isArray(plotLines) ? plotLines.join('\n') : '';
-        }
-        // Scene-specific fields
-        else if (type === 'scene') {
-            document.getElementById('modalSceneType').value = image.scene_type || 'action';
-            document.getElementById('modalSceneSetting').value = image.setting || '';
-
-            const dramaticMoments = image.dramatic_moments || [];
-            document.getElementById('modalDramaticMoments').value = 
-                Array.isArray(dramaticMoments) ? dramaticMoments.join('\n') : '';
+            const modalCharacterRole = document.getElementById('modalCharacterRole');
+            const modalCharacterTraits = document.getElementById('modalCharacterTraits');
+            const modalPlotLines = document.getElementById('modalPlotLines');
+            
+            if (modalCharacterRole) modalCharacterRole.value = image.role || 'neutral';
+            
+            if (modalCharacterTraits) {
+                const traits = image.personality_traits || image.character_traits || image.traits || [];
+                modalCharacterTraits.value = Array.isArray(traits) ? traits.join(', ') : '';
+            }
+            
+            if (modalPlotLines) {
+                const plotLines = image.plot_lines || image.potential_plot_lines || [];
+                modalPlotLines.value = Array.isArray(plotLines) ? plotLines.join('\n') : '';
+            }
+        } else if (type === 'scene') {
+            const modalSceneType = document.getElementById('modalSceneType');
+            const modalSceneSetting = document.getElementById('modalSceneSetting');
+            const modalDramaticMoments = document.getElementById('modalDramaticMoments');
+            
+            if (modalSceneType) modalSceneType.value = image.scene_type || 'action';
+            if (modalSceneSetting) modalSceneSetting.value = image.setting || '';
+            
+            if (modalDramaticMoments) {
+                const dramaticMoments = image.dramatic_moments || [];
+                modalDramaticMoments.value = Array.isArray(dramaticMoments) ? dramaticMoments.join('\n') : '';
+            }
         }
     },
 
-    /**
-     * Save changes from modal
-     * @param {number} imageId - Image ID
-     */
     async saveModalChanges(imageId) {
         try {
-            // Get form data
             const formData = {
                 name: document.getElementById('modalImageName').value,
                 image_type: document.getElementById('modalImageType').value,
                 description: document.getElementById('modalDescriptionField').value
             };
-
-            // Type-specific fields
+            
             if (formData.image_type === 'character') {
                 formData.role = document.getElementById('modalCharacterRole').value;
                 formData.traits = document.getElementById('modalCharacterTraits')
@@ -325,14 +329,12 @@ export default {
                 formData.dramatic_moments = document.getElementById('modalDramaticMoments')
                     .value.split('\n').map(moment => moment.trim()).filter(moment => moment);
             }
-
+            
             const response = await DebugAPI.post(`/debug/update-image/${imageId}`, formData);
 
             if (response.success) {
                 DebugUtils.showToast('Success', 'Image updated successfully');
                 this.loadImages();
-
-                // Update modal content
                 document.getElementById('modalContent').textContent = JSON.stringify(response.image, null, 2);
             } else {
                 DebugUtils.showToast('Error', response.message || 'Failed to update image', true);
@@ -342,15 +344,9 @@ export default {
         }
     },
 
-    /**
-     * Reanalyze image
-     * @param {number} imageId - Image ID
-     * @param {boolean} preserveRelations - Whether to preserve relations
-     */
     async reanalyzeImage(imageId, preserveRelations) {
         try {
             DebugUtils.showToast('Processing', 'Reanalyzing image...');
-
             const response = await DebugAPI.post(`/debug/reanalyze-image/${imageId}`, {
                 preserve_relations: preserveRelations
             });
@@ -358,10 +354,8 @@ export default {
             if (response.success) {
                 DebugUtils.showToast('Success', 'Image reanalyzed successfully');
                 this.loadImages();
-
-                // Close modal
                 const modal = bootstrap.Modal.getInstance(document.getElementById('detailsModal'));
-                modal.hide();
+                if (modal) modal.hide();
             } else {
                 DebugUtils.showToast('Error', response.message || 'Failed to reanalyze image', true);
             }
@@ -370,10 +364,6 @@ export default {
         }
     },
 
-    /**
-     * Delete image
-     * @param {number} imageId - Image ID
-     */
     async deleteImage(imageId) {
         if (!confirm('Are you sure you want to delete this image?')) {
             return;
@@ -393,9 +383,6 @@ export default {
         }
     },
 
-    /**
-     * Delete all images
-     */
     async deleteAllImages() {
         try {
             const response = await DebugAPI.delete('/debug/images');
@@ -411,12 +398,12 @@ export default {
         }
     },
 
-    /**
-     * Load stories
-     */
     async loadStories() {
         try {
-            DebugUI.elements.storiesTableBody.innerHTML = `
+            const storiesTableBody = document.getElementById('storiesTableBody');
+            if (!storiesTableBody) return;
+            
+            storiesTableBody.innerHTML = `
                 <tr>
                     <td colspan="7" class="text-center">
                         <div class="spinner-border text-primary" role="status">
@@ -425,18 +412,17 @@ export default {
                     </td>
                 </tr>
             `;
-
+            
             let url = `/debug/stories?page=${this.storyCurrentPage || 1}&limit=${this.pageSize}`;
-
             if (this.storySearchTerm) {
                 url += `&search=${encodeURIComponent(this.storySearchTerm)}`;
             }
-
+            
             const data = await DebugAPI.get(url);
 
             if (data.success) {
                 this.renderStoriesTable(data.stories);
-                DebugUI.createPagination('storiesPagination', data.total_pages, 
+                DebugUI.createPagination('storiesPagination', data.total_pages,
                     this.storyCurrentPage || 1, (page) => {
                         this.storyCurrentPage = page;
                         this.loadStories();
@@ -446,23 +432,25 @@ export default {
                 DebugUtils.showToast('Error', data.message || 'Failed to load stories', true);
             }
         } catch (error) {
-            DebugUI.elements.storiesTableBody.innerHTML = `
-                <tr>
-                    <td colspan="7" class="text-center text-danger">
-                        Failed to load stories: ${error.message}
-                    </td>
-                </tr>
-            `;
+            const storiesTableBody = document.getElementById('storiesTableBody');
+            if (storiesTableBody) {
+                storiesTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center text-danger">
+                            Failed to load stories: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            }
         }
     },
 
-    /**
-     * Render stories table
-     * @param {Array} stories - Array of story objects
-     */
     renderStoriesTable(stories) {
+        const storiesTableBody = document.getElementById('storiesTableBody');
+        if (!storiesTableBody) return;
+        
         if (!stories || stories.length === 0) {
-            DebugUI.elements.storiesTableBody.innerHTML = `
+            storiesTableBody.innerHTML = `
                 <tr>
                     <td colspan="7" class="text-center">No stories found</td>
                 </tr>
@@ -470,19 +458,18 @@ export default {
             return;
         }
 
-        DebugUI.elements.storiesTableBody.innerHTML = '';
+        storiesTableBody.innerHTML = '';
 
         stories.forEach(story => {
             const row = document.createElement('tr');
-
-            // Format characters list
             let charactersText = 'None';
+            
             if (story.characters && story.characters.length > 0) {
                 charactersText = story.characters
                     .map(char => char.name || `ID: ${char.id}`)
                     .join(', ');
             }
-
+            
             row.innerHTML = `
                 <td>${story.id}</td>
                 <td>${story.title || 'Untitled'}</td>
@@ -501,25 +488,26 @@ export default {
                     </div>
                 </td>
             `;
-
-            DebugUI.elements.storiesTableBody.appendChild(row);
-
-            // Add event listeners for buttons
-            row.querySelector('.view-story-btn').addEventListener('click', () => this.viewStory(story.id));
-            row.querySelector('.delete-story-btn').addEventListener('click', () => this.deleteStory(story.id));
+            
+            storiesTableBody.appendChild(row);
+            
+            const viewBtn = row.querySelector('.view-story-btn');
+            if (viewBtn) {
+                viewBtn.addEventListener('click', () => this.viewStory(story.id));
+            }
+            
+            const deleteBtn = row.querySelector('.delete-story-btn');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', () => this.deleteStory(story.id));
+            }
         });
     },
 
-    /**
-     * View story details
-     * @param {number} storyId - Story ID
-     */
     async viewStory(storyId) {
         try {
             const response = await DebugAPI.get(`/debug/stories/${storyId}`);
 
             if (response.success) {
-                // Show story in modal
                 const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
                 document.getElementById('detailsModalLabel').innerHTML = 
                     `<i class="fas fa-book me-2"></i>Story Details`;
@@ -530,7 +518,6 @@ export default {
                 document.getElementById('modalEditContainer').style.display = 'none';
                 document.getElementById('reanalyzeImageBtn').style.display = 'none';
                 document.getElementById('saveAnalysisBtn').style.display = 'none';
-
                 modal.show();
             } else {
                 DebugUtils.showToast('Error', response.message || 'Failed to load story', true);
@@ -540,10 +527,6 @@ export default {
         }
     },
 
-    /**
-     * Delete story
-     * @param {number} storyId - Story ID
-     */
     async deleteStory(storyId) {
         if (!confirm('Are you sure you want to delete this story?')) {
             return;
@@ -563,9 +546,6 @@ export default {
         }
     },
 
-    /**
-     * Delete all stories
-     */
     async deleteAllStories() {
         try {
             const response = await DebugAPI.delete('/debug/stories');
@@ -581,29 +561,30 @@ export default {
         }
     },
 
-    /**
-     * Run database health check
-     */
     async runHealthCheck() {
         try {
             DebugUtils.showToast('Processing', 'Running health check...');
-
             const response = await DebugAPI.get('/debug/health-check');
 
             if (response.success) {
-                // Update stats
-                document.getElementById('totalImages').textContent = response.stats.image_count;
-                document.getElementById('characterImages').textContent = response.stats.character_count;
-                document.getElementById('sceneImages').textContent = response.stats.scene_count;
-                document.getElementById('totalStories').textContent = response.stats.story_count;
-                document.getElementById('orphanedImages').textContent = response.stats.orphaned_images;
-                document.getElementById('emptyStories').textContent = response.stats.empty_stories;
-
-                // Display issues
+                const totalImages = document.getElementById('totalImages');
+                const characterImages = document.getElementById('characterImages');
+                const sceneImages = document.getElementById('sceneImages');
+                const totalStories = document.getElementById('totalStories');
+                const orphanedImages = document.getElementById('orphanedImages');
+                const emptyStories = document.getElementById('emptyStories');
+                
+                if (totalImages) totalImages.textContent = response.stats.image_count;
+                if (characterImages) characterImages.textContent = response.stats.character_count;
+                if (sceneImages) sceneImages.textContent = response.stats.scene_count;
+                if (totalStories) totalStories.textContent = response.stats.story_count;
+                if (orphanedImages) orphanedImages.textContent = response.stats.orphaned_images;
+                if (emptyStories) emptyStories.textContent = response.stats.empty_stories;
+                
                 const issuesList = document.getElementById('issuesList');
                 const noIssuesAlert = document.getElementById('noIssuesAlert');
 
-                if (response.issues && response.issues.length > 0) {
+                if (response.issues && response.issues.length > 0 && issuesList && noIssuesAlert) {
                     issuesList.innerHTML = '';
                     response.issues.forEach(issue => {
                         const li = document.createElement('li');
@@ -614,28 +595,25 @@ export default {
                                     <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
                                     ${issue.description}
                                 </div>
-                                ${issue.fixable ? 
+                                ${issue.fixable ?
                                     `<button class="btn btn-sm btn-outline-primary fix-issue-btn" 
                                         data-issue-id="${issue.id}" data-issue-type="${issue.type}">
                                         <i class="fas fa-wrench me-1"></i>Fix
-                                    </button>` : 
+                                    </button>` :
                                     ''
                                 }
                             </div>
                         `;
                         issuesList.appendChild(li);
-
-                        // Add click handler for fix button
                         if (issue.fixable) {
                             li.querySelector('.fix-issue-btn').addEventListener('click', () => {
                                 this.fixIssue(issue.type, issue.id);
                             });
                         }
                     });
-
                     issuesList.style.display = 'block';
                     noIssuesAlert.style.display = 'none';
-                } else {
+                } else if (issuesList && noIssuesAlert) {
                     issuesList.style.display = 'none';
                     noIssuesAlert.style.display = 'block';
                 }
@@ -649,15 +627,9 @@ export default {
         }
     },
 
-    /**
-     * Fix database issue
-     * @param {string} issueType - Issue type
-     * @param {number} issueId - Issue ID
-     */
     async fixIssue(issueType, issueId) {
         try {
             DebugUtils.showToast('Processing', 'Fixing issue...');
-
             const response = await DebugAPI.post('/debug/fix-issue', {
                 issue_type: issueType,
                 issue_id: issueId
@@ -666,8 +638,6 @@ export default {
             if (response.success) {
                 DebugUtils.showToast('Success', 'Issue fixed successfully');
                 this.runHealthCheck();
-
-                // Refresh data
                 this.loadImages();
                 this.loadStories();
             } else {

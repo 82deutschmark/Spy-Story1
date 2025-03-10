@@ -223,6 +223,7 @@ const DebugUI = {
 
 export default DebugUI;
 
+
 // modules/debug/FormHandler.js
 const FormHandler = {
     initialize() {
@@ -856,7 +857,6 @@ const EventHandler = {
 
 export default EventHandler;
 
-
 /**
  * Main entry point for the debug application
  * Uses ES6 modules for better organization
@@ -871,6 +871,16 @@ import DataHandler from './modules/debug/DataHandler.js';
 import ModalHandler from './modules/debug/ModalHandler.js';
 import ImageHandler from './modules/debug/ImageHandler.js';
 import EventHandler from './modules/debug/EventHandler.js';
+
+// Make modules accessible globally
+window.DebugUtils = DebugUtils;
+window.DebugAPI = DebugAPI;
+window.DebugUI = DebugUI;
+window.FormHandler = FormHandler;
+window.DataHandler = DataHandler;
+window.ModalHandler = ModalHandler;
+window.ImageHandler = ImageHandler;
+window.EventHandler = EventHandler;
 
 // Main Debug App module to initialize everything
 const DebugApp = {
