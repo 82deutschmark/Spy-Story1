@@ -111,7 +111,9 @@
                         <input type="hidden" name="setting" value="{{ story.setting|default('Enchanted world') }}">
                         <input type="hidden" name="narrative_style" value="{{ story.narrative_style|default('Engaging modern style') }}">
                         <input type="hidden" name="mood" value="{{ story.mood|default('Exciting and adventurous') }}">
-                        <button type="submit" class="choice-btn" {% if choice.currency_requirements %}data-currency-req='{{ choice.currency_requirements|tojson }}'{% endif %}>
+                        <button type="submit" class="choice-btn" 
+                               data-choice-id="{{ loop.index }}" 
+                               {% if choice.currency_requirements %}data-currency-req='{{ choice.currency_requirements|tojson }}'{% endif %}>
                             <div class="choice-text">{{ choice.text }}</div>
                             {% if choice.currency_requirements %}
                             <div class="choice-currency-req">

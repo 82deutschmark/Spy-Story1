@@ -554,6 +554,7 @@ def make_choice():
         data = request.json
         choice_id = data.get('choice_id')
         custom_choice = data.get('custom_choice')
+        previous_choice = data.get('previous_choice')
 
         # Get user ID from session
         if 'user_id' not in session:
@@ -565,7 +566,8 @@ def make_choice():
         result = GameHandler.process_choice(
             user_id=user_id,
             choice_id=choice_id,
-            custom_choice=custom_choice
+            custom_choice=custom_choice,
+            previous_choice=previous_choice
         )
         
         if not result['success']:

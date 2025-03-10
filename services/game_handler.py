@@ -11,13 +11,14 @@ class GameHandler:
     """Handler for game logic, choices, and currency transactions"""
     
     @staticmethod
-    def process_choice(user_id, choice_id=None, custom_choice=None):
+    def process_choice(user_id, choice_id=None, custom_choice=None, previous_choice=None):
         """Process a story choice and handle currency requirements
         
         Args:
             user_id (str): The user's unique identifier
             choice_id (int, optional): The ID of the selected choice
             custom_choice (str, optional): Text for a custom choice
+            previous_choice (str, optional): The text of the previous choice made
             
         Returns:
             dict: Response with transaction results
@@ -31,6 +32,21 @@ class GameHandler:
                     'error': 'User progress not found',
                     'code': 'user_not_found'
                 }
+                
+            # For now, we'll simply return success without actual story progression
+            # as it's handled by the generate_story_route function
+            
+            # Here we'd typically:
+            # 1. Check if the user can afford the choice
+            # 2. Process the currency transaction
+            # 3. Update the story progress
+            
+            return {
+                'success': True,
+                'new_balances': user_progress.currency_balances,
+                'message': 'Choice processed successfully',
+                'next_node_id': None  # This would be the ID of the next story node
+            }
 
             if custom_choice:
                 # Handle custom choice (costs diamonds)
