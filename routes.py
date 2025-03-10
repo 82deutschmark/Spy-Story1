@@ -671,6 +671,24 @@ def save_analysis_original():
                 character_role = character_data.get('role')
             else:
                 character_role = analysis.get('role')
+                
+            # Standardize character role to one of the valid options
+            valid_roles = ['undetermined', 'villain', 'neutral', 'mission-giver']
+            
+            if character_role is None or character_role == '':
+                character_role = 'undetermined'
+            elif character_role.lower() == 'antagonist' or character_role.lower() == 'villain':
+                character_role = 'villain'
+            elif character_role.lower() == 'protagonist' or character_role.lower() == 'hero':
+                character_role = 'neutral'
+            elif character_role.lower() == 'mission giver':
+                character_role = 'mission-giver'
+            elif character_role.lower() not in valid_roles:
+                character_role = 'undetermined'
+            else:
+                character_role = character_role.lower()
+                
+            logger.debug(f"Standardized character role: {character_role}")
 
         plot_lines = None
         if is_character:
