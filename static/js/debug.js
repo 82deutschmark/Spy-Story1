@@ -27,35 +27,56 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Show initial analysis state
+            const resultContainer = document.getElementById('result');
             const generatedContent = document.getElementById('generatedContent');
             generatedContent.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p>Analyzing image...</p></div>';
-            document.getElementById('result').style.display = 'block';
+            resultContainer.style.display = 'block';
 
             try {
                 // Analyze image
                 const result = await imageAnalyzer.analyze(imageUrl);
                 if (!result) return;
 
-                // Update UI with results
-                generatedContent.textContent = JSON.stringify(result.analysis, null, 2);
+                // Store image data
+                currentImageData = result;
+                
+                // Update UI to show image thumbnail
+                const imagePreview = document.createElement('div');
+                imagePreview.className = 'text-center mb-3';
+                imagePreview.innerHTML = `
+                    <img src="${result.imageUrl}" class="img-fluid rounded shadow-sm" alt="Analyzed Image" style="max-height: 300px;">
+                    <div class="mt-3 mb-3">
+                        <h5>Image Analysis Results</h5>
+                        <p class="text-muted">${result.description || 'Analysis complete. You can edit the details below.'}</p>
+                    </div>
+                `;
+                
+                generatedContent.innerHTML = '';
+                generatedContent.appendChild(imagePreview);
+                
+                // Store analysis data in hidden form
                 generatedContent.dataset.analysis = JSON.stringify(result.analysis);
                 generatedContent.dataset.imageUrl = result.imageUrl;
 
-                // Store image data
-                currentImageData = result;
-
-                // Update UI elements
-                const saveToDbBtn = document.getElementById('saveToDbBtn');
-                if (saveToDbBtn) {
-                    saveToDbBtn.style.display = result.savedToDb ? 'none' : 'inline-block';
+                // Enable edit mode by default
+                const editModeSwitch = document.getElementById('editModeSwitch');
+                if (editModeSwitch) {
+                    editModeSwitch.checked = true;
+                    document.getElementById('editContainer').style.display = 'block';
                 }
 
-                // Setup edit form if analysis was successful
+                // Setup edit form with analyzed data
                 formManager.populateEditForm(result.analysis);
+                
+                // Show save button
+                const saveToDbBtn = document.getElementById('saveToDbBtn');
+                if (saveToDbBtn) {
+                    saveToDbBtn.style.display = 'inline-block';
+                }
 
             } catch (error) {
                 console.error('Image analysis error:', error);
-                generatedContent.textContent = 'Error: ' + error.message;
+                generatedContent.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
                 dom.showToast('Error', error.message, true);
             }
         });
@@ -94,21 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Handle copy button
-    const copyBtn = document.getElementById('copyBtn');
-    if (copyBtn) {
-        copyBtn.addEventListener('click', function() {
-            const content = document.getElementById('generatedContent')?.textContent;
-            if (!content) {
-                dom.showToast('Error', 'No content to copy', true);
-                return;
-            }
-
-            navigator.clipboard.writeText(content)
-                .then(() => dom.showToast('Success', 'Copied to clipboard'))
-                .catch(err => dom.showToast('Error', 'Failed to copy: ' + err.message, true));
-        });
-    }
+    // Copy button removed as requested
 
     // Initialize database functionality
     const imagesTableBody = document.getElementById('imagesTableBody');
