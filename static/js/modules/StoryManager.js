@@ -12,32 +12,53 @@ export default {
      * @param {FormData} formData - Form data for story generation
      * @returns {Promise} - Promise resolving to story generation result
      */
-    generateStory(formData) {
-        console.log('Generating story, showing loading indicators...');
-
-        // Create loading overlay with percentage
-        const loadingPercent = UIUtils.createLoadingOverlay('Generating your adventure...');
-
-        // Disable the submit button
-        const generateStoryBtn = document.getElementById('generateStoryBtn');
-        if (generateStoryBtn) {
-            generateStoryBtn.disabled = true;
-            generateStoryBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Story...';
+    generateStory(form) {
+        // Check if already in progress
+        if (document.body.classList.contains('loading-in-progress')) {
+            return;
         }
 
-        // Show loading state on body
+        // Mark as in progress
         document.body.classList.add('loading-in-progress');
 
-        // Initialize progress tracking
+        // Get the submit button and disable it
+        const generateStoryBtn = form.querySelector('button[type="submit"]');
+        if (generateStoryBtn) {
+            generateStoryBtn.disabled = true;
+            generateStoryBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+        }
+
+        // Create a progress counter
         let progress = 0;
+        let loadingPercent = null;
+
+        // First create loading overlay for immediate visual feedback
+        const loadingOverlay = document.createElement('div');
+        loadingOverlay.className = 'loading-overlay';
+        loadingOverlay.innerHTML = `
+            <div class="loading-content">
+                <div class="loading-spinner"></div>
+                <div class="loading-message">Generating your adventure...</div>
+                <div class="loading-percentage">0%</div>
+            </div>
+        `;
+        document.body.appendChild(loadingOverlay);
+        loadingPercent = loadingOverlay.querySelector('.loading-percentage');
+
+        // Set up simulated progress updates
         const progressInterval = setInterval(() => {
             if (progress < 90) {
-                progress += 5;
-                UIUtils.updateLoadingPercent(loadingPercent, progress);
-            }
-        }, 500);
+                progress += Math.random() * 5;
+                progress = Math.min(progress, 90);
 
-        // Create a detailed loading UI component
+                // Update the simple overlay
+                if (loadingPercent) {
+                    loadingPercent.textContent = Math.round(progress) + '%';
+                }
+            }
+        }, 1000);
+
+        // Create the detailed loading UI
         const loadingUI = this.createLoadingUI();
         document.body.appendChild(loadingUI);
 
@@ -140,6 +161,7 @@ export default {
                 }
 
                 // Remove loading indicators
+                if (loadingPercent) loadingPercent.textContent = '0%'; //added
                 UIUtils.removeLoadingOverlay(loadingPercent);
                 document.body.classList.remove('loading-in-progress');
 
@@ -147,6 +169,10 @@ export default {
                 if (loadingUI && loadingUI.parentNode) {
                     loadingUI.parentNode.removeChild(loadingUI);
                 }
+
+                // Remove loading overlay
+                const loadingOverlay = document.querySelector('.loading-overlay');
+                if (loadingOverlay) loadingOverlay.remove();
 
                 // Show error message
                 UIUtils.showToast('Error', error.message || 'Failed to generate story. Please try again.');

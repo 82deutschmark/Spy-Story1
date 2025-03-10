@@ -40,40 +40,41 @@ export default {
     },
 
     /**
-     * Removes a loading overlay from the DOM
-     * @param {HTMLElement} overlay - The percentage element within the overlay
+     * Remove the loading overlay from the document
+     * @param {HTMLElement} [percentageElement] - Optional element to update to 100% before removing
      */
-    removeLoadingOverlay(overlay) {
-        console.log('Removing loading overlay');
-        if (overlay && overlay.closest('.loading-overlay')) {
-            overlay.closest('.loading-overlay').remove();
-            console.log('Loading overlay removed');
-        } else {
-            console.error('Loading overlay not found for removal');
+    removeLoadingOverlay(percentageElement) {
+        // If percentage element is provided, set it to 100% first
+        if (percentageElement) {
+            percentageElement.textContent = '100%';
         }
+
+        // Remove all loading overlays after a short delay
+        setTimeout(() => {
+            const overlays = document.querySelectorAll('.loading-overlay');
+            overlays.forEach(overlay => {
+                overlay.remove();
+            });
+        }, 500);
     },
 
     /**
-     * Show a toast notification
-     * @param {string} title - Toast title
-     * @param {string} message - Toast message
-     * @param {number} delay - Auto-hide delay in ms, 0 for no auto-hide
-     * @returns {bootstrap.Toast} - The toast object for programmatic control
+     * Shows a toast notification
+     * @param {string} title - The title of the toast
+     * @param {string} message - The message to display
      */
-    showToast(title, message, delay = 3000) {
-        const toastContainer = document.getElementById('toastContainer');
+    static showToast(title, message) {
+        const toastContainer = document.getElementById('toast-container');
         if (!toastContainer) {
-            // Create toast container if it doesn't exist
-            const newContainer = document.createElement('div');
-            newContainer.id = 'toastContainer';
-            newContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-            document.body.appendChild(newContainer);
+            const newToastContainer = document.createElement('div');
+            newToastContainer.id = 'toast-container';
+            newToastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+            document.body.appendChild(newToastContainer);
         }
 
         const toastId = 'toast-' + Date.now();
-        const toastHtml = `
-            <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" 
-                ${delay > 0 ? `data-bs-delay="${delay}"` : ''}>
+        const toastHTML = `
+            <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="toast-header">
                     <strong class="me-auto">${title}</strong>
                     <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
@@ -84,21 +85,12 @@ export default {
             </div>
         `;
 
-        const container = document.getElementById('toastContainer');
-        container.insertAdjacentHTML('beforeend', toastHtml);
+        const toastContainerEl = document.getElementById('toast-container');
+        toastContainerEl.insertAdjacentHTML('beforeend', toastHTML);
 
-        const toastElement = document.getElementById(toastId);
-        const toast = new bootstrap.Toast(toastElement, {
-            autohide: delay > 0
-        });
+        const toastEl = document.getElementById(toastId);
+        const toast = new bootstrap.Toast(toastEl, { animation: true, autohide: true, delay: 5000 });
         toast.show();
-
-        // Auto-remove after it's hidden
-        toastElement.addEventListener('hidden.bs.toast', () => {
-            toastElement.remove();
-        });
-
-        return toast;
     },
 
     /**

@@ -111,6 +111,15 @@ document.addEventListener('DOMContentLoaded', function() {
         storyForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(this);
+            // Find the submit button and update its UI
+            const submitButton = storyForm.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+            }
+
+            // Add loading class to body
+            document.body.classList.add('loading-in-progress');
             window.storyManager.generateStory(formData);
         });
     }
