@@ -59,65 +59,70 @@ class CharacterManager {
 
     // Setup listeners for reroll buttons
     setupRerollButtonListeners() {
-        const rerollButtons = document.querySelectorAll('.reroll-btn');
-
-        rerollButtons.forEach(button => {
+        console.log('Setting up reroll button listeners');
+        // Set up event listeners for the reroll buttons
+        document.querySelectorAll('.reroll-btn').forEach(button => {
             button.addEventListener('click', (e) => {
                 e.preventDefault();
-                e.stopPropagation();
-
-                // Get cost from currency manager
-                const rerollCost = {'💵': 1000};
-
-                // Check if user can afford it
-                if (window.currencyManager && !window.currencyManager.canAfford(rerollCost)) {
-                    window.UIUtils.showToast(
-                        'Insufficient Funds', 
-                        'You need $1000 to reroll a character.',
-                        true
-                    );
+                const characterContainer = button.closest('.character-select-card');
+                if (!characterContainer) {
+                    console.error('Character container not found');
                     return;
                 }
 
-                const cardContainer = button.closest('.character-container');
-                if (!cardContainer) return;
+                // Get the index from data attribute
+                const index = characterContainer.dataset.index;
+                console.log(`Rerolling character at index: ${index}`);
 
-                const characterCard = cardContainer.querySelector('.character-select-card');
-                if (!characterCard) return;
+                // Disable the button and show loading state
+                button.disabled = true;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Rerolling...';
 
-                // Show loading state
-                button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Rerolling...';
+                // Create loading overlay
+                const loadingPercent = window.UIUtils.createLoadingOverlay('Finding a new character...');
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    if (progress < 90) {
+                        progress += 10;
+                        window.UIUtils.updateLoadingPercent(loadingPercent, progress);
+                    }
+                }, 200);
 
-                // Fetch new character
-                this.fetchRandomCharacter()
+                fetch('/api/random_character')
+                    .then(response => response.json())
                     .then(data => {
-                        // Spend currency first
-                        if (window.currencyManager) {
-                            window.currencyManager.spendCurrency(
-                                rerollCost, 
-                                'Reroll character'
-                            );
-                        }
+                        clearInterval(progressInterval);
+                        window.UIUtils.updateLoadingPercent(loadingPercent, 100);
 
-                        this.updateCharacterCard(characterCard, cardContainer, data);
-                        // Reset button
-                        button.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
+                        if (data.success) {
+                            setTimeout(() => {
+                                this.updateCharacterCard(characterContainer, data);
+                                window.UIUtils.removeLoadingOverlay(loadingPercent);
 
-                        // Show toast notification
-                        if (window.UIUtils) {
-                            window.UIUtils.showToast('Character Updated', 'A new character has been loaded!');
+                                // Re-enable the button
+                                button.disabled = false;
+                                button.innerHTML = '<i class="fas fa-dice"></i> Reroll';
+
+                                window.UIUtils.showToast('Success', 'Character rerolled successfully!');
+                            }, 500);
+                        } else {
+                            throw new Error(data.error || 'Failed to reroll character');
                         }
                     })
                     .catch(error => {
-                        console.error('Error rerolling character:', error);
-                        button.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
-                        // Show error toast
-                        if (window.UIUtils) {
-                            window.UIUtils.showToast('Error', 'Failed to reroll character. Please try again.', true);
-                        }
+                        console.error('Error fetching random character:', error);
+                        clearInterval(progressInterval);
+                        window.UIUtils.removeLoadingOverlay(loadingPercent);
+
+                        // Re-enable the button
+                        button.disabled = false;
+                        button.innerHTML = '<i class="fas fa-dice"></i> Reroll';
+
+                        window.UIUtils.showToast('Error', 'Failed to reroll character. Please try again.');
                     });
             });
         });
+        console.log('Reroll button listeners configured');
     }
 
     // Toggle selection of a character
@@ -204,8 +209,8 @@ class CharacterManager {
     }
 
     // Update a character card with new data
-    updateCharacterCard(card, container, data) {
-        if (!card || !container || !data) return;
+    updateCharacterCard(card, data) {
+        if (!card || !data) return;
 
         // Update image
         const cardImg = card.querySelector('img');
@@ -217,19 +222,19 @@ class CharacterManager {
         card.dataset.id = data.id;
 
         // Update selection button ID
-        const selectBtn = container.querySelector('.select-character-btn');
+        const selectBtn = card.querySelector('.select-character-btn');
         if (selectBtn) {
             selectBtn.dataset.characterId = data.id;
         }
 
         // Update name and traits
-        const nameElement = container.querySelector('.character-name');
+        const nameElement = card.querySelector('.character-name');
         if (nameElement) {
             nameElement.textContent = data.name;
         }
 
         // Update traits
-        const traitsList = container.querySelector('.character-traits-list');
+        const traitsList = card.querySelector('.character-traits-list');
         if (traitsList) {
             traitsList.innerHTML = '';
 
