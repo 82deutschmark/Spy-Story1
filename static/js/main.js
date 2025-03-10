@@ -554,27 +554,52 @@ function updateUserProgress(level, experience) {
     }
     
     // Update progress modal if open
-    const levelStat = document.querySelector('#progressModal .card-body strong:contains("Level")');
-    if (levelStat && level) {
-        levelStat.nextSibling.textContent = ` ${level}`;
-    }
-    
-    const xpStat = document.querySelector('#progressModal .card-body strong:contains("XP")');
-    if (xpStat && experience) {
-        xpStat.nextSibling.textContent = ` ${experience}`;
-    }
-    
-    const nextLevelStat = document.querySelector('#progressModal .card-body strong:contains("Next Level")');
-    if (nextLevelStat && experience) {
-        nextLevelStat.nextSibling.textContent = ` ${Math.floor(experience / 100) + 1}`;
-    }
-    
-    const progressBar = document.querySelector('#progressModal .progress-bar');
-    if (progressBar && experience) {
-        const xpPercent = experience % 100;
-        progressBar.style.width = `${xpPercent}%`;
-        progressBar.setAttribute('aria-valuenow', xpPercent);
-        progressBar.textContent = `${xpPercent}%`;
+    if (document.getElementById('progressModal')) {
+        // Find all strong elements in the progress modal
+        const strongElements = document.querySelectorAll('#progressModal .card-body strong');
+        
+        // Update level
+        if (level) {
+            strongElements.forEach(elem => {
+                if (elem.textContent === 'Level:') {
+                    const nextNode = elem.nextSibling;
+                    if (nextNode) {
+                        nextNode.textContent = ` ${level}`;
+                    }
+                }
+            });
+        }
+        
+        // Update XP
+        if (experience) {
+            strongElements.forEach(elem => {
+                if (elem.textContent === 'XP:') {
+                    const nextNode = elem.nextSibling;
+                    if (nextNode) {
+                        nextNode.textContent = ` ${experience}`;
+                    }
+                }
+            });
+            
+            // Update Next Level
+            strongElements.forEach(elem => {
+                if (elem.textContent === 'Next Level:') {
+                    const nextNode = elem.nextSibling;
+                    if (nextNode) {
+                        nextNode.textContent = ` ${Math.floor(experience / 100) + 1}`;
+                    }
+                }
+            });
+        }
+        
+        // Update progress bar
+        const progressBar = document.querySelector('#progressModal .progress-bar');
+        if (progressBar && experience) {
+            const xpPercent = experience % 100;
+            progressBar.style.width = `${xpPercent}%`;
+            progressBar.setAttribute('aria-valuenow', xpPercent);
+            progressBar.textContent = `${xpPercent}%`;
+        }
     }
 }
 
