@@ -71,23 +71,23 @@ class CharacterManager {
                     return;
                 }
 
-                // Get the index from data attribute
-                const index = button.dataset.cardIndex;
-                console.log(`Rerolling character at index: ${index}`);
+                console.log(`Rerolling character at index: ${characterContainer.dataset.index}`);
 
                 // Disable the button and show loading state
                 button.disabled = true;
-                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Rerolling...';
+                button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Loading...';
 
-                // Create loading overlay
-                const loadingPercent = window.UIUtils.createLoadingOverlay('Finding a new character...');
+                // Create loading overlay with percentage
+                const loadingPercent = window.UIUtils.createLoadingOverlay('Finding new character...');
                 let progress = 0;
                 const progressInterval = setInterval(() => {
                     if (progress < 90) {
-                        progress += 10;
+                        progress += 5;
                         window.UIUtils.updateLoadingPercent(loadingPercent, progress);
                     }
-                }, 200);
+                }, 500);
+
+                const characterCard = characterContainer;
 
                 fetch('/api/random_character')
                     .then(response => response.json())

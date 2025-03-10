@@ -40,6 +40,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (document.querySelector('.character-select-card')) {
         console.log('Character selection page detected, setting up character interactions');
         
+        // Check for reroll buttons
+        const rerollButtons = document.querySelectorAll('.reroll-btn');
+        console.log(`Found ${rerollButtons.length} reroll buttons`);
+        
         // Add a small delay to ensure DOM is fully rendered
         setTimeout(() => {
             if (window.characterManager) {
