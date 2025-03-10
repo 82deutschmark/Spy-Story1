@@ -1,31 +1,9 @@
-
-import os
-from __init__ import create_app
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-
-# Create app using factory
-app = create_app()
-
-if __name__ == "__main__":
-    # Ensure JS modules are served with correct MIME type
-    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
-    
-    # Register custom MIME types for ES modules
-    import mimetypes
-    mimetypes.add_type('application/javascript', '.js')
-
-    app.run(host='0.0.0.0', port=5000, debug=True)
 import os
 import logging
 from flask import Flask
 from dotenv import load_dotenv
 from database import db
 from flask_cors import CORS
-import uuid
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -43,10 +21,10 @@ def create_app():
         "pool_recycle": 300,
         "pool_pre_ping": True,
     }
-    
+
     # Initialize database
     db.init_app(app)
-    
+
     # Initialize CORS
     CORS(app, resources={
         r"/api/unity/*": {
@@ -55,22 +33,30 @@ def create_app():
             "allow_headers": ["Content-Type", "Authorization"]
         }
     })
-    
+
     # Register blueprints
     with app.app_context():
         # Import blueprint registration function
         from routes import register_blueprints
         register_blueprints(app)
-        
+
         # Register Unity API blueprint
         from api.unity_routes import unity_api
         app.register_blueprint(unity_api, url_prefix='/api/unity')
-        
+
         # Create database tables
         db.create_all()
-    
+
     return app
 
 if __name__ == "__main__":
     app = create_app()
+
+    # Ensure JS modules are served with correct MIME type
+    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+
+    # Register custom MIME types for ES modules
+    import mimetypes
+    mimetypes.add_type('application/javascript', '.js')
+
     app.run(host="0.0.0.0", port=5000, debug=True)
