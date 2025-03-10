@@ -216,10 +216,16 @@ def generate_story_route():
         protagonist_gender = request.form.get('protagonist_gender')
         protagonist_name = request.form.get('protagonist_name')
         custom_choice = data.get('custom_choice', '')
+        
+        # Get previous story context
+        previous_story_id = data.get('story_id')
+        story_context = data.get('story_context', '')
+
+        # Get user progress
+        user_progress = get_or_create_user_progress()
 
         # Check if this is a custom choice and verify diamond balance
         if custom_choice:
-            user_progress = get_or_create_user_progress()
             currency_requirements = {'💎': 100}
             if not user_progress.can_afford(currency_requirements):
                 return jsonify({
@@ -256,7 +262,7 @@ def generate_story_route():
             'custom_setting': data.get('custom_setting', ''),
             'custom_narrative': data.get('custom_narrative', ''),
             'custom_mood': data.get('custom_mood', ''),
-            'story_context': data.get('story_context', '')
+            'story_context': story_context
         }
 
         # Handle choice selection - either predefined or custom
@@ -337,6 +343,74 @@ def generate_story_route():
         db.session.add(story)
         db.session.commit()
 
+        # Update user progress with this new story
+        user_progress.current_story_id = story.id
+        
+        # Create a default plot arc for this story
+        plot_arc = PlotArc(
+            title=f"{'Custom adventure' if custom_choice else result['conflict']}",
+            description=f"A story set in {result['setting']} with {result['mood']} mood",
+            arc_type="main",
+            story_id=story.id,
+            status="active",
+            primary_characters=selected_ids
+        )
+        db.session.add(plot_arc)
+        
+        # Add this plot arc to user's active arcs
+        if not user_progress.active_plot_arcs:
+            user_progress.active_plot_arcs = []
+        user_progress.active_plot_arcs.append(plot_arc.id)
+        
+        # Process character evolutions for all characters
+        for img in selected_images:
+            # Register this character encounter with the user
+            user_progress.encounter_character(
+                character_id=img.id,
+                character_name=img.character_name or "Unknown Character",
+                initial_relationship=5 if img.id == main_character_img.id else 0
+            )
+            
+            # Create character evolution entry
+            char_evolution = CharacterEvolution(
+                user_id=user_progress.user_id,
+                character_id=img.id,
+                story_id=story.id,
+                role='protagonist' if img.id == main_character_img.id else 'supporting',
+                evolved_traits=img.character_traits or []
+            )
+            db.session.add(char_evolution)
+        
+        # If this is a continuation of previous story
+        if previous_story_id and story_context:
+            # Check if there are any plot arcs from previous story to carry over
+            prev_arcs = PlotArc.query.filter_by(
+                story_id=previous_story_id,
+                status='active'
+            ).all()
+            
+            # Carry over active plot arcs
+            for arc in prev_arcs:
+                arc.story_id = story.id  # Connect to new story
+                if arc.id in user_progress.active_plot_arcs:
+                    # This arc was already in user's active arcs
+                    pass
+                else:
+                    # Add to user's active arcs
+                    if not user_progress.active_plot_arcs:
+                        user_progress.active_plot_arcs = []
+                    user_progress.active_plot_arcs.append(arc.id)
+        
+        # Award experience for generating a story
+        if not previous_story_id:
+            # New story creation
+            user_progress.add_experience_points(50, "Created a new story")
+        else:
+            # Story continuation
+            user_progress.add_experience_points(20, "Continued an existing story")
+        
+        db.session.commit()
+
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             # If AJAX request, return JSON
             return jsonify({
@@ -362,6 +436,9 @@ def make_choice():
         data = request.json
         choice_id = data.get('choice_id')
         custom_choice = data.get('custom_choice')
+        story_id = data.get('story_id')
+        node_id = data.get('node_id')
+        characters = data.get('characters', [])  # Array of character IDs in the story
 
         # Get user progress
         user_progress = get_or_create_user_progress()
@@ -385,6 +462,18 @@ def make_choice():
             if not success:
                 return jsonify({'error': 'Failed to process currency transaction'}), 500
 
+            # Record the choice
+            if story_id and node_id:
+                user_progress.record_choice(
+                    choice_text=custom_choice,
+                    choice_id='custom',
+                    node_id=node_id,
+                    story_id=story_id
+                )
+                
+                # Award experience for making a custom choice
+                user_progress.add_experience_points(25, "Made custom story choice")
+
             # Return success for custom choice
             return jsonify({
                 'success': True,
@@ -393,12 +482,79 @@ def make_choice():
             })
 
         else:
-            # For standard choices in the story data format
-            # Since we're not using StoryNode/StoryChoice database models for the current
-            # implementation, we can bypass the database lookup
+            # For standard choices
+            choice_text = data.get('choice_text', 'Standard choice')
+            
+            # Process currency requirements if any
+            currency_requirements = data.get('currency_requirements')
+            if currency_requirements and not user_progress.can_afford(currency_requirements):
+                return jsonify({
+                    'error': 'Insufficient funds',
+                    'requirements': currency_requirements,
+                    'current_balances': user_progress.currency_balances
+                }), 400
+                
+            if currency_requirements:
+                success = user_progress.spend_currency(
+                    currency_requirements,
+                    'choice',
+                    f'Story choice: {choice_text[:50]}...' if len(choice_text) > 50 else choice_text,
+                    node_id
+                )
+                if not success:
+                    return jsonify({'error': 'Failed to process currency transaction'}), 500
+            
+            # Record the choice in user progress
+            if story_id and node_id:
+                user_progress.record_choice(
+                    choice_text=choice_text,
+                    choice_id=choice_id,
+                    node_id=node_id,
+                    story_id=story_id
+                )
+                
+                # Award experience for making a choice
+                user_progress.add_experience_points(10, "Made story choice")
+            
+            # Track character evolution for each character in the story
+            if story_id and characters:
+                for char_id in characters:
+                    # Get character details
+                    character = ImageAnalysis.query.get(char_id)
+                    if not character:
+                        continue
+                        
+                    # Update user's character relationship
+                    user_progress.encounter_character(
+                        character_id=char_id, 
+                        character_name=character.character_name or "Unknown Character"
+                    )
+                    
+                    # Check if this character already has an evolution record
+                    char_evolution = CharacterEvolution.query.filter_by(
+                        user_id=user_progress.user_id,
+                        character_id=char_id,
+                        story_id=story_id
+                    ).first()
+                    
+                    # Create new evolution record if needed
+                    if not char_evolution:
+                        char_evolution = CharacterEvolution(
+                            user_id=user_progress.user_id,
+                            character_id=char_id,
+                            story_id=story_id,
+                            role='supporting',  # Default role
+                            evolved_traits=character.character_traits or []  # Start with original traits
+                        )
+                        db.session.add(char_evolution)
+                        db.session.commit()
+
+            # Return updated user information
             return jsonify({
                 'success': True,
                 'new_balances': user_progress.currency_balances,
+                'level': user_progress.level,
+                'experience': user_progress.experience_points,
                 'message': 'Choice processed successfully'
             })
 
