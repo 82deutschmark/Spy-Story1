@@ -41,10 +41,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add a small delay to ensure DOM is fully rendered
         setTimeout(() => {
-            window.characterManager.setupCharacterSelectListeners();
-            window.characterManager.setupRerollButtonListeners();
-            console.log('Character interactions initialized');
-        }, 100);
+            if (window.characterManager) {
+                window.characterManager.setupCharacterSelectListeners();
+                window.characterManager.setupRerollButtonListeners();
+                console.log('Character interactions initialized');
+            } else {
+                console.error('Character manager not initialized');
+            }
+        }, 300);
     }
 
     // For debugging

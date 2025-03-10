@@ -11,6 +11,7 @@
   align-items: center;
   justify-content: center;
   position: relative;
+  aspect-ratio: 1 / 1;
 }
 
 .character-select-card:hover {
@@ -62,27 +63,44 @@
   }
 }
 
-/* Character reroll button */
+.character-info-box {
+  margin-top: 15px;
+}
+
+.character-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.character-traits-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 15px;
+}
+
+.trait-badge {
+  background-color: #2d3748;
+  color: #e2e8f0;
+  padding: 0.35em 0.65em;
+  font-size: 0.75em;
+  border-radius: 0.5rem;
+}
+
 .reroll-btn {
   background-color: #4a5568;
   color: white;
   border: none;
-  padding: 8px 15px;
+  padding: 8px 12px;
   border-radius: 5px;
-  font-weight: 600;
+  font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  margin-top: 10px;
 }
 
 .reroll-btn:hover {
   background-color: #2d3748;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .select-character-btn {
@@ -98,11 +116,16 @@
   align-items: center;
   justify-content: center;
   font-size: 0.9rem;
-  margin-top: 10px;
 }
 
 .select-character-btn:hover {
   background-color: #2ca33e;
   transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.character-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
 }
