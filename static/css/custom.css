@@ -997,6 +997,46 @@ body[data-bs-theme="dark"] .character-select-card {
     color: #4A5568;
     line-height: 1.4;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+/* Loading UI styles */
+.loading-percentage-display,
+.choice-loading-display {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    padding:.85rem;
+    border-radius: 8px;
+    color: white;
+    z-index: 9999;
+    width: 300px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+}
+
+.loading-text {
+    margin-bottom: 15px;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.loading-percentage-display .progress,
+.choice-loading-display .progress {
+    height: 20px;
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+}
+
+.loading-percentage-display .progress-bar,
+.choice-loading-display .progress-bar {
+    background-color: #38b44a;
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.5s ease;
+}
+
 }
 
 .consequence {
