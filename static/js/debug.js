@@ -255,11 +255,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (!targetName || !targetType) return; // Required elements missing
 
+            // Make a safe copy of the analysis to avoid reference issues
+            const safeAnalysis = JSON.parse(JSON.stringify(analysis));
+            
+            // Debug the incoming data
+            console.log('Raw form data to populate:', safeAnalysis);
+
             // Determine if this is a character or scene by checking type or other fields
-            const isCharacter = (analysis.type === 'CHARACTER') || 
-                             (analysis.image_type === 'character') || 
-                             (analysis.character && typeof analysis.character === 'object') ||
-                             (analysis.character_traits || analysis.personality_traits || analysis.role);
+            let isCharacter = true; // Default to character
+            
+            if (safeAnalysis.type === 'SCENE' || safeAnalysis.image_type === 'scene') {
+                isCharacter = false;
+            }
 
             // Set the image type
             targetType.value = isCharacter ? 'character' : 'scene';
@@ -268,39 +275,70 @@ document.addEventListener('DOMContentLoaded', function() {
             if (targetCharFields) targetCharFields.style.display = isCharacter ? 'block' : 'none';
             if (targetSceneFields) targetSceneFields.style.display = isCharacter ? 'none' : 'block';
 
-            // Extract character data
-            const character = analysis.character || analysis;
-
-            // Set name (prioritize nested character name, then top-level)
-            targetName.value = character.name || analysis.name || analysis.character_name || '';
+            // Get character name - check all possible locations
+            let nameValue = '';
+            if (safeAnalysis.name) nameValue = safeAnalysis.name;
+            else if (safeAnalysis.character_name) nameValue = safeAnalysis.character_name;
+            
+            // Set name field
+            targetName.value = nameValue;
 
             // Set description field (should exist in both character and scene)
-            if (targetDescription && analysis.description) {
-                targetDescription.value = analysis.description;
+            if (targetDescription && safeAnalysis.description) {
+                targetDescription.value = safeAnalysis.description;
             }
 
             if (isCharacter) {
                 // Set role (with fallbacks for different formats)
-                if (targetRole) targetRole.value = character.role || analysis.role || 'neutral';
+                if (targetRole) {
+                    const role = safeAnalysis.role || 'neutral';
+                    // Ensure role value exists in dropdown options
+                    const roleOptions = Array.from(targetRole.options).map(opt => opt.value);
+                    if (roleOptions.includes(role.toLowerCase())) {
+                        targetRole.value = role.toLowerCase();
+                    } else {
+                        targetRole.value = 'undetermined';
+                    }
+                }
 
-                // Set traits - handle different formats of traits data
-                const traits = character.personality_traits || character.character_traits || analysis.character_traits || analysis.personality_traits || [];
-                if (targetTraits) targetTraits.value = Array.isArray(traits) ? traits.join(', ') : traits;
+                // Handle traits from different formats
+                let traits = [];
+                if (safeAnalysis.traits && Array.isArray(safeAnalysis.traits)) {
+                    traits = safeAnalysis.traits;
+                } else if (safeAnalysis.character_traits && Array.isArray(safeAnalysis.character_traits)) {
+                    traits = safeAnalysis.character_traits;
+                } else if (safeAnalysis.personality_traits && Array.isArray(safeAnalysis.personality_traits)) {
+                    traits = safeAnalysis.personality_traits;
+                }
+                
+                // Set traits field
+                if (targetTraits) {
+                    targetTraits.value = Array.isArray(traits) ? traits.join(', ') : '';
+                }
 
-                // Set plot lines - handle different formats
-                const plots = character.potential_plot_lines || character.plot_lines || analysis.plot_lines || analysis.potential_plot_lines || [];
-                if (targetPlots) targetPlots.value = Array.isArray(plots) ? plots.join('\n') : plots;
+                // Handle plot lines from different formats
+                let plots = [];
+                if (safeAnalysis.plot_lines && Array.isArray(safeAnalysis.plot_lines)) {
+                    plots = safeAnalysis.plot_lines;
+                } else if (safeAnalysis.potential_plot_lines && Array.isArray(safeAnalysis.potential_plot_lines)) {
+                    plots = safeAnalysis.potential_plot_lines;
+                }
+                
+                // Set plot lines field
+                if (targetPlots) {
+                    targetPlots.value = Array.isArray(plots) ? plots.join('\n') : '';
+                }
             } else {
                 // Set scene fields
-                if (targetSceneType) targetSceneType.value = analysis.scene_type || 'narrative';
-                if (targetSetting) targetSetting.value = analysis.setting || '';
+                if (targetSceneType) targetSceneType.value = safeAnalysis.scene_type || 'narrative';
+                if (targetSetting) targetSetting.value = safeAnalysis.setting || '';
 
                 // Set dramatic moments
-                const moments = analysis.dramatic_moments || [];
-                if (targetMoments) targetMoments.value = Array.isArray(moments) ? moments.join('\n') : moments;
+                const moments = safeAnalysis.dramatic_moments || [];
+                if (targetMoments) targetMoments.value = Array.isArray(moments) ? moments.join('\n') : '';
             }
 
-            console.log('Populated edit form with data:', analysis);
+            console.log('Populated edit form with data:', safeAnalysis);
         } catch (error) {
             console.error('Error populating edit form:', error);
             showToast('Error', 'Failed to populate edit form: ' + error.message, true);
