@@ -321,6 +321,18 @@ document.addEventListener('DOMContentLoaded', function() {
             // Make the choice
             const formData = new FormData(form);
             const isCustom = form.querySelector('.custom-choice-input') !== null;
+            
+            // Handle currency requirements for story choices
+            let choiceData = {};
+            if (isCustom) {
+                choiceData = {
+                    custom_choice: formData.get('custom_choice')
+                };
+            } else {
+                choiceData = {
+                    choice_id: form.querySelector('button').dataset.choiceId
+                };
+            }
 
             const response = await fetch('/make_choice', {
                 method: 'POST',
