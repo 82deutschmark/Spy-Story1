@@ -124,7 +124,7 @@ def generate_story(
     # Build information about additional characters from the database
     additional_characters_prompt = ""
     if additional_characters and len(additional_characters) > 0:
-        additional_characters_prompt = "\nAdditional Characters from Database (MUST INCLUDE AT LEAST ONE NEW CHARACTER):\n"
+        additional_characters_prompt = "\nAdditional Characters from Database (MAY INTRODUCE ONE IN THE STORY OR CHOICES):\n"
         for char in additional_characters:
             char_traits = char.get('character_traits', [])
             if isinstance(char_traits, str):
@@ -191,7 +191,7 @@ def generate_story(
         "1. Features the charismatic protagonist as the main story driver\n"
         "2. Introduces the selected character (if provided) into a complex international spy scenario\n"
         "3. IMPORTANT: If plot lines are provided for the character, you MUST incorporate at least one into the story\n"
-        "4. CRITICAL: If additional characters from the database are provided, you MUST introduce at least one new character from this list into the story\n"
+        "4. If additional characters from the database are provided, you MAY introduce a new character from this list into the story\n"
         "5. Includes betrayal, romantic flings, and over-the-top action sequences\n"
         "6. Uses the character's traits to guide their behavior and dialogue\n"
         "7. In some story segments, include characters offering to buy diamonds (💎) from the player:\n"
@@ -202,7 +202,7 @@ def generate_story(
         "   - Lead to different potential outcomes (each one should sound sexy and dangerous)\n"
         "   - Stay true to the characters' established traits\n"
         "   - Relate to at least one of the plot lines if provided\n"
-        "   - IMPORTANT: Include one new character from the database in the choices when needed\n"
+        "   - OPTIONAL: One of the choices (not both) MAY introduce a new character from the database\n"
         "   - REQUIRED: Each choice must have a random dollar (💵) cost between $1000-$20000\n"
         "   - Avoid dead ends but escalate the ridiculousness with each choice\n"
         "9. Include clear consequences for each choice that involve romantic encounters, betrayal, or absurd action scenarios\n\n"
@@ -246,6 +246,7 @@ def generate_story(
                     "while navigating an over-the-top world of betrayal, action, and absurdity. Keep the tone dramatic and provocative, "
                     "with excessive action scenes, romantic encounters, and ridiculous plot twists. The protagonist doesn't care about "
                     "the global crisis, they just want to party hard and have James Bond style adventures. "
+                    "When additional characters are provided, sometimes introduce a new one into the story or choices, but not always. "
                     "You can adapt to both predefined choices and custom user inputs, seamlessly incorporating their creative ideas "
                     "into the ongoing narrative while maintaining the established tone and character traits."
                 )
