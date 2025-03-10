@@ -24,6 +24,7 @@ This application allows users to generate interactive stories featuring images f
 
 ## Recent Improvements
 
+- **main.js Refactoring**: Modularized JavaScript with module pattern for better maintainability, separating concerns into UIUtils, CurrencyManager, UserProgressManager, CharacterManager, StoryManager, MissionManager, and PaymentManager modules
 - **Debug Tools Modularization**: Refactored debug.js for better maintainability and organization with clearer separation of concerns
 - **Character Role Standardization**: Ensured all characters use consistent role types (undetermined, villain, neutral, mission-giver)
 - **Form Validation Improvements**: Fixed form handling in debug interface to properly validate and save character data
