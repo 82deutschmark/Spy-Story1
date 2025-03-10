@@ -19,3 +19,58 @@ if __name__ == "__main__":
     mimetypes.add_type('application/javascript', '.js')
 
     app.run(host='0.0.0.0', port=5000, debug=True)
+import os
+import logging
+from flask import Flask
+from dotenv import load_dotenv
+from database import db
+from flask_cors import CORS
+import uuid
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# Load environment variables
+load_dotenv()
+
+def create_app():
+    """Create and configure the Flask application"""
+    app = Flask(__name__)
+    app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_recycle": 300,
+        "pool_pre_ping": True,
+    }
+    
+    # Initialize database
+    db.init_app(app)
+    
+    # Initialize CORS
+    CORS(app, resources={
+        r"/api/unity/*": {
+            "origins": "*",
+            "methods": ["GET", "POST", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"]
+        }
+    })
+    
+    # Register blueprints
+    with app.app_context():
+        # Import blueprint registration function
+        from routes import register_blueprints
+        register_blueprints(app)
+        
+        # Register Unity API blueprint
+        from api.unity_routes import unity_api
+        app.register_blueprint(unity_api, url_prefix='/api/unity')
+        
+        # Create database tables
+        db.create_all()
+    
+    return app
+
+if __name__ == "__main__":
+    app = create_app()
+    app.run(host="0.0.0.0", port=5000, debug=True)
