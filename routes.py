@@ -549,61 +549,45 @@ def db_health_check():
 def make_choice():
     """Process a story choice and handle currency requirements"""
     try:
+        from services.game_handler import GameHandler
+        
         data = request.json
         choice_id = data.get('choice_id')
         custom_choice = data.get('custom_choice')
 
-        # Get user progress
-        user_progress = get_or_create_user_progress()
-
-        if custom_choice:
-            # Validate diamond balance for custom choice
-            currency_requirements = {'💎': 100}
-            if not user_progress.can_afford(currency_requirements):
-                return jsonify({
-                    'error': 'Insufficient diamonds',
-                    'required': 100,
-                    'current_balance': user_progress.currency_balances.get('💎', 0)
-                }), 400
-
-            # Spend diamonds and record transaction
-            success = user_progress.spend_currency(
-                currency_requirements,
-                'choice',
-                f'Custom choice: {custom_choice[:50]}...' if len(custom_choice) > 50 else custom_choice
-            )
-            if not success:
-                return jsonify({'error': 'Failed to process currency transaction'}), 500
-
-        else:
-            # Get the choice and validate currency requirements
-            choice = StoryChoice.query.get_or_404(choice_id)
-            if not choice.currency_requirements:
-                return jsonify({'error': 'Invalid choice: missing currency requirements'}), 400
-
-            # Check if user can afford the choice
-            if not user_progress.can_afford(choice.currency_requirements):
-                return jsonify({
-                    'error': 'Insufficient funds',
-                    'requirements': choice.currency_requirements,
-                    'current_balances': user_progress.currency_balances
-                }), 400
-
-            # Spend currency and record transaction
-            success = user_progress.spend_currency(
-                choice.currency_requirements,
-                'choice',
-                f'Story choice: {choice.choice_text[:50]}...' if len(choice.choice_text) > 50 else choice.choice_text,
-                choice.node_id
-            )
-            if not success:
-                return jsonify({'error': 'Failed to process currency transaction'}), 500
+        # Get user ID from session
+        if 'user_id' not in session:
+            return jsonify({'error': 'Session expired'}), 401
+        
+        user_id = session['user_id']
+        
+        # Process the choice using the GameHandler
+        result = GameHandler.process_choice(
+            user_id=user_id,
+            choice_id=choice_id,
+            custom_choice=custom_choice
+        )
+        
+        if not result['success']:
+            # Return error with appropriate status code
+            status_code = 400
+            if result.get('code') == 'server_error':
+                status_code = 500
+            elif result.get('code') == 'user_not_found':
+                status_code = 404
+                
+            return jsonify({
+                'error': result.get('error', 'An error occurred'),
+                'requirements': result.get('requirements'),
+                'current_balances': result.get('current_balances')
+            }), status_code
 
         # Return success response with updated balances
         return jsonify({
             'success': True,
-            'new_balances': user_progress.currency_balances,
-            'message': 'Choice processed successfully'
+            'new_balances': result.get('new_balances'),
+            'message': result.get('message', 'Choice processed successfully'),
+            'next_node_id': result.get('next_node_id')
         })
 
     except Exception as e:
@@ -798,6 +782,34 @@ def random_character():
         })
     except Exception as e:
         logger.error(f"Error getting random character: {str(e)}")
+
+@main_bp.route('/api/user/inventory', methods=['GET'])
+def get_user_inventory():
+    """Get the user's inventory and currency balances"""
+    try:
+        from services.game_handler import GameHandler
+        
+        # Check for active session
+        if 'user_id' not in session:
+            return jsonify({'error': 'Session expired'}), 401
+            
+        # Get inventory data using GameHandler
+        result = GameHandler.get_user_inventory(session['user_id'])
+        
+        if not result['success']:
+            return jsonify({'error': result.get('error', 'Failed to get inventory')}), 404
+            
+        return jsonify({
+            'success': True,
+            'currency_balances': result['balances'],
+            'transactions': result['transactions'],
+            'achievements': result['achievements']
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting user inventory: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
         return jsonify({'error': str(e)}), 500
 
 @main_bp.route('/api/image/<int:image_id>', methods=['DELETE'])
@@ -975,6 +987,8 @@ def reanalyze_image(image_id):
 def trade_currency():
     """Trade between different currency types"""
     try:
+        from services.game_handler import GameHandler
+        
         data = request.json
         from_currency = data.get('from_currency')
         to_currency = data.get('to_currency')
@@ -987,83 +1001,25 @@ def trade_currency():
         if 'user_id' not in session:
             return jsonify({'error': 'Session expired'}), 401
 
-        # Get exchange rates based on the new rules
-        rates = {
-            "💎": {  # Diamonds can only be converted to EUR and YEN
-                "💶": 1000,    # 1 diamond = 1000 EUR
-                "💴": 150000,  # 1 diamond = 150000 YEN
-            },
-            "💶": {  # EUR to other currencies (except diamonds)
-                "💴": 150,     # 1 EUR = 150 YEN
-                "💵": 1.1,     # 1 EUR = 1.1 USD
-                "💷": 0.85,    # 1 EUR = 0.85 GBP
-            },
-            "💴": {  # YEN to other currencies (except diamonds)
-                "💶": 0.0067,  # 1 YEN = 0.0067 EUR
-                "💵": 0.0073,  # 1 YEN = 0.0073 USD
-                "💷": 0.0057,  # 1 YEN = 0.0057 GBP
-            },
-            "💵": {  # USD to other currencies (except diamonds)
-                "💶": 0.91,    # 1 USD = 0.91 EUR
-                "💴": 136.5,   # 1 USD = 136.5 YEN
-                "💷": 0.77,    # 1 USD = 0.77 GBP
-            },
-            "💷": {  # GBP to other currencies (except diamonds)
-                "💶": 1.18,    # 1 GBP = 1.18 EUR
-                "💴": 177,     # 1 GBP = 177 YEN
-                "💵": 1.3,     # 1 GBP = 1.3 USD
-            }
-        }
-
-        # Check if the conversion is allowed
-        if from_currency == "💎" and to_currency not in ["💶", "💴"]:
+        # Process the trade using GameHandler
+        result = GameHandler.trade_currency(
+            user_id=session['user_id'],
+            from_currency=from_currency,
+            to_currency=to_currency,
+            amount=amount
+        )
+        
+        if not result['success']:
             return jsonify({
-                'error': 'Diamonds can only be converted to Euros (💶) or Yen (💴)'
+                'error': result.get('error', 'An error occurred'),
+                'current_balance': result.get('current_balance'),
+                'required_amount': result.get('required_amount')
             }), 400
-
-        if to_currency == "💎":
-            return jsonify({
-                'error': 'Cannot convert other currencies to diamonds'
-            }), 400
-
-        if from_currency not in rates or to_currency not in rates[from_currency]:
-            return jsonify({
-                'error': 'Invalid currency conversion'
-            }), 400
-
-        # Get user progress
-        user_progress = UserProgress.query.filter_by(user_id=session['user_id']).first()
-        if not user_progress:
-            return jsonify({'error': 'User progress not found'}), 404
-
-        # Check if user has enough currency
-        current_balance = user_progress.currency_balances.get(from_currency, 0)
-        if current_balance < amount:
-            return jsonify({
-                'error': 'Insufficient funds',
-                'current_balance': current_balance,
-                'required_amount': amount
-            }), 400
-
-        # Calculate conversion
-        conversion_rate = rates[from_currency][to_currency]
-        converted_amount = int(amount * conversion_rate)  # Use integer for currency amounts
-
-        # Perform the exchange
-        user_progress.currency_balances[from_currency] = current_balance - amount
-        user_progress.currency_balances[to_currency] = user_progress.currency_balances.get(to_currency, 0) + converted_amount
-
-        try:
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"Database error during currency trade: {str(e)}")
-            return jsonify({'error': 'Failed to process trade'}), 500
 
         return jsonify({
             'success': True,
-            'message': f'Successfully traded {amount} {from_currency} for {converted_amount} {to_currency}',
-            'new_balances': user_progress.currency_balances
+            'message': result.get('message'),
+            'new_balances': result.get('new_balances')
         })
 
     except Exception as e:

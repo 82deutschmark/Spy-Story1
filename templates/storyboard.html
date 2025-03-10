@@ -13,26 +13,26 @@
     <div class="currency-bar">
         <div class="currency-item">
             <span class="currency-symbol">💎</span>
-            <span class="currency-amount">{{ user_progress.currency_balances.get('💎', 500) }}</span>
+            <span class="currency-amount" id="diamond-amount">{{ user_progress.currency_balances.get('💎', 500) }}</span>
             <button class="btn btn-sm btn-outline-primary buy-currency" data-bs-toggle="modal" data-bs-target="#purchaseModal">
                 <i class="fas fa-plus-circle"></i>
             </button>
         </div>
         <div class="currency-item">
             <span class="currency-symbol">💷</span>
-            <span class="currency-amount">{{ user_progress.currency_balances.get('💷', 5000) }}</span>
+            <span class="currency-amount" id="pound-amount">{{ user_progress.currency_balances.get('💷', 5000) }}</span>
         </div>
         <div class="currency-item">
             <span class="currency-symbol">💶</span>
-            <span class="currency-amount">{{ user_progress.currency_balances.get('💶', 5000) }}</span>
+            <span class="currency-amount" id="euro-amount">{{ user_progress.currency_balances.get('💶', 5000) }}</span>
         </div>
         <div class="currency-item">
             <span class="currency-symbol">💴</span>
-            <span class="currency-amount">{{ user_progress.currency_balances.get('💴', 5000) }}</span>
+            <span class="currency-amount" id="yen-amount">{{ user_progress.currency_balances.get('💴', 5000) }}</span>
         </div>
         <div class="currency-item">
             <span class="currency-symbol">💵</span>
-            <span class="currency-amount">{{ user_progress.currency_balances.get('💵', 5000) }}</span>
+            <span class="currency-amount" id="dollar-amount">{{ user_progress.currency_balances.get('💵', 5000) }}</span>
         </div>
         <button class="btn btn-sm btn-outline-secondary ms-2" data-bs-toggle="modal" data-bs-target="#tradeModal">
             <i class="fas fa-exchange-alt"></i> Trade
@@ -149,7 +149,7 @@
                         </button>
                     </form>
                 </div>
-                
+
                 {% if story.currency_trade_offer %}
                 <div class="currency-trade-offer">
                     <div class="trade-offer-text">{{ story.currency_trade_offer.text }}</div>
@@ -261,6 +261,27 @@
     <script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id|urlencode }}&currency=USD&intent=capture"></script>
     <!-- Our main JS file -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/currency_manager.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize currency manager with user balances
+            window.currencyManager = {}; //Ensure currencyManager exists
+            window.currencyManager.initialize({{ user_progress.currency_balances|tojson }});
+            // Update displayed amounts
+            const diamondAmount = document.getElementById('diamond-amount');
+            const poundAmount = document.getElementById('pound-amount');
+            const euroAmount = document.getElementById('euro-amount');
+            const yenAmount = document.getElementById('yen-amount');
+            const dollarAmount = document.getElementById('dollar-amount');
+
+            if (diamondAmount) diamondAmount.textContent = window.currencyManager.getBalance('💎');
+            if (poundAmount) poundAmount.textContent = window.currencyManager.getBalance('💷');
+            if (euroAmount) euroAmount.textContent = window.currencyManager.getBalance('💶');
+            if (yenAmount) yenAmount.textContent = window.currencyManager.getBalance('💴');
+            if (dollarAmount) dollarAmount.textContent = window.currencyManager.getBalance('💵');
+
+        });
+    </script>
     <!-- Debug logging for PayPal integration -->
     <script>
         console.log('PayPal Client ID available:', {{ 'true' if paypal_client_id else 'false' }});
