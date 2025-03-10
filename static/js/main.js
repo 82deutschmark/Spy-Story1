@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, initializing application modules...');
 
     // Initialize modules
-    window.UIUtils = new UIUtils();
+    window.UIUtils = UIUtils;  // UIUtils is already an object, not a constructor
     window.currencyManager = new CurrencyManager();
     window.characterManager = new CharacterManager(); // Added CharacterManager initialization
     window.paymentManager = new PaymentManager();
