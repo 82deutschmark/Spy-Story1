@@ -66,7 +66,7 @@
                                     <div class="character-container">
                                         <div class="character-select-card" data-id="{{ img.id }}">
                                             <img src="{{ img.image_url }}" class="card-img" alt="{{ img.name }}">
-                                            <div class="selection-indicator position-absolute top-0 end-0 m-2 bg-primary text-white rounded-circle p-2" style="display: none;">
+                                            <div class="selection-indicator">
                                                 <i class="fas fa-check"></i>
                                             </div>
                                         </div>
@@ -79,15 +79,7 @@
                                                     {% endfor %}
                                                 {% endif %}
                                             </div>
-                                            <div class="character-controls d-flex justify-content-between align-items-center">
-                                                <button type="button" class="reroll-btn" data-card-index="{{ loop.index0 }}">
-                                                    <i class="fas fa-dice me-1"></i> Reroll Character
-                                                </button>
-                                                <button type="button" class="select-character-btn" data-character-id="{{ img.id }}">
-                                                    <i class="fas fa-check-circle me-1"></i> Select Character
-                                                </button>
-                                                <input type="radio" class="character-checkbox d-none" name="selectedCharacter" value="{{ img.id }}" id="character{{ img.id }}">
-                                            </div>
+                                            <input type="checkbox" name="selected_images[]" value="{{ img.id }}" class="character-checkbox" style="display: none;">
                                         </div>
                                     </div>
                                 </div>
@@ -96,11 +88,7 @@
                         </div>
 
                         <form id="storyForm" method="POST" action="{{ url_for('main.generate_story_route') }}">
-                            <!-- Add hidden inputs for selected characters -->
-                            {% for img in images %}
-                            <input type="checkbox" name="selected_images[]" value="{{ img.id }}" id="character{{ img.id }}" class="character-checkbox" style="display: none;">
-                            {% endfor %}
-
+                            
                             <div class="selected-characters-container mb-3" style="display: none;">
                                 <h4>Selected Characters:</h4>
                                 <div class="selected-characters-list d-flex flex-wrap"></div>
