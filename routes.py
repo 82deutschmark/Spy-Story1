@@ -798,6 +798,13 @@ def save_analysis():
         logger.info(f"Successfully saved analysis for image ID {image_id}")
 
         return jsonify({
+            'success': True,
+            'message': 'Analysis updated successfully'
+        })
+    except Exception as e:
+        logger.error(f"Error saving analysis: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @main_bp.route('/debug/images')
 def debug_images():
@@ -967,7 +974,7 @@ def get_all_images():
             analysis = img.analysis_result or {}
             name = img.character_name or ''
             if not name and analysis:
-                name= analysis.get('name', '')
+                name = analysis.get('name', '')
 
             results.append({
                 'id': img.id,
