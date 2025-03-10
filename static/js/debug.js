@@ -165,36 +165,81 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Save button (add this to your page)
-    document.getElementById('saveToDbBtn')?.addEventListener('click', function() {
-        const imageUrl = generatedContent.dataset.imageUrl;
-        const analysis = JSON.parse(generatedContent.dataset.analysis);
-
-        fetch('/save_analysis', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                image_url: imageUrl,
-                analysis: analysis
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                showNotification('Error', data.error, 'error');
+    const saveToDbBtn = document.getElementById('saveToDbBtn');
+    if (saveToDbBtn) {
+        saveToDbBtn.addEventListener('click', function() {
+            const generatedContent = document.getElementById('generatedContent');
+            if (!generatedContent) {
+                showNotification('Error', 'Content element not found', 'error');
                 return;
             }
 
-            showNotification('Success', 'Analysis saved to database', 'success');
-            setTimeout(() => {
-                location.reload();
-            }, 2000);
-        })
-        .catch(error => {
-            showNotification('Error', 'Failed to save analysis: ' + error.message, 'error');
+            let analysis;
+            try {
+                // Try to get analysis from data attribute first
+                if (generatedContent.dataset.analysis) {
+                    analysis = JSON.parse(generatedContent.dataset.analysis);
+                } 
+                // Fallback to parsing the content
+                else if (generatedContent.textContent) {
+                    analysis = JSON.parse(generatedContent.textContent);
+                } else {
+                    throw new Error('No analysis data found');
+                }
+            } catch (error) {
+                console.error("Error parsing analysis JSON:", error);
+                showNotification('Error', 'Invalid JSON data: ' + error.message, 'error');
+                return;
+            }
+
+            // Get image URL from data attribute or currentImageData
+            let imageUrl = generatedContent.dataset.imageUrl;
+            if (!imageUrl && currentImageData) {
+                imageUrl = currentImageData.image_url;
+            }
+
+            if (!imageUrl) {
+                showNotification('Error', 'No image URL found', 'error');
+                return;
+            }
+
+            // Disable button to prevent multiple submissions
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+
+            fetch('/save_analysis', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    image_url: imageUrl,
+                    analysis: analysis
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showNotification('Error', data.error, 'error');
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-save me-2"></i>Save to Database';
+                    return;
+                }
+
+                showNotification('Success', 'Analysis saved to database', 'success');
+                this.innerHTML = '<i class="fas fa-check me-2"></i>Saved';
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            })
+            .catch(error => {
+                console.error("Save error:", error);
+                showNotification('Error', 'Failed to save analysis: ' + error.message, 'error');
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-save me-2"></i>Save to Database';
+            });
         });
-    });
+    }
 
     // Function to populate the edit form from the analysis
     function populateEditForm() {
@@ -909,7 +954,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (runHealthCheckBtn) {
         runHealthCheckBtn.addEventListener('click', function() {
             runHealthCheckBtn.disabled = true;
-            runHealthCheckBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
+            runHealthCheckBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true`></span> Running...';
 
             fetch('/api/db/health-check')
                 .then(response => response.json())
@@ -1658,78 +1703,122 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Populate edit fields with data from analysis
     function populateEditFields(analysis) {
-        const imageName = document.getElementById('imageName');
-        const imageType = document.getElementById('imageType');
-        const characterRole = document.getElementById('characterRole');
-        const characterTraits = document.getElementById('characterTraits');
-        const plotLines = document.getElementById('plotLines');
-        const sceneType = document.getElementById('sceneType');
-        const sceneSetting = document.getElementById('sceneSetting');
-        const dramaticMoments = document.getElementById('dramaticMoments');
-
-        // Determine if this is a character or scene
-        let isCharacter = determineIfCharacter(analysis);
-
-        // Set image type
-        imageType.value = isCharacter ? 'character' : 'scene';
-
-        // Toggle appropriate fields
-        if (isCharacter) {
-            document.getElementById('characterFields').style.display = 'block';
-            document.getElementById('sceneFields').style.display = 'none';
-        } else {
-            document.getElementById('characterFields').style.display = 'none';
-            document.getElementById('sceneFields').style.display = 'block';
-        }
-
-        // Extract name
-        let name = '';
-        if (isCharacter) {
-            if (analysis.character && analysis.character.name) {
-                name = analysis.character.name;
-            } else if (analysis.character_name) {
-                name = analysis.character_name;
-            } else if (analysis.name) {
-                name = analysis.name;
+        try {
+            // Make sure analysis is an object
+            if (typeof analysis === 'string') {
+                try {
+                    analysis = JSON.parse(analysis);
+                } catch (error) {
+                    console.error("Failed to parse analysis JSON:", error);
+                    showToast('Error', 'Failed to parse analysis data: ' + error.message, true);
+                    return;
+                }
             }
-        } else {
-            name = analysis.setting || '';
-        }
-        imageName.value = name;
 
-        // Extract character-specific fields
-        if (isCharacter) {
-            let role = '';
-            if (analysis.character && analysis.character.role) {
-                role = analysis.character.role;
-            } else if (analysis.role) {
-                role = analysis.role;
+            if (!analysis || typeof analysis !== 'object') {
+                console.error("Analysis is not a valid object:", analysis);
+                showToast('Error', 'Invalid analysis data format', true);
+                return;
             }
-            characterRole.value = role || 'neutral';
 
-            let traits = [];
-            if (analysis.character && analysis.character.character_traits) {
-                traits = analysis.character.character_traits;
-            } else if (analysis.character_traits) {
-                traits = analysis.character_traits;
+            const imageName = document.getElementById('imageName');
+            const imageType = document.getElementById('imageType');
+            const characterRole = document.getElementById('characterRole');
+            const characterTraits = document.getElementById('characterTraits');
+            const plotLines = document.getElementById('plotLines');
+            const codeName = document.getElementById('codeName');
+            const characterStyle = document.getElementById('characterStyle');
+            const backstory = document.getElementById('backstory');
+            const sceneType = document.getElementById('sceneType');
+            const sceneSetting = document.getElementById('sceneSetting');
+            const dramaticMoments = document.getElementById('dramaticMoments');
+
+            // Check if all required elements exist
+            if (!imageName || !imageType || !characterRole || !characterTraits || 
+                !plotLines || !sceneType || !sceneSetting || !dramaticMoments) {
+                console.error("Missing required DOM elements for edit form");
+                return;
             }
-            characterTraits.value = Array.isArray(traits) ? traits.join(', ') : traits;
 
-            let plots = [];
-            if (analysis.character && analysis.character.plot_lines) {
-                plots = analysis.character.plot_lines;
-            } else if (analysis.plot_lines) {
-                plots = analysis.plot_lines;
+            // Determine if this is a character or scene
+            let isCharacter = determineIfCharacter(analysis);
+
+            // Set image type
+            imageType.value = isCharacter ? 'character' : 'scene';
+
+            // Toggle appropriate fields
+            const characterFields = document.getElementById('characterFields');
+            const sceneFields = document.getElementById('sceneFields');
+
+            if (characterFields && sceneFields) {
+                if (isCharacter) {
+                    characterFields.style.display = 'block';
+                    sceneFields.style.display = 'none';
+                } else {
+                    characterFields.style.display = 'none';
+                    sceneFields.style.display = 'block';
+                }
             }
-            plotLines.value = Array.isArray(plots) ? plots.join('\n') : plots;
-        }
-        // Extract scene-specific fields
-        else {
-            sceneType.value = analysis.scene_type || 'narrative';
-            sceneSetting.value = analysis.setting || '';
 
-            let moments = analysis.dramatic_moments || [];
-            dramaticMoments.value = Array.isArray(moments) ? moments.join('\n') : moments;
+            // Extract name
+            let name = '';
+            if (isCharacter) {
+                if (analysis.character && analysis.character.name) {
+                    name = analysis.character.name;
+                } else if (analysis.character_name) {
+                    name = analysis.character_name;
+                } else if (analysis.name) {
+                    name = analysis.name;
+                }
+            } else {
+                name = analysis.setting || '';
+            }
+            imageName.value = name || '';
+
+            // Extract character-specific fields
+            if (isCharacter) {
+                let role = '';
+                if (analysis.character && analysis.character.role) {
+                    role = analysis.character.role;
+                } else if (analysis.role) {
+                    role = analysis.role;
+                }
+                characterRole.value = role || 'neutral';
+
+                let traits = [];
+                if (analysis.character && analysis.character.character_traits) {
+                    traits = analysis.character.character_traits;
+                } else if (analysis.character_traits) {
+                    traits = analysis.character_traits;
+                }
+                characterTraits.value = Array.isArray(traits) ? traits.join(', ') : (traits || '');
+
+                let plots = [];
+                if (analysis.character && analysis.character.plot_lines) {
+                    plots = analysis.character.plot_lines;
+                } else if (analysis.plot_lines) {
+                    plots = analysis.plot_lines;
+                }
+                plotLines.value = Array.isArray(plots) ? plots.join('\n') : (plots || '');
+
+                if (codeName) codeName.value = (analysis.character && analysis.character.code_name) || 
+                                               analysis.code_name || '';
+                if (characterStyle) characterStyle.value = (analysis.character && analysis.character.style) || 
+                                                           analysis.style || '';
+                if (backstory) backstory.value = (analysis.character && analysis.character.backstory) || 
+                                                  analysis.backstory || '';
+            }
+            // Extract scene-specific fields
+            else {
+                sceneType.value = analysis.scene_type || 'narrative';
+                sceneSetting.value = analysis.setting || '';
+
+                let moments = analysis.dramatic_moments || [];
+                dramaticMoments.value = Array.isArray(moments) ? moments.join('\n') : (moments || '');
+            }
+        } catch (error) {
+            console.error("Error in populateEditFields:", error);
+            showToast('Error', 'Failed to populate edit form: ' + error.message, true);
         }
     }
 
@@ -1816,46 +1905,75 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to setup the analysis editing UI
     function setupAnalysisEditing(analysis) {
-        const editModeSwitch = document.getElementById('editModeSwitch');
-        const editContainer = document.getElementById('editContainer');
-        const imageTypeSelect = document.getElementById('imageType');
-        const characterFields = document.getElementById('characterFields');
-        const sceneFields = document.getElementById('sceneFields');
-        const applyChangesBtn = document.getElementById('applyChangesBtn');
-
-        // Populate edit fields with current analysis data
-        populateEditFields(analysis);
-
-        // Event listeners for edit mode toggle
-        editModeSwitch.addEventListener('change', function() {
-            if (this.checked) {
-                editContainer.style.display = 'block';
-            } else {
-                editContainer.style.display = 'none';
+        try {
+            // Ensure analysis is a proper object
+            if (typeof analysis=== 'string') {
+                try {
+                    analysis = JSON.parse(analysis);
+                } catch (error) {
+                    console.error("Error parsing analysis JSON:", error);
+                    showToast('Error', 'Invalid analysis data: ' + error.message, true);
+                    return;
+                }
             }
-        });
 
-        // Event listener for image type change
-        imageTypeSelect.addEventListener('change', function() {
-            if (this.value === 'character') {
-                characterFields.style.display = 'block';
-                sceneFields.style.display = 'none';
-            } else {
-                characterFields.style.display = 'none';
-                sceneFields.style.display = 'block';
+            const editModeSwitch = document.getElementById('editModeSwitch');
+            const editContainer = document.getElementById('editContainer');
+            const imageTypeSelect = document.getElementById('imageType');
+            const characterFields = document.getElementById('characterFields');
+            const sceneFields = document.getElementById('sceneFields');
+            const applyChangesBtn = document.getElementById('applyChangesBtn');
+
+            if (!editModeSwitch || !editContainer || !imageTypeSelect || !characterFields || 
+                !sceneFields || !applyChangesBtn) {
+                console.error("Missing required DOM elements for editing UI");
+                return;
             }
-        });
 
-        // Event listener for apply changes button
-        applyChangesBtn.addEventListener('click', function() {
-            const generatedContent = document.getElementById('generatedContent');
-            const updatedAnalysis = applyEditsToAnalysis(analysis);
-            // Replace the content entirely instead of appending
-            generatedContent.textContent = JSON.stringify(updatedAnalysis, null, 2);
-            // Update the original analysis object with the edited version
-            analysis = updatedAnalysis;
-            showToast('Success', 'Changes applied to analysis. Review before saving.');
-        });
+            // Populate edit fields with current analysis data
+            populateEditFields(analysis);
+
+            // Event listeners for edit mode toggle
+            editModeSwitch.addEventListener('change', function() {
+                if (this.checked) {
+                    editContainer.style.display = 'block';
+                } else {
+                    editContainer.style.display = 'none';
+                }
+            });
+
+            // Event listener for image type change
+            imageTypeSelect.addEventListener('change', function() {
+                if (this.value === 'character') {
+                    characterFields.style.display = 'block';
+                    sceneFields.style.display = 'none';
+                } else {
+                    characterFields.style.display = 'none';
+                    sceneFields.style.display = 'block';
+                }
+            });
+
+            // Event listener for apply changes button
+            applyChangesBtn.addEventListener('click', function() {
+                try {
+                    const generatedContent = document.getElementById('generatedContent');
+                    const updatedAnalysis = applyEditsToAnalysis(analysis);
+                    // Replace the content entirely instead of appending
+                    generatedContent.textContent = JSON.stringify(updatedAnalysis, null, 2);
+                    // Store the updated analysis in a data attribute for later use
+                    generatedContent.dataset.analysis = JSON.stringify(updatedAnalysis);
+                    // Update the original analysis object with the edited version
+                    analysis = updatedAnalysis;
+                    showToast('Success', 'Changes applied to analysis. Review before saving.');
+                } catch (error) {
+                    console.error("Error applying changes:", error);
+                    showToast('Error', 'Failed to apply changes: ' + error.message, true);
+                }
+            });
+        } catch (error) {
+            console.error("Error in setupAnalysisEditing:", error);
+            showToast('Error', 'Failed to set up analysis editing: ' + error.message, true);
+        }
     }
 
     // Initialize image analysis form
@@ -2182,3 +2300,4 @@ function saveToDatabase() {
 }
 let currentAnalysisData = null;
 let currentImageUrl = null;
+});
