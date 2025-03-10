@@ -355,6 +355,17 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update character fields based on format
             editedData.name = name;
             
+            // Validate role - ensure it's one of the valid options
+            const validRoles = ['undetermined', 'villain', 'neutral', 'mission-giver'];
+            if (!validRoles.includes(role.toLowerCase())) {
+                // Default to "undetermined" if invalid role
+                role = 'undetermined';
+                console.warn(`Invalid role detected. Using '${role}' instead.`);
+            } else {
+                // Normalize to lowercase
+                role = role.toLowerCase();
+            }
+            
             if (isNewFormat) {
                 // New format fields
                 editedData.role = role;
