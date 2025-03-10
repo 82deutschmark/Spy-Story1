@@ -34,10 +34,10 @@ export const formManager = {
             imageType.addEventListener('change', () => this.toggleTypeFields());
         }
 
-        // Initialize apply changes button
-        const applyChangesBtn = document.getElementById('applyChangesBtn');
-        if (applyChangesBtn) {
-            applyChangesBtn.addEventListener('click', () => this.saveChanges());
+        // Initialize save to database button
+        const saveToDbBtn = document.getElementById('saveToDbBtn');
+        if (saveToDbBtn) {
+            saveToDbBtn.addEventListener('click', () => this.saveToDatabase());
         }
     },
 
@@ -112,7 +112,7 @@ export const formManager = {
      * Save form changes directly to database
      * @returns {Promise<boolean>} Success status
      */
-    saveChanges: async function() {
+    saveToDatabase: async function() {
         try {
             if (!this.currentAnalysis) {
                 throw new Error('No analysis data found');
@@ -167,22 +167,11 @@ export const formManager = {
                 throw new Error(response.error);
             }
 
-            // Update the display
-            const generatedContent = document.getElementById('generatedContent');
-            if (generatedContent) {
-                generatedContent.textContent = JSON.stringify(updatedAnalysis, null, 2);
-            }
-
-            // Update stored analysis
-            this.currentAnalysis = {
-                ...this.currentAnalysis,
-                ...updatedAnalysis
-            };
-
-            dom.showToast('Success', 'Changes saved successfully');
+            // Refresh the page to show updated data
+            location.reload();
             return true;
         } catch (error) {
-            console.error('Error saving changes:', error);
+            console.error('Error saving to database:', error);
             dom.showToast('Error', error.message, true);
             return false;
         }
