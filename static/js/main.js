@@ -100,4 +100,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Set up event handlers for currency trading
     setupCurrencyTradeForm();
+    
+    // Set up story generation form submission
+    const storyForm = document.getElementById('storyForm');
+    if (storyForm) {
+        storyForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            window.storyManager.generateStory(formData);
+        });
+    }
 });
