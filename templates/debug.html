@@ -133,9 +133,7 @@
                                             <textarea class="form-control" id="dramaticMoments" rows="3"></textarea>
                                         </div>
                                     </div>
-                                    <div class="mb-3">
-                                        <!-- Remove duplicate save button -->
-                                    </div>
+                                    
                                 </div>
                             </div>
                         </div>
@@ -145,169 +143,169 @@
 
                 <!-- Database Management -->
                 <div class="card shadow-lg">
-    <div class="card-header bg-secondary text-white">
-        <h3><i class="fas fa-database me-2"></i>Database Records</h3>
-    </div>
-    <div class="card-body">
-        <ul class="nav nav-tabs" id="dbTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="images-tab" data-bs-toggle="tab" data-bs-target="#images" type="button" role="tab" aria-controls="images" aria-selected="true">
-                    <i class="fas fa-image me-2"></i>Images
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="stories-tab" data-bs-toggle="tab" data-bs-target="#stories" type="button" role="tab" aria-controls="stories" aria-selected="false">
-                    <i class="fas fa-book me-2"></i>Stories
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="health-tab" data-bs-toggle="tab" data-bs-target="#health" type="button" role="tab" aria-controls="health" aria-selected="false">
-                    <i class="fas fa-heartbeat me-2"></i>DB Health
-                </button>
-            </li>
-        </ul>
-
-        <div class="tab-content p-3 border border-top-0 rounded-bottom" id="dbTabsContent">
-            <!-- Images Tab -->
-            <div class="tab-pane fade show active" id="images" role="tabpanel" aria-labelledby="images-tab">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4>Image Records</h4>
-                    <div class="input-group" style="max-width: 300px;">
-                        <input type="text" class="form-control" id="imageSearchInput" placeholder="Search images...">
-                        <button class="btn btn-outline-secondary" type="button" id="imageSearchBtn">
-                            <i class="fas fa-search"></i>
-                        </button>
+                    <div class="card-header bg-secondary text-white">
+                        <h3><i class="fas fa-database me-2"></i>Database Records</h3>
                     </div>
-                </div>
+                    <div class="card-body">
+                        <ul class="nav nav-tabs" id="dbTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="images-tab" data-bs-toggle="tab" data-bs-target="#images" type="button" role="tab" aria-controls="images" aria-selected="true">
+                                    <i class="fas fa-image me-2"></i>Images
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="stories-tab" data-bs-toggle="tab" data-bs-target="#stories" type="button" role="tab" aria-controls="stories" aria-selected="false">
+                                    <i class="fas fa-book me-2"></i>Stories
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="health-tab" data-bs-toggle="tab" data-bs-target="#health" type="button" role="tab" aria-controls="health" aria-selected="false">
+                                    <i class="fas fa-heartbeat me-2"></i>DB Health
+                                </button>
+                            </li>
+                        </ul>
 
-                <div class="mb-3">
-                    <div class="btn-group">
-                        <button class="btn btn-sm btn-outline-danger" id="deleteAllImagesBtn">
-                            <i class="fas fa-trash me-1"></i>Delete All
-                        </button>
-                        <button class="btn btn-sm btn-outline-secondary" id="refreshImagesBtn">
-                            <i class="fas fa-sync-alt me-1"></i>Refresh
-                        </button>
-                        <button class="btn btn-sm btn-outline-secondary filter-btn" data-filter="character">
-                            <i class="fas fa-user me-1"></i>Characters Only
-                        </button>
-                        <button class="btn btn-sm btn-outline-secondary filter-btn" data-filter="scene">
-                            <i class="fas fa-image me-1"></i>Scenes Only
-                        </button>
-                    </div>
-                </div>
-
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Image</th>
-                                <th>Type</th>
-                                <th>Name</th>
-                                <th>Created</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="imagesTableBody">
-                            {% for img in recent_images %}
-                            <tr data-id="{{ img.id }}">
-                                <td>{{ img.id }}</td>
-                                <td>
-                                    <img src="{{ img.image_url }}" class="img-thumbnail" width="100" alt="Thumbnail">
-                                </td>
-                                <td>{{ img.image_type }}</td>
-                                <td>{{ img.analysis_result.name if img.analysis_result and 'name' in img.analysis_result else 'N/A' }}</td>
-                                <td>{{ img.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                                <td>
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-info view-details-btn" data-id="{{ img.id }}" title="View Details">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-danger delete-image-btn" data-id="{{ img.id }}" title="Delete Record">
-                                            <i class="fas fa-trash"></i>
+                        <div class="tab-content p-3 border border-top-0 rounded-bottom" id="dbTabsContent">
+                            <!-- Images Tab -->
+                            <div class="tab-pane fade show active" id="images" role="tabpanel" aria-labelledby="images-tab">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h4>Image Records</h4>
+                                    <div class="input-group" style="max-width: 300px;">
+                                        <input type="text" class="form-control" id="imageSearchInput" placeholder="Search images...">
+                                        <button class="btn btn-outline-secondary" type="button" id="imageSearchBtn">
+                                            <i class="fas fa-search"></i>
                                         </button>
                                     </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    <nav aria-label="Image pagination" class="d-flex justify-content-center mt-3">
-                        <ul class="pagination" id="imagesPagination">
-                            <!-- Pagination controls will be added by JavaScript -->
-                        </ul>
-                    </nav>
-                </div>
-            </div>
+                                </div>
 
-            <!-- Stories Tab -->
-            <div class="tab-pane fade" id="stories" role="tabpanel" aria-labelledby="stories-tab">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4>Story Records</h4>
-                    <div class="input-group" style="max-width: 300px;">
-                        <input type="text" class="form-control" id="storySearchInput" placeholder="Search stories...">
-                        <button class="btn btn-outline-secondary" type="button" id="storySearchBtn">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="btn-group mb-3">
-                    <button class="btn btn-sm btn-outline-danger" id="deleteAllStoriesBtn">
-                        <i class="fas fa-trash me-1"></i>Delete All
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary" id="refreshStoriesBtn">
-                        <i class="fas fa-sync-alt me-1"></i>Refresh
-                    </button>
-                </div>
-
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Title</th>
-                                <th>Conflict</th>
-                                <th>Setting</th>
-                                <th>Characters</th>
-                                <th>Created</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="storiesTableBody">
-                            {% for story in recent_stories %}
-                            <tr data-id="{{ story.id }}">
-                                <td>{{ story.id }}</td>
-                                <td>{{ story.title }}</td>
-                                <td>{{ story.primary_conflict }}</td>
-                                <td>{{ story.setting }}</td>
-                                <td>{{ story.characters|length }}</td>
-                                <td>{{ story.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                                <td>
+                                <div class="mb-3">
                                     <div class="btn-group">
-                                        <a href="{{ url_for('main.storyboard', story_id=story.id) }}" class="btn btn-sm btn-info" title="View Story">
-                                            <i class="fas fa-book-open"></i>
-                                        </a>
-                                        <button class="btn btn-sm btn-danger delete-story-btn" data-id="{{ story.id }}" title="Delete Record">
-                                            <i class="fas fa-trash"></i>
+                                        <button class="btn btn-sm btn-outline-danger" id="deleteAllImagesBtn">
+                                            <i class="fas fa-trash me-1"></i>Delete All
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" id="refreshImagesBtn">
+                                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary filter-btn" data-filter="character">
+                                            <i class="fas fa-user me-1"></i>Characters Only
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary filter-btn" data-filter="scene">
+                                            <i class="fas fa-image me-1"></i>Scenes Only
                                         </button>
                                     </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    <nav aria-label="Story pagination" class="d-flex justify-content-center mt-3">
-                        <ul class="pagination" id="storiesPagination">
-                            <!-- Pagination controls will be added by JavaScript -->
-                        </ul>
-                    </nav>
-                </div>
-            </div>
+                                </div>
 
-            <!-- Health Tab -->
-            <div class="tab-pane fade" id="health" role="tabpanel" aria-labelledby="health-tab">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Image</th>
+                                                <th>Type</th>
+                                                <th>Name</th>
+                                                <th>Created</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="imagesTableBody">
+                                            {% for img in recent_images %}
+                                            <tr data-id="{{ img.id }}">
+                                                <td>{{ img.id }}</td>
+                                                <td>
+                                                    <img src="{{ img.image_url }}" class="img-thumbnail" width="100" alt="Thumbnail">
+                                                </td>
+                                                <td>{{ img.image_type }}</td>
+                                                <td>{{ img.analysis_result.name if img.analysis_result and 'name' in img.analysis_result else 'N/A' }}</td>
+                                                <td>{{ img.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                                <td>
+                                                    <div class="btn-group">
+                                                        <button class="btn btn-sm btn-info view-details-btn" data-id="{{ img.id }}" title="View Details">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-danger delete-image-btn" data-id="{{ img.id }}" title="Delete Record">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                    <nav aria-label="Image pagination" class="d-flex justify-content-center mt-3">
+                                        <ul class="pagination" id="imagesPagination">
+                                            <!-- Pagination controls will be added by JavaScript -->
+                                        </ul>
+                                    </nav>
+                                </div>
+                            </div>
+
+                            <!-- Stories Tab -->
+                            <div class="tab-pane fade" id="stories" role="tabpanel" aria-labelledby="stories-tab">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h4>Story Records</h4>
+                                    <div class="input-group" style="max-width: 300px;">
+                                        <input type="text" class="form-control" id="storySearchInput" placeholder="Search stories...">
+                                        <button class="btn btn-outline-secondary" type="button" id="storySearchBtn">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="btn-group mb-3">
+                                    <button class="btn btn-sm btn-outline-danger" id="deleteAllStoriesBtn">
+                                        <i class="fas fa-trash me-1"></i>Delete All
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary" id="refreshStoriesBtn">
+                                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                                    </button>
+                                </div>
+
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Title</th>
+                                                <th>Conflict</th>
+                                                <th>Setting</th>
+                                                <th>Characters</th>
+                                                <th>Created</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="storiesTableBody">
+                                            {% for story in recent_stories %}
+                                            <tr data-id="{{ story.id }}">
+                                                <td>{{ story.id }}</td>
+                                                <td>{{ story.title }}</td>
+                                                <td>{{ story.primary_conflict }}</td>
+                                                <td>{{ story.setting }}</td>
+                                                <td>{{ story.characters|length }}</td>
+                                                <td>{{ story.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                                <td>
+                                                    <div class="btn-group">
+                                                        <a href="{{ url_for('main.storyboard', story_id=story.id) }}" class="btn btn-sm btn-info" title="View Story">
+                                                            <i class="fas fa-book-open"></i>
+                                                        </a>
+                                                        <button class="btn btn-sm btn-danger delete-story-btn" data-id="{{ story.id }}" title="Delete Record">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                    <nav aria-label="Story pagination" class="d-flex justify-content-center mt-3">
+                                        <ul class="pagination" id="storiesPagination">
+                                            <!-- Pagination controls will be added by JavaScript -->
+                                        </ul>
+                                    </nav>
+                                </div>
+                            </div>
+
+                            <!-- Health Tab -->
+                            <div class="tab-pane fade" id="health" role="tabpanel" aria-labelledby="health-tab">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h4>Database Health Check</h4>
                                     <button class="btn btn-sm btn-outline-primary" id="runHealthCheckBtn">
@@ -372,9 +370,9 @@
                                     </div>
                                 </div>
                             </div>
-        </div>
-    </div>
-</div>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Modal for viewing details -->
                 <div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
@@ -384,27 +382,101 @@
                                 <h5 class="modal-title" id="detailsModalLabel">
                                     <i class="fas fa-edit me-2"></i>Edit Analysis
                                 </h5>
-                                <div class="form-check form-switch ms-3">
-                                    <input class="form-check-input" type="checkbox" id="editModeSwitch">
-                                    <label class="form-check-label" for="editModeSwitch">Enable Editing</label>
-                                </div>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body" id="detailsModalBody">
-                                <div class="text-center mb-3">
-                                    <img id="modalImage" src="" class="img-fluid rounded" alt="Image">
-                                </div>
-                                <div class="mt-3">
-                                    <pre id="modalContent" class="result-content"></pre>
+                                <div class="row">
+                                    <div class="col-12 mb-4">
+                                        <div class="text-center">
+                                            <img id="modalImage" src="" class="img-fluid rounded" alt="Image">
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="form-check form-switch mb-3">
+                                            <input class="form-check-input" type="checkbox" id="editModeSwitch">
+                                            <label class="form-check-label" for="editModeSwitch">
+                                                <i class="fas fa-edit me-1"></i>Enable Edit Mode
+                                            </label>
+                                        </div>
+                                        <div id="editContainer" style="display: none;">
+                                            <div class="mb-3">
+                                                <label for="imageName" class="form-label">Name</label>
+                                                <input type="text" class="form-control" id="imageName">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="imageType" class="form-label">Type</label>
+                                                <select class="form-select" id="imageType">
+                                                    <option value="character">Character</option>
+                                                    <option value="scene">Scene</option>
+                                                </select>
+                                            </div>
+                                            <!-- Character Fields -->
+                                            <div id="characterFields">
+                                                <div class="mb-3">
+                                                    <label for="codeName" class="form-label">Code Name</label>
+                                                    <input type="text" class="form-control" id="codeName">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="characterRole" class="form-label">Role</label>
+                                                    <select class="form-select" id="characterRole">
+                                                        <option value="protagonist">Protagonist</option>
+                                                        <option value="antagonist">Antagonist</option>
+                                                        <option value="neutral">Neutral</option>
+                                                        <option value="villain">Villain</option>
+                                                        <option value="hero">Hero</option>
+                                                        <option value="undetermined">Undetermined</option>
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="characterStyle" class="form-label">Style</label>
+                                                    <input type="text" class="form-control" id="characterStyle">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="backstory" class="form-label">Backstory</label>
+                                                    <textarea class="form-control" id="backstory" rows="3"></textarea>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="characterTraits" class="form-label">Character Traits (comma separated)</label>
+                                                    <input type="text" class="form-control" id="characterTraits">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="plotLines" class="form-label">Plot Lines (comma separated)</label>
+                                                    <textarea class="form-control" id="plotLines" rows="3"></textarea>
+                                                </div>
+                                            </div>
+                                            <!-- Scene Fields -->
+                                            <div id="sceneFields" style="display: none;">
+                                                <div class="mb-3">
+                                                    <label for="sceneType" class="form-label">Scene Type</label>
+                                                    <select class="form-select" id="sceneType">
+                                                        <option value="action">Action</option>
+                                                        <option value="narrative">Narrative</option>
+                                                        <option value="choice">Choice</option>
+                                                        <option value="conclusion">Conclusion</option>
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="sceneSetting" class="form-label">Setting</label>
+                                                    <input type="text" class="form-control" id="sceneSetting">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="dramaticMoments" class="form-label">Dramatic Moments (comma separated)</label>
+                                                    <textarea class="form-control" id="dramaticMoments" rows="3"></textarea>
+                                                </div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <button type="button" class="btn btn-primary" id="saveToDbBtn">
+                                                    <i class="fas fa-save me-2"></i>Save to Database
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                 <button type="button" class="btn btn-danger" id="reanalyzeImageBtn">
                                     <i class="fas fa-sync-alt me-2"></i>Reanalyze Image
-                                </button>
-                                <button type="button" class="btn btn-primary" id="saveAnalysisBtn" style="display: none;">
-                                    <i class="fas fa-save me-2"></i>Save Changes
                                 </button>
                             </div>
                         </div>
