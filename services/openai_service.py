@@ -116,7 +116,13 @@ def analyze_artwork(image_url):
                 }"""
             },
             {
-                
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": image_url
+                    }
+                ]
             }
         ]
 
