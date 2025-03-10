@@ -1,4 +1,3 @@
-
 /**
  * UI Utilities Module
  * Handles UI interactions like overlays, notifications and toasts
@@ -55,18 +54,51 @@ export default {
     },
 
     /**
-     * Shows a toast notification
+     * Show a toast notification
      * @param {string} title - Toast title
-     * @param {string} message - Toast message content
+     * @param {string} message - Toast message
+     * @param {number} delay - Auto-hide delay in ms, 0 for no auto-hide
+     * @returns {bootstrap.Toast} - The toast object for programmatic control
      */
-    showToast(title, message) {
-        const toastEl = document.getElementById('notificationToast');
-        if (toastEl) {
-            const toast = new bootstrap.Toast(toastEl);
-            document.getElementById('toastTitle').textContent = title;
-            document.getElementById('toastMessage').textContent = message;
-            toast.show();
+    showToast(title, message, delay = 3000) {
+        const toastContainer = document.getElementById('toastContainer');
+        if (!toastContainer) {
+            // Create toast container if it doesn't exist
+            const newContainer = document.createElement('div');
+            newContainer.id = 'toastContainer';
+            newContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            document.body.appendChild(newContainer);
         }
+
+        const toastId = 'toast-' + Date.now();
+        const toastHtml = `
+            <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" 
+                ${delay > 0 ? `data-bs-delay="${delay}"` : ''}>
+                <div class="toast-header">
+                    <strong class="me-auto">${title}</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">
+                    ${message}
+                </div>
+            </div>
+        `;
+
+        const container = document.getElementById('toastContainer');
+        container.insertAdjacentHTML('beforeend', toastHtml);
+
+        const toastElement = document.getElementById(toastId);
+        const toast = new bootstrap.Toast(toastElement, {
+            autohide: delay > 0
+        });
+        toast.show();
+
+        // Auto-remove after it's hidden
+        toastElement.addEventListener('hidden.bs.toast', () => {
+            toastElement.remove();
+        });
+
+        return toast;
     },
 
     /**

@@ -35,15 +35,15 @@ document.addEventListener('DOMContentLoaded', function() {
     window.storyManager = new StoryManager();
     window.userProgress = new UserProgress();
     window.missionManager = new MissionManager();
-    
+
     // Initialize event handlers for the index page
     if (document.querySelector('.character-select-card')) {
         console.log('Character selection page detected, setting up character interactions');
-        
+
         // Check for reroll buttons
         const rerollButtons = document.querySelectorAll('.reroll-btn');
         console.log(`Found ${rerollButtons.length} reroll buttons`);
-        
+
         // Add a small delay to ensure DOM is fully rendered
         setTimeout(() => {
             if (window.characterManager) {
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (mainCharInfo && portraitEl.dataset.characterName === document.querySelector('.character-info-box h3').textContent.trim().toLowerCase().replace(/\s+/g, '-')) {
                         traits = Array.from(mainCharInfo.querySelectorAll('.trait-badge')).map(badge => badge.textContent.trim());
                     }
-                    
+
                     characterData.push({
                         name: charName,
                         image_url: imgEl.src,
@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
-        
+
         // Initialize character highlighting
         if (characterData.length > 0) {
             console.log(`Found ${characterData.length} characters for highlighting`);
@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Set up event handlers for currency trading
     setupCurrencyTradeForm();
-    
+
     // Set up story generation form submission
     const storyForm = document.getElementById('storyForm');
     if (storyForm) {
@@ -114,4 +114,59 @@ document.addEventListener('DOMContentLoaded', function() {
             window.storyManager.generateStory(formData);
         });
     }
+
+    //Handle trade modal events
+    setupTradeEvents();
+
+    // Initialize mission manager if on storyboard
+    if (document.querySelector('.story-container')) {
+        const missionManager = new MissionManager();
+        highlightCharactersInText();
+
+        // Setup currency trade offer button
+        setupCurrencyTradeOfferEvents();
+    }
 });
+
+// Setup currency trade offer events
+function setupCurrencyTradeOfferEvents() {
+    const acceptTradeBtn = document.getElementById('acceptTradeOffer');
+    if (acceptTradeBtn) {
+        acceptTradeBtn.addEventListener('click', function() {
+            const fromCurrency = this.dataset.fromCurrency;
+            const toCurrency = this.dataset.toCurrency;
+            const rate = this.dataset.rate;
+            const amount = parseInt(this.dataset.amount || '1', 10);
+
+            if (!fromCurrency || !toCurrency) {
+                UIUtils.showToast('Error', 'Invalid trade parameters');
+                return;
+            }
+
+            // Disable button and show loading state
+            this.disabled = true;
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+            // Execute the trade
+            currencyManager.tradeCurrency(fromCurrency, toCurrency, amount)
+                .then(response => {
+                    UIUtils.showToast('Success', `Trade completed: ${amount} ${fromCurrency} for ${rate} ${toCurrency}`);
+
+                    // Hide the trade offer section
+                    const tradeOfferSection = document.querySelector('.currency-trade-offer');
+                    if (tradeOfferSection) {
+                        tradeOfferSection.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    UIUtils.showToast('Error', error || 'Trade failed. You may not have enough currency.');
+                })
+                .finally(() => {
+                    // Restore button state
+                    this.disabled = false;
+                    this.innerHTML = originalText;
+                });
+        });
+    }
+}

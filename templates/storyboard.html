@@ -171,11 +171,13 @@
                         Trade {{ story.currency_trade_offer.from_currency }} for {{ story.currency_trade_offer.to_currency }} 
                         at rate: {{ story.currency_trade_offer.rate }}
                     </div>
+                    {% set amount = story.currency_trade_offer.amount|default(1) %}
                     <button class="btn btn-outline-primary accept-trade-btn" 
                             data-from="{{ story.currency_trade_offer.from_currency }}"
                             data-to="{{ story.currency_trade_offer.to_currency }}"
-                            data-rate="{{ story.currency_trade_offer.rate }}">
-                        Accept Trade Offer
+                            data-rate="{{ story.currency_trade_offer.rate }}"
+                            data-amount="{{ amount }}">
+                        Accept Trade Offer ({{ amount }} {{ story.currency_trade_offer.from_currency }} ➡️ {{ story.currency_trade_offer.rate }} {{ story.currency_trade_offer.to_currency }})
                     </button>
                 </div>
                 {% endif %}
