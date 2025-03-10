@@ -1,6 +1,11 @@
+
 /**
- * CharacterManager.js - Manages character selection, rerolling, and interactions
+ * CharacterManager.js - Manages character selection and interaction
  */
+import DOMUtils from './DOMUtils.js';
+import UIUtils from './UIUtils.js';
+import EventManager from './EventManager.js';
+
 class CharacterManager {
     constructor() {
         console.log('CharacterManager initialized');
@@ -10,6 +15,8 @@ class CharacterManager {
 
         // Track selected characters
         this.selectedCharacters = [];
+        
+        // Initialize when DOM is ready
         this.initializeEventListeners();
     }
 
@@ -29,31 +36,47 @@ class CharacterManager {
         }
     }
 
-    // Setup listeners for character selection cards
+    // Setup listeners for character selection cards using delegation
     setupCharacterSelectListeners() {
-        const characterCards = document.querySelectorAll('.character-select-card');
-        const selectButtons = document.querySelectorAll('.select-character-btn');
-
-        console.log(`Found ${characterCards.length} character cards and ${selectButtons.length} select buttons`);
-
-        // Add listeners to character cards
-        characterCards.forEach(card => {
-            card.addEventListener('click', (e) => {
-                const characterId = card.dataset.id;
+        // Use delegation for better performance and reliability
+        const characterSelectionArea = DOMUtils.getElement('#character-selection-area');
+        if (!characterSelectionArea) {
+            console.log('Character selection area not found, may be on a different page');
+            return;
+        }
+        
+        console.log('Setting up character selection listeners');
+        
+        // Add delegation for character card clicks
+        EventManager.delegate(
+            characterSelectionArea, 
+            'click',
+            '.character-select-card',
+            (event, card) => {
+                // Prevent if clicking on a button inside the card
+                if (event.target.closest('.reroll-btn') || event.target.closest('.select-character-btn')) {
+                    return;
+                }
+                
+                const characterId = DOMUtils.dataAttr(card, 'id');
                 console.log(`Character card clicked: ${characterId}`);
                 this.toggleCharacterSelection(characterId, card);
-            });
-        });
-
-        // Add listeners to select buttons
-        selectButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation(); // Prevent card click event
-                const characterId = button.dataset.characterId;
+            }
+        );
+        
+        // Add delegation for select buttons
+        EventManager.delegate(
+            characterSelectionArea,
+            'click',
+            '.select-character-btn',
+            (event, button) => {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                const characterId = DOMUtils.dataAttr(button, 'characterId');
                 console.log(`Select button clicked for character: ${characterId}`);
                 
-                // Find the character container properly
+                // Find the associated card
                 const characterContainer = button.closest('.character-container');
                 if (characterContainer) {
                     const card = characterContainer.querySelector('.character-select-card');
@@ -65,100 +88,108 @@ class CharacterManager {
                 } else {
                     console.error('Character container not found for selection button');
                 }
-            });
-        });
+            }
+        );
+        
+        console.log('Character selection listeners configured');
     }
 
-    // Setup listeners for reroll buttons
+    // Setup listeners for reroll buttons using delegation
     setupRerollButtonListeners() {
         console.log('Setting up reroll button listeners');
         
-        // Set up event listeners for the reroll buttons using delegation
-        const characterContainers = document.querySelectorAll('.character-container');
-        characterContainers.forEach(container => {
-            // Use delegation for each character container
-            container.addEventListener('click', (e) => {
-                // Only handle clicks on reroll buttons
-                const button = e.target.closest('.reroll-btn');
-                if (!button) return;
+        // Use delegation for all reroll buttons
+        const characterSelectionArea = DOMUtils.getElement('#character-selection-area');
+        if (!characterSelectionArea) {
+            console.log('Character selection area not found, may be on a different page');
+            return;
+        }
+        
+        // Delegate reroll button clicks
+        EventManager.delegate(
+            characterSelectionArea,
+            'click',
+            '.reroll-btn',
+            (event, button) => {
+                event.preventDefault();
+                event.stopPropagation();
                 
-                e.preventDefault();
-                e.stopPropagation(); // Prevent event from bubbling up
+                console.log('Reroll button clicked');
                 
-                // Get the character card consistently using data attributes
-                const cardIndex = button.getAttribute('data-card-index');
-                if (cardIndex === null) {
-                    console.error('Button missing data-card-index attribute:', button);
+                // Find the character container
+                const characterContainer = button.closest('.character-container');
+                if (!characterContainer) {
+                    console.error('Character container not found for reroll button');
                     return;
                 }
                 
-                // Find character container - either the direct parent card or by index
-                let characterContainer = button.closest('.character-select-card');
-                if (!characterContainer) {
-                    characterContainer = document.querySelectorAll('.character-select-card')[parseInt(cardIndex)];
-                }
-                
-                if (!characterContainer) {
-                    console.error('Character container not found for reroll button:', button);
+                const card = characterContainer.querySelector('.character-select-card');
+                if (!card) {
+                    console.error('Character card not found for reroll button');
                     return;
                 }
-
+                
+                const cardIndex = DOMUtils.dataAttr(button, 'cardIndex') || 
+                    Array.from(DOMUtils.getElements('.character-select-card')).indexOf(card);
+                
                 console.log(`Rerolling character at index: ${cardIndex}`);
-
-                // Use the LoadingManager through UIUtils for button state
-                const restoreButton = window.UIUtils.showButtonLoading(button, 'Loading...');
-
+                
+                // Show loading state on button
+                const restoreButton = UIUtils.showButtonLoading(button, 'Loading...');
+                
                 // Create loading overlay with percentage
-                const loadingContext = window.UIUtils.createLoadingOverlay('Finding new character...');
+                const loadingContext = UIUtils.createLoadingOverlay('Finding new character...', card);
                 
                 // Simulate progress updates
                 let progress = 0;
                 const progressInterval = setInterval(() => {
                     if (progress < 90) {
                         progress += 5;
-                        window.UIUtils.updateLoadingPercent(loadingContext, progress);
+                        UIUtils.updateLoadingPercent(loadingContext, progress);
                     }
                 }, 500);
-
+                
                 // Fetch new character
                 this.fetchRandomCharacter()
                     .then(data => {
                         clearInterval(progressInterval);
-                        window.UIUtils.updateLoadingPercent(loadingContext, 100);
+                        UIUtils.updateLoadingPercent(loadingContext, 100);
                         
                         // Update the character card
-                        this.updateCharacterCard(characterContainer, data);
+                        this.updateCharacterCard(card, data);
                         
                         // Remove loading overlay with a small delay for visual polish
-                        window.UIUtils.removeLoadingOverlay(loadingContext, () => {
-                            // Restore button state
-                            restoreButton('<i class="fas fa-dice me-1"></i> Reroll Character');
-                            
-                            // Show success message
-                            window.UIUtils.showToast('Success', 'Character rerolled successfully!');
-                            
-                            // Trigger event for any interested listeners
-                            window.UIUtils.triggerEvent('character-rerolled', {
-                                characterId: data.id,
-                                cardIndex: cardIndex
+                        setTimeout(() => {
+                            UIUtils.removeLoadingOverlay(loadingContext, () => {
+                                // Restore button state
+                                restoreButton('<i class="fas fa-dice me-1"></i> Reroll Character');
+                                
+                                // Show success message
+                                UIUtils.showToast('Success', 'Character rerolled successfully!');
+                                
+                                // Trigger event for any interested listeners
+                                EventManager.emit('character-rerolled', {
+                                    characterId: data.id,
+                                    cardIndex: cardIndex
+                                });
                             });
-                        });
+                        }, 300);
                     })
                     .catch(error => {
                         console.error('Error fetching random character:', error);
                         clearInterval(progressInterval);
                         
                         // Remove loading overlay
-                        window.UIUtils.removeLoadingOverlay(loadingContext);
+                        UIUtils.removeLoadingOverlay(loadingContext);
                         
                         // Restore button state
                         restoreButton('<i class="fas fa-dice me-1"></i> Reroll Character');
                         
                         // Show error message
-                        window.UIUtils.showToast('Error', 'Failed to reroll character. Please try again.', 'error');
+                        UIUtils.showToast('Error', 'Failed to reroll character. Please try again.', 'error');
                     });
-            });
-        });
+            }
+        );
         
         console.log('Reroll button listeners configured');
     }
@@ -166,7 +197,7 @@ class CharacterManager {
     // Toggle selection of a character
     toggleCharacterSelection(characterId, card) {
         if (!card) {
-            card = document.querySelector(`.character-select-card[data-id="${characterId}"]`);
+            card = DOMUtils.getElement(`.character-select-card[data-id="${characterId}"]`);
             if (!card) {
                 console.error(`Card not found for character ID: ${characterId}`);
                 return;
@@ -174,7 +205,7 @@ class CharacterManager {
         }
 
         const selectionIndicator = card.querySelector('.selection-indicator');
-        const radioInput = document.querySelector(`input.character-checkbox[value="${characterId}"]`);
+        const radioInput = DOMUtils.getElement(`input.character-checkbox[value="${characterId}"]`);
 
         if (card.classList.contains('selected')) {
             // Deselect
@@ -188,15 +219,15 @@ class CharacterManager {
             console.log(`Character ${characterId} deselected`);
         } else {
             // Clear previous selections (for single select mode)
-            document.querySelectorAll('.character-select-card.selected').forEach(selected => {
+            DOMUtils.getElements('.character-select-card.selected').forEach(selected => {
                 selected.classList.remove('selected');
                 const indicator = selected.querySelector('.selection-indicator');
                 if (indicator) indicator.style.display = 'none';
                 
                 // Uncheck all other radio inputs
-                const selectedId = selected.dataset.id;
+                const selectedId = DOMUtils.dataAttr(selected, 'id');
                 if (selectedId) {
-                    const input = document.querySelector(`input.character-checkbox[value="${selectedId}"]`);
+                    const input = DOMUtils.getElement(`input.character-checkbox[value="${selectedId}"]`);
                     if (input) input.checked = false;
                 }
             });
@@ -212,31 +243,38 @@ class CharacterManager {
             console.log(`Character ${characterId} selected`);
 
             // Show toast notification
-            if (window.UIUtils) {
-                window.UIUtils.showToast('Character Selected', 'Character has been selected for your story.');
-            }
+            UIUtils.showToast('Character Selected', 'Character has been selected for your story.');
         }
 
         // Update form inputs
         this.updateSelectedImagesInput();
+        
+        // Trigger event for any interested listeners
+        EventManager.emit('character-selection-changed', {
+            selectedCharacters: this.selectedCharacters
+        });
     }
 
     // Update hidden form inputs with selected characters
     updateSelectedImagesInput() {
         // Clear previous inputs
-        const existingInputs = document.querySelectorAll('input[name="selected_images[]"]');
-        existingInputs.forEach(input => input.remove());
+        DOMUtils.getElements('input[name="selected_images[]"]').forEach(input => {
+            if (input.parentNode) {
+                input.parentNode.removeChild(input);
+            }
+        });
 
         // Get the form
-        const form = document.getElementById('storyForm');
+        const form = DOMUtils.getElement('#storyForm');
         if (!form) return;
 
         // Add an input for each selected character
         this.selectedCharacters.forEach(characterId => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'selected_images[]';
-            input.value = characterId;
+            const input = DOMUtils.createElement('input', {
+                type: 'hidden',
+                name: 'selected_images[]',
+                value: characterId
+            });
             form.appendChild(input);
         });
     }
@@ -265,7 +303,7 @@ class CharacterManager {
 
         // Store whether the card was previously selected
         const wasSelected = card.classList.contains('selected');
-        const oldCharacterId = card.dataset.id;
+        const oldCharacterId = DOMUtils.dataAttr(card, 'id');
 
         // Update image
         const cardImg = card.querySelector('img');
@@ -274,12 +312,12 @@ class CharacterManager {
         }
 
         // Update card ID
-        card.dataset.id = data.id;
+        DOMUtils.dataAttr(card, 'id', data.id);
 
         // Update selection button ID
         const selectBtn = card.closest('.character-container')?.querySelector('.select-character-btn');
         if (selectBtn) {
-            selectBtn.dataset.characterId = data.id;
+            DOMUtils.dataAttr(selectBtn, 'characterId', data.id);
         }
 
         // Update checkbox value
@@ -302,9 +340,9 @@ class CharacterManager {
 
             if (data.character_traits && data.character_traits.length > 0) {
                 data.character_traits.forEach(trait => {
-                    const traitBadge = document.createElement('span');
-                    traitBadge.className = 'trait-badge';
-                    traitBadge.textContent = trait;
+                    const traitBadge = DOMUtils.createElement('span', {
+                        className: 'trait-badge',
+                    }, trait);
                     traitsList.appendChild(traitBadge);
                 });
             }
@@ -331,114 +369,93 @@ class CharacterManager {
         }
     }
 
-
     // Record a character encounter
     recordCharacterEncounter(characterId, characterName, initialRelationship = 0) {
-        return new Promise((resolve, reject) => {
-            fetch('/api/character/encounter', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    character_id: characterId,
-                    character_name: characterName,
-                    initial_relationship: initialRelationship
-                })
+        return fetch('/api/character/encounter', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                character_id: characterId,
+                character_name: characterName,
+                initial_relationship: initialRelationship
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Update local cache
-                    this.encounteredCharacters = data.encountered_characters || {};
-                    console.log(`Character encounter recorded: ${characterName} (${characterId})`);
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update local cache
+                this.encounteredCharacters = data.encountered_characters || {};
+                console.log(`Character encounter recorded: ${characterName} (${characterId})`);
 
-                    // Dispatch event for other modules
-                    document.dispatchEvent(new CustomEvent('character-encountered', {
-                        detail: { 
-                            characterId,
-                            characterName,
-                            encounteredCharacters: this.encounteredCharacters
-                        }
-                    }));
+                // Dispatch event for other modules
+                EventManager.emit('character-encountered', { 
+                    characterId,
+                    characterName,
+                    encounteredCharacters: this.encounteredCharacters
+                });
 
-                    resolve(data);
-                } else {
-                    console.error('Failed to record character encounter:', data.error);
-                    reject(data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error recording character encounter:', error);
-                reject(error);
-            });
+                return data;
+            } else {
+                throw new Error(data.error || 'Failed to record character encounter');
+            }
         });
     }
 
     // Change relationship with a character
     changeCharacterRelationship(characterId, changeAmount, reason) {
-        return new Promise((resolve, reject) => {
-            fetch('/api/character/relationship', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    character_id: characterId,
-                    change_amount: changeAmount,
-                    reason: reason
-                })
+        return fetch('/api/character/relationship', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                character_id: characterId,
+                change_amount: changeAmount,
+                reason: reason
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Update local cache
-                    this.encounteredCharacters = data.encountered_characters || {};
-                    console.log(`Character relationship updated: ${characterId}, change: ${changeAmount}`);
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update local cache
+                this.encounteredCharacters = data.encountered_characters || {};
+                console.log(`Character relationship updated: ${characterId}, change: ${changeAmount}`);
 
-                    // Dispatch event for other modules
-                    document.dispatchEvent(new CustomEvent('relationship-changed', {
-                        detail: { 
-                            characterId,
-                            changeAmount,
-                            reason,
-                            encounteredCharacters: this.encounteredCharacters
-                        }
-                    }));
+                // Dispatch event for other modules
+                EventManager.emit('relationship-changed', { 
+                    characterId,
+                    changeAmount,
+                    reason,
+                    encounteredCharacters: this.encounteredCharacters
+                });
 
-                    resolve(data);
-                } else {
-                    console.error('Failed to update character relationship:', data.error);
-                    reject(data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error updating character relationship:', error);
-                reject(error);
-            });
+                return data;
+            } else {
+                throw new Error(data.error || 'Failed to update character relationship');
+            }
         });
     }
 
     // Get encountered characters
     getEncounteredCharacters() {
-        return new Promise((resolve, reject) => {
-            fetch('/api/character/encountered')
+        return fetch('/api/character/encountered')
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     this.encounteredCharacters = data.encountered_characters || {};
-                    resolve(this.encounteredCharacters);
+                    return this.encounteredCharacters;
                 } else {
-                    console.error('Failed to get encountered characters:', data.error);
-                    reject(data.error);
+                    throw new Error(data.error || 'Failed to get encountered characters');
                 }
-            })
-            .catch(error => {
-                console.error('Error getting encountered characters:', error);
-                reject(error);
             });
-        });
     }
 }
 
-export default CharacterManager;
+// Create a global instance
+const characterManager = new CharacterManager();
+
+// Export to global scope for now
+window.CharacterManager = characterManager;
+export default characterManager;
