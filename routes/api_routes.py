@@ -50,6 +50,23 @@ def get_or_create_user_progress():
 def save_analysis():
     """Save edited analysis from debug page"""
     try:
+
+@api_bp.route('/currency/balances')
+def get_currency_balances():
+    """API endpoint to get current user's currency balances"""
+    try:
+        # Get user progress
+        user_progress = get_or_create_user_progress()
+        
+        return jsonify({
+            'success': True,
+            'new_balances': user_progress.currency_balances
+        })
+    except Exception as e:
+        logger.error(f"Error getting currency balances: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
         data = request.json
         image_id = data.get('image_id')
         analysis = data.get('analysis')
