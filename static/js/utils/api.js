@@ -112,3 +112,54 @@ export const api = {
         }
     }
 };
+/**
+ * API utility functions
+ */
+import { dom } from './dom.js';
+
+export const api = {
+    /**
+     * Send a POST request with form data
+     * @param {string} url - URL to send request to
+     * @param {FormData} formData - Form data to send
+     * @param {string} loadingMessage - Message to display during loading
+     * @returns {Promise} - Promise resolving to response data
+     */
+    async postForm(url, formData, loadingMessage = 'Processing...') {
+        const loadingPercent = dom.addLoadingOverlay(loadingMessage);
+        
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+            if (progress < 90) {
+                progress += 5;
+                dom.updateLoadingPercent(loadingPercent, progress);
+            }
+        }, 500);
+        
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            const data = await response.json();
+            
+            clearInterval(progressInterval);
+            dom.updateLoadingPercent(loadingPercent, 100);
+            
+            // Wait a moment to show 100% before removing overlay
+            setTimeout(() => {
+                dom.removeLoadingOverlay(loadingPercent);
+            }, 300);
+            
+            return data;
+        } catch (error) {
+            clearInterval(progressInterval);
+            dom.removeLoadingOverlay(loadingPercent);
+            throw error;
+        }
+    }
+};

@@ -107,3 +107,81 @@ export const story = {
         }
     }
 };
+/**
+ * Story generation and interaction functionality
+ */
+import { dom } from './utils/dom.js';
+import { api } from './utils/api.js';
+
+export const story = {
+    /**
+     * Generate a new story
+     * @param {FormData} formData - Form data for story generation
+     */
+    async generate(formData) {
+        // Validate form data
+        const selectedCharacters = formData.getAll('selected_images[]');
+        if (selectedCharacters.length === 0) {
+            dom.showToast('Selection Needed', 'Please select a character for your story', true);
+            
+            // Show error message if it exists
+            const characterSelectionError = document.getElementById('characterSelectionError');
+            if (characterSelectionError) {
+                characterSelectionError.style.display = 'block';
+                characterSelectionError.textContent = 'Please select a character for your story';
+                window.scrollTo(0, 0);
+            }
+            return;
+        }
+        
+        // Disable the generate button to prevent multiple submissions
+        const generateBtn = document.getElementById('generateStoryBtn');
+        if (generateBtn) {
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Story...';
+        }
+        
+        try {
+            // Submit form data
+            const data = await api.postForm('/generate_story', formData, 'Generating your adventure...');
+            
+            if (data.success && data.redirect) {
+                // Redirect to the new story
+                window.location.href = data.redirect;
+            } else {
+                throw new Error(data.error || 'Failed to generate story');
+            }
+        } catch (error) {
+            console.error('Error generating story:', error);
+            dom.showToast('Error', error.message || 'Failed to generate story', true);
+            
+            // Re-enable the button
+            if (generateBtn) {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
+            }
+        }
+    },
+    
+    /**
+     * Make a story choice
+     * @param {FormData} formData - Form data for the choice
+     * @param {Object} currencyReq - Currency requirements, if any
+     */
+    async makeChoice(formData, currencyReq) {
+        try {
+            // Submit form data
+            const data = await api.postForm('/generate_story', formData, 'Continuing your story...');
+            
+            if (data.success && data.redirect) {
+                // Redirect to the new story segment
+                window.location.href = data.redirect;
+            } else {
+                throw new Error(data.error || 'Failed to continue story');
+            }
+        } catch (error) {
+            console.error('Error making choice:', error);
+            dom.showToast('Error', error.message || 'Failed to continue the story', true);
+        }
+    }
+};

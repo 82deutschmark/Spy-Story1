@@ -176,3 +176,77 @@ export const dom = {
         }
     }
 };
+/**
+ * DOM utility functions
+ */
+export const dom = {
+    /**
+     * Show a loading overlay with a progress indicator
+     * @param {string} message - Message to display
+     * @returns {HTMLElement} - The loading percentage element for updates
+     */
+    addLoadingOverlay(message = 'Loading...') {
+        const overlay = document.createElement('div');
+        overlay.className = 'loading-overlay';
+        overlay.innerHTML = `
+            <div class="loading-content">
+                <div class="loading-spinner"></div>
+                <div class="loading-percentage">0%</div>
+                <div class="loading-message">${message}</div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        overlay.style.display = 'flex';
+        return overlay.querySelector('.loading-percentage');
+    },
+
+    /**
+     * Update loading percentage
+     * @param {HTMLElement} element - Loading percentage element
+     * @param {number} percent - Percentage to display
+     */
+    updateLoadingPercent(element, percent) {
+        if (element) {
+            element.textContent = `${Math.round(percent)}%`;
+        }
+    },
+
+    /**
+     * Remove loading overlay
+     * @param {HTMLElement} element - Loading percentage element
+     */
+    removeLoadingOverlay(element) {
+        if (element && element.closest) {
+            const overlay = element.closest('.loading-overlay');
+            if (overlay) {
+                overlay.remove();
+            }
+        }
+    },
+
+    /**
+     * Show a toast notification
+     * @param {string} title - Toast title
+     * @param {string} message - Toast message
+     * @param {boolean} isError - Whether this is an error message
+     */
+    showToast(title, message, isError = false) {
+        const toastEl = document.getElementById('notificationToast');
+        if (!toastEl) return;
+
+        const toast = new bootstrap.Toast(toastEl);
+        const titleEl = document.getElementById('toastTitle');
+        const messageEl = document.getElementById('toastMessage') || document.getElementById('toastBody');
+        
+        if (titleEl) titleEl.textContent = title;
+        if (messageEl) messageEl.textContent = message;
+        
+        if (isError) {
+            toastEl.classList.add('bg-danger', 'text-white');
+        } else {
+            toastEl.classList.remove('bg-danger', 'text-white');
+        }
+        
+        toast.show();
+    }
+};
