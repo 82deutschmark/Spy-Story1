@@ -213,7 +213,8 @@ def generate_story(
         "1. Features the reader as 'you' (second-person narrative) as the main story driver\n"
         "2. Introduces the selected character (if provided) into a complex international spy scenario\n"
         "3. IMPORTANT: If plot lines are provided for the character, you MUST incorporate at least one into the story\n"
-        "4. CRITICAL: Many additional characters from the database are provided, you should introduce at least one new character from this list into the story\n"
+        "4. " + (f"Since there are already {len(additional_characters) + (1 if character_info else 0)} characters in this story, only include a new character in choices if absolutely necessary for the plot" if len(additional_characters) + (1 if character_info else 0) >= 4 else
+        "IMPORTANT: Include one new character from the database in the choices when needed") + "\n"
         "5. Includes betrayal, romantic flings, and over-the-top action sequences\n"
         "6. Uses the character's traits to guide their behavior and dialogue\n"
         "7. In early story segments, Dr. Ugh should give the player a mission that targets a villain character with these components:\n"
