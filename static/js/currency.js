@@ -4,15 +4,31 @@
 import { api } from './utils/api.js';
 import { dom } from './utils/dom.js';
 
-export const currency = {
+class CurrencyManager {
+    constructor() {
+        this.balances = {};
+        this.transactionHistory = [];
+        this.initialized = false;
+    }
+
+    /**
+     * Initialize currency manager with current balances
+     * @param {Object} balances - Current currency balances
+     */
+    initialize(balances) {
+        this.balances = balances || {};
+        this.initialized = true;
+        this.updateDisplays();
+        console.log('Currency manager initialized with balances:', this.balances);
+    }
+
     /**
      * Update all currency displays in the UI
-     * @param {Object} balances - The currency balances
      */
-    updateDisplays: (balances) => {
-        if (!balances) return;
+    updateDisplays() {
+        if (!this.initialized) return;
 
-        Object.entries(balances).forEach(([currency, balance]) => {
+        Object.entries(this.balances).forEach(([currency, balance]) => {
             const displays = document.querySelectorAll(`.currency-item[data-currency="${currency}"] .currency-amount`);
             displays.forEach(display => {
                 display.textContent = balance;
@@ -30,36 +46,66 @@ export const currency = {
                 }
             });
         });
-    },
+    }
+
+    /**
+     * Check if user can afford given requirements
+     * @param {Object} requirements - Currency requirements
+     * @returns {boolean} - Whether user can afford
+     */
+    canAfford(requirements) {
+        if (!requirements) return true;
+
+        for (const [currency, amount] of Object.entries(requirements)) {
+            if ((this.balances[currency] || 0) < amount) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     /**
      * Process a currency trade
-     * @param {string} fromCurrency - The currency to trade from
-     * @param {string} toCurrency - The currency to trade to
-     * @param {number} amount - The amount to trade
-     * @returns {Promise} - The trade result
+     * @param {string} fromCurrency - Currency to trade from
+     * @param {string} toCurrency - Currency to trade to
+     * @param {number} amount - Amount to trade
+     * @returns {Promise<boolean>} - Success status
      */
-    processTrade: async (fromCurrency, toCurrency, amount) => {
+    async processTrade(fromCurrency, toCurrency, amount) {
         const loadingPercent = dom.createLoadingOverlay('Processing trade...');
         try {
-            const data = await api.post('/trade_currency', {
+            const response = await api.post('/api/currency/trade', {
                 from_currency: fromCurrency,
                 to_currency: toCurrency,
                 amount: amount
             });
 
-            if (data.success) {
-                currency.updateDisplays(data.new_balances);
-                dom.showToast('Success', data.message);
+            if (response.success) {
+                this.balances = response.new_balances;
+                this.updateDisplays();
+                dom.showToast('Success', response.message);
                 return true;
             } else {
-                throw new Error(data.error || 'Failed to trade currencies');
+                throw new Error(response.error || 'Failed to trade currencies');
             }
         } catch (error) {
-            dom.showToast('Error', error.message || 'Failed to trade currencies', true);
+            dom.showToast('Error', error.message || 'Failed to trade currencies');
             return false;
         } finally {
             dom.removeLoadingOverlay(loadingPercent);
         }
     }
-};
+
+    /**
+     * Get balance for a specific currency
+     * @param {string} currency - Currency symbol
+     * @returns {number} - Current balance
+     */
+    getBalance(currency) {
+        return this.balances[currency] || 0;
+    }
+}
+
+// Create and export singleton instance
+const currencyManager = new CurrencyManager();
+export { currencyManager as currency };
