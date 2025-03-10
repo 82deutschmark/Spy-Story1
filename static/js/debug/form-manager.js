@@ -37,7 +37,28 @@ export const formManager = {
         // Initialize save to database button
         const saveToDbBtn = document.getElementById('saveToDbBtn');
         if (saveToDbBtn) {
-            saveToDbBtn.addEventListener('click', () => this.saveToDatabase());
+            saveToDbBtn.addEventListener('click', async () => {
+                // Disable button during save
+                saveToDbBtn.disabled = true;
+                saveToDbBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+
+                try {
+                    const success = await this.saveToDatabase();
+                    if (success) {
+                        saveToDbBtn.innerHTML = '<i class="fas fa-check me-2"></i>Saved';
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000);
+                    }
+                } catch (error) {
+                    console.error('Save error:', error);
+                } finally {
+                    if (!success) {
+                        saveToDbBtn.disabled = false;
+                        saveToDbBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save to Database';
+                    }
+                }
+            });
         }
     },
 
@@ -63,46 +84,35 @@ export const formManager = {
     populateEditForm: function(analysisData) {
         if (!analysisData) return;
 
-        const form = {
-            imageType: document.getElementById('imageType'),
-            imageName: document.getElementById('imageName'),
-            codeName: document.getElementById('codeName'),
-            characterRole: document.getElementById('characterRole'),
-            characterStyle: document.getElementById('characterStyle'),
-            backstory: document.getElementById('backstory'),
-            characterTraits: document.getElementById('characterTraits'),
-            plotLines: document.getElementById('plotLines'),
-            sceneType: document.getElementById('sceneType'),
-            sceneSetting: document.getElementById('sceneSetting'),
-            dramaticMoments: document.getElementById('dramaticMoments')
-        };
-
         // Determine if this is a character
         const isCharacter = analysisData.character && typeof analysisData.character === 'object' ||
             (!analysisData.scene_type && !analysisData.setting);
 
         // Set form type and toggle fields
-        form.imageType.value = isCharacter ? 'character' : 'scene';
-        this.toggleTypeFields();
+        const imageType = document.getElementById('imageType');
+        if (imageType) {
+            imageType.value = isCharacter ? 'character' : 'scene';
+            this.toggleTypeFields();
+        }
 
         if (isCharacter) {
             const characterData = analysisData.character || {};
-            form.imageName.value = characterData.name || analysisData.name || '';
-            form.codeName.value = characterData.code_name || '';
-            form.characterRole.value = characterData.role || 'undetermined';
-            form.characterStyle.value = characterData.style || '';
-            form.backstory.value = characterData.backstory || '';
-            form.characterTraits.value = Array.isArray(characterData.character_traits) 
+            document.getElementById('imageName').value = characterData.name || analysisData.name || '';
+            document.getElementById('codeName').value = characterData.code_name || '';
+            document.getElementById('characterRole').value = characterData.role || 'undetermined';
+            document.getElementById('characterStyle').value = characterData.style || '';
+            document.getElementById('backstory').value = characterData.backstory || '';
+            document.getElementById('characterTraits').value = Array.isArray(characterData.character_traits) 
                 ? characterData.character_traits.join(', ') 
                 : '';
-            form.plotLines.value = Array.isArray(characterData.plot_lines) 
+            document.getElementById('plotLines').value = Array.isArray(characterData.plot_lines) 
                 ? characterData.plot_lines.join('\n') 
                 : '';
         } else {
-            form.imageName.value = analysisData.name || '';
-            form.sceneType.value = analysisData.scene_type || 'narrative';
-            form.sceneSetting.value = analysisData.setting || '';
-            form.dramaticMoments.value = Array.isArray(analysisData.dramatic_moments) 
+            document.getElementById('imageName').value = analysisData.name || '';
+            document.getElementById('sceneType').value = analysisData.scene_type || 'narrative';
+            document.getElementById('sceneSetting').value = analysisData.setting || '';
+            document.getElementById('dramaticMoments').value = Array.isArray(analysisData.dramatic_moments) 
                 ? analysisData.dramatic_moments.join('\n') 
                 : '';
         }
@@ -167,8 +177,6 @@ export const formManager = {
                 throw new Error(response.error);
             }
 
-            // Refresh the page to show updated data
-            location.reload();
             return true;
         } catch (error) {
             console.error('Error saving to database:', error);
