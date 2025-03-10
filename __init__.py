@@ -9,11 +9,15 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-def create_app(test_config=None):
-    """Application factory for Flask app"""
+# Import database after app is created to avoid circular imports
+from database import db
+from api.unity_routes import unity_api
+
+def create_app():
+    # Load environment variables
     load_dotenv()
     
-    # Create and configure the app
+    # Create Flask app
     app = Flask(__name__)
     app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
@@ -21,6 +25,9 @@ def create_app(test_config=None):
         "pool_recycle": 300,
         "pool_pre_ping": True,
     }
+    
+    # Initialize database
+    db.init_app(app)
     
     # CORS configuration
     CORS(app, resources={
@@ -31,14 +38,8 @@ def create_app(test_config=None):
         }
     })
     
-    # Initialize extensions
-    from database import db
-    db.init_app(app)
-    
     # Register blueprints
     from routes import main_bp
-    from api.unity_routes import unity_api
-    
     app.register_blueprint(main_bp)
     app.register_blueprint(unity_api, url_prefix='/api/unity')
     
