@@ -1,384 +1,109 @@
-// modules/debug/DebugUtils.js
-const DebugUtils = {
-    showToast(title, message, isError = false) {
-        const toastEl = document.getElementById('notificationToast');
-        if (toastEl) {
-            const toast = new bootstrap.Toast(toastEl);
-            document.getElementById('toastTitle').textContent = title;
-            document.getElementById('toastMessage').textContent = message;
 
-            if (isError) {
-                toastEl.classList.add('bg-danger', 'text-white');
-            } else {
-                toastEl.classList.remove('bg-danger', 'text-white');
-            }
+/**
+ * Data Handling Module
+ * Manages database records and API interactions
+ */
+import DebugUtils from './DebugUtils.js';
+import DebugAPI from './DebugAPI.js';
+import DebugUI from './DebugUI.js';
 
-            toast.show();
-        }
-    },
-    deepClone(obj) {
-        try {
-            return JSON.parse(JSON.stringify(obj));
-        } catch (e) {
-            console.error('Error cloning object:', e);
-            return {};
-        }
-    },
-    logDebug(title, data) {
-        console.log(`${title}:`, data);
-    },
-    safeParseJSON(text) {
-        try {
-            return JSON.parse(text);
-        } catch (e) {
-            console.error('Error parsing JSON:', e);
-            this.showToast('Error', 'Failed to parse JSON: ' + e.message, true);
-            return null;
-        }
-    }
-};
-
-export default DebugUtils;
-
-
-// modules/debug/DebugAPI.js
-const DebugAPI = {
-    async get(url) {
-        try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return await response.json();
-        } catch (error) {
-            console.error('API GET error:', error);
-            DebugUtils.showToast('API Error', error.message, true);
-            throw error;
-        }
-    },
-    async post(url, data) {
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return await response.json();
-        } catch (error) {
-            console.error('API POST error:', error);
-            DebugUtils.showToast('API Error', error.message, true);
-            throw error;
-        }
-    },
-    async delete(url) {
-        try {
-            const response = await fetch(url, { method: 'DELETE' });
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return await response.json();
-        } catch (error) {
-            console.error('API DELETE error:', error);
-            DebugUtils.showToast('API Error', error.message, true);
-            throw error;
-        }
-    }
-};
-
-export default DebugAPI;
-
-
-// modules/debug/DebugUI.js
-const DebugUI = {
-    elements: {
-        imageForm: document.getElementById('imageForm'),
-        imageUrl: document.getElementById('imageUrl'),
-        resultContainer: document.getElementById('result'),
-        generatedContent: document.getElementById('generatedContent'),
-        editModeSwitch: document.getElementById('editModeSwitch'),
-        editContainer: document.getElementById('editContainer'),
-        copyBtn: document.getElementById('copyBtn'),
-        applyChangesBtn: document.getElementById('applyChangesBtn'),
-        imageType: document.getElementById('imageType'),
-        characterFields: document.getElementById('characterFields'),
-        sceneFields: document.getElementById('sceneFields'),
-        imagesTableBody: document.getElementById('imagesTableBody'),
-        imagesPagination: document.getElementById('imagesPagination'),
-        storiesTableBody: document.getElementById('storiesTableBody'),
-        storiesPagination: document.getElementById('storiesPagination')
-    },
-    initialize() {
-        this.setupEventListeners();
-        console.log('UI module initialized');
-    },
-    setupEventListeners() {
-        this.elements.imageForm.addEventListener('submit', event => {
-            event.preventDefault();
-            FormHandler.handleImageAnalysis();
-        });
-        this.elements.editModeSwitch.addEventListener('change', () => {
-            this.elements.editContainer.style.display = this.elements.editModeSwitch.checked ? 'block' : 'none';
-        });
-        this.elements.copyBtn.addEventListener('click', () => {
-            const content = this.elements.generatedContent.textContent;
-            navigator.clipboard.writeText(content)
-                .then(() => DebugUtils.showToast('Success', 'Content copied to clipboard'))
-                .catch(err => DebugUtils.showToast('Error', 'Failed to copy: ' + err, true));
-        });
-        this.elements.imageType.addEventListener('change', () => {
-            this.toggleFieldsByImageType();
-        });
-        this.elements.applyChangesBtn.addEventListener('click', () => {
-            FormHandler.applyChanges();
-        });
-        document.querySelectorAll('.filter-btn').forEach(button => {
-            button.addEventListener('click', () => {
-                const filter = button.getAttribute('data-filter');
-                DataHandler.filterImages(filter);
-            });
-        });
-    },
-    toggleFieldsByImageType() {
-        const type = this.elements.imageType.value;
-        this.elements.characterFields.style.display = type === 'character' ? 'block' : 'none';
-        this.elements.sceneFields.style.display = type === 'scene' ? 'block' : 'none';
-    },
-    showResult() {
-        this.elements.resultContainer.style.display = 'block';
-    },
-    hideResult() {
-        this.elements.resultContainer.style.display = 'none';
-    },
-    displayGeneratedContent(content) {
-        this.elements.generatedContent.textContent = content;
-        this.showResult();
-    },
-    populateEditForm(data) {
-        console.log('Populated edit form with data:', data);
-        document.getElementById('imageName').value = data.name || '';
-        document.getElementById('descriptionField').value = data.description || '';
-        document.getElementById('imageType').value = data.image_type || 'character';
-        this.toggleFieldsByImageType();
-        if (data.image_type === 'character') {
-            document.getElementById('characterRole').value = data.role || 'undetermined';
-            document.getElementById('characterTraits').value = Array.isArray(data.traits) ? data.traits.join(', ') : '';
-            document.getElementById('plotLines').value = Array.isArray(data.plot_lines) ? data.plot_lines.join('\n') : '';
-        } else if (data.image_type === 'scene') {
-            document.getElementById('sceneType').value = data.scene_type || 'action';
-            document.getElementById('sceneSetting').value = data.setting || '';
-            document.getElementById('dramaticMoments').value = Array.isArray(data.dramatic_moments) ? data.dramatic_moments.join('\n') : '';
-        }
-    },
-    createPagination(elementId, totalPages, currentPage, clickHandler) {
-        const paginationEl = document.getElementById(elementId);
-        paginationEl.innerHTML = '';
-
-        if (totalPages <= 1) return;
-
-        const prevLi = document.createElement('li');
-        prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-        const prevLink = document.createElement('a');
-        prevLink.className = 'page-link';
-        prevLink.href = '#';
-        prevLink.textContent = 'Previous';
-        if (currentPage > 1) {
-            prevLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                clickHandler(currentPage - 1);
-            });
-        }
-        prevLi.appendChild(prevLink);
-        paginationEl.appendChild(prevLi);
-
-        for (let i = 1; i <= totalPages; i++) {
-            const li = document.createElement('li');
-            li.className = `page-item ${i === currentPage ? 'active' : ''}`;
-            const link = document.createElement('a');
-            link.className = 'page-link';
-            link.href = '#';
-            link.textContent = i;
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (i !== currentPage) {
-                    clickHandler(i);
-                }
-            });
-            li.appendChild(link);
-            paginationEl.appendChild(li);
-        }
-
-        const nextLi = document.createElement('li');
-        nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-        const nextLink = document.createElement('a');
-        nextLink.className = 'page-link';
-        nextLink.href = '#';
-        nextLink.textContent = 'Next';
-        if (currentPage < totalPages) {
-            nextLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                clickHandler(currentPage + 1);
-            });
-        }
-        nextLi.appendChild(nextLink);
-        paginationEl.appendChild(nextLi);
-    }
-};
-
-export default DebugUI;
-
-// modules/debug/FormHandler.js
-const FormHandler = {
-    initialize() {
-        console.log('Form handler initialized');
-    },
-    async handleImageAnalysis() {
-        const imageUrl = DebugUI.elements.imageUrl.value.trim();
-        if (!imageUrl) {
-            DebugUtils.showToast('Error', 'Please enter an image URL', true);
-            return;
-        }
-
-        try {
-            DebugUtils.showToast('Processing', 'Analyzing image...');
-            const response = await DebugAPI.post('/debug/analyze-image', { image_url: imageUrl });
-
-            if (response.success) {
-                DebugUI.displayGeneratedContent(JSON.stringify(response.analysis, null, 2));
-                DebugUI.populateEditForm(response.analysis);
-                const saveContainer = document.querySelector('.save-button-container');
-                if (!saveContainer.querySelector('#saveToDbBtn')) {
-                    const saveBtn = document.createElement('button');
-                    saveBtn.id = 'saveToDbBtn';
-                    saveBtn.className = 'btn btn-primary';
-                    saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save to Database';
-                    saveBtn.addEventListener('click', () => this.saveAnalysisToDb(response.analysis, imageUrl));
-                    saveContainer.appendChild(saveBtn);
-                }
-            } else {
-                DebugUtils.showToast('Error', response.message || 'Failed to analyze image', true);
-            }
-        } catch (error) {
-            DebugUtils.showToast('Error', 'Failed to analyze image: ' + error.message, true);
-        }
-    },
-    applyChanges() {
-        const currentContent = DebugUI.elements.generatedContent.textContent;
-        let contentObj;
-        try {
-            contentObj = JSON.parse(currentContent);
-        } catch (e) {
-            DebugUtils.showToast('Error', 'Failed to parse current content', true);
-            return;
-        }
-
-        contentObj.name = document.getElementById('imageName').value;
-        contentObj.type = document.getElementById('imageType').value.toUpperCase();
-        contentObj.image_type = document.getElementById('imageType').value;
-        contentObj.description = document.getElementById('descriptionField').value;
-
-        if (contentObj.image_type === 'character') {
-            contentObj.role = document.getElementById('characterRole').value;
-            contentObj.personality_traits = document.getElementById('characterTraits')
-                .value.split(',').map(trait => trait.trim()).filter(trait => trait);
-            contentObj.character_traits = [...contentObj.personality_traits];
-            contentObj.potential_plot_lines = document.getElementById('plotLines')
-                .value.split('\n').map(line => line.trim()).filter(line => line);
-            contentObj.plot_lines = [...contentObj.potential_plot_lines];
-        } else {
-            contentObj.scene_type = document.getElementById('sceneType').value;
-            contentObj.setting = document.getElementById('sceneSetting').value;
-            contentObj.dramatic_moments = document.getElementById('dramaticMoments')
-                .value.split('\n').map(moment => moment.trim()).filter(moment => moment);
-        }
-
-        DebugUI.elements.generatedContent.textContent = JSON.stringify(contentObj, null, 2);
-        console.log('Edited form data:', contentObj);
-        DebugUtils.showToast('Success', 'Changes applied');
-    },
-    async saveAnalysisToDb(analysis, imageUrl) {
-        try {
-            const currentContent = DebugUI.elements.generatedContent.textContent;
-            let contentObj;
-            try {
-                contentObj = JSON.parse(currentContent);
-            } catch (e) {
-                DebugUtils.showToast('Error', 'Failed to parse current content', true);
-                return;
-            }
-            const saveData = {
-                image_url: imageUrl,
-                analysis: contentObj
-            };
-            console.log('Saving analysis data:', saveData);
-            const response = await DebugAPI.post('/debug/save-image', saveData);
-
-            if (response.success) {
-                DebugUtils.showToast('Success', 'Image saved to database');
-                DataHandler.loadImages();
-            } else {
-                DebugUtils.showToast('Error', response.message || 'Failed to save image', true);
-            }
-        } catch (error) {
-            DebugUtils.showToast('Error', 'Failed to save image: ' + error.message, true);
-        }
-    }
-};
-
-export default FormHandler;
-
-
-// modules/debug/DataHandler.js
-const DataHandler = {
+export default {
+    // Pagination state
     currentFilter: '',
     currentPage: 1,
     pageSize: 10,
     searchTerm: '',
     storySearchTerm: '',
     storyCurrentPage: 1,
+
+    /**
+     * Initialize data handler
+     */
     initialize() {
         this.setupEvents();
         this.loadImages();
         this.loadStories();
         console.log('Data handler initialized');
     },
+
+    /**
+     * Set up event listeners
+     */
     setupEvents() {
+        // Setup image refresh button
         document.getElementById('refreshImagesBtn').addEventListener('click', () => this.loadImages());
+
+        // Setup story refresh button
         document.getElementById('refreshStoriesBtn').addEventListener('click', () => this.loadStories());
+
+        // Setup image search
         document.getElementById('imageSearchBtn').addEventListener('click', () => {
             const searchTerm = document.getElementById('imageSearchInput').value;
             this.searchImages(searchTerm);
         });
+
+        // Setup story search
         document.getElementById('storySearchBtn').addEventListener('click', () => {
             const searchTerm = document.getElementById('storySearchInput').value;
             this.searchStories(searchTerm);
         });
+
+        // Setup delete all images button
         document.getElementById('deleteAllImagesBtn').addEventListener('click', () => {
             if (confirm('Are you sure you want to delete ALL images? This cannot be undone!')) {
                 this.deleteAllImages();
             }
         });
+
+        // Setup delete all stories button
         document.getElementById('deleteAllStoriesBtn').addEventListener('click', () => {
             if (confirm('Are you sure you want to delete ALL stories? This cannot be undone!')) {
                 this.deleteAllStories();
             }
         });
+
+        // Setup health check button
         document.getElementById('runHealthCheckBtn').addEventListener('click', () => this.runHealthCheck());
     },
+
+    /**
+     * Filter images by type
+     * @param {string} filter - Filter value
+     */
     filterImages(filter) {
         this.currentFilter = filter;
         this.currentPage = 1;
         this.loadImages();
+
+        // Update active filter button
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.classList.toggle('active', btn.getAttribute('data-filter') === filter);
         });
     },
+
+    /**
+     * Search images
+     * @param {string} term - Search term
+     */
     searchImages(term) {
         this.searchTerm = term;
         this.currentPage = 1;
         this.loadImages();
     },
+
+    /**
+     * Search stories
+     * @param {string} term - Search term
+     */
     searchStories(term) {
         this.storySearchTerm = term;
         this.storyCurrentPage = 1;
         this.loadStories();
     },
+
+    /**
+     * Load images with pagination
+     */
     async loadImages() {
         try {
             DebugUI.elements.imagesTableBody.innerHTML = `
@@ -390,18 +115,22 @@ const DataHandler = {
                     </td>
                 </tr>
             `;
+
             let url = `/debug/images?page=${this.currentPage}&limit=${this.pageSize}`;
+
             if (this.currentFilter) {
                 url += `&type=${this.currentFilter}`;
             }
+
             if (this.searchTerm) {
                 url += `&search=${encodeURIComponent(this.searchTerm)}`;
             }
+
             const data = await DebugAPI.get(url);
 
             if (data.success) {
                 this.renderImagesTable(data.images);
-                DebugUI.createPagination('imagesPagination', data.total_pages, this.currentPage,
+                DebugUI.createPagination('imagesPagination', data.total_pages, this.currentPage, 
                     (page) => {
                         this.currentPage = page;
                         this.loadImages();
@@ -420,6 +149,11 @@ const DataHandler = {
             `;
         }
     },
+
+    /**
+     * Render images table
+     * @param {Array} images - Array of image objects
+     */
     renderImagesTable(images) {
         if (!images || images.length === 0) {
             DebugUI.elements.imagesTableBody.innerHTML = `
@@ -434,6 +168,8 @@ const DataHandler = {
 
         images.forEach(image => {
             const row = document.createElement('tr');
+
+            // Create image thumbnail with modal trigger
             const thumbnailCell = document.createElement('td');
             const thumbnail = document.createElement('img');
             thumbnail.src = image.image_url;
@@ -443,6 +179,8 @@ const DataHandler = {
             thumbnail.style.cursor = 'pointer';
             thumbnail.addEventListener('click', () => this.openImageDetails(image));
             thumbnailCell.appendChild(thumbnail);
+
+            // Create table cells
             row.innerHTML = `
                 <td>${image.id}</td>
                 <td>${image.type || 'Unknown'}</td>
@@ -459,21 +197,40 @@ const DataHandler = {
                     </div>
                 </td>
             `;
+
+            // Insert thumbnail cell at the beginning
             row.insertBefore(thumbnailCell, row.firstChild);
+
             DebugUI.elements.imagesTableBody.appendChild(row);
+
+            // Add event listeners for buttons
             row.querySelector('.view-btn').addEventListener('click', () => this.openImageDetails(image));
             row.querySelector('.delete-btn').addEventListener('click', () => this.deleteImage(image.id));
         });
     },
+
+    /**
+     * Open image details modal
+     * @param {object} image - Image object
+     */
     openImageDetails(image) {
         const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
+
+        // Set modal content
         document.getElementById('modalImage').src = image.image_url;
         document.getElementById('modalContent').textContent = JSON.stringify(image, null, 2);
+
+        // Setup edit mode switch
         const editSwitch = document.getElementById('modalEditModeSwitch');
         const editContainer = document.getElementById('modalEditContainer');
+
         editSwitch.checked = false;
         editContainer.style.display = 'none';
+
+        // Populate edit form
         this.populateModalEditForm(image);
+
+        // Set up reanalyze button
         document.getElementById('reanalyzeImageBtn').onclick = () => {
             const reanalyzeModal = new bootstrap.Modal(document.getElementById('reanalyzeConfirmModal'));
             document.getElementById('confirmReanalyzeBtn').onclick = () => {
@@ -482,47 +239,80 @@ const DataHandler = {
             };
             reanalyzeModal.show();
         };
+
+        // Set up save changes button
         const saveBtn = document.getElementById('saveAnalysisBtn');
         saveBtn.style.display = 'none';
         saveBtn.onclick = () => this.saveModalChanges(image.id);
+
+        // Edit mode toggle
         editSwitch.onchange = () => {
             editContainer.style.display = editSwitch.checked ? 'block' : 'none';
             saveBtn.style.display = editSwitch.checked ? 'inline-block' : 'none';
         };
+
+        // Type change handler
         document.getElementById('modalImageType').onchange = () => {
             const type = document.getElementById('modalImageType').value;
             document.getElementById('modalCharacterFields').style.display = type === 'character' ? 'block' : 'none';
             document.getElementById('modalSceneFields').style.display = type === 'scene' ? 'block' : 'none';
         };
+
         modal.show();
     },
+
+    /**
+     * Populate modal edit form
+     * @param {object} image - Image object
+     */
     populateModalEditForm(image) {
+        // Basic fields
         document.getElementById('modalImageName').value = image.name || '';
         document.getElementById('modalImageType').value = image.image_type || 'character';
         document.getElementById('modalDescriptionField').value = image.description || '';
+
+        // Set fields visibility based on type
         const type = image.image_type || 'character';
         document.getElementById('modalCharacterFields').style.display = type === 'character' ? 'block' : 'none';
         document.getElementById('modalSceneFields').style.display = type === 'scene' ? 'block' : 'none';
+
+        // Character-specific fields
         if (type === 'character') {
             document.getElementById('modalCharacterRole').value = image.role || 'neutral';
+
             const traits = image.personality_traits || image.character_traits || image.traits || [];
-            document.getElementById('modalCharacterTraits').value = Array.isArray(traits) ? traits.join(', ') : '';
+            document.getElementById('modalCharacterTraits').value = 
+                Array.isArray(traits) ? traits.join(', ') : '';
+
             const plotLines = image.plot_lines || image.potential_plot_lines || [];
-            document.getElementById('modalPlotLines').value = Array.isArray(plotLines) ? plotLines.join('\n') : '';
-        } else if (type === 'scene') {
+            document.getElementById('modalPlotLines').value = 
+                Array.isArray(plotLines) ? plotLines.join('\n') : '';
+        }
+        // Scene-specific fields
+        else if (type === 'scene') {
             document.getElementById('modalSceneType').value = image.scene_type || 'action';
             document.getElementById('modalSceneSetting').value = image.setting || '';
+
             const dramaticMoments = image.dramatic_moments || [];
-            document.getElementById('modalDramaticMoments').value = Array.isArray(dramaticMoments) ? dramaticMoments.join('\n') : '';
+            document.getElementById('modalDramaticMoments').value = 
+                Array.isArray(dramaticMoments) ? dramaticMoments.join('\n') : '';
         }
     },
+
+    /**
+     * Save changes from modal
+     * @param {number} imageId - Image ID
+     */
     async saveModalChanges(imageId) {
         try {
+            // Get form data
             const formData = {
                 name: document.getElementById('modalImageName').value,
                 image_type: document.getElementById('modalImageType').value,
                 description: document.getElementById('modalDescriptionField').value
             };
+
+            // Type-specific fields
             if (formData.image_type === 'character') {
                 formData.role = document.getElementById('modalCharacterRole').value;
                 formData.traits = document.getElementById('modalCharacterTraits')
@@ -535,11 +325,14 @@ const DataHandler = {
                 formData.dramatic_moments = document.getElementById('modalDramaticMoments')
                     .value.split('\n').map(moment => moment.trim()).filter(moment => moment);
             }
+
             const response = await DebugAPI.post(`/debug/update-image/${imageId}`, formData);
 
             if (response.success) {
                 DebugUtils.showToast('Success', 'Image updated successfully');
                 this.loadImages();
+
+                // Update modal content
                 document.getElementById('modalContent').textContent = JSON.stringify(response.image, null, 2);
             } else {
                 DebugUtils.showToast('Error', response.message || 'Failed to update image', true);
@@ -548,9 +341,16 @@ const DataHandler = {
             DebugUtils.showToast('Error', 'Failed to update image: ' + error.message, true);
         }
     },
+
+    /**
+     * Reanalyze image
+     * @param {number} imageId - Image ID
+     * @param {boolean} preserveRelations - Whether to preserve relations
+     */
     async reanalyzeImage(imageId, preserveRelations) {
         try {
             DebugUtils.showToast('Processing', 'Reanalyzing image...');
+
             const response = await DebugAPI.post(`/debug/reanalyze-image/${imageId}`, {
                 preserve_relations: preserveRelations
             });
@@ -558,6 +358,8 @@ const DataHandler = {
             if (response.success) {
                 DebugUtils.showToast('Success', 'Image reanalyzed successfully');
                 this.loadImages();
+
+                // Close modal
                 const modal = bootstrap.Modal.getInstance(document.getElementById('detailsModal'));
                 modal.hide();
             } else {
@@ -567,6 +369,11 @@ const DataHandler = {
             DebugUtils.showToast('Error', 'Failed to reanalyze image: ' + error.message, true);
         }
     },
+
+    /**
+     * Delete image
+     * @param {number} imageId - Image ID
+     */
     async deleteImage(imageId) {
         if (!confirm('Are you sure you want to delete this image?')) {
             return;
@@ -585,6 +392,10 @@ const DataHandler = {
             DebugUtils.showToast('Error', 'Failed to delete image: ' + error.message, true);
         }
     },
+
+    /**
+     * Delete all images
+     */
     async deleteAllImages() {
         try {
             const response = await DebugAPI.delete('/debug/images');
@@ -599,6 +410,10 @@ const DataHandler = {
             DebugUtils.showToast('Error', 'Failed to delete images: ' + error.message, true);
         }
     },
+
+    /**
+     * Load stories
+     */
     async loadStories() {
         try {
             DebugUI.elements.storiesTableBody.innerHTML = `
@@ -610,15 +425,18 @@ const DataHandler = {
                     </td>
                 </tr>
             `;
+
             let url = `/debug/stories?page=${this.storyCurrentPage || 1}&limit=${this.pageSize}`;
+
             if (this.storySearchTerm) {
                 url += `&search=${encodeURIComponent(this.storySearchTerm)}`;
             }
+
             const data = await DebugAPI.get(url);
 
             if (data.success) {
                 this.renderStoriesTable(data.stories);
-                DebugUI.createPagination('storiesPagination', data.total_pages,
+                DebugUI.createPagination('storiesPagination', data.total_pages, 
                     this.storyCurrentPage || 1, (page) => {
                         this.storyCurrentPage = page;
                         this.loadStories();
@@ -637,6 +455,11 @@ const DataHandler = {
             `;
         }
     },
+
+    /**
+     * Render stories table
+     * @param {Array} stories - Array of story objects
+     */
     renderStoriesTable(stories) {
         if (!stories || stories.length === 0) {
             DebugUI.elements.storiesTableBody.innerHTML = `
@@ -651,12 +474,15 @@ const DataHandler = {
 
         stories.forEach(story => {
             const row = document.createElement('tr');
+
+            // Format characters list
             let charactersText = 'None';
             if (story.characters && story.characters.length > 0) {
                 charactersText = story.characters
                     .map(char => char.name || `ID: ${char.id}`)
                     .join(', ');
             }
+
             row.innerHTML = `
                 <td>${story.id}</td>
                 <td>${story.title || 'Untitled'}</td>
@@ -675,26 +501,36 @@ const DataHandler = {
                     </div>
                 </td>
             `;
+
             DebugUI.elements.storiesTableBody.appendChild(row);
+
+            // Add event listeners for buttons
             row.querySelector('.view-story-btn').addEventListener('click', () => this.viewStory(story.id));
             row.querySelector('.delete-story-btn').addEventListener('click', () => this.deleteStory(story.id));
         });
     },
+
+    /**
+     * View story details
+     * @param {number} storyId - Story ID
+     */
     async viewStory(storyId) {
         try {
             const response = await DebugAPI.get(`/debug/stories/${storyId}`);
 
             if (response.success) {
+                // Show story in modal
                 const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
-                document.getElementById('detailsModalLabel').innerHTML =
+                document.getElementById('detailsModalLabel').innerHTML = 
                     `<i class="fas fa-book me-2"></i>Story Details`;
                 document.getElementById('modalImage').style.display = 'none';
-                document.getElementById('modalContent').textContent =
+                document.getElementById('modalContent').textContent = 
                     JSON.stringify(response.story, null, 2);
                 document.getElementById('modalEditModeSwitch').style.display = 'none';
                 document.getElementById('modalEditContainer').style.display = 'none';
                 document.getElementById('reanalyzeImageBtn').style.display = 'none';
                 document.getElementById('saveAnalysisBtn').style.display = 'none';
+
                 modal.show();
             } else {
                 DebugUtils.showToast('Error', response.message || 'Failed to load story', true);
@@ -703,6 +539,11 @@ const DataHandler = {
             DebugUtils.showToast('Error', 'Failed to load story: ' + error.message, true);
         }
     },
+
+    /**
+     * Delete story
+     * @param {number} storyId - Story ID
+     */
     async deleteStory(storyId) {
         if (!confirm('Are you sure you want to delete this story?')) {
             return;
@@ -721,6 +562,10 @@ const DataHandler = {
             DebugUtils.showToast('Error', 'Failed to delete story: ' + error.message, true);
         }
     },
+
+    /**
+     * Delete all stories
+     */
     async deleteAllStories() {
         try {
             const response = await DebugAPI.delete('/debug/stories');
@@ -735,18 +580,26 @@ const DataHandler = {
             DebugUtils.showToast('Error', 'Failed to delete stories: ' + error.message, true);
         }
     },
+
+    /**
+     * Run database health check
+     */
     async runHealthCheck() {
         try {
             DebugUtils.showToast('Processing', 'Running health check...');
+
             const response = await DebugAPI.get('/debug/health-check');
 
             if (response.success) {
+                // Update stats
                 document.getElementById('totalImages').textContent = response.stats.image_count;
                 document.getElementById('characterImages').textContent = response.stats.character_count;
                 document.getElementById('sceneImages').textContent = response.stats.scene_count;
                 document.getElementById('totalStories').textContent = response.stats.story_count;
                 document.getElementById('orphanedImages').textContent = response.stats.orphaned_images;
                 document.getElementById('emptyStories').textContent = response.stats.empty_stories;
+
+                // Display issues
                 const issuesList = document.getElementById('issuesList');
                 const noIssuesAlert = document.getElementById('noIssuesAlert');
 
@@ -761,22 +614,25 @@ const DataHandler = {
                                     <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
                                     ${issue.description}
                                 </div>
-                                ${issue.fixable ?
+                                ${issue.fixable ? 
                                     `<button class="btn btn-sm btn-outline-primary fix-issue-btn" 
                                         data-issue-id="${issue.id}" data-issue-type="${issue.type}">
                                         <i class="fas fa-wrench me-1"></i>Fix
-                                    </button>` :
+                                    </button>` : 
                                     ''
                                 }
                             </div>
                         `;
                         issuesList.appendChild(li);
+
+                        // Add click handler for fix button
                         if (issue.fixable) {
                             li.querySelector('.fix-issue-btn').addEventListener('click', () => {
                                 this.fixIssue(issue.type, issue.id);
                             });
                         }
                     });
+
                     issuesList.style.display = 'block';
                     noIssuesAlert.style.display = 'none';
                 } else {
@@ -792,9 +648,16 @@ const DataHandler = {
             DebugUtils.showToast('Error', 'Failed to run health check: ' + error.message, true);
         }
     },
+
+    /**
+     * Fix database issue
+     * @param {string} issueType - Issue type
+     * @param {number} issueId - Issue ID
+     */
     async fixIssue(issueType, issueId) {
         try {
             DebugUtils.showToast('Processing', 'Fixing issue...');
+
             const response = await DebugAPI.post('/debug/fix-issue', {
                 issue_type: issueType,
                 issue_id: issueId
@@ -803,6 +666,8 @@ const DataHandler = {
             if (response.success) {
                 DebugUtils.showToast('Success', 'Issue fixed successfully');
                 this.runHealthCheck();
+
+                // Refresh data
                 this.loadImages();
                 this.loadStories();
             } else {
@@ -812,98 +677,4 @@ const DataHandler = {
             DebugUtils.showToast('Error', 'Failed to fix issue: ' + error.message, true);
         }
     }
-};
-
-export default DataHandler;
-
-
-// modules/debug/ModalHandler.js
-const ModalHandler = {
-    initialize() {
-        const detailsModal = document.getElementById('detailsModal');
-        if (detailsModal) {
-            detailsModal.addEventListener('hidden.bs.modal', () => {
-                document.getElementById('detailsModalLabel').innerHTML =
-                    '<i class="fas fa-edit me-2"></i>Image Details';
-                document.getElementById('modalImage').style.display = '';
-                document.getElementById('modalEditModeSwitch').style.display = '';
-                document.getElementById('reanalyzeImageBtn').style.display = '';
-            });
-        }
-        console.log('Modal handler initialized');
-    }
-};
-
-export default ModalHandler;
-
-
-// modules/debug/ImageHandler.js
-const ImageHandler = {
-    initialize() {
-        console.log('Image handler initialized');
-    }
-};
-
-export default ImageHandler;
-
-
-// modules/debug/EventHandler.js
-const EventHandler = {
-    initialize() {
-        console.log('Event handler initialized');
-    }
-};
-
-export default EventHandler;
-
-
-/**
- * Main entry point for the debug application
- * Uses ES6 modules for better organization
- */
-
-// Import modules
-import DebugUtils from './modules/debug/DebugUtils.js';
-import DebugAPI from './modules/debug/DebugAPI.js';
-import DebugUI from './modules/debug/DebugUI.js';
-import FormHandler from './modules/debug/FormHandler.js';
-import DataHandler from './modules/debug/DataHandler.js';
-import ModalHandler from './modules/debug/ModalHandler.js';
-import ImageHandler from './modules/debug/ImageHandler.js';
-import EventHandler from './modules/debug/EventHandler.js';
-
-// Main Debug App module to initialize everything
-const DebugApp = {
-    /**
-     * Initialize the debug application
-     */
-    initialize() {
-        // Initialize all modules
-        DebugUI.initialize();
-        FormHandler.initialize();
-        DataHandler.initialize();
-        ModalHandler.initialize();
-        ImageHandler.initialize();
-        EventHandler.initialize();
-
-        console.log('Debug application initialized');
-    }
-};
-
-// Initialize the application when the DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    DebugApp.initialize();
-});
-
-// Export modules for potential reuse or debugging
-window.Debug = {
-    Utils: DebugUtils,
-    API: DebugAPI,
-    UI: DebugUI,
-    FormHandler: FormHandler,
-    DataHandler: DataHandler,
-    ModalHandler: ModalHandler,
-    ImageHandler: ImageHandler,
-    EventHandler: EventHandler,
-    App: DebugApp
 };
