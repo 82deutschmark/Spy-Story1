@@ -68,9 +68,20 @@ export const imageAnalyzer = {
 
         try {
             // Make sure the analysis is a proper object, not a string
-            const analysisData = typeof data.analysis === 'string' 
-                ? JSON.parse(data.analysis) 
-                : data.analysis;
+            let analysisData = data.analysis;
+            if (typeof data.analysis === 'string') {
+                try {
+                    analysisData = JSON.parse(data.analysis);
+                } catch (parseError) {
+                    console.error('Failed to parse analysis JSON:', parseError);
+                    throw new Error('Invalid analysis data format');
+                }
+            }
+            
+            console.log('Saving analysis to database:', {
+                image_url: data.imageUrl,
+                analysis: analysisData
+            });
                 
             const response = await api.post('/save_analysis', {
                 image_url: data.imageUrl,

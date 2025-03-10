@@ -1046,25 +1046,55 @@ def get_image_details(image_id):
         logger.error(f"Error getting image details: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@main_bp.route('/api/save_analysis', methods=['POST'])
-def save_analysis():
-    """Save edited analysis from debug page"""
+@main_bp.route('/api/image/update', methods=['POST'])
+def update_image_analysis():
+    """Update existing image analysis with edited data"""
     try:
         data = request.json
-        image_id = data.get('image_id')
+        image_id = data.get('id')
         analysis = data.get('analysis')
 
         if not image_id or not analysis:
-            return jsonify({'error': 'Missing image_id or analysis'}), 400
+            return jsonify({'error': 'Missing image ID or analysis data'}), 400
 
         image = ImageAnalysis.query.get_or_404(image_id)
+        
+        # Update the analysis_result with edited data
         image.analysis_result = analysis
+        
+        # Update other related fields based on analysis content
+        is_character = analysis.get('image_type') == 'character' or bool(analysis.get('character'))
+        
+        # Get character data either from nested object or top level
+        character_data = analysis.get('character', {}) if is_character else {}
+        if not character_data and is_character:
+            character_data = analysis  # Use top-level data if no nested character object
+            
+        # Update character fields if it's a character
+        if is_character:
+            image.image_type = 'character'
+            image.character_name = character_data.get('name') or analysis.get('name')
+            image.character_role = character_data.get('role')
+            image.character_traits = character_data.get('character_traits')
+            image.plot_lines = character_data.get('plot_lines')
+        else:
+            # Update scene fields
+            image.image_type = 'scene'
+            image.scene_type = analysis.get('scene_type')
+            image.setting = analysis.get('setting')
+            image.setting_description = analysis.get('setting_description')
+            image.story_fit = analysis.get('story_fit')
+            image.dramatic_moments = analysis.get('dramatic_moments')
+        
         db.session.commit()
+        logger.info(f"Successfully updated image analysis: {image_id}")
 
         return jsonify({
             'success': True,
-            'message': 'Analysis updated successfully'
+            'message': 'Analysis updated successfully',
+            'id': image.id
         })
     except Exception as e:
-        logger.error(f"Error saving analysis: {str(e)}")
+        logger.error(f"Error updating image analysis: {str(e)}")
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
