@@ -24,6 +24,9 @@ This application allows users to generate interactive stories featuring images f
 
 ## Recent Improvements
 
+- **Debug Tools Modularization**: Refactored debug.js for better maintainability and organization with clearer separation of concerns
+- **Character Role Standardization**: Ensured all characters use consistent role types (undetermined, villain, neutral, mission-giver)
+- **Form Validation Improvements**: Fixed form handling in debug interface to properly validate and save character data
 - **Mission System**: Added mission tracking and objectives to story generation
 - **Character Dynamics**: Improved how new characters are introduced (limited to 10% chance after 4 characters)
 - **Debug Tools Enhancement**: Improved image analysis workflow with proper editing and saving
