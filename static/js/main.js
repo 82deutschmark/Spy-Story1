@@ -15,8 +15,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Initialize currency manager with initial balances
         const initialBalancesEl = document.getElementById('initialBalances');
         if (initialBalancesEl) {
-            const initialBalances = JSON.parse(initialBalancesEl.value);
-            currency.initialize(initialBalances);
+            try {
+                const initialBalances = JSON.parse(initialBalancesEl.value);
+                currency.initialize(initialBalances);
+            } catch (e) {
+                console.error('Error parsing initial balances:', e);
+            }
         }
         
         // Initialize character selection
@@ -30,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Check if at least one character is selected
                 const selectedCharacters = document.querySelectorAll('.character-checkbox:checked');
-                if (selectedCharacters.length !== 1) {
+                if (selectedCharacters.length === 0) {
                     const characterSelectionError = document.getElementById('characterSelectionError');
                     if (characterSelectionError) {
                         characterSelectionError.style.display = 'block';
@@ -47,6 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     characterSelectionError.style.display = 'none';
                 }
                 
+                // Make sure hidden inputs are updated with selected characters
+                character.updateSelectedImagesInput();
+                
+                // Generate the story
                 story.generate(new FormData(storyForm));
             });
         }
@@ -57,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
 
             const btn = e.target.querySelector('button');
-            const currencyReq = btn.dataset.currencyReq ? 
+            const currencyReq = btn && btn.dataset.currencyReq ? 
                 JSON.parse(btn.dataset.currencyReq) : null;
 
             story.makeChoice(new FormData(e.target), currencyReq);
@@ -74,7 +82,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } catch (error) {
         console.error('Error during initialization:', error);
-        dom.showToast('Error', 'Failed to initialize application', true);
+        if (typeof dom !== 'undefined') {
+            dom.showToast('Error', 'Failed to initialize application');
+        }
     }
 });
 
