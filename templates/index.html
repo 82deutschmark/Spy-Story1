@@ -16,26 +16,26 @@
     <div class="currency-bar">
         <div class="currency-item">
             <span class="currency-symbol">💎</span>
-            <span class="currency-amount">{{ user_progress.currency_balances.get('💎', 500) }}</span>
+            <span class="currency-amount" data-currency="💎">{{ user_progress.currency_balances.get('💎', 500) }}</span>
             <button class="btn btn-sm btn-outline-primary buy-currency" data-bs-toggle="modal" data-bs-target="#purchaseModal">
                 <i class="fas fa-plus-circle"></i>
             </button>
         </div>
         <div class="currency-item">
             <span class="currency-symbol">💷</span>
-            <span class="currency-amount">{{ user_progress.currency_balances.get('💷', 5000) }}</span>
+            <span class="currency-amount" data-currency="💷">{{ user_progress.currency_balances.get('💷', 5000) }}</span>
         </div>
         <div class="currency-item">
             <span class="currency-symbol">💶</span>
-            <span class="currency-amount">{{ user_progress.currency_balances.get('💶', 5000) }}</span>
+            <span class="currency-amount" data-currency="💶">{{ user_progress.currency_balances.get('💶', 5000) }}</span>
         </div>
         <div class="currency-item">
             <span class="currency-symbol">💴</span>
-            <span class="currency-amount">{{ user_progress.currency_balances.get('💴', 5000) }}</span>
+            <span class="currency-amount" data-currency="💴">{{ user_progress.currency_balances.get('💴', 5000) }}</span>
         </div>
         <div class="currency-item">
             <span class="currency-symbol">💵</span>
-            <span class="currency-amount">{{ user_progress.currency_balances.get('💵', 5000) }}</span>
+            <span class="currency-amount" data-currency="💵">{{ user_progress.currency_balances.get('💵', 5000) }}</span>
         </div>
         <button class="btn btn-sm btn-outline-secondary ms-2" data-bs-toggle="modal" data-bs-target="#tradeModal">
             <i class="fas fa-exchange-alt"></i> Trade
