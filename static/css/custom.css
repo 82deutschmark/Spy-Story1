@@ -96,6 +96,84 @@ body[data-bs-theme="dark"]::before {
     width: 100%;
     height: 100%;
     z-index: -1;
+
+/* User stats styling */
+.user-stats {
+    display: flex;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.6);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    margin-right: 1rem;
+}
+
+.user-level {
+    font-weight: bold;
+    color: #fff;
+    margin-right: 0.5rem;
+}
+
+.xp-bar {
+    width: 100px;
+    height: 8px;
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.xp-progress {
+    height: 100%;
+    background-color: #4caf50;
+    border-radius: 4px;
+}
+
+/* Character relationship styles */
+.relationship-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.relationship-excellent {
+    background-color: #4caf50;
+}
+
+.relationship-good {
+    background-color: #2196f3;
+}
+
+.relationship-neutral {
+    background-color: #9e9e9e;
+}
+
+.relationship-poor {
+    background-color: #ff9800;
+}
+
+.relationship-hostile {
+    background-color: #f44336;
+}
+
+/* Plot arc styles */
+.plot-arc-item {
+    border-left: 4px solid #ff9800;
+    padding: 0.5rem 1rem;
+    margin-bottom: 0.5rem;
+    background-color: rgba(255, 152, 0, 0.1);
+}
+
+.plot-arc-title {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.plot-arc-description {
+    font-size: 0.9rem;
+    color: #666;
+}
+
     opacity: 0.6;
     object-fit: cover;
 }

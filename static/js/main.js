@@ -361,6 +361,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.new_balances) {
                     updateCurrencyDisplays(data.new_balances);
                 }
+                
+                // Update user level and XP if provided
+                if (data.level && data.experience) {
+                    updateUserProgress(data.level, data.experience);
+                }
 
                 // Generate next part of the story
                 const storyResponse = await fetch('/generate_story', {
@@ -509,9 +514,12 @@ function updateCurrencyDisplays(balances) {
     if (!balances) return;
 
     Object.entries(balances).forEach(([currency, balance]) => {
-        const displays = document.querySelectorAll(`.currency-item[data-currency="${currency}"] .currency-amount`);
+        const displays = document.querySelectorAll(`.currency-item .currency-amount`);
         displays.forEach(display => {
-            display.textContent = balance;
+            const currencySymbol = display.previousElementSibling;
+            if (currencySymbol && currencySymbol.textContent === currency) {
+                display.textContent = balance;
+            }
         });
 
         // Update currency requirement indicators
@@ -526,6 +534,48 @@ function updateCurrencyDisplays(balances) {
             }
         });
     });
+}
+
+// Update user level and XP information
+function updateUserProgress(level, experience) {
+    if (!level && !experience) return;
+    
+    // Update level display
+    const levelDisplay = document.querySelector('.user-level');
+    if (levelDisplay && level) {
+        levelDisplay.textContent = `Level ${level}`;
+    }
+    
+    // Update XP bar
+    const xpProgress = document.querySelector('.xp-progress');
+    if (xpProgress && experience) {
+        const xpPercent = experience % 100;
+        xpProgress.style.width = `${xpPercent}%`;
+    }
+    
+    // Update progress modal if open
+    const levelStat = document.querySelector('#progressModal .card-body strong:contains("Level")');
+    if (levelStat && level) {
+        levelStat.nextSibling.textContent = ` ${level}`;
+    }
+    
+    const xpStat = document.querySelector('#progressModal .card-body strong:contains("XP")');
+    if (xpStat && experience) {
+        xpStat.nextSibling.textContent = ` ${experience}`;
+    }
+    
+    const nextLevelStat = document.querySelector('#progressModal .card-body strong:contains("Next Level")');
+    if (nextLevelStat && experience) {
+        nextLevelStat.nextSibling.textContent = ` ${Math.floor(experience / 100) + 1}`;
+    }
+    
+    const progressBar = document.querySelector('#progressModal .progress-bar');
+    if (progressBar && experience) {
+        const xpPercent = experience % 100;
+        progressBar.style.width = `${xpPercent}%`;
+        progressBar.setAttribute('aria-valuenow', xpPercent);
+        progressBar.textContent = `${xpPercent}%`;
+    }
 }
 
 
