@@ -73,8 +73,13 @@ export default {
             .then(data => {
                 UIUtils.updateLoadingPercent(loadingPercent, 100);
                 if (data.success) {
-                    // Update all currency displays
-                    this.updateCurrencyDisplays(data.new_balances);
+                    // Update all currency displays with new balances
+                    if (data.new_balances) {
+                        console.log("Updating currency displays with new balances:", data.new_balances);
+                        this.updateCurrencyDisplays(data.new_balances);
+                    } else {
+                        console.warn("Trade successful but no new balances returned");
+                    }
                     UIUtils.showToast('Success', data.message);
                     return data;
                 } else {
@@ -89,5 +94,36 @@ export default {
             .finally(() => {
                 UIUtils.removeLoadingOverlay(loadingPercent);
             });
+    },
+    
+    // Improve the updateCurrencyDisplays method to ensure displays are properly updated
+    updateCurrencyDisplays: function(balances) {
+        if (!balances) {
+            console.error("No balance data to update currency displays");
+            return;
+        }
+        
+        console.log("Updating currency displays:", balances);
+        
+        // Update all currency displays in the DOM
+        Object.keys(balances).forEach(currency => {
+            const amount = balances[currency];
+            const elements = document.querySelectorAll(`.currency-${currency}, .currency[data-currency="${currency}"]`);
+            
+            if (elements.length === 0) {
+                console.warn(`No display elements found for currency: ${currency}`);
+            }
+            
+            elements.forEach(el => {
+                el.textContent = amount;
+                // Also update data attribute for any elements using it
+                el.setAttribute('data-amount', amount);
+            });
+        });
+        
+        // Trigger a custom event that other components can listen for
+        document.dispatchEvent(new CustomEvent('currency-updated', {
+            detail: { balances: balances }
+        }));
     }
 };
