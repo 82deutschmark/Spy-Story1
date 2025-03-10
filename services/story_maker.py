@@ -24,12 +24,12 @@ STORY_OPTIONS = {
         ("🧪", "Bioweapon heist"),
         ("💰", "Trillion-dollar ransom"),
         ("🔍", "Assassination conspiracy"),
-        ("🕵️", "Elite spy tournament"),
+        ("🕵️", "Government overthrow"),
         ("🌌", "Space station takeover"),
         ("🧠", "Mind control experiment")
     ],
     "settings": [
-        ("🗼", "DC Nightclub"),
+        ("🗼", "DC Offices"),
         ("🏝️", "Private Luxury Island"),
         ("🏙️", "Dubai Mega-Skyscraper"),
         ("🚢", "Orbital Cruise Liner"),
@@ -191,7 +191,7 @@ def generate_story(
         "1. Features the charismatic protagonist as the main story driver\n"
         "2. Introduces the selected character (if provided) into a complex international spy scenario\n"
         "3. IMPORTANT: If plot lines are provided for the character, you MUST incorporate at least one into the story\n"
-        "4. CRITICAL: If additional characters from the database are provided, you MUST introduce at least one new character from this list into the story\n"
+        "4. CRITICAL: Many additional characters from the database are provided, you should introduce at least one new character from this list into the story\n"
         "5. Includes betrayal, romantic flings, and over-the-top action sequences\n"
         "6. Uses the character's traits to guide their behavior and dialogue\n"
         "7. In some story segments, include characters offering to buy diamonds (💎) from the player:\n"
@@ -241,7 +241,7 @@ def generate_story(
             {
                 "role": "system",
                 "content": (
-                    "You are a master storyteller creating stories set in a hormone-fueled, high-stakes international spy network in 2070. "
+                    "You are a master storyteller creating stories set in a sexy, high-stakes international spy network in 2070. "
                     "Your stories feature a charismatic but incompetent protagonist who constantly receives romantic advances "
                     "while navigating an over-the-top world of betrayal, action, and absurdity. Keep the tone dramatic and provocative, "
                     "with excessive action scenes, romantic encounters, and ridiculous plot twists. The protagonist doesn't care about "
