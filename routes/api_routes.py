@@ -600,6 +600,93 @@ def trade_currency():
             user_id=user_progress.user_id,
             transaction_type='trade',
             from_currency=from_currency,
+
+@api_bp.route('/character/encounter', methods=['POST'])
+def encounter_character():
+    """API endpoint to record a character encounter"""
+    try:
+        data = request.json
+        character_id = data.get('character_id')
+        character_name = data.get('character_name')
+        initial_relationship = data.get('initial_relationship', 0)
+
+        if not character_id or not character_name:
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        # Get user progress
+        user_progress = get_or_create_user_progress()
+
+        # Record encounter
+        success = user_progress.encounter_character(
+            character_id, 
+            character_name, 
+            initial_relationship
+        )
+
+        if not success:
+            return jsonify({'error': 'Failed to record character encounter'}), 500
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully recorded encounter with {character_name}',
+            'encountered_characters': user_progress.encountered_characters
+        })
+
+    except Exception as e:
+        logger.error(f"Error recording character encounter: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/character/relationship', methods=['POST'])
+def update_character_relationship():
+    """API endpoint to update relationship with a character"""
+    try:
+        data = request.json
+        character_id = data.get('character_id')
+        change_amount = data.get('change_amount')
+        reason = data.get('reason')
+
+        if character_id is None or change_amount is None:
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        # Get user progress
+        user_progress = get_or_create_user_progress()
+
+        # Update relationship
+        success = user_progress.change_character_relationship(
+            character_id, 
+            change_amount, 
+            reason
+        )
+
+        if not success:
+            return jsonify({'error': 'Failed to update character relationship'}), 500
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully updated relationship with character {character_id}',
+            'encountered_characters': user_progress.encountered_characters
+        })
+
+    except Exception as e:
+        logger.error(f"Error updating character relationship: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/character/encountered')
+def get_encountered_characters():
+    """API endpoint to get all encountered characters for the current user"""
+    try:
+        # Get user progress
+        user_progress = get_or_create_user_progress()
+
+        return jsonify({
+            'success': True,
+            'encountered_characters': user_progress.encountered_characters
+        })
+    except Exception as e:
+        logger.error(f"Error getting encountered characters: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
             to_currency=to_currency,
             amount=amount,
             description=f"Traded {amount} {from_currency} for {converted_amount} {to_currency}"
