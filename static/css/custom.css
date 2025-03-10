@@ -184,6 +184,8 @@ body[data-bs-theme="dark"]::before {
     background-color: rgba(20, 20, 30, 0.9);
     border-radius: 10px;
     box-shadow: 0 0 30px rgba(0, 123, 255, 0.3);
+    max-width: 80%;
+    width: 400px;
 }
 
 .loading-message {
@@ -211,6 +213,10 @@ body[data-bs-theme="dark"]::before {
     font-size: 24px;
     font-weight: bold;
     color: #3498db;
+}
+
+body.loading-in-progress {
+    overflow: hidden;
 }
 
 /* Story layout */

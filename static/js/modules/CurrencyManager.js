@@ -19,7 +19,7 @@ class CurrencyManager {
         // First try to read initial values from DOM
         this.currentBalances = {};
         const currencyAmounts = document.querySelectorAll('.currency-amount');
-        
+
         if (currencyAmounts.length > 0) {
             currencyAmounts.forEach(element => {
                 const currency = element.dataset.currency;
@@ -109,10 +109,10 @@ class CurrencyManager {
                 if (loadingToast) {
                     loadingToast.hide();
                 }
-                
+
                 if (data.success) {
                     console.log('Trade successful, new balances:', data.new_balances);
-                    
+
                     // Update display with new balances
                     this.currentBalances = data.new_balances;
                     this.updateCurrencyDisplay(data.new_balances);
@@ -136,7 +136,7 @@ class CurrencyManager {
                 if (loadingToast) {
                     loadingToast.hide();
                 }
-                
+
                 console.error('Error making trade:', error);
                 reject(error.message || 'Failed to complete trade');
             });
@@ -147,6 +147,74 @@ class CurrencyManager {
     getBalances() {
         return this.currentBalances;
     }
+
+    /**
+     * Accept a currency trade offer
+     * @param {string} fromCurrency - The currency to trade from
+     * @param {string} toCurrency - The currency to trade to
+     * @param {number} amount - The amount to trade
+     * @param {number} rate - The exchange rate
+     */
+    acceptTrade(fromCurrency, toCurrency, amount, rate) {
+        // Show loading UI
+        const loadingOverlay = document.createElement('div');
+        loadingOverlay.className = 'loading-overlay';
+        loadingOverlay.innerHTML = `
+            <div class="loading-content">
+                <div class="loading-spinner"></div>
+                <div class="loading-message">Processing trade...</div>
+            </div>
+        `;
+        document.body.appendChild(loadingOverlay);
+
+        fetch('/trade_currency', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                from_currency: fromCurrency,
+                to_currency: toCurrency,
+                amount: amount,
+                rate: rate
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Remove loading overlay
+            document.body.removeChild(loadingOverlay);
+
+            if (data.success) {
+                // Update currency displays
+                this.updateCurrencyDisplay(fromCurrency, data.from_balance);
+                this.updateCurrencyDisplay(toCurrency, data.to_balance);
+
+                // Show success message
+                UIUtils.showToast('Trade Complete', `Successfully traded ${amount} ${fromCurrency} for ${amount * rate} ${toCurrency}`);
+
+                // Close the modal if it's open
+                const tradeModal = document.getElementById('tradeModal');
+                if (tradeModal) {
+                    const bsModal = bootstrap.Modal.getInstance(tradeModal);
+                    if (bsModal) {
+                        bsModal.hide();
+                    }
+                }
+            } else {
+                UIUtils.showToast('Trade Failed', data.error || 'Could not complete the trade');
+            }
+        })
+        .catch(error => {
+            // Remove loading overlay
+            if (document.body.contains(loadingOverlay)) {
+                document.body.removeChild(loadingOverlay);
+            }
+
+            console.error('Error accepting trade:', error);
+            UIUtils.showToast('Error', 'An error occurred while processing the trade');
+        });
+    },
 }
 
 export default CurrencyManager;
