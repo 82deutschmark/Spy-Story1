@@ -2,8 +2,6 @@
  * Event handlers and initialization module
  */
 import { story } from './story.js';
-import { currency } from './currency.js';
-import { payment } from './payment.js';
 import { dom } from './utils/dom.js';
 
 export const events = {
@@ -31,43 +29,47 @@ export const events = {
                     const btn = e.target.querySelector('button[type="submit"]');
                     if (btn && !btn.disabled) {
                         btn.disabled = true;
-                        const currencyReq = btn.dataset.currencyReq ? 
-                            JSON.parse(btn.dataset.currencyReq) : null;
-                        await story.makeChoice(new FormData(e.target), currencyReq);
+                        await story.makeChoice(new FormData(e.target));
                         btn.disabled = false;
                     }
                 });
             });
 
-            // Currency trade form
+            // Handle trade form if it exists (backend processing)
             const tradeForm = document.getElementById('tradeForm');
             if (tradeForm) {
                 tradeForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
-                    const fromCurrency = document.getElementById('fromCurrency').value;
-                    const toCurrency = document.getElementById('toCurrency').value;
-                    const amount = parseInt(document.getElementById('tradeAmount').value);
+                    const btn = e.target.querySelector('button[type="submit"]');
+                    if (btn) btn.disabled = true;
 
-                    if (!amount || isNaN(amount) || amount <= 0) {
-                        dom.showToast('Error', 'Please enter a valid amount', true);
-                        return;
-                    }
-
-                    await currency.processTrade(fromCurrency, toCurrency, amount);
-                });
-            }
-
-            // Diamond purchase initialization
-            const purchaseModal = document.getElementById('purchaseModal');
-            if (purchaseModal) {
-                purchaseModal.addEventListener('show.bs.modal', (event) => {
-                    const button = event.relatedTarget;
-                    const amount = button.getAttribute('data-amount');
-                    const clientId = document.getElementById('paypalClientId').value;
-                    
-                    if (amount && clientId) {
-                        payment.initializePurchase(clientId, parseFloat(amount));
-                    }
+                    const formData = new FormData(e.target);
+                    fetch('/api/currency/trade', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            from_currency: formData.get('fromCurrency'),
+                            to_currency: formData.get('toCurrency'),
+                            amount: parseInt(formData.get('amount'))
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.reload(); // Refresh to show updated balances
+                        } else {
+                            dom.showToast('Error', data.error || 'Trade failed');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        dom.showToast('Error', 'Failed to process trade');
+                    })
+                    .finally(() => {
+                        if (btn) btn.disabled = false;
+                    });
                 });
             }
         });
