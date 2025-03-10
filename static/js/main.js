@@ -27,6 +27,26 @@ document.addEventListener('DOMContentLoaded', () => {
         if (storyForm) {
             storyForm.addEventListener('submit', (e) => {
                 e.preventDefault();
+                
+                // Check if at least one character is selected
+                const selectedCharacters = document.querySelectorAll('.character-checkbox:checked');
+                if (selectedCharacters.length !== 1) {
+                    const characterSelectionError = document.getElementById('characterSelectionError');
+                    if (characterSelectionError) {
+                        characterSelectionError.style.display = 'block';
+                        characterSelectionError.textContent = 'Please select a character for your story';
+                        window.scrollTo(0, 0);
+                    }
+                    dom.showToast('Selection Needed', 'Please select a character before continuing');
+                    return;
+                }
+                
+                // Hide error message if shown
+                const characterSelectionError = document.getElementById('characterSelectionError');
+                if (characterSelectionError) {
+                    characterSelectionError.style.display = 'none';
+                }
+                
                 story.generate(new FormData(storyForm));
             });
         }
