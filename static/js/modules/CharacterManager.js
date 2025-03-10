@@ -48,11 +48,23 @@ class CharacterManager {
         // Add listeners to select buttons
         selectButtons.forEach(button => {
             button.addEventListener('click', (e) => {
+                e.preventDefault();
                 e.stopPropagation(); // Prevent card click event
                 const characterId = button.dataset.characterId;
                 console.log(`Select button clicked for character: ${characterId}`);
-                const card = document.querySelector(`.character-select-card[data-id="${characterId}"]`);
-                this.toggleCharacterSelection(characterId, card);
+                
+                // Find the character container properly
+                const characterContainer = button.closest('.character-container');
+                if (characterContainer) {
+                    const card = characterContainer.querySelector('.character-select-card');
+                    if (card) {
+                        this.toggleCharacterSelection(characterId, card);
+                    } else {
+                        console.error('Character card not found for selection button');
+                    }
+                } else {
+                    console.error('Character container not found for selection button');
+                }
             });
         });
     }
@@ -146,15 +158,20 @@ class CharacterManager {
     toggleCharacterSelection(characterId, card) {
         if (!card) {
             card = document.querySelector(`.character-select-card[data-id="${characterId}"]`);
-            if (!card) return;
+            if (!card) {
+                console.error(`Card not found for character ID: ${characterId}`);
+                return;
+            }
         }
 
         const selectionIndicator = card.querySelector('.selection-indicator');
+        const radioInput = document.querySelector(`input.character-checkbox[value="${characterId}"]`);
 
         if (card.classList.contains('selected')) {
             // Deselect
             card.classList.remove('selected');
             if (selectionIndicator) selectionIndicator.style.display = 'none';
+            if (radioInput) radioInput.checked = false;
 
             // Remove from selected array
             this.selectedCharacters = this.selectedCharacters.filter(id => id !== characterId);
@@ -166,11 +183,19 @@ class CharacterManager {
                 selected.classList.remove('selected');
                 const indicator = selected.querySelector('.selection-indicator');
                 if (indicator) indicator.style.display = 'none';
+                
+                // Uncheck all other radio inputs
+                const selectedId = selected.dataset.id;
+                if (selectedId) {
+                    const input = document.querySelector(`input.character-checkbox[value="${selectedId}"]`);
+                    if (input) input.checked = false;
+                }
             });
 
             // Select new card
             card.classList.add('selected');
             if (selectionIndicator) selectionIndicator.style.display = 'flex';
+            if (radioInput) radioInput.checked = true;
 
             // Update selected array
             this.selectedCharacters = [characterId];
@@ -229,6 +254,10 @@ class CharacterManager {
     updateCharacterCard(card, data) {
         if (!card || !data) return;
 
+        // Store whether the card was previously selected
+        const wasSelected = card.classList.contains('selected');
+        const oldCharacterId = card.dataset.id;
+
         // Update image
         const cardImg = card.querySelector('img');
         if (cardImg) {
@@ -239,19 +268,26 @@ class CharacterManager {
         card.dataset.id = data.id;
 
         // Update selection button ID
-        const selectBtn = card.querySelector('.select-character-btn');
+        const selectBtn = card.closest('.character-container')?.querySelector('.select-character-btn');
         if (selectBtn) {
             selectBtn.dataset.characterId = data.id;
         }
 
+        // Update checkbox value
+        const checkbox = card.closest('.character-container')?.querySelector('.character-checkbox');
+        if (checkbox) {
+            checkbox.value = data.id;
+            checkbox.id = `character${data.id}`;
+        }
+
         // Update name and traits
-        const nameElement = card.querySelector('.character-name');
+        const nameElement = card.closest('.character-container')?.querySelector('.character-name');
         if (nameElement) {
             nameElement.textContent = data.name;
         }
 
         // Update traits
-        const traitsList = card.querySelector('.character-traits-list');
+        const traitsList = card.closest('.character-container')?.querySelector('.character-traits-list');
         if (traitsList) {
             traitsList.innerHTML = '';
 
@@ -265,17 +301,24 @@ class CharacterManager {
             }
         }
 
-        // If this character was selected, deselect it
-        if (card.classList.contains('selected')) {
-            card.classList.remove('selected');
+        // If this character was selected, update the selection
+        if (wasSelected) {
+            // Update selected characters array
+            this.selectedCharacters = this.selectedCharacters.filter(id => id !== oldCharacterId);
+            this.selectedCharacters.push(data.id);
+            this.updateSelectedImagesInput();
+            
+            // Keep the visual selection state
+            card.classList.add('selected');
             const selectionIndicator = card.querySelector('.selection-indicator');
             if (selectionIndicator) {
-                selectionIndicator.style.display = 'none';
+                selectionIndicator.style.display = 'flex';
             }
-
-            // Update selected characters array
-            this.selectedCharacters = this.selectedCharacters.filter(id => id !== data.id);
-            this.updateSelectedImagesInput();
+            
+            // Update checkbox
+            if (checkbox) {
+                checkbox.checked = true;
+            }
         }
     }
 
