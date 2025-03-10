@@ -600,6 +600,33 @@ def trade_currency():
             user_id=user_progress.user_id,
             transaction_type='trade',
             from_currency=from_currency,
+            to_currency=to_currency,
+            amount=amount,
+            description=f"Traded {amount} {from_currency} for {converted_amount} {to_currency}"
+        )
+        db.session.add(transaction)
+
+        # Perform the exchange
+        user_progress.currency_balances[from_currency] = current_balance - amount
+        user_progress.currency_balances[to_currency] = user_progress.currency_balances.get(to_currency, 0) + converted_amount
+
+        try:
+            db.session.commit()
+            logger.info(f"Currency trade successful for user {user_progress.user_id}: {amount} {from_currency} -> {converted_amount} {to_currency}")
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Database error during currency trade: {str(e)}")
+            return jsonify({'error': 'Failed to process trade'}), 500
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully traded {amount} {from_currency} for {converted_amount} {to_currency}',
+            'new_balances': user_progress.currency_balances
+        })
+
+    except Exception as e:
+        logger.error(f"Error trading currency: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/character/encounter', methods=['POST'])
 def encounter_character():
@@ -684,33 +711,4 @@ def get_encountered_characters():
         })
     except Exception as e:
         logger.error(f"Error getting encountered characters: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-
-            to_currency=to_currency,
-            amount=amount,
-            description=f"Traded {amount} {from_currency} for {converted_amount} {to_currency}"
-        )
-        db.session.add(transaction)
-
-        # Perform the exchange
-        user_progress.currency_balances[from_currency] = current_balance - amount
-        user_progress.currency_balances[to_currency] = user_progress.currency_balances.get(to_currency, 0) + converted_amount
-
-        try:
-            db.session.commit()
-            logger.info(f"Currency trade successful for user {user_progress.user_id}: {amount} {from_currency} -> {converted_amount} {to_currency}")
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"Database error during currency trade: {str(e)}")
-            return jsonify({'error': 'Failed to process trade'}), 500
-
-        return jsonify({
-            'success': True,
-            'message': f'Successfully traded {amount} {from_currency} for {converted_amount} {to_currency}',
-            'new_balances': user_progress.currency_balances
-        })
-
-    except Exception as e:
-        logger.error(f"Error trading currency: {str(e)}")
         return jsonify({'error': str(e)}), 500
