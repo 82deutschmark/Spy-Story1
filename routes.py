@@ -753,8 +753,49 @@ def save_analysis():
             return jsonify({'error': 'Missing image_id or analysis'}), 400
 
         image = ImageAnalysis.query.get_or_404(image_id)
+        
+        # Update analysis_result field
         image.analysis_result = analysis
+        
+        # If this is a character image, update character fields from analysis
+        if image.image_type == 'character':
+            # Update character name if present
+            if 'name' in analysis:
+                image.character_name = analysis.get('name')
+            elif 'character_name' in analysis:
+                image.character_name = analysis.get('character_name')
+                
+            # Update character role with validation
+            if 'role' in analysis:
+                role = analysis.get('role')
+                # Standardize role
+                valid_roles = ['undetermined', 'villain', 'neutral', 'mission-giver']
+                if role is None or role == '':
+                    image.character_role = 'undetermined'
+                elif role.lower() == 'antagonist' or role.lower() == 'villain':
+                    image.character_role = 'villain'
+                elif role.lower() == 'protagonist' or role.lower() == 'hero':
+                    image.character_role = 'neutral'
+                elif role.lower() == 'mission giver':
+                    image.character_role = 'mission-giver'
+                elif role.lower() not in valid_roles:
+                    image.character_role = 'undetermined'
+                else:
+                    image.character_role = role.lower()
+            
+            # Update traits and plot lines
+            if 'personality_traits' in analysis:
+                image.character_traits = analysis.get('personality_traits')
+            elif 'character_traits' in analysis:
+                image.character_traits = analysis.get('character_traits')
+                
+            if 'potential_plot_lines' in analysis:
+                image.plot_lines = analysis.get('potential_plot_lines')
+            elif 'plot_lines' in analysis:
+                image.plot_lines = analysis.get('plot_lines')
+                
         db.session.commit()
+        logger.info(f"Successfully saved analysis for image ID {image_id}")
 
         return jsonify({
             'success': True,
@@ -762,6 +803,7 @@ def save_analysis():
         })
     except Exception as e:
         logger.error(f"Error saving analysis: {str(e)}")
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @main_bp.route('/api/images/all')
