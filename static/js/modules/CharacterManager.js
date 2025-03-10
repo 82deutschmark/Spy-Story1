@@ -64,6 +64,7 @@ class CharacterManager {
         document.querySelectorAll('.reroll-btn').forEach(button => {
             button.addEventListener('click', (e) => {
                 e.preventDefault();
+                e.stopPropagation(); // Prevent event from bubbling up
                 const characterContainer = button.closest('.character-select-card');
                 if (!characterContainer) {
                     console.error('Character container not found');
@@ -71,7 +72,7 @@ class CharacterManager {
                 }
 
                 // Get the index from data attribute
-                const index = characterContainer.dataset.index;
+                const index = button.dataset.cardIndex;
                 console.log(`Rerolling character at index: ${index}`);
 
                 // Disable the button and show loading state
@@ -101,7 +102,7 @@ class CharacterManager {
 
                                 // Re-enable the button
                                 button.disabled = false;
-                                button.innerHTML = '<i class="fas fa-dice"></i> Reroll';
+                                button.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
 
                                 window.UIUtils.showToast('Success', 'Character rerolled successfully!');
                             }, 500);
@@ -116,7 +117,7 @@ class CharacterManager {
 
                         // Re-enable the button
                         button.disabled = false;
-                        button.innerHTML = '<i class="fas fa-dice"></i> Reroll';
+                        button.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
 
                         window.UIUtils.showToast('Error', 'Failed to reroll character. Please try again.');
                     });
