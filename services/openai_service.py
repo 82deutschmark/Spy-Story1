@@ -19,7 +19,6 @@ if not api_key:
 # Initialize OpenAI client with the API key
 # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
 # do not change this unless explicitly requested by the user
-# Initialize the OpenAI client, using the environment variable directly
 client = OpenAI()
 
 # Ensure we have the API key
@@ -44,56 +43,54 @@ def analyze_artwork(image_url):
 
         # Download the image with a timeout and retries
         import base64
-        import requests
         from io import BytesIO
         from PIL import Image
 
-        # Ensure we have proper error handling for the image download
-        try:
-            response = requests.get(image_url, headers=headers, timeout=10)
-            response.raise_for_status()  # Raise an exception for bad status codes
+        # Download the image
+        response = requests.get(image_url, headers=headers, timeout=10)
+        response.raise_for_status()  # Raise an exception for bad status codes
 
-            # Get image dimensions
-            image_data = BytesIO(response.content)
-            img = Image.open(image_data)
-            width, height = img.size
-            format = img.format
+        # Get image dimensions
+        image_data = BytesIO(response.content)
+        img = Image.open(image_data)
+        width, height = img.size
+        format = img.format
 
-            # Convert image to base64
-            image_data.seek(0)
-            base64_image = base64.b64encode(image_data.getvalue()).decode('utf-8')
+        # Convert image to base64
+        image_data.seek(0)
+        base64_image = base64.b64encode(image_data.getvalue()).decode('utf-8')
 
-            # Infer content type from response headers or URL
-            content_type = response.headers.get('Content-Type', '')
-            if not content_type:
-                if image_url.lower().endswith('.png'):
-                    content_type = 'image/png'
-                elif image_url.lower().endswith(('.jpg', '.jpeg')):
-                    content_type = 'image/jpeg'
-                elif image_url.lower().endswith('.webp'):
-                    content_type = 'image/webp'
-                else:
-                    content_type = 'image/jpeg'  # Default to jpeg
+        # Infer content type from response headers or URL
+        content_type = response.headers.get('Content-Type', '')
+        if not content_type:
+            if image_url.lower().endswith('.png'):
+                content_type = 'image/png'
+            elif image_url.lower().endswith(('.jpg', '.jpeg')):
+                content_type = 'image/jpeg'
+            elif image_url.lower().endswith('.webp'):
+                content_type = 'image/webp'
+            else:
+                content_type = 'image/jpeg'  # Default to jpeg
 
-            # Prepare base64 URL
-            base64_url = f"data:{content_type};base64,{base64_image}"
+        # Prepare base64 URL
+        base64_url = f"data:{content_type};base64,{base64_image}"
 
-            # Store image metadata
-            image_metadata = {
-                "url": image_url,
-                "width": width,
-                "height": height,
-                "format": format,
-                "size_bytes": len(response.content)
-            }
+        # Store image metadata
+        image_metadata = {
+            "url": image_url,
+            "width": width,
+            "height": height,
+            "format": format,
+            "size_bytes": len(response.content)
+        }
 
-            logger.debug(f"Successfully downloaded and encoded image. Analyzing artwork...")
+        logger.debug("Successfully downloaded and encoded image. Analyzing artwork...")
 
-            # Prepare the messages with system prompt and user query
-            messages = [
-                {
-                    "role": "system",
-                    "content": """You are an expert analyzer of images for a "Choose Your Own Adventure" story universe.
+        # Prepare the messages with system prompt and user query
+        messages = [
+            {
+                "role": "system",
+                "content": """You are an expert analyzer of images for a "Choose Your Own Adventure" story universe.
 
 The universe is based in the hormone-fueled high stakes sexy dramatic international spy network. All the characters are constantly betraying each other and having romantic flings.
 
@@ -129,37 +126,35 @@ Respond in JSON format with the appropriate keys based on the image type. Use sn
     "style": "Character motivations and goals"
   }
 }"""
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": "Please analyze this image for our Choose Your Own Adventure story:"
-                        },
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": base64_url}
-                        }
-                    ]
-                }
-            ]
-            
-            # Call OpenAI API with the prepared messages
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=messages,
-                response_format={"type": "json_object"}
-            )
-            
-            # Add the assistant's response to the conversation history
-            messages.append({
-                "role": "assistant",
-                "content": response.choices[0].message.content
-            })
-        except requests.exceptions.RequestException as req_err:
-            logger.error(f"Error downloading image: {str(req_err)}")
-            raise Exception(f"Failed to download image from {image_url}: {str(req_err)}")
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "Please analyze this image for our Choose Your Own Adventure story:"
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": base64_url}
+                    }
+                ]
+            }
+        ]
+        
+        # Call OpenAI API with the prepared messages
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            response_format={"type": "json_object"}
+        )
+        
+        # Add the assistant's response to the conversation history
+        messages.append({
+            "role": "assistant",
+            "content": response.choices[0].message.content
+        })
+        
         result = json.loads(response.choices[0].message.content)
 
         # Add image metadata to the result
