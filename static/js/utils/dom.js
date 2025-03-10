@@ -4,32 +4,18 @@
 
 export const dom = {
     /**
-     * Show a toast notification
-     * @param {string} title - Toast title
-     * @param {string} message - Toast message
+     * Create loading overlay with percentage display
+     * @param {string} message - Loading message to display
+     * @returns {HTMLElement} - Percentage element for updates
      */
-    showToast(title, message) {
-        const toastEl = document.getElementById('notificationToast');
-        if (toastEl) {
-            const toast = new bootstrap.Toast(toastEl);
-            document.getElementById('toastTitle').textContent = title;
-            document.getElementById('toastMessage').textContent = message;
-            toast.show();
-        }
-    },
-
-    /**
-     * Create a loading overlay
-     * @param {string} message - Loading message
-     * @returns {HTMLElement} - The loading percentage element
-     */
-    createLoadingOverlay(message = 'Generating Story...') {
+    createLoadingOverlay(message = 'Loading...') {
         const overlay = document.createElement('div');
         overlay.className = 'loading-overlay';
         overlay.innerHTML = `
             <div class="loading-content">
                 <div class="loading-spinner"></div>
                 <div class="loading-percentage">0%</div>
+                <div class="loading-message">${message}</div>
             </div>
         `;
         document.body.appendChild(overlay);
@@ -38,21 +24,48 @@ export const dom = {
     },
 
     /**
-     * Update loading percentage
-     * @param {HTMLElement} element - Loading percentage element
-     * @param {number} percent - Loading percentage
+     * Update loading percentage display
+     * @param {HTMLElement} element - Percentage element
+     * @param {number} percent - Percentage value (0-100)
      */
     updateLoadingPercent(element, percent) {
-        element.textContent = `${Math.round(percent)}%`;
+        if (element) {
+            element.textContent = `${Math.round(percent)}%`;
+        }
     },
 
     /**
      * Remove loading overlay
-     * @param {HTMLElement} overlay - Loading percentage element
+     * @param {HTMLElement} overlay - Percentage element
      */
     removeLoadingOverlay(overlay) {
-        overlay.closest('.loading-overlay').remove();
+        if (overlay) {
+            const overlayEl = overlay.closest('.loading-overlay');
+            if (overlayEl) {
+                overlayEl.remove();
+            }
+        }
     },
+
+    /**
+     * Show toast notification
+     * @param {string} title - Toast title
+     * @param {string} message - Toast message
+     */
+    showToast(title, message) {
+        const toastEl = document.getElementById('notificationToast');
+        if (toastEl) {
+            const toast = new bootstrap.Toast(toastEl);
+            const titleEl = document.getElementById('toastTitle');
+            const messageEl = document.getElementById('toastMessage') || document.getElementById('toastBody');
+
+            if (titleEl) titleEl.textContent = title;
+            if (messageEl) messageEl.textContent = message;
+
+            toast.show();
+        }
+    }
+};
 
     /**
      * Form utilities
@@ -84,68 +97,4 @@ export const dom = {
             }
         }
     },
-
-    /**
-     * Character selection utilities
-     */
-    character: {
-        /**
-         * Update character selection UI
-         * @param {HTMLElement} card - Character card element
-         * @param {boolean} selected - Whether character is selected
-         */
-        updateSelection: (card, selected) => {
-            if (!card) return;
-            const indicator = card.querySelector('.selection-indicator');
-            const checkbox = card.querySelector('.character-checkbox');
-
-            card.classList.toggle('selected', selected);
-            if (indicator) {
-                indicator.style.display = selected ? 'block' : 'none';
-            }
-            if (checkbox) {
-                checkbox.checked = selected;
-            }
-        },
-
-        /**
-         * Clear all character selections
-         */
-        clearAllSelections: () => {
-            document.querySelectorAll('.character-select-card').forEach(card => {
-                dom.character.updateSelection(card, false);
-            });
-        }
-    },
-
-    /**
-     * Modal utilities
-     */
-    modal: {
-        /**
-         * Show modal
-         * @param {string} modalId - Modal element ID
-         */
-        show: (modalId) => {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                const bsModal = new bootstrap.Modal(modal);
-                bsModal.show();
-            }
-        },
-
-        /**
-         * Hide modal
-         * @param {string} modalId - Modal element ID
-         */
-        hide: (modalId) => {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                const bsModal = bootstrap.Modal.getInstance(modal);
-                if (bsModal) {
-                    bsModal.hide();
-                }
-            }
-        }
-    }
 };

@@ -183,13 +183,18 @@ body.storyboard-body {
     right: 10px;
     width: 30px;
     height: 30px;
-    background-color: var(--primary-color);
+    background-color: #007bff;
     border-radius: 50%;
     display: none;
     align-items: center;
     justify-content: center;
     color: white;
-    z-index: 2;
+    z-index: 10;
+    box-shadow: 0 0 5px rgba(0,0,0,0.3);
+}
+
+.character-select-card.selected .selection-indicator {
+    display: flex !important;
 }
 
 .character-select-card.selected .selection-indicator {
