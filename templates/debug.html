@@ -338,11 +338,21 @@
                                     </div>
                                     <div class="card-body">
                                         <div id="issuesContainer">
-                                            <div class="alert alert-info" id="noIssuesAlert">
+                                            <div id="noIssuesAlert">
                                                 <i class="fas fa-check-circle me-2"></i>No database issues detected.
                                             </div>
                                             <ul class="list-group" id="issuesList" style="display: none;">
                                             </ul>
+
+                                            <div class="mt-4">
+                                                <h5><i class="fas fa-table me-2"></i>Database Records Preview</h5>
+                                                <div class="border p-3 bg-dark mt-2">
+                                                    <p><strong>Images:</strong> {{ image_count }} records</p>
+                                                    <p><strong>Characters:</strong> {{ character_count }} records</p>
+                                                    <p><strong>Scenes:</strong> {{ scene_count }} records</p>
+                                                    <p><strong>Stories:</strong> {{ story_count }} records</p>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
