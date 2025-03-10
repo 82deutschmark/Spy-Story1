@@ -932,14 +932,6 @@ def debug_stories():
         logger.error(f"Error getting debug stories: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-            'success': True,
-            'message': 'Analysis updated successfully'
-        })
-    except Exception as e:
-        logger.error(f"Error saving analysis: {str(e)}")
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
 @main_bp.route('/api/images/all')
 def get_all_images():
     """API endpoint to get all images with pagination"""
