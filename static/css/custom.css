@@ -842,8 +842,7 @@ body[data-bs-theme="dark"] .character-select-card {
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    z-index: 10;
-    font-size: 1.2rem;
+    z-index: 100;
 }
 
 .character-select-card.selected .selection-indicator {
@@ -871,24 +870,42 @@ body[data-bs-theme="dark"] .character-select-card {
     display: flex;
     justify-content: center;
     gap: 0.5rem;
-    margin-top: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.5rem;
 }
 
 .reroll-btn {
-    transition: all 0.2s ease;
+    background-color: #f8f9fa;
+    color: #333;
+    border: 1px solid #dee2e6;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
     font-size: 0.9rem;
-    padding: 0.25rem 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .reroll-btn:hover {
+    background-color: #e9ecef;
     transform: translateY(-2px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Update character info box */
+.character-info-box {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 0.5rem;
 }
 
 .character-select-card {
     position: relative;
     cursor: pointer;
-    overflow: hidden;
+    overflow: visible; 
     transition: all 0.3s ease;
     border: 3px solid transparent;
 }
@@ -896,6 +913,10 @@ body[data-bs-theme="dark"] .character-select-card {
 .character-select-card.selected {
     border-color: #38b44a;
     box-shadow: 0 0 15px rgba(56, 180, 74, 0.3);
+}
+
+.character-select-card.selected .selection-indicator {
+    display: flex;
 }
 
 .character-traits-list {

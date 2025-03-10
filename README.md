@@ -1,8 +1,51 @@
 # Choose Your Own Adventure
 
-An interactive storytelling application that lets users create custom adventures featuring animal characters in Uncle Mark's forest farm.
+An interactive storytelling platform that generates dynamic narratives with AI integration.
 
-![Adventure Story App](static/images/app-preview.png)
+## Current Status and Known Issues (As of March 10, 2025)
+
+### Critical Problems:
+1. **Character Selection System Broken**
+   - ✅ UI elements exist but not functioning
+   - ❌ Checkmark indicator not visible when selecting characters
+   - ❌ Selection state not properly maintained
+   - ❌ Form submission missing selected character data
+
+2. **JavaScript Modularization Issues**
+   - ❌ Recent attempts to modularize code broke working functionality
+   - ❌ Loading overlay system not properly implemented
+   - ❌ Event handlers not correctly transferring form data
+   - ❌ Previous working implementation lost during refactoring
+
+3. **Form Submission Failures**
+   - ❌ No characters being sent to backend (selected_images[] empty)
+   - ❌ Debug logs show form data missing critical fields
+   - ❌ Backend returning 400 errors due to missing data
+
+### Root Causes Identified:
+1. CSS visibility issues hiding selection indicators
+2. Event handler modifications broke character selection
+3. Form data collection process disrupted during modularization
+4. Reroll functionality removed during updates
+
+### Failed Fix Attempts:
+1. Attempted CSS updates for selection visibility
+2. Tried modifying event handlers for selection state
+3. Attempted to restore loading overlay system
+4. Failed to properly implement previous working version
+
+### Next Steps:
+1. Revert to last known working implementation
+2. Re-implement character selection using working example
+3. Restore proper form submission process
+4. Fix CSS visibility issues
+
+## Original Features (Currently Partially Working)
+- Multi-Character Support
+- Story Customization
+- Interactive Choices
+- Currency System
+- Debug Tools
 
 ## Overview
 
@@ -17,41 +60,6 @@ This application allows users to generate interactive stories featuring Pawel an
 - **Currency System**: In-game currency for making choices and trading
 - **Image Analysis**: Upload character/scene images for AI analysis 
 - **Debug Tools**: View and manage database records
-
-## Known Issues and Current Development Status
-
-### Critical Issues
-1. **Story Generation**:
-   - Character selection not properly sending to backend
-   - Form data missing selected characters array
-   - Selection UI feedback incomplete
-
-2. **JavaScript Modularization**:
-   - Recent modularization attempt introduced bugs
-   - Story generation functionality broken
-   - Need to fix module imports and dependencies
-
-3. **Currency System**:
-   - Currently in transition from client-side to server-side implementation
-   - Removed redundant JavaScript currency management
-   - Backend currency system working but needs UI updates
-
-### Pending Fixes
-1. **Character Selection UI**:
-   - Restore checkmark indicator visibility
-   - Fix reroll button functionality
-   - Improve selection state feedback
-
-2. **Form Submission**:
-   - Fix character selection data in form submission
-   - Ensure proper data structure for selected_images[]
-   - Add proper error handling for form submission
-
-### Next Steps
-1. Complete server-side currency management transition
-2. Fix character selection UI and form submission
-3. Restore and test story generation functionality
-4. Update documentation for new currency system
 
 ## Setup Instructions
 

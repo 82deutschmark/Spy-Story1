@@ -69,7 +69,7 @@
                                             <div class="selection-indicator">
                                                 <i class="fas fa-check"></i>
                                             </div>
-                                            <input type="checkbox" name="selected_images[]" value="{{ img.id }}" class="character-checkbox" style="display: none;">
+                                            <input type="checkbox" name="selected_images[]" value="{{ img.id }}" class="character-checkbox" id="character{{ img.id }}" style="display: none;">
                                         </div>
                                         <div class="character-info-box">
                                             <h3 class="character-name">{{ img.name }}</h3>
@@ -82,7 +82,7 @@
                                             </div>
                                             <div class="character-controls mt-2">
                                                 <button type="button" class="btn btn-sm btn-outline-secondary reroll-btn" data-id="{{ img.id }}">
-                                                    <i class="fas fa-dice me-1"></i> Reroll
+                                                    <i class="fas fa-dice me-1"></i> Reroll Character
                                                 </button>
                                             </div>
                                         </div>
