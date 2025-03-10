@@ -10,21 +10,25 @@ import { character } from './character.js';
 // Initialize main features when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     try {
-        console.log('DOM loaded, checking PayPal integration...');
+        console.log('DOM loaded, initializing application...');
         
         // Initialize currency manager with initial balances
         const initialBalancesEl = document.getElementById('initialBalances');
         if (initialBalancesEl) {
             try {
                 const initialBalances = JSON.parse(initialBalancesEl.value);
-                currency.initialize(initialBalances);
+                if (typeof currency !== 'undefined' && currency.initialize) {
+                    currency.initialize(initialBalances);
+                }
             } catch (e) {
                 console.error('Error parsing initial balances:', e);
             }
         }
         
-        // Initialize character selection
-        character.initialize();
+        // Initialize character selection if the function exists
+        if (typeof character !== 'undefined' && character.initialize) {
+            character.initialize();
+        }
         
         // Handle story form submission
         const storyForm = document.getElementById('storyForm');
@@ -41,7 +45,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         characterSelectionError.textContent = 'Please select a character for your story';
                         window.scrollTo(0, 0);
                     }
-                    dom.showToast('Selection Needed', 'Please select a character before continuing');
+                    if (typeof dom !== 'undefined' && dom.showToast) {
+                        dom.showToast('Selection Needed', 'Please select a character before continuing');
+                    }
                     return;
                 }
                 
@@ -52,10 +58,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 // Make sure hidden inputs are updated with selected characters
-                character.updateSelectedImagesInput();
+                if (typeof character !== 'undefined' && character.updateSelectedImagesInput) {
+                    character.updateSelectedImagesInput();
+                }
                 
                 // Generate the story
-                story.generate(new FormData(storyForm));
+                if (typeof story !== 'undefined' && story.generate) {
+                    story.generate(new FormData(storyForm));
+                } else {
+                    // Submit form normally if story module is not available
+                    storyForm.submit();
+                }
             });
         }
         
@@ -68,21 +81,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const currencyReq = btn && btn.dataset.currencyReq ? 
                 JSON.parse(btn.dataset.currencyReq) : null;
 
-            story.makeChoice(new FormData(e.target), currencyReq);
+            if (typeof story !== 'undefined' && story.makeChoice) {
+                story.makeChoice(new FormData(e.target), currencyReq);
+            } else {
+                // Submit form normally if story module is not available
+                e.target.submit();
+            }
         });
 
-        // Initialize character highlighting
-        character.initializeHighlighting();
+        // Initialize character highlighting if the function exists
+        if (typeof character !== 'undefined' && character.initializeHighlighting) {
+            character.initializeHighlighting();
+        }
         
-        // Initialize PayPal
-        console.log('Initializing PayPal integration...');
-        console.log('PayPal Client ID available:', !!document.getElementById('paypalClientId'));
-        console.log('PayPal SDK loaded:', typeof paypal !== 'undefined');
-        console.log('PayPal button container exists:', !!document.getElementById('paypal-button-container'));
+        // Check PayPal loading status
+        window.addEventListener('load', () => {
+            console.log('Window loaded, checking PayPal status:');
+            console.log('PayPal SDK loaded:', typeof paypal !== 'undefined');
+            console.log('PayPal button container exists:', !!document.getElementById('paypal-button-container'));
+        });
 
     } catch (error) {
         console.error('Error during initialization:', error);
-        if (typeof dom !== 'undefined') {
+        if (typeof dom !== 'undefined' && dom.showToast) {
             dom.showToast('Error', 'Failed to initialize application');
         }
     }
