@@ -769,6 +769,44 @@ def db_health_check():
 
         # Check for potential issues
         issues = []
+        
+        # Check for orphaned images
+        if orphaned_images > 0:
+            issues.append({
+                'severity': 'warning',
+                'message': f'Found {orphaned_images} images not associated with any story.'
+            })
+        
+        # Check for empty stories
+        if empty_stories > 0:
+            issues.append({
+                'severity': 'error',
+                'message': f'Found {empty_stories} stories with no content.'
+            })
+        
+        # Check for characters without names
+        unnamed_characters = ImageAnalysis.query.filter(
+            (ImageAnalysis.image_type == 'character') & 
+            ((ImageAnalysis.character_name.is_(None)) | (ImageAnalysis.character_name == ''))
+        ).count()
+        
+        if unnamed_characters > 0:
+            issues.append({
+                'severity': 'warning',
+                'message': f'Found {unnamed_characters} character images without names.'
+            })
+        
+        # Check for characters without roles
+        characters_without_roles = ImageAnalysis.query.filter(
+            (ImageAnalysis.image_type == 'character') & 
+            ((ImageAnalysis.character_role.is_(None)) | (ImageAnalysis.character_role == ''))
+        ).count()
+        
+        if characters_without_roles > 0:
+            issues.append({
+                'severity': 'warning',
+                'message': f'Found {characters_without_roles} character images without roles.'
+            })
 
         # Return health check results
         return jsonify({
