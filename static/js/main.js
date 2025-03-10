@@ -1,37 +1,474 @@
+/**
+ * Main application entry point
+ * Initializes and coordinates all game modules
+ */
+
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', initializeApplication);
+
+/**
+ * Initialize the application
+ */
+function initializeApplication() {
+    console.log('Initializing application...');
+
+    // Check for story container to determine if on storyboard page
+    const storyContainer = document.getElementById('storyContainer');
+    if (storyContainer) {
+        initializeStoryMode();
+    } else {
+        // Initialize other pages as needed
+        initializeGeneralPage();
+    }
+
+    // Check for PayPal integration
+    initializePayPalIntegration();
+}
+
+/**
+ * Initialize story mode specific features
+ */
+function initializeStoryMode() {
+    console.log('Initializing story mode...');
+
+    // Get story ID if available
+    const storyIdElement = document.getElementById('storyId');
+    const storyId = storyIdElement ? storyIdElement.value : null;
+
+    // Get initial currency balances if available
+    const currencyDataElement = document.getElementById('currencyData');
+    let initialBalances = {};
+
+    if (currencyDataElement) {
+        try {
+            initialBalances = JSON.parse(currencyDataElement.value);
+        } catch (error) {
+            console.error('Error parsing currency data:', error);
+        }
+    }
+
+    // Initialize currency handler
+    CurrencyHandler.initialize(initialBalances);
+
+    // Initialize story handler
+    StoryHandler.initialize(storyId);
+
+    // Setup background animation if applicable
+    setupBackgroundAnimation();
+}
+
+/**
+ * Initialize general page features (non-story pages)
+ */
+function initializeGeneralPage() {
+    console.log('Initializing general page...');
+
+    // Set up general page event listeners
+    setupNavigationListeners();
+    setupFormValidation();
+}
+
+/**
+ * Set up background animation for story pages
+ */
+function setupBackgroundAnimation() {
+    const storyBg = document.querySelector('.story-bg-overlay');
+    if (storyBg) {
+        // Add subtle parallax effect on mouse move
+        document.addEventListener('mousemove', (e) => {
+            const moveX = (e.clientX - window.innerWidth / 2) * 0.01;
+            const moveY = (e.clientY - window.innerHeight / 2) * 0.01;
+            storyBg.style.transform = `translate(${moveX}px, ${moveY}px)`;
+        });
+    }
+}
+
+/**
+ * Set up navigation listeners
+ */
+function setupNavigationListeners() {
+    // Handle navigation menu toggles if present
+    const navToggle = document.querySelector('.navbar-toggler');
+    if (navToggle) {
+        navToggle.addEventListener('click', () => {
+            const target = document.querySelector(navToggle.dataset.bsTarget);
+            if (target) {
+                target.classList.toggle('show');
+            }
+        });
+    }
+}
+
+/**
+ * Set up form validation for any forms
+ */
+function setupFormValidation() {
+    // Add validation for all forms with the 'needs-validation' class
+    const forms = document.querySelectorAll('.needs-validation');
+
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', (event) => {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            form.classList.add('was-validated');
+        }, false);
+    });
+}
+
+/**
+ * Initialize PayPal integration if applicable
+ */
+function initializePayPalIntegration() {
+    console.log('Checking PayPal integration...');
+
+    // Check if PayPal SDK is loaded
+    const paypalLoaded = typeof paypal !== 'undefined';
+    console.log('PayPal SDK loaded:', paypalLoaded);
+
+    // Check if PayPal button container exists
+    const buttonContainer = document.getElementById('paypal-button-container');
+    console.log('PayPal button container exists:', !!buttonContainer);
+
+    if (buttonContainer) {
+        console.log('Initializing PayPal integration...');
+
+        // Check for client ID
+        const clientIdElement = document.getElementById('paypal-client-id');
+        const clientIdAvailable = !!clientIdElement;
+        console.log('PayPal Client ID available:', clientIdAvailable);
+
+        if (paypalLoaded && clientIdAvailable) {
+            // Initialize PayPal buttons (implement based on your PayPal integration)
+            initializePayPalButtons(clientIdElement.value);
+        } else {
+            // Load PayPal SDK if not loaded yet
+            loadPayPalSDK();
+        }
+    }
+}
+
+/**
+ * Load PayPal SDK dynamically if needed
+ */
+function loadPayPalSDK() {
+    const clientIdElement = document.getElementById('paypal-client-id');
+    if (!clientIdElement) return;
+
+    const clientId = clientIdElement.value;
+    if (!clientId) return;
+
+    // Create script element
+    const script = document.createElement('script');
+    script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD`;
+    script.onload = () => {
+        console.log('PayPal SDK loaded dynamically');
+        initializePayPalButtons(clientId);
+    };
+
+    // Append to document
+    document.body.appendChild(script);
+}
+
+/**
+ * Initialize PayPal buttons with client ID
+ * @param {string} clientId - PayPal client ID
+ */
+function initializePayPalButtons(clientId) {
+    if (typeof paypal === 'undefined' || !paypal.Buttons) {
+        console.error('PayPal SDK not properly loaded');
+        return;
+    }
+
+    // Implement PayPal button rendering based on your specific implementation
+    // This is a placeholder - adjust as needed
+    paypal.Buttons({
+        createOrder: function(data, actions) {
+            // Get package ID or amount from the page
+            const packageId = document.getElementById('selected-package').value;
+            const amount = document.getElementById('package-amount').value;
+
+            return actions.order.create({
+                purchase_units: [{
+                    description: `Currency Package #${packageId}`,
+                    amount: {
+                        currency_code: 'USD',
+                        value: amount
+                    }
+                }]
+            });
+        },
+        onApprove: function(data, actions) {
+            return actions.order.capture().then(function(details) {
+                console.log('Transaction completed', details);
+
+                // Call your server to process the transaction
+                return fetch('/api/process_payment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        order_id: data.orderID,
+                        details: details
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        UI.showToast('Success', 'Payment processed successfully!', 'success');
+
+                        // Update currency balances if provided
+                        if (data.new_balances) {
+                            CurrencyHandler.updateBalances(data.new_balances);
+                        }
+
+                        // Redirect if needed
+                        if (data.redirect_url) {
+                            setTimeout(() => {
+                                window.location.href = data.redirect_url;
+                            }, 1500);
+                        }
+                    } else {
+                        UI.showToast('Error', data.error || 'Payment processing failed', 'error');
+                    }
+                });
+            });
+        }
+    }).render('#paypal-button-container');
+}
+
+
 // Loading overlay functions
-function createLoadingOverlay(message = 'Generating Story...') {
+function createLoadingOverlay(message = 'Loading...') {
     const overlay = document.createElement('div');
     overlay.className = 'loading-overlay';
-    overlay.innerHTML = `
-        <div class="loading-content">
-            <div class="loading-spinner"></div>
-            <div class="loading-percentage">0%</div>
-        </div>
-    `;
+
+    const spinner = document.createElement('div');
+    spinner.className = 'spinner-border text-light';
+    spinner.setAttribute('role', 'status');
+
+    const loadingText = document.createElement('div');
+    loadingText.className = 'loading-text';
+    loadingText.textContent = message;
+
+    const progressContainer = document.createElement('div');
+    progressContainer.className = 'progress mt-2';
+    progressContainer.style.width = '200px';
+
+    const progressBar = document.createElement('div');
+    progressBar.className = 'progress-bar';
+    progressBar.style.width = '0%';
+    progressBar.setAttribute('aria-valuenow', '0');
+    progressBar.setAttribute('aria-valuemin', '0');
+    progressBar.setAttribute('aria-valuemax', '100');
+
+    progressContainer.appendChild(progressBar);
+    overlay.appendChild(spinner);
+    overlay.appendChild(loadingText);
+    overlay.appendChild(progressContainer);
     document.body.appendChild(overlay);
-    overlay.style.display = 'flex';
-    return overlay.querySelector('.loading-percentage');
+
+    return progressBar;
 }
 
-function updateLoadingPercent(element, percent) {
-    element.textContent = `${Math.round(percent)}%`;
+function updateLoadingPercent(progressBar, percent) {
+    if (progressBar) {
+        progressBar.style.width = `${percent}%`;
+        progressBar.setAttribute('aria-valuenow', percent);
+    }
 }
 
-function removeLoadingOverlay(overlay) {
-    overlay.closest('.loading-overlay').remove();
+function removeLoadingOverlay(progressBar) {
+    if (progressBar) {
+        const overlay = progressBar.closest('.loading-overlay');
+        if (overlay) {
+            document.body.removeChild(overlay);
+        }
+    }
 }
 
 // Toast notification function
 function showToast(title, message) {
-    const toastEl = document.getElementById('notificationToast');
-    if (toastEl) {
-        const toast = new bootstrap.Toast(toastEl);
-        document.getElementById('toastTitle').textContent = title;
-        document.getElementById('toastMessage').textContent = message;
-        toast.show();
+    const toast = document.getElementById('notificationToast');
+    if (toast) {
+        const toastTitle = document.getElementById('toastTitle');
+        const toastBody = document.getElementById('toastBody');
+
+        if (toastTitle) toastTitle.textContent = title;
+        if (toastBody) toastBody.textContent = message;
+
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+    } else {
+        console.log(`${title}: ${message}`);
     }
 }
 
+// Character highlighting in story text
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to safely escape special regex characters
+    function escapeRegExp(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    // Function to highlight characters in story text
+    function highlightCharactersInStory() {
+        const storyContent = document.querySelector('.story-content');
+        if (!storyContent) {
+            console.log('Story content element not found');
+            return;
+        }
+
+        // Get all character names from the mini-portraits
+        const characterPortraits = document.querySelectorAll('.character-portrait-mini');
+        if (characterPortraits.length === 0) {
+            console.log('No character portraits found');
+            return;
+        }
+
+        const characterNames = [];
+
+        // Collect character data, handling possible missing elements
+        characterPortraits.forEach(portrait => {
+            const nameElement = portrait.querySelector('.character-mini-name');
+            const imageElement = portrait.querySelector('img');
+
+            if (nameElement && imageElement) {
+                const name = nameElement.textContent.trim();
+                if (name) { // Only add if name is not empty
+                    const dataName = portrait.getAttribute('data-character-name') || name.toLowerCase().replace(/\s/g, '-');
+                    characterNames.push({
+                        name: name,
+                        image: imageElement.src,
+                        dataName: dataName
+                    });
+                }
+            }
+        });
+
+        if (characterNames.length === 0) {
+            console.log('No valid character names found');
+            return;
+        }
+
+        console.log(`Found ${characterNames.length} characters to highlight`);
+
+        // Sort names by length (longest first) to avoid partial matches
+        characterNames.sort((a, b) => b.name.length - a.name.length);
+
+        // Get the story text content
+        let storyHTML = storyContent.innerHTML;
+        const originalHTML = storyHTML;
+
+        // Replace character names with highlighted spans
+        characterNames.forEach(character => {
+            try {
+                const escapedName = escapeRegExp(character.name);
+                // Only match whole words
+                const regex = new RegExp(`\\b${escapedName}\\b(?![^<]*>)`, 'gi');
+
+                storyHTML = storyHTML.replace(regex, match => {
+                    return `<span class="character-mention" data-character="${character.dataName}">${match}<span class="character-tooltip"><img src="${character.image}" alt="${match}">${match}</span></span>`;
+                });
+            } catch (error) {
+                console.error(`Error highlighting character ${character.name}:`, error);
+            }
+        });
+
+        // Only update if changes were made
+        if (storyHTML !== originalHTML) {
+            storyContent.innerHTML = storyHTML;
+
+            // Add click event to highlight corresponding mini-portrait
+            document.querySelectorAll('.character-mention').forEach(mention => {
+                mention.addEventListener('click', function() {
+                    const characterId = this.dataset.character;
+                    if (!characterId) return;
+
+                    // Remove highlight from all portraits
+                    document.querySelectorAll('.character-mini-img').forEach(img => {
+                        img.classList.remove('character-mini-highlight');
+                    });
+
+                    // Add highlight to this portrait
+                    const targetPortrait = document.querySelector(`.character-portrait-mini[data-character-name="${characterId}"]`);
+                    if (targetPortrait) {
+                        const portraitImg = targetPortrait.querySelector('.character-mini-img');
+                        if (portraitImg) {
+                            portraitImg.classList.add('character-mini-highlight');
+
+                            // Scroll to the portrait if needed
+                            targetPortrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+                            // Remove highlight after 3 seconds
+                            setTimeout(() => {
+                                portraitImg.classList.remove('character-mini-highlight');
+                            }, 3000);
+                        }
+                    }
+                });
+            });
+
+            console.log('Character highlighting applied successfully');
+        } else {
+            console.log('No character names matched in the story text');
+        }
+    }
+
+    // Run the highlighting function when page loads
+    try {
+        highlightCharactersInStory();
+    } catch (error) {
+        console.error('Error in character highlighting:', error);
+    }
+
+    // Also run when a story choice is made (if needed)
+    const choiceForms = document.querySelectorAll('.choice-form');
+    if (choiceForms.length > 0) {
+        choiceForms.forEach(form => {
+            form.addEventListener('submit', function() {
+                // We'll re-run the function when the new page loads
+                // This is handled by the DOMContentLoaded event
+            });
+        });
+    }
+});
+
+//Handle currency trading.  This will be moved to currencyHandler.js
+function setupCurrencyTradeHandlers() {
+    // Trade form submission is now handled by the currency manager
+    // This function is kept for backward compatibility
+    console.log('Currency trade handling delegated to currency manager');
+}
+
+//This will be moved to currencyHandler.js
+function updateCurrencyDisplays(balances) {
+    if (!balances) return;
+
+    Object.entries(balances).forEach(([currency, balance]) => {
+        const displays = document.querySelectorAll(`.currency-item[data-currency="${currency}"] .currency-amount`);
+        displays.forEach(display => {
+            display.textContent = balance;
+        });
+
+        // Update currency requirement indicators
+        document.querySelectorAll(`.currency-req-item`).forEach(reqItem => {
+            if (reqItem.textContent.includes(currency)) {
+                const required = parseInt(reqItem.textContent.replace(currency, ''));
+                if (required > balance) {
+                    reqItem.classList.add('currency-req-insufficient');
+                } else {
+                    reqItem.classList.remove('currency-req-insufficient');
+                }
+            }
+        });
+    });
+}
+
+//This section will be moved to a separate file, likely storyHandler.js
 document.addEventListener('DOMContentLoaded', function() {
     // Character selection elements
     const characterCards = document.querySelectorAll('.character-select-card');
@@ -434,290 +871,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-
-// Character highlighting in story text
-document.addEventListener('DOMContentLoaded', function() {
-    // Function to safely escape special regex characters
-    function escapeRegExp(string) {
-        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    }
-
-    // Function to highlight characters in story text
-    function highlightCharactersInStory() {
-        const storyContent = document.querySelector('.story-content');
-        if (!storyContent) {
-            console.log('Story content element not found');
-            return;
-        }
-
-        // Get all character names from the mini-portraits
-        const characterPortraits = document.querySelectorAll('.character-portrait-mini');
-        if (characterPortraits.length === 0) {
-            console.log('No character portraits found');
-            return;
-        }
-
-        const characterNames = [];
-
-        // Collect character data, handling possible missing elements
-        characterPortraits.forEach(portrait => {
-            const nameElement = portrait.querySelector('.character-mini-name');
-            const imageElement = portrait.querySelector('img');
-
-            if (nameElement && imageElement) {
-                const name = nameElement.textContent.trim();
-                if (name) { // Only add if name is not empty
-                    const dataName = portrait.getAttribute('data-character-name') || name.toLowerCase().replace(/\s/g, '-');
-                    characterNames.push({
-                        name: name,
-                        image: imageElement.src,
-                        dataName: dataName
-                    });
-                }
-            }
-        });
-
-        if (characterNames.length === 0) {
-            console.log('No valid character names found');
-            return;
-        }
-
-        console.log(`Found ${characterNames.length} characters to highlight`);
-
-        // Sort names by length (longest first) to avoid partial matches
-        characterNames.sort((a, b) => b.name.length - a.name.length);
-
-        // Get the story text content
-        let storyHTML = storyContent.innerHTML;
-        const originalHTML = storyHTML;
-
-        // Replace character names with highlighted spans
-        characterNames.forEach(character => {
-            try {
-                const escapedName = escapeRegExp(character.name);
-                // Only match whole words
-                const regex = new RegExp(`\\b${escapedName}\\b(?![^<]*>)`, 'gi');
-
-                storyHTML = storyHTML.replace(regex, match => {
-                    return `<span class="character-mention" data-character="${character.dataName}">${match}<span class="character-tooltip"><img src="${character.image}" alt="${match}">${match}</span></span>`;
-                });
-            } catch (error) {
-                console.error(`Error highlighting character ${character.name}:`, error);
-            }
-        });
-
-        // Only update if changes were made
-        if (storyHTML !== originalHTML) {
-            storyContent.innerHTML = storyHTML;
-
-            // Add click event to highlight corresponding mini-portrait
-            document.querySelectorAll('.character-mention').forEach(mention => {
-                mention.addEventListener('click', function() {
-                    const characterId = this.dataset.character;
-                    if (!characterId) return;
-
-                    // Remove highlight from all portraits
-                    document.querySelectorAll('.character-mini-img').forEach(img => {
-                        img.classList.remove('character-mini-highlight');
-                    });
-
-                    // Add highlight to this portrait
-                    const targetPortrait = document.querySelector(`.character-portrait-mini[data-character-name="${characterId}"]`);
-                    if (targetPortrait) {
-                        const portraitImg = targetPortrait.querySelector('.character-mini-img');
-                        if (portraitImg) {
-                            portraitImg.classList.add('character-mini-highlight');
-
-                            // Scroll to the portrait if needed
-                            targetPortrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-                            // Remove highlight after 3 seconds
-                            setTimeout(() => {
-                                portraitImg.classList.remove('character-mini-highlight');
-                            }, 3000);
-                        }
-                    }
-                });
-            });
-
-            console.log('Character highlighting applied successfully');
-        } else {
-            console.log('No character names matched in the story text');
-        }
-    }
-
-    // Run the highlighting function when page loads
-    try {
-        highlightCharactersInStory();
-    } catch (error) {
-        console.error('Error in character highlighting:', error);
-    }
-
-    // Also run when a story choice is made (if needed)
-    const choiceForms = document.querySelectorAll('.choice-form');
-    if (choiceForms.length > 0) {
-        choiceForms.forEach(form => {
-            form.addEventListener('submit', function() {
-                // We'll re-run the function when the new page loads
-                // This is handled by the DOMContentLoaded event
-            });
-        });
-    }
-});
-
-// Update currency displays function
-function updateCurrencyDisplays(balances) {
-    if (!balances) return;
-
-    Object.entries(balances).forEach(([currency, balance]) => {
-        const displays = document.querySelectorAll(`.currency-item[data-currency="${currency}"] .currency-amount`);
-        displays.forEach(display => {
-            display.textContent = balance;
-        });
-
-        // Update currency requirement indicators
-        document.querySelectorAll(`.currency-req-item`).forEach(reqItem => {
-            if (reqItem.textContent.includes(currency)) {
-                const required = parseInt(reqItem.textContent.replace(currency, ''));
-                if (required > balance) {
-                    reqItem.classList.add('currency-req-insufficient');
-                } else {
-                    reqItem.classList.remove('currency-req-insufficient');
-                }
-            }
-        });
-    });
-}
-
-
-// PayPal button rendering - COMMENTED OUT
-/*
-function initializePayPal() {
-    console.log('Initializing PayPal integration...');
-    const container = document.getElementById('paypal-button-container');
-
-    if (!container) {
-        console.error('PayPal button container not found');
-        return;
-    }
-
-    if (typeof paypal === 'undefined') {
-        console.error('PayPal SDK not loaded');
-        showToast('Error', 'Payment system not available. Please try again later.');
-        return;
-    }
-
-    console.log('PayPal SDK loaded, configuring buttons...');
-    let selectedAmount = 100; // Default amount
-    let selectedPrice = 1;    // Default price
-
-    // Handle diamond package selection
-    document.querySelectorAll('.diamond-package').forEach(button => {
-        button.addEventListener('click', function() {
-            selectedAmount = parseInt(this.dataset.amount);
-            selectedPrice = parseInt(this.dataset.price);
-            console.log(`Selected package: ${selectedAmount} diamonds for $${selectedPrice}`);
-
-            // Update active state
-            document.querySelectorAll('.diamond-package').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            this.classList.add('active');
-
-            // Re-render PayPal buttons with new amount
-            renderPayPalButtons();
-        });
-    });
-
-    function renderPayPalButtons() {
-        console.log('Rendering PayPal buttons...');
-        container.innerHTML = ''; // Clear existing buttons
-
-        try {
-            paypal.Buttons({
-                createOrder: function(data, actions) {
-                    console.log(`Creating order for ${selectedAmount} diamonds at $${selectedPrice}`);
-                    return actions.order.create({
-                        purchase_units: [{
-                            amount: {
-                                value: selectedPrice.toString(),
-                                currency_code: 'USD'
-                            },
-                            description: `Purchase ${selectedAmount} diamonds 💎`
-                        }]
-                    });
-                },
-                onApprove: function(data, actions) {
-                    console.log('Payment approved, capturing funds...');
-                    return actions.order.capture().then(function(details) {
-                        // Show loading state
-                        const loadingPercent = createLoadingOverlay('Processing payment...');
-                        updateLoadingPercent(loadingPercent, 50);
-
-                        // Handle successful payment
-                        fetch('/api/purchase/diamonds/success', {
-                            method: 'GET',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            }
-                        })
-                            .then(response => response.json())
-                            .then(data => {
-                                updateLoadingPercent(loadingPercent, 100);
-                                if (data.success) {
-                                    // Update all currency displays with new balance
-                                    updateCurrencyDisplays(data.new_balances);
-                                    showToast('Success', `Successfully purchased ${selectedAmount} diamonds!`);
-
-                                    // Close modal
-                                    const modal = bootstrap.Modal.getInstance(document.getElementById('purchaseModal'));
-                                    if (modal) {
-                                        modal.hide();
-                                    }
-                                } else {
-                                    showToast('Error', data.error || 'Failed to process purchase');
-                                }
-                                removeLoadingOverlay(loadingPercent);
-                            })
-                            .catch(error => {
-                                console.error('Error processing purchase:', error);
-                                showToast('Error', 'Failed to process purchase');
-                                removeLoadingOverlay(loadingPercent);
-                            });
-                    });
-                },
-                onError: function(err) {
-                    console.error('PayPal button error:', err);
-                    showToast('Error', 'Payment system error. Please try again later.');
-                }
-            }).render('#paypal-button-container')
-                .then(() => {
-                    console.log('PayPal buttons rendered successfully');
-                })
-                .catch(err => {
-                    console.error('Error rendering PayPal buttons:', err);
-                    showToast('Error', 'Failed to initialize payment system');
-                });
-        } catch (error) {
-            console.error('Error setting up PayPal buttons:', error);
-            showToast('Error', 'Failed to set up payment system');
-        }
-    }
-
-    // Initial render of PayPal buttons
-    renderPayPalButtons();
-}
-
-// Initialize PayPal when the DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, checking PayPal integration...');
-    // Give PayPal SDK a moment to load
-    setTimeout(() => {
-        initializePayPal();
-    }, 1000);
-});
-*/
-
+//This will be moved to currencyHandler.js
 // Temporary placeholder for PayPal functionality
 document.addEventListener('DOMContentLoaded', function() {
     const purchaseModal = document.getElementById('purchaseModal');
@@ -729,70 +883,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Handle currency trading
-const tradeForm = document.getElementById('tradeForm');
-if (tradeForm) {
-    tradeForm.addEventListener('submit', function(e) {
-        e.preventDefault();
 
-        const fromCurrency = document.getElementById('fromCurrency').value;
-        const toCurrency = document.getElementById('toCurrency').value;
-        const amount = parseInt(document.getElementById('tradeAmount').value);
-
-        if (fromCurrency === toCurrency) {
-            showToast('Error', 'Please select different currencies to trade');
-            return;
-        }
-
-        if (isNaN(amount) || amount <= 0) {
-            showToast('Error', 'Please enter a valid amount');
-            return;
-        }
-
-        // Show loading state
-        const loadingPercent = createLoadingOverlay('Processing trade...');
-        updateLoadingPercent(loadingPercent, 50);
-
-        fetch('/api/currency/trade', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                from_currency: fromCurrency,
-                to_currency: toCurrency,
-                amount: amount
-            })
-        })
-            .then(response => response.json())
-            .then(data => {
-                updateLoadingPercent(loadingPercent, 100);
-                if (data.success) {
-                    // Update all currency displays
-                    updateCurrencyDisplays(data.new_balances);
-                    showToast('Success', data.message);
-
-                    // Reset form
-                    document.getElementById('tradeAmount').value = '';
-
-                    // Close modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('tradeModal'));
-                    if (modal) {
-                        modal.hide();
-                    }
-                } else {
-                    showToast('Error', data.error || 'Failed to trade currencies');
-                }
-                removeLoadingOverlay(loadingPercent);
-            })
-            .catch(error => {
-                console.error('Error trading currencies:', error);
-                showToast('Error', 'Failed to trade currencies');
-                removeLoadingOverlay(loadingPercent);
-            });
-    });
-}
-
+//This section will be moved to a separate file, likely storyHandler.js
 // Update choice buttons to show currency requirements
 document.querySelectorAll('.choice-form').forEach(form => {
     const button = form.querySelector('button');
@@ -812,6 +904,7 @@ document.querySelectorAll('.choice-form').forEach(form => {
     }
 });
 
+//This section will be moved to a separate file, likely storyHandler.js
 // Handle choice form submission
 document.querySelectorAll('.choice-form').forEach(form => {
     form.addEventListener('submit', function(e) {
@@ -839,6 +932,7 @@ document.querySelectorAll('.choice-form').forEach(form => {
     });
 });
 
+//This section will be moved to a separate file, likely storyHandler.js
 // Handle custom choice form submission
 const customChoiceForm = document.querySelector('.custom-choice-form');
 if (customChoiceForm) {
@@ -864,6 +958,7 @@ if (customChoiceForm) {
     });
 }
 
+//This will be moved to currencyHandler.js
 // Setup currency trade modal
 // Initialize the currency manager
 document.addEventListener('DOMContentLoaded', function() {
@@ -884,89 +979,24 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Function to update all currency displays
-function updateCurrencyDisplays(balances) {
-    // Update UI elements that display currency
-    const currencyDisplay = document.getElementById('currencyDisplay');
-    if (currencyDisplay) {
-        let html = '';
-        for (const [currency, amount] of Object.entries(balances)) {
-            html += `<div class="currency-item">${currency} ${amount}</div>`;
-        }
-        currencyDisplay.innerHTML = html;
-    }
 
-    // Also update the currency manager if available
-    if (window.currencyManager) {
-        window.currencyManager.updateBalances(balances);
-    }
-}
+//This section is a placeholder for a UI module.  The functions here should be moved to a UI module.
+const UI = {
+    showToast: function(title, message, type = 'info') {
+        const toast = document.getElementById('notificationToast');
+        if (toast) {
+            const toastTitle = document.getElementById('toastTitle');
+            const toastBody = document.getElementById('toastBody');
+            const toastType = document.getElementById('toastType');
 
-function showToast(title, message) {
-    const toast = document.getElementById('notificationToast');
-    if (toast) {
-        const toastTitle = document.getElementById('toastTitle');
-        const toastBody = document.getElementById('toastBody');
+            if (toastTitle) toastTitle.textContent = title;
+            if (toastBody) toastBody.textContent = message;
+            if (toastType) toastType.className = `toast-header bg-${type}`;
 
-        if (toastTitle) toastTitle.textContent = title;
-        if (toastBody) toastBody.textContent = message;
-
-        const bsToast = new bootstrap.Toast(toast);
-        bsToast.show();
-    } else {
-        console.log(`${title}: ${message}`);
-    }
-}
-
-function createLoadingOverlay(message) {
-    const overlay = document.createElement('div');
-    overlay.className = 'loading-overlay';
-
-    const spinner = document.createElement('div');
-    spinner.className = 'spinner-border text-light';
-    spinner.setAttribute('role', 'status');
-
-    const loadingText = document.createElement('div');
-    loadingText.className = 'loading-text';
-    loadingText.textContent = message || 'Loading...';
-
-    const progressContainer = document.createElement('div');
-    progressContainer.className = 'progress mt-2';
-    progressContainer.style.width = '200px';
-
-    const progressBar = document.createElement('div');
-    progressBar.className = 'progress-bar';
-    progressBar.style.width = '0%';
-    progressBar.setAttribute('aria-valuenow', '0');
-    progressBar.setAttribute('aria-valuemin', '0');
-    progressBar.setAttribute('aria-valuemax', '100');
-
-    progressContainer.appendChild(progressBar);
-    overlay.appendChild(spinner);
-    overlay.appendChild(loadingText);
-    overlay.appendChild(progressContainer);
-    document.body.appendChild(overlay);
-
-    return progressBar;
-}
-
-function updateLoadingPercent(progressBar, percent) {
-    if (progressBar) {
-        progressBar.style.width = `${percent}%`;
-        progressBar.setAttribute('aria-valuenow', percent);
-    }
-}
-
-function removeLoadingOverlay(progressBar) {
-    if (progressBar) {
-        const overlay = progressBar.closest('.loading-overlay');
-        if (overlay) {
-            document.body.removeChild(overlay);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+        } else {
+            console.log(`${title}: ${message}`);
         }
     }
-} handlers
-function setupCurrencyTradeHandlers() {
-    // Trade form submission is now handled by the currency manager
-    // This function is kept for backward compatibility
-    console.log('Currency trade handling delegated to currency manager');
-}
+};
