@@ -188,6 +188,7 @@ def generate_story(
     else:
         protagonist_info = "You are a charismatic but incompetent agent who constantly receives romantic advances from practically everybody you meet. "
 
+    # Create a more mission-focused story universe
     universe_prompt = (
         f"This is set in the hormone-fueled high stakes sexy dramatic international spy network. {protagonist_info}"
         "The story is set in the year 2070, and the world is in the midst of a global crisis that you are never really sure about. "
@@ -196,7 +197,7 @@ def generate_story(
         "All the characters are constantly betraying each other and having romantic flings. The narrative should be told directly to the reader (using 'you'), be over-the-top, "
         "with excessive action scenes, dramatic romantic encounters, and constant plot twists where allies become enemies and vice versa.\n\n"
         "Each character has international connections and unique skills they use in increasingly absurd ways.\n\n"
-        "Dr. Ugh, a nasty woman who dislikes you, appears in the first episode to give you missions targeting villains. These missions offer currency rewards when completed. She reminds you not to screw up again."
+        "IMPORTANT: The story should begin with a mission giver character (any character with the 'mission-giver' role) giving the player a mission. This mission should be a central plot point. The mission giver should be different for different playthroughs. They reluctantly task you with missions targeting villains while reminding you not to screw up again. These missions offer currency rewards when completed."
     )
 
     # Construct the main prompt
@@ -217,15 +218,18 @@ def generate_story(
         "IMPORTANT: Include one new character from the database in the choices when needed") + "\n"
         "5. Includes betrayal, romantic flings, and over-the-top action sequences\n"
         "6. Uses the character's traits to guide their behavior and dialogue\n"
-        "7. In early story segments, Dr. Ugh should give the player a mission that targets a villain character with these components:\n"
+        "7. CRITICAL: The story MUST begin with a mission-giver character assigning a mission to the player with these components:\n"
         "   - A clear objective (steal an item, sabotage a plan, investigate a location, etc.)\n"
-        "   - A target character who has the 'villain' role\n"
+        "   - A specific target character who has the 'villain' role\n"
         "   - A reward in one of the game currencies (💵, 💷, 💶, 💴)\n"
         "   - A deadline or sense of urgency\n"
-        "8. In some story segments, include characters offering to buy diamonds (💎) from the player:\n"
-        "   - Characters can offer to trade dollars (💵) or pounds (💷) for diamonds\n"
+        "   - The mission should be central to the plot and referenced throughout the story\n"
+        "8. In many story segments, include characters offering to trade currencies with the player:\n"
+        "   - Characters can offer to trade dollars (💵), pounds (💷), euros (💶), or yen (💴) for the player's diamonds (💎)\n"
         "   - Make offers sound enticing but slightly suspicious\n"
-        "   - Each diamond is worth €1000 or ¥150000\n"
+        "   - Each diamond (💎) is worth €1000 (💶) or ¥150000 (💴)\n"
+        "   - Include a specific exchange rate in the offer (e.g., '5 diamonds for 5,000 euros')\n"
+        "   - These offers should feel like they're tied to the mission or other character motivations\n"
         "9. Provides exactly two meaningful choice options that:\n"
         "   - Lead to different potential outcomes (each one should sound sexy and dangerous)\n"
         "   - Stay true to the characters' established traits\n"

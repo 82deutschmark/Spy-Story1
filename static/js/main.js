@@ -361,7 +361,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.new_balances) {
                     updateCurrencyDisplays(data.new_balances);
                 }
-                
+
                 // Update user level and XP if provided
                 if (data.level && data.experience) {
                     updateUserProgress(data.level, data.experience);
@@ -539,25 +539,25 @@ function updateCurrencyDisplays(balances) {
 // Update user level and XP information
 function updateUserProgress(level, experience) {
     if (!level && !experience) return;
-    
+
     // Update level display
     const levelDisplay = document.querySelector('.user-level');
     if (levelDisplay && level) {
         levelDisplay.textContent = `Level ${level}`;
     }
-    
+
     // Update XP bar
     const xpProgress = document.querySelector('.xp-progress');
     if (xpProgress && experience) {
         const xpPercent = experience % 100;
         xpProgress.style.width = `${xpPercent}%`;
     }
-    
+
     // Update progress modal if open
     if (document.getElementById('progressModal')) {
         // Find all strong elements in the progress modal
         const strongElements = document.querySelectorAll('#progressModal .card-body strong');
-        
+
         // Update level
         if (level) {
             strongElements.forEach(elem => {
@@ -569,7 +569,7 @@ function updateUserProgress(level, experience) {
                 }
             });
         }
-        
+
         // Update XP
         if (experience) {
             strongElements.forEach(elem => {
@@ -580,7 +580,7 @@ function updateUserProgress(level, experience) {
                     }
                 }
             });
-            
+
             // Update Next Level
             strongElements.forEach(elem => {
                 if (elem.textContent === 'Next Level:') {
@@ -591,7 +591,7 @@ function updateUserProgress(level, experience) {
                 }
             });
         }
-        
+
         // Update progress bar
         const progressBar = document.querySelector('#progressModal .progress-bar');
         if (progressBar && experience) {
@@ -793,6 +793,278 @@ if (tradeForm) {
             });
     });
 }
+
+// Update choice buttons to show currency requirements
+document.querySelectorAll('.choice-form').forEach(form => {
+    const button = form.querySelector('button');
+    if (button && button.dataset.currencyReq) {
+        const requirements = JSON.parse(button.dataset.currencyReq);
+        const reqDiv = document.createElement('div');
+        reqDiv.className = 'choice-currency-req';
+
+        Object.entries(requirements).forEach(([currency, amount]) => {
+            const reqItem = document.createElement('span');
+            reqItem.className = 'currency-req-item';
+            reqItem.innerHTML = `${currency}${amount}`;
+            reqDiv.appendChild(reqItem);
+        });
+
+        button.parentNode.insertBefore(reqDiv, button.nextSibling);
+    }
+});
+
+
+// jQuery integration for currency trade handling
+$(document).ready(function() {
+    // Function to update currency display (jQuery version)
+    function updateCurrencyDisplay(balances) {
+        $('.currency-amount').each(function() {
+            const symbol = $(this).prev('.currency-symbol').text();
+            $(this).text(balances[symbol] || 0);
+        });
+    }
+
+    // Handle currency trade form submission
+    $('#tradeForm').on('submit', function(e) {
+        e.preventDefault();
+        const fromCurrency = $('#fromCurrency').val();
+        const toCurrency = $('#toCurrency').val();
+        const amount = parseInt($('#tradeAmount').val());
+
+        if (fromCurrency === toCurrency) {
+            showNotification('Error', 'Cannot convert to the same currency type');
+            return;
+        }
+
+        if (isNaN(amount) || amount <= 0) {
+            showNotification('Error', 'Please enter a valid amount');
+            return;
+        }
+
+        console.log('Attempting currency trade:', { fromCurrency, toCurrency, amount });
+
+        // Send API request to trade currency
+        $.ajax({
+            url: '/api/currency/trade',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                from_currency: fromCurrency,
+                to_currency: toCurrency,
+                amount: amount
+            }),
+            success: function(response) {
+                console.log('Trade successful:', response);
+                // Update currency display
+                updateCurrencyDisplay(response.new_balances);
+                showNotification('Success', response.message);
+                $('#tradeModal').modal('hide');
+
+                // Reset the form
+                $('#tradeAmount').val('');
+            },
+            error: function(xhr) {
+                console.error('Trade error:', xhr);
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    showNotification('Error', response.error);
+                } catch (e) {
+                    showNotification('Error', 'Failed to process trade');
+                }
+            }
+        });
+    });
+
+    // Handle story trade offers from characters
+    $(document).on('click', '.accept-trade-btn', function() {
+        const fromCurrency = $(this).data('from');
+        const toCurrency = $(this).data('to');
+        const rate = parseFloat($(this).data('rate'));
+
+        // Default to 1 unit if rate is not a number
+        const amount = 1;
+
+        console.log('Accepting trade offer:', { fromCurrency, toCurrency, rate, amount });
+
+        // Send API request to trade currency
+        $.ajax({
+            url: '/api/currency/trade',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                from_currency: fromCurrency,
+                to_currency: toCurrency,
+                amount: amount
+            }),
+            success: function(response) {
+                console.log('Trade offer accepted:', response);
+                // Update currency display
+                updateCurrencyDisplay(response.new_balances);
+                showNotification('Success', response.message);
+
+                // Hide the trade offer
+                $('.currency-trade-offer').fadeOut();
+            },
+            error: function(xhr) {
+                console.error('Trade offer error:', xhr);
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    showNotification('Error', response.error);
+                } catch (e) {
+                    showNotification('Error', 'Failed to process trade offer');
+                }
+            }
+        });
+    });
+
+    // Handle mission details button click
+    $(document).on('click', '.mission-details-btn', function() {
+        const missionId = $(this).data('mission-id');
+
+        // Reset modal content
+        $('#missionDetailsModal .mission-content').hide();
+        $('#missionDetailsModal .mission-loading').show();
+        $('#progressUpdatesList').empty();
+
+        // Show modal
+        $('#missionDetailsModal').modal('show');
+
+        // Fetch mission details
+        $.ajax({
+            url: `/api/missions/${missionId}`,
+            type: 'GET',
+            success: function(response) {
+                if (response.success && response.mission) {
+                    const mission = response.mission;
+
+                    // Fill in mission details
+                    $('#missionDetailTitle').text(mission.title);
+                    $('#missionObjective').text(mission.objective);
+                    $('#missionDescription').text(mission.description);
+                    $('#missionDifficulty').text(mission.difficulty);
+                    $('#missionStatus').text(mission.status);
+                    $('#missionDeadline').text(mission.deadline);
+                    $('#missionReward').text(`${mission.reward_currency} ${mission.reward_amount}`);
+
+                    // Update progress bar
+                    const progress = mission.progress || 0;
+                    $('#missionProgressBar').css('width', `${progress}%`).attr('aria-valuenow', progress).text(`${progress}%`);
+
+                    // Set character information
+                    $('#missionGiver').text(mission.giver?.name || 'Unknown');
+                    $('#missionTarget').text(mission.target?.name || 'Unknown');
+
+                    // Set up button actions
+                    $('#completeBtn').data('mission-id', mission.id);
+                    $('#failBtn').data('mission-id', mission.id);
+
+                    // Show/hide buttons based on mission status
+                    if (mission.status !== 'active') {
+                        $('#missionActions').hide();
+                    } else {
+                        $('#missionActions').show();
+                    }
+
+                    // Add progress updates
+                    if (mission.progress_updates && mission.progress_updates.length > 0) {
+                        mission.progress_updates.forEach(function(update) {
+                            const date = new Date(update.timestamp);
+                            const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+
+                            let updateHtml = `
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">Progress: ${update.progress}%</h6>
+                                        <small>${formattedDate}</small>
+                                    </div>
+                            `;
+
+                            if (update.description) {
+                                updateHtml += `<p class="mb-1">${update.description}</p>`;
+                            }
+
+                            if (update.status) {
+                                updateHtml += `<span class="badge ${update.status === 'completed' ? 'bg-success' : 'bg-danger'}">${update.status}</span>`;
+                            }
+
+                            updateHtml += `</div>`;
+
+                            $('#progressUpdatesList').append(updateHtml);
+                        });
+                    } else {
+                        $('#progressUpdatesList').append('<p class="text-muted">No progress updates yet.</p>');
+                    }
+
+                    //                    // Show content, hide loading
+                    $('#missionDetailsModal .mission-loading').hide();
+                    $('#missionDetailsModal .mission-content').show();
+                }
+            },
+            error: function() {
+                $('#missionDetailsModal').modal('hide');
+                showNotification('Error', 'Failed to load mission details');
+            }
+        });
+    });
+
+    // Handle complete mission button
+    $(document).on('click', '#completeBtn', function() {
+        const missionId = $(this).data('mission-id');
+
+        if (confirm('Are you sure you want to mark this mission as completed?')) {
+            $.ajax({
+                url: `/api/missions/${missionId}/complete`,
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({}),
+                success: function(response) {
+                    $('#missionDetailsModal').modal('hide');
+                    showNotification('Success', 'Mission completed successfully!');
+
+                    // Update currency display if provided
+                    if (response.new_balances) {
+                        updateCurrencyDisplay(response.new_balances);
+                    }
+
+                    // Reload page to refresh mission list
+                    setTimeout(function() {
+                        location.reload();
+                    }, 2000);
+                },
+                error: function() {
+                    showNotification('Error', 'Failed to complete mission');
+                }
+            });
+        }
+    });
+
+    // Handle fail mission button
+    $(document).on('click', '#failBtn', function() {
+        const missionId = $(this).data('mission-id');
+        const reason = prompt('Please provide a reason for failing the mission (optional):');
+
+        if (confirm('Are you sure you want to mark this mission as failed?')) {
+            $.ajax({
+                url: `/api/missions/${missionId}/fail`,
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ reason: reason }),
+                success: function() {
+                    $('#missionDetailsModal').modal('hide');
+                    showNotification('Info', 'Mission marked as failed');
+
+                    // Reload page to refresh mission list
+                    setTimeout(function() {
+                        location.reload();
+                    }, 2000);
+                },
+                error: function() {
+                    showNotification('Error', 'Failed to update mission status');
+                }
+            });
+        }
+    });
+});
 
 // Update choice buttons to show currency requirements
 document.querySelectorAll('.choice-form').forEach(form => {
