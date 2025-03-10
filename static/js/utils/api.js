@@ -4,6 +4,26 @@
 
 export const api = {
     /**
+     * Make a GET request to the server
+     * @param {string} url - The endpoint URL
+     * @returns {Promise} - The response promise
+     */
+    get: async (url) => {
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('API Error:', error);
+            throw error;
+        }
+    },
+
+    /**
      * Make a POST request to the server
      * @param {string} url - The endpoint URL
      * @param {Object} data - The data to send
@@ -40,6 +60,26 @@ export const api = {
                     'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: formData
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('API Error:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Make a DELETE request to the server
+     * @param {string} url - The endpoint URL
+     * @returns {Promise} - The response promise
+     */
+    delete: async (url) => {
+        try {
+            const response = await fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             });
             return await response.json();
         } catch (error) {
