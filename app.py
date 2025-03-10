@@ -531,16 +531,20 @@ def save_analysis_original():
         # Determine if it's a character or scene based on character indicators
         is_character = False
 
-        # Check for nested character object
-        if 'character' in analysis and isinstance(analysis['character'], dict):
+        # Check for explicit type field (new format)
+        if 'type' in analysis and analysis['type'] == 'CHARACTER':
+            is_character = True
+            logger.debug("Detected character from 'type' field")
+        # Check for nested character object (old format)
+        elif 'character' in analysis and isinstance(analysis['character'], dict):
             is_character = True
             logger.debug("Detected character from nested 'character' object")
         # Or check for character-specific fields at the top level
-        elif any(key in analysis for key in ['character_name', 'character_traits', 'plot_lines']):
+        elif any(key in analysis for key in ['character_name', 'character_traits', 'plot_lines', 'personality_traits', 'potential_plot_lines']):
             is_character = True
-            logger.debug("Detected character from top-level character fields")
+            logger.debug("Detected character from character-specific fields")
         # Or check for character-specific role field
-        elif 'role' in analysis and analysis['role'] in ['hero', 'villain', 'neutral']:
+        elif 'role' in analysis and analysis['role'].lower() in ['hero', 'villain', 'neutral', 'protagonist', 'antagonist']:
             is_character = True
             logger.debug("Detected character from role field")
 
@@ -575,7 +579,11 @@ def save_analysis_original():
         # Extract traits and plot lines either from character object or top level
         character_traits = None
         if is_character:
-            if 'character' in analysis and 'character_traits' in character_data:
+            # Check for personality_traits (new format) first
+            if 'personality_traits' in analysis:
+                character_traits = analysis.get('personality_traits')
+            # Then check old format options
+            elif 'character' in analysis and 'character_traits' in character_data:
                 character_traits = character_data.get('character_traits')
             else:
                 character_traits = analysis.get('character_traits')
@@ -589,7 +597,11 @@ def save_analysis_original():
 
         plot_lines = None
         if is_character:
-            if 'character' in analysis and 'plot_lines' in character_data:
+            # Check for potential_plot_lines (new format) first
+            if 'potential_plot_lines' in analysis:
+                plot_lines = analysis.get('potential_plot_lines')
+            # Then check old format options
+            elif 'character' in analysis and 'plot_lines' in character_data:
                 plot_lines = character_data.get('plot_lines')
             else:
                 plot_lines = analysis.get('plot_lines')
