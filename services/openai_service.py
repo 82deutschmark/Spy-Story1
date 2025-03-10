@@ -22,14 +22,37 @@ def analyze_artwork(image_url):
         dict: Structured analysis of the image
     """
     try:
-        # Get image metadata using a HEAD request
-        response = requests.head(image_url, timeout=10)
-        content_type = response.headers.get('Content-Type', '')
-        content_length = response.headers.get('Content-Length', 0)
+        # Validate URL format
+        if not image_url.startswith(('http://', 'https://')):
+            raise ValueError("Image URL must start with http:// or https://")
         
-        # Basic metadata validation
-        if not content_type.startswith('image/'):
-            raise ValueError(f"URL does not point to an image. Content-Type: {content_type}")
+        # Check if image is accessible and validate it's an image
+        try:
+            response = requests.head(image_url, timeout=10, allow_redirects=True)
+            response.raise_for_status()  # Raise exception for 4XX/5XX status codes
+            
+            content_type = response.headers.get('Content-Type', '')
+            content_length = response.headers.get('Content-Length', 0)
+            
+            # Basic metadata validation
+            if not content_type.startswith('image/'):
+                raise ValueError(f"URL does not point to an image. Content-Type: {content_type}")
+                
+            # Whitelist certain domains known to be reliable
+            allowed_domains = [
+                'i.imgur.com', 
+                'images.unsplash.com',
+                'upload.wikimedia.org',
+                'picsum.photos'
+            ]
+            
+            # Check if image is from a midjourney CDN, which is known to have issues
+            if 'midjourney.com' in image_url:
+                logger.warning(f"Midjourney image URLs may not be accessible to OpenAI: {image_url}")
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to validate image URL: {str(e)}")
+            raise ValueError(f"Image URL is not accessible: {str(e)}")
         
         # Prepare the message for OpenAI
         messages = [
@@ -64,28 +87,37 @@ def analyze_artwork(image_url):
             }
         ]
         
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=messages,
-            response_format={"type": "json_object"},
-            max_tokens=1000
-        )
-        
-        # Parse response to JSON
-        analysis_text = response.choices[0].message.content
-        analysis = json.loads(analysis_text)
-        
-        # Add image metadata to the analysis
-        image_metadata = {
-            'width': None,  # Not available from HEAD request
-            'height': None, # Not available from HEAD request
-            'format': content_type.split('/')[-1] if '/' in content_type else content_type,
-            'size_bytes': int(content_length) if content_length else None
-        }
-        analysis['image_metadata'] = image_metadata
-        
-        return analysis
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=messages,
+                response_format={"type": "json_object"},
+                max_tokens=1000
+            )
+            
+            # Parse response to JSON
+            analysis_text = response.choices[0].message.content
+            analysis = json.loads(analysis_text)
+            
+            # Add image metadata to the analysis
+            image_metadata = {
+                'width': None,  # Not available from HEAD request
+                'height': None, # Not available from HEAD request
+                'format': content_type.split('/')[-1] if '/' in content_type else content_type,
+                'size_bytes': int(content_length) if content_length else None
+            }
+            analysis['image_metadata'] = image_metadata
+            
+            return analysis
+            
+        except Exception as api_error:
+            logger.error(f"OpenAI API error: {str(api_error)}")
+            raise Exception(f"OpenAI API error: {str(api_error)}")
     
+    except ValueError as e:
+        # Re-raise validation errors with clear message
+        logger.error(f"Image validation error: {str(e)}")
+        raise ValueError(str(e))
     except Exception as e:
         logger.error(f"Error analyzing artwork: {str(e)}")
         raise Exception(f"Failed to analyze image: {str(e)}")
