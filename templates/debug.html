@@ -48,7 +48,7 @@
                             </h3>
                             <div class="alert alert-light border">
                                 <i class="fas fa-info-circle me-2"></i>
-                                Review and edit the analysis below before saving to the database.
+                                Review and edit the image analysis below before saving to the database.
                             </div>
                             <div class="row">
                                 <div class="col-12 col-lg-6">
@@ -58,15 +58,10 @@
                                             <i class="fas fa-edit me-1"></i>Enable Edit Mode
                                         </label>
                                     </div>
-                                    <div class="border rounded p-4 mt-2 result-content" id="generatedContent"></div>
-                                    <div class="text-center mt-3">
-                                        <button class="btn btn-outline-secondary btn-sm me-2" id="copyBtn">
-                                            <i class="fas fa-copy me-2"></i>Copy to Clipboard
-                                        </button>
-                                        <button class="btn btn-outline-primary btn-sm" id="saveToDbBtn">
-                                            <i class="fas fa-save me-2"></i>Save to Database
-                                        </button>
+                                    <div class="border rounded p-4 mt-2" id="generatedContent">
+                                        <!-- Image preview and analysis will appear here -->
                                     </div>
+                                    
                                 </div>
                                 <div class="col-12 col-lg-6" id="editContainer" style="display: none;">
                                     <h4><i class="fas fa-edit me-2"></i>Edit Analysis</h4>
@@ -133,7 +128,11 @@
                                             <textarea class="form-control" id="dramaticMoments" rows="3"></textarea>
                                         </div>
                                     </div>
-                                    
+                                    <div class="text-center mt-3">
+                                        <button class="btn btn-outline-primary btn-sm" id="saveToDbBtn">
+                                            <i class="fas fa-save me-2"></i>Save to Database
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -312,7 +311,7 @@
                                         <i class="fas fa-stethoscope me-1"></i>Run Health Check
                                     </button>
                                 </div>
-                                
+
                                 <div class="card mb-3">
                                     <div class="card-header bg-dark">
                                         <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Database Statistics</h5>
@@ -354,7 +353,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div class="card">
                                     <div class="card-header bg-dark">
                                         <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Potential Issues</h5>
@@ -482,7 +481,7 @@
                         </div>
                     </div>
                 </div>
-                
+
 
                 <!-- Modal for reanalysis confirmation -->
                 <div class="modal fade" id="reanalyzeConfirmModal" tabindex="-1" aria-labelledby="reanalyzeConfirmModalLabel" aria-hidden="true">
@@ -518,7 +517,7 @@
                         </div>
                     </div>
                 </div>
-                
+
 
                 <!-- Toast notification -->
                 <div class="toast-container position-fixed bottom-0 end-0 p-3">
@@ -531,26 +530,26 @@
                         <div class="toast-body" id="toastMessage"></div>
                     </div>
                 </div>
-                
+
 
                 <!-- Store current analysis data if any -->
                 <input type="hidden" id="currentAnalysis" value="{{ current_analysis|tojson if current_analysis else '' }}">
-                
+
 
                 <!-- Bootstrap first -->
                 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-                
+
 
                 <!-- Utility modules -->
                 <script type="module" src="{{ url_for('static', filename='js/utils/dom.js') }}"></script>
                 <script type="module" src="{{ url_for('static', filename='js/utils/api.js') }}"></script>
-                
+
 
                 <!-- Debug modules -->
                 <script type="module" src="{{ url_for('static', filename='js/debug/image-analyzer.js') }}"></script>
                 <script type="module" src="{{ url_for('static', filename='js/debug/form-manager.js') }}"></script>
                 <script type="module" src="{{ url_for('static', filename='js/debug/database-manager.js') }}"></script>
-                
+
 
                 <!-- Main debug script -->
                 <script type="module" src="{{ url_for('static', filename='js/debug.js') }}"></script>

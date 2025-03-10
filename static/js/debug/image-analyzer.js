@@ -36,10 +36,12 @@ export const imageAnalyzer = {
             if (!response.success) {
                 throw new Error('Failed to analyze image');
             }
-
+            
+            // Return with analysis data and image URL
             return {
                 analysis: response.analysis,
                 imageUrl: response.image_url,
+                description: response.description,
                 savedToDb: response.saved_to_db || false
             };
         } catch (error) {
