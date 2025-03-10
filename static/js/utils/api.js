@@ -30,6 +30,7 @@ export const api = {
      * @returns {Promise} - The response promise
      */
     post: async (url, data = {}) => {
+        console.log('Making POST request to:', url, 'with data:', data);
         try {
             const response = await fetch(url, {
                 method: 'POST',
@@ -39,7 +40,9 @@ export const api = {
                 },
                 body: JSON.stringify(data)
             });
-            return await response.json();
+            const jsonResponse = await response.json();
+            console.log('Received response:', jsonResponse);
+            return jsonResponse;
         } catch (error) {
             console.error('API Error:', error);
             throw error;
@@ -53,6 +56,7 @@ export const api = {
      * @returns {Promise} - The response promise
      */
     postForm: async (url, formData) => {
+        console.log('Making POST form request to:', url);
         try {
             const response = await fetch(url, {
                 method: 'POST',
@@ -61,7 +65,9 @@ export const api = {
                 },
                 body: formData
             });
-            return await response.json();
+            const jsonResponse = await response.json();
+            console.log('Received form response:', jsonResponse);
+            return jsonResponse;
         } catch (error) {
             console.error('API Error:', error);
             throw error;
