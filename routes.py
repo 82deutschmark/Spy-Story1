@@ -217,7 +217,7 @@ def generate_story_route():
         protagonist_gender = request.form.get('protagonist_gender')
         protagonist_name = request.form.get('protagonist_name')
         custom_choice = data.get('custom_choice', '')
-        
+
         # Get previous story context
         previous_story_id = data.get('story_id')
         story_context = data.get('story_context', '')
@@ -346,7 +346,7 @@ def generate_story_route():
 
         # Update user progress with this new story
         user_progress.current_story_id = story.id
-        
+
         # Create a default plot arc for this story
         plot_arc = PlotArc(
             title=f"{'Custom adventure' if custom_choice else result['conflict']}",
@@ -357,12 +357,12 @@ def generate_story_route():
             primary_characters=selected_ids
         )
         db.session.add(plot_arc)
-        
+
         # Add this plot arc to user's active arcs
         if not user_progress.active_plot_arcs:
             user_progress.active_plot_arcs = []
         user_progress.active_plot_arcs.append(plot_arc.id)
-        
+
         # Process character evolutions for all characters
         for img in selected_images:
             # Register this character encounter with the user
@@ -371,7 +371,7 @@ def generate_story_route():
                 character_name=img.character_name or "Unknown Character",
                 initial_relationship=5 if img.id == main_character_img.id else 0
             )
-            
+
             # Create character evolution entry
             char_evolution = CharacterEvolution(
                 user_id=user_progress.user_id,
@@ -381,7 +381,7 @@ def generate_story_route():
                 evolved_traits=img.character_traits or []
             )
             db.session.add(char_evolution)
-        
+
         # If this is a continuation of previous story
         if previous_story_id and story_context:
             # Check if there are any plot arcs from previous story to carry over
@@ -389,7 +389,7 @@ def generate_story_route():
                 story_id=previous_story_id,
                 status='active'
             ).all()
-            
+
             # Carry over active plot arcs
             for arc in prev_arcs:
                 arc.story_id = story.id  # Connect to new story
@@ -401,7 +401,7 @@ def generate_story_route():
                     if not user_progress.active_plot_arcs:
                         user_progress.active_plot_arcs = []
                     user_progress.active_plot_arcs.append(arc.id)
-        
+
         # Award experience for generating a story
         if not previous_story_id:
             # New story creation
@@ -409,7 +409,7 @@ def generate_story_route():
         else:
             # Story continuation
             user_progress.add_experience_points(20, "Continued an existing story")
-        
+
         db.session.commit()
 
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -471,7 +471,7 @@ def make_choice():
                     node_id=node_id,
                     story_id=story_id
                 )
-                
+
                 # Award experience for making a custom choice
                 user_progress.add_experience_points(25, "Made custom story choice")
 
@@ -485,7 +485,7 @@ def make_choice():
         else:
             # For standard choices
             choice_text = data.get('choice_text', 'Standard choice')
-            
+
             # Process currency requirements if any
             currency_requirements = data.get('currency_requirements')
             if currency_requirements and not user_progress.can_afford(currency_requirements):
@@ -494,7 +494,7 @@ def make_choice():
                     'requirements': currency_requirements,
                     'current_balances': user_progress.currency_balances
                 }), 400
-                
+
             if currency_requirements:
                 success = user_progress.spend_currency(
                     currency_requirements,
@@ -504,7 +504,7 @@ def make_choice():
                 )
                 if not success:
                     return jsonify({'error': 'Failed to process currency transaction'}), 500
-            
+
             # Record the choice in user progress
             if story_id and node_id:
                 user_progress.record_choice(
@@ -513,10 +513,10 @@ def make_choice():
                     node_id=node_id,
                     story_id=story_id
                 )
-                
+
                 # Award experience for making a choice
                 user_progress.add_experience_points(10, "Made story choice")
-            
+
             # Track character evolution for each character in the story
             if story_id and characters:
                 for char_id in characters:
@@ -524,20 +524,20 @@ def make_choice():
                     character = ImageAnalysis.query.get(char_id)
                     if not character:
                         continue
-                        
+
                     # Update user's character relationship
                     user_progress.encounter_character(
                         character_id=char_id, 
                         character_name=character.character_name or "Unknown Character"
                     )
-                    
+
                     # Check if this character already has an evolution record
                     char_evolution = CharacterEvolution.query.filter_by(
                         user_id=user_progress.user_id,
                         character_id=char_id,
                         story_id=story_id
                     ).first()
-                    
+
                     # Create new evolution record if needed
                     if not char_evolution:
                         char_evolution = CharacterEvolution(
@@ -671,10 +671,10 @@ def save_analysis_original():
                 character_role = character_data.get('role')
             else:
                 character_role = analysis.get('role')
-                
+
             # Standardize character role to one of the valid options
             valid_roles = ['undetermined', 'villain', 'neutral', 'mission-giver']
-            
+
             if character_role is None or character_role == '':
                 character_role = 'undetermined'
             elif character_role.lower() == 'antagonist' or character_role.lower() == 'villain':
@@ -687,7 +687,7 @@ def save_analysis_original():
                 character_role = 'undetermined'
             else:
                 character_role = character_role.lower()
-                
+
             logger.debug(f"Standardized character role: {character_role}")
 
         plot_lines = None
@@ -753,10 +753,10 @@ def save_analysis():
             return jsonify({'error': 'Missing image_id or analysis'}), 400
 
         image = ImageAnalysis.query.get_or_404(image_id)
-        
+
         # Update analysis_result field
         image.analysis_result = analysis
-        
+
         # If this is a character image, update character fields from analysis
         if image.image_type == 'character':
             # Update character name if present
@@ -764,7 +764,7 @@ def save_analysis():
                 image.character_name = analysis.get('name')
             elif 'character_name' in analysis:
                 image.character_name = analysis.get('character_name')
-                
+
             # Update character role with validation
             if 'role' in analysis:
                 role = analysis.get('role')
@@ -782,18 +782,18 @@ def save_analysis():
                     image.character_role = 'undetermined'
                 else:
                     image.character_role = role.lower()
-            
+
             # Update traits and plot lines
             if 'personality_traits' in analysis:
                 image.character_traits = analysis.get('personality_traits')
             elif 'character_traits' in analysis:
                 image.character_traits = analysis.get('character_traits')
-                
+
             if 'potential_plot_lines' in analysis:
                 image.plot_lines = analysis.get('potential_plot_lines')
             elif 'plot_lines' in analysis:
                 image.plot_lines = analysis.get('plot_lines')
-                
+
         db.session.commit()
         logger.info(f"Successfully saved analysis for image ID {image_id}")
 
@@ -960,29 +960,29 @@ def get_active_missions():
     try:
         # Get user progress
         user_progress = get_or_create_user_progress()
-        
+
         # Get active missions
         if not user_progress.active_missions:
             return jsonify({
                 'success': True,
                 'missions': []
             })
-            
+
         missions = Mission.query.filter(Mission.id.in_(user_progress.active_missions)).all()
-        
+
         # Format mission data
         mission_data = []
         for mission in missions:
             # Get giver and target names
             giver_name = "Unknown"
             target_name = "Unknown"
-            
+
             if mission.giver:
                 giver_name = mission.giver.character_name
-                
+
             if mission.target:
                 target_name = mission.target.character_name
-            
+
             mission_data.append({
                 'id': mission.id,
                 'title': mission.title,
@@ -998,7 +998,7 @@ def get_active_missions():
                 'status': mission.status,
                 'created_at': mission.created_at.strftime('%Y-%m-%d %H:%M')
             })
-        
+
         return jsonify({
             'success': True,
             'missions': mission_data
@@ -1014,31 +1014,31 @@ def get_mission_details(mission_id):
         mission = get_mission_by_id(mission_id)
         if not mission:
             return jsonify({'error': 'Mission not found'}), 404
-            
+
         # Get user progress to verify the mission belongs to the user
         user_progress = get_or_create_user_progress()
-        
+
         if mission.user_id != user_progress.user_id:
             return jsonify({'error': 'Unauthorized access to mission'}), 403
-            
+
         # Get giver and target details
         giver_data = None
         target_data = None
-        
+
         if mission.giver:
             giver_data = {
                 'id': mission.giver.id,
                 'name': mission.giver.character_name,
                 'image_url': mission.giver.image_url
             }
-            
+
         if mission.target:
             target_data = {
                 'id': mission.target.id,
                 'name': mission.target.character_name,
                 'image_url': mission.target.image_url
             }
-            
+
         # Format mission data
         mission_data = {
             'id': mission.id,
@@ -1057,7 +1057,7 @@ def get_mission_details(mission_id):
             'completed_at': mission.completed_at.strftime('%Y-%m-%d %H:%M') if mission.completed_at else None,
             'progress_updates': mission.progress_updates
         }
-        
+
         return jsonify({
             'success': True,
             'mission': mission_data
@@ -1072,26 +1072,26 @@ def generate_new_mission():
     try:
         # Get user progress
         user_progress = get_or_create_user_progress()
-        
+
         # Get story ID if provided
         story_id = request.json.get('story_id')
-        
+
         # Generate the mission
         mission = generate_mission(user_progress.user_id, story_id)
-        
+
         if not mission:
             return jsonify({'error': 'Failed to generate mission'}), 500
-            
+
         # Get giver and target names
         giver_name = "Unknown"
         target_name = "Unknown"
-        
+
         if mission.giver:
             giver_name = mission.giver.character_name
-            
+
         if mission.target:
             target_name = mission.target.character_name
-        
+
         # Format mission data
         mission_data = {
             'id': mission.id,
@@ -1108,7 +1108,7 @@ def generate_new_mission():
             'status': mission.status,
             'created_at': mission.created_at.strftime('%Y-%m-%d %H:%M')
         }
-        
+
         return jsonify({
             'success': True,
             'mission': mission_data
@@ -1123,30 +1123,30 @@ def update_mission(mission_id):
     try:
         # Get user progress
         user_progress = get_or_create_user_progress()
-        
+
         # Get mission
         mission = get_mission_by_id(mission_id)
         if not mission:
             return jsonify({'error': 'Mission not found'}), 404
-            
+
         # Verify the mission belongs to the user
         if mission.user_id != user_progress.user_id:
             return jsonify({'error': 'Unauthorized access to mission'}), 403
-            
+
         # Get progress and description
         data = request.json
         progress = data.get('progress')
         description = data.get('description')
-        
+
         if progress is None:
             return jsonify({'error': 'Progress is required'}), 400
-            
+
         # Update the mission
         success = update_mission_progress(mission_id, progress, description)
-        
+
         if not success:
             return jsonify({'error': 'Failed to update mission progress'}), 500
-            
+
         return jsonify({
             'success': True,
             'message': 'Mission progress updated successfully',
@@ -1162,13 +1162,13 @@ def complete_mission_route(mission_id):
     try:
         # Get user progress
         user_progress = get_or_create_user_progress()
-        
+
         # Complete the mission
         success = complete_mission(mission_id, user_progress.user_id)
-        
+
         if not success:
             return jsonify({'error': 'Failed to complete mission'}), 500
-            
+
         return jsonify({
             'success': True,
             'message': 'Mission completed successfully',
@@ -1184,22 +1184,143 @@ def fail_mission_route(mission_id):
     try:
         # Get user progress
         user_progress = get_or_create_user_progress()
-        
+
         # Get reason if provided
         reason = request.json.get('reason')
-        
+
         # Fail the mission
         success = fail_mission(mission_id, user_progress.user_id, reason)
-        
+
         if not success:
             return jsonify({'error': 'Failed to mark mission as failed'}), 500
-            
+
         return jsonify({
             'success': True,
             'message': 'Mission marked as failed'
         })
     except Exception as e:
         logger.error(f"Error failing mission: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/currency/trade', methods=['POST'])
+def trade_currency():
+    """Trade between different currency types"""
+    try:
+        data = request.json
+        from_currency = data.get('from_currency')
+        to_currency = data.get('to_currency')
+        amount = data.get('amount')
+
+        if not all([from_currency, to_currency, amount]):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        # Convert amount to int if it's a string
+        try:
+            amount = int(amount)
+        except ValueError:
+            return jsonify({'error': 'Amount must be a number'}), 400
+
+        # Get user from session
+        if 'user_id' not in session:
+            return jsonify({'error': 'Session expired'}), 401
+
+        logger.debug(f"Trade request: {from_currency} -> {to_currency}, amount: {amount}")
+
+        # Get exchange rates based on the new rules
+        rates = {
+            "💎": {  # Diamonds can only be converted to EUR and YEN
+                "💶": 1000,    # 1 diamond = 1000 EUR
+                "💴": 150000,  # 1 diamond = 150000 YEN
+            },
+            "💶": {  # EUR to other currencies (except diamonds)
+                "💴": 150,     # 1 EUR = 150 YEN
+                "💵": 1.1,     # 1 EUR = 1.1 USD
+                "💷": 0.85,    # 1 EUR = 0.85 GBP
+            },
+            "💴": {  # YEN to other currencies (except diamonds)
+                "💶": 0.0067,  # 1 YEN = 0.0067 EUR
+                "💵": 0.0073,  # 1 YEN = 0.0073 USD
+                "💷": 0.0057,  # 1 YEN = 0.0057 GBP
+            },
+            "💵": {  # USD to other currencies (except diamonds)
+                "💶": 0.91,    # 1 USD = 0.91 EUR
+                "💴": 136.5,   # 1 USD = 136.5 YEN
+                "💷": 0.77,    # 1 USD = 0.77 GBP
+            },
+            "💷": {  # GBP to other currencies (except diamonds)
+                "💶": 1.18,    # 1 GBP = 1.18 EUR
+                "💴": 177,     # 1 GBP = 177 YEN
+                "💵": 1.3,     # 1 GBP = 1.3 USD
+            }
+        }
+
+        # Check if the conversion is allowed
+        if from_currency == "💎" and to_currency not in ["💶", "💴"]:
+            return jsonify({
+                'error': 'Diamonds can only be converted to Euros (💶) or Yen (💴)'
+            }), 400
+
+        if to_currency == "💎":
+            return jsonify({
+                'error': 'Cannot convert other currencies to diamonds'
+            }), 400
+
+        if from_currency not in rates or to_currency not in rates[from_currency]:
+            return jsonify({
+                'error': 'Invalid currency conversion'
+            }), 400
+
+        # Get user progress using the helper function
+        user_progress = get_or_create_user_progress()
+        if not user_progress:
+            return jsonify({'error': 'User progress not found'}), 404
+
+        # Check if user has enough currency
+        current_balance = user_progress.currency_balances.get(from_currency, 0)
+        if current_balance < amount:
+            return jsonify({
+                'error': 'Insufficient funds',
+                'current_balance': current_balance,
+                'required_amount': amount
+            }), 400
+
+        # Calculate conversion
+        conversion_rate = rates[from_currency][to_currency]
+        converted_amount = int(amount * conversion_rate)  # Use integer for currency amounts
+
+        logger.debug(f"Conversion rate: {conversion_rate}, Converted amount: {converted_amount}")
+
+        # Record transaction
+        transaction = Transaction(
+            user_id=user_progress.user_id,
+            transaction_type='trade',
+            from_currency=from_currency,
+            to_currency=to_currency,
+            amount=amount,
+            description=f"Traded {amount} {from_currency} for {converted_amount} {to_currency}"
+        )
+        db.session.add(transaction)
+
+        # Perform the exchange
+        user_progress.currency_balances[from_currency] = current_balance - amount
+        user_progress.currency_balances[to_currency] = user_progress.currency_balances.get(to_currency, 0) + converted_amount
+
+        try:
+            db.session.commit()
+            logger.info(f"Currency trade successful for user {user_progress.user_id}: {amount} {from_currency} -> {converted_amount} {to_currency}")
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Database error during currency trade: {str(e)}")
+            return jsonify({'error': 'Failed to process trade'}), 500
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully traded {amount} {from_currency} for {converted_amount} {to_currency}',
+            'new_balances': user_progress.currency_balances
+        })
+
+    except Exception as e:
+        logger.error(f"Error trading currency: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 # Add more routes as needed

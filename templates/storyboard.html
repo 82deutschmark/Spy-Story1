@@ -369,7 +369,7 @@
                         </div>
                     </div>
                     
-                    <div class="card">
+                    <div class="card mb-3">
                         <div class="card-header bg-warning text-dark">
                             <h5 class="mb-0">Active Plot Arcs</h5>
                         </div>
@@ -383,6 +383,113 @@
                             {% else %}
                                 <p class="text-muted">No active plot arcs.</p>
                             {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="mb-0">Active Missions</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if user_progress.active_missions %}
+                                <div class="list-group">
+                                    {% for mission_id in user_progress.active_missions %}
+                                        <div class="list-group-item">
+                                            <h6 class="mb-1">Mission #{{ mission_id }}</h6>
+                                            <div class="progress mb-2" style="height: 10px;">
+                                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ mission_id % 100 }}%" 
+                                                    aria-valuenow="{{ mission_id % 100 }}" aria-valuemin="0" aria-valuemax="100">
+                                                </div>
+                                            </div>
+                                            <button class="btn btn-sm btn-outline-primary mission-details-btn" data-mission-id="{{ mission_id }}">
+                                                View Details
+                                            </button>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-muted">No active missions.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Mission Details Modal -->
+    <div class="modal fade" id="missionDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="missionTitle">Mission Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mission-loading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading mission details...</p>
+                    </div>
+                    
+                    <div class="mission-content" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h4 id="missionDetailTitle">Mission Title</h4>
+                                <p class="lead" id="missionObjective">Mission objective</p>
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <p id="missionDescription">Mission description goes here...</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-info text-white">
+                                        <h6 class="mb-0">Mission Stats</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>Difficulty:</strong> <span id="missionDifficulty">Medium</span></p>
+                                        <p><strong>Status:</strong> <span id="missionStatus">Active</span></p>
+                                        <p><strong>Deadline:</strong> <span id="missionDeadline">Soon</span></p>
+                                        <p><strong>Reward:</strong> <span id="missionReward">💵 1,000</span></p>
+                                        <div class="progress mb-2">
+                                            <div id="missionProgressBar" class="progress-bar bg-success" role="progressbar" style="width: 25%" 
+                                                aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">
+                                                25%
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6 class="mb-0">Characters</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>Mission Giver:</strong> <span id="missionGiver">Unknown</span></p>
+                                        <p><strong>Target:</strong> <span id="missionTarget">Unknown</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4" id="missionActions">
+                            <button id="completeBtn" class="btn btn-success me-2">
+                                <i class="fas fa-check-circle me-2"></i>Complete Mission
+                            </button>
+                            <button id="failBtn" class="btn btn-danger">
+                                <i class="fas fa-times-circle me-2"></i>Fail Mission
+                            </button>
+                        </div>
+                        
+                        <div id="progressUpdates" class="mt-4">
+                            <h5>Progress Updates</h5>
+                            <div class="list-group" id="progressUpdatesList">
+                                <!-- Progress updates will be inserted here -->
+                            </div>
                         </div>
                     </div>
                 </div>
