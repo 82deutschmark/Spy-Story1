@@ -855,7 +855,107 @@ if (customChoiceForm) {
     });
 }
 
-// Setup currency trade modal handlers
+// Setup currency trade modal
+// Initialize the currency manager
+document.addEventListener('DOMContentLoaded', function() {
+    if (!window.currencyManager) {
+        window.currencyManager = new CurrencyManager();
+        
+        // Get initial currency balances
+        fetch('/api/user/inventory')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.currencyManager.initialize(data.currency_balances);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching currency balances:', error);
+            });
+    }
+});
+
+// Function to update all currency displays
+function updateCurrencyDisplays(balances) {
+    // Update UI elements that display currency
+    const currencyDisplay = document.getElementById('currencyDisplay');
+    if (currencyDisplay) {
+        let html = '';
+        for (const [currency, amount] of Object.entries(balances)) {
+            html += `<div class="currency-item">${currency} ${amount}</div>`;
+        }
+        currencyDisplay.innerHTML = html;
+    }
+    
+    // Also update the currency manager if available
+    if (window.currencyManager) {
+        window.currencyManager.updateBalances(balances);
+    }
+}
+
+function showToast(title, message) {
+    const toast = document.getElementById('notificationToast');
+    if (toast) {
+        const toastTitle = document.getElementById('toastTitle');
+        const toastBody = document.getElementById('toastBody');
+        
+        if (toastTitle) toastTitle.textContent = title;
+        if (toastBody) toastBody.textContent = message;
+        
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+    } else {
+        console.log(`${title}: ${message}`);
+    }
+}
+
+function createLoadingOverlay(message) {
+    const overlay = document.createElement('div');
+    overlay.className = 'loading-overlay';
+    
+    const spinner = document.createElement('div');
+    spinner.className = 'spinner-border text-light';
+    spinner.setAttribute('role', 'status');
+    
+    const loadingText = document.createElement('div');
+    loadingText.className = 'loading-text';
+    loadingText.textContent = message || 'Loading...';
+    
+    const progressContainer = document.createElement('div');
+    progressContainer.className = 'progress mt-2';
+    progressContainer.style.width = '200px';
+    
+    const progressBar = document.createElement('div');
+    progressBar.className = 'progress-bar';
+    progressBar.style.width = '0%';
+    progressBar.setAttribute('aria-valuenow', '0');
+    progressBar.setAttribute('aria-valuemin', '0');
+    progressBar.setAttribute('aria-valuemax', '100');
+    
+    progressContainer.appendChild(progressBar);
+    overlay.appendChild(spinner);
+    overlay.appendChild(loadingText);
+    overlay.appendChild(progressContainer);
+    document.body.appendChild(overlay);
+    
+    return progressBar;
+}
+
+function updateLoadingPercent(progressBar, percent) {
+    if (progressBar) {
+        progressBar.style.width = `${percent}%`;
+        progressBar.setAttribute('aria-valuenow', percent);
+    }
+}
+
+function removeLoadingOverlay(progressBar) {
+    if (progressBar) {
+        const overlay = progressBar.closest('.loading-overlay');
+        if (overlay) {
+            document.body.removeChild(overlay);
+        }
+    }
+} handlers
 function setupCurrencyTradeHandlers() {
     // Trade form submission is now handled by the currency manager
     // This function is kept for backward compatibility

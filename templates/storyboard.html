@@ -252,6 +252,36 @@
                 <strong class="me-auto" id="toastTitle">Notification</strong>
                 <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
+            <div class="toast-body" id="toastBody">
+                Notification message
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize currency manager when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize currency manager if it exists
+            if (typeof CurrencyManager !== 'undefined') {
+                if (!window.currencyManager) {
+                    window.currencyManager = new CurrencyManager();
+                    
+                    // Get current balances from server
+                    fetch('/api/user/inventory')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                window.currencyManager.initialize(data.currency_balances);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error loading currency data:', error);
+                        });
+                }
+            }
+        });
+    </script>tton type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
             <div class="toast-body" id="toastMessage"></div>
         </div>
     </div>

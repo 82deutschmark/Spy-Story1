@@ -1,4 +1,3 @@
-
 /**
  * Currency Manager for handling in-game currency and transactions
  */
@@ -7,11 +6,11 @@ class CurrencyManager {
         this.balances = {};
         this.transactionHistory = [];
         this.initialized = false;
-        
+
         // Initialize event listeners
         this.initEventListeners();
     }
-    
+
     /**
      * Initialize currency manager with current balances
      * @param {Object} balances - Current currency balances
@@ -22,7 +21,7 @@ class CurrencyManager {
         this.updateUI();
         console.log('Currency manager initialized with balances:', this.balances);
     }
-    
+
     /**
      * Initialize event listeners for currency-related interactions
      */
@@ -36,18 +35,19 @@ class CurrencyManager {
                     this.processTrade();
                 });
             }
-            
+
             // Listen for trade offer buttons
             document.querySelectorAll('.accept-trade-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const fromCurrency = e.target.dataset.from;
                     const toCurrency = e.target.dataset.to;
                     const rate = parseFloat(e.target.dataset.rate);
-                    
-                    this.showTradeModal(fromCurrency, toCurrency, rate);
+                    const amount = parseFloat(e.target.dataset.amount); // Added amount
+
+                    this.acceptTradeOffer(fromCurrency, toCurrency, rate, amount); //Call new function
                 });
             });
-            
+
             // Initialize trade modal if it exists
             const tradeModal = document.getElementById('tradeModal');
             if (tradeModal) {
@@ -60,13 +60,13 @@ class CurrencyManager {
             }
         });
     }
-    
+
     /**
      * Update UI elements with current balances
      */
     updateUI() {
         if (!this.initialized) return;
-        
+
         // Update currency display in header
         const currencyDisplay = document.getElementById('currencyDisplay');
         if (currencyDisplay) {
@@ -76,14 +76,14 @@ class CurrencyManager {
             }
             currencyDisplay.innerHTML = html;
         }
-        
+
         // Update any choice buttons that might be disabled due to insufficient funds
         document.querySelectorAll('.choice-form button').forEach(button => {
             if (button.dataset.currencyReq) {
                 const requirements = JSON.parse(button.dataset.currencyReq);
                 const canAfford = this.canAfford(requirements);
                 button.disabled = !canAfford;
-                
+
                 // Update styling
                 if (canAfford) {
                     button.classList.remove('insufficient-funds');
@@ -92,13 +92,13 @@ class CurrencyManager {
                 }
             }
         });
-        
+
         // Update currency requirement displays
         document.querySelectorAll('.currency-req-item').forEach(item => {
             const currencyText = item.textContent.trim();
             const currency = currencyText.charAt(0);
             const amount = parseInt(currencyText.substring(1));
-            
+
             if (this.balances[currency] < amount) {
                 item.classList.add('currency-req-insufficient');
             } else {
@@ -106,7 +106,7 @@ class CurrencyManager {
             }
         });
     }
-    
+
     /**
      * Check if user can afford the given requirements
      * @param {Object} requirements - Currency requirements
@@ -114,7 +114,7 @@ class CurrencyManager {
      */
     canAfford(requirements) {
         if (!requirements) return true;
-        
+
         for (const [currency, amount] of Object.entries(requirements)) {
             if ((this.balances[currency] || 0) < amount) {
                 return false;
@@ -122,7 +122,7 @@ class CurrencyManager {
         }
         return true;
     }
-    
+
     /**
      * Process a currency trade
      */
@@ -130,15 +130,15 @@ class CurrencyManager {
         const fromCurrency = document.getElementById('fromCurrency').value;
         const toCurrency = document.getElementById('toCurrency').value;
         const amount = parseInt(document.getElementById('tradeAmount').value);
-        
+
         if (!fromCurrency || !toCurrency || isNaN(amount) || amount <= 0) {
             showToast('Error', 'Please enter valid trade details');
             return;
         }
-        
+
         // Show loading overlay
         const loadingPercent = addLoadingOverlay('Processing trade...');
-        
+
         // Send trade request to server
         fetch('/api/currency/trade', {
             method: 'POST',
@@ -158,16 +158,16 @@ class CurrencyManager {
                 // Update balances
                 this.balances = data.new_balances;
                 this.updateUI();
-                
+
                 // Show success message
                 showToast('Success', data.message);
-                
+
                 // Close modal
                 const modal = bootstrap.Modal.getInstance(document.getElementById('tradeModal'));
                 if (modal) {
                     modal.hide();
                 }
-                
+
                 // Reset form
                 document.getElementById('tradeAmount').value = '';
             } else {
@@ -181,7 +181,7 @@ class CurrencyManager {
             removeLoadingOverlay(loadingPercent);
         });
     }
-    
+
     /**
      * Show the trade modal with specific currencies pre-selected
      * @param {string} fromCurrency - Currency to trade from
@@ -191,49 +191,49 @@ class CurrencyManager {
     showTradeModal(fromCurrency, toCurrency, rate) {
         const modal = document.getElementById('tradeModal');
         if (!modal) return;
-        
+
         // Set modal values
         const fromSelect = document.getElementById('fromCurrency');
         const toSelect = document.getElementById('toCurrency');
-        
+
         if (fromSelect && fromCurrency) {
             fromSelect.value = fromCurrency;
         }
-        
+
         if (toSelect && toCurrency) {
             toSelect.value = toCurrency;
         }
-        
+
         // Show exchange rate info
         const rateInfo = document.getElementById('exchangeRateInfo');
         if (rateInfo && rate) {
             rateInfo.textContent = `Exchange Rate: 1 ${fromCurrency} = ${rate} ${toCurrency}`;
             rateInfo.style.display = 'block';
         }
-        
+
         // Show modal
         const bsModal = new bootstrap.Modal(modal);
         bsModal.show();
-        
+
         // Update available options
         this.updateTradeOptions();
     }
-    
+
     /**
      * Update trade options based on selected 'from' currency
      */
     updateTradeOptions() {
         const fromCurrency = document.getElementById('fromCurrency').value;
         const toSelect = document.getElementById('toCurrency');
-        
+
         if (!fromCurrency || !toSelect) return;
-        
+
         // Clear existing options
         toSelect.innerHTML = '';
-        
+
         // Get allowed conversion targets
         const allowedTargets = this.getAllowedConversionTargets(fromCurrency);
-        
+
         // Add new options
         allowedTargets.forEach(currency => {
             const option = document.createElement('option');
@@ -241,14 +241,14 @@ class CurrencyManager {
             option.textContent = currency;
             toSelect.appendChild(option);
         });
-        
+
         // Update current balance display
         const balanceDisplay = document.getElementById('currentFromBalance');
         if (balanceDisplay) {
             balanceDisplay.textContent = `Current Balance: ${this.balances[fromCurrency] || 0} ${fromCurrency}`;
         }
     }
-    
+
     /**
      * Get allowed conversion targets for a currency
      * @param {string} fromCurrency - Source currency
@@ -263,10 +263,10 @@ class CurrencyManager {
             "💵": ["💶", "💴", "💷"],
             "💷": ["💶", "💴", "💵"]
         };
-        
+
         return conversionRules[fromCurrency] || [];
     }
-    
+
     /**
      * Update balances after a transaction
      * @param {Object} newBalances - Updated balances from server
@@ -275,7 +275,7 @@ class CurrencyManager {
         this.balances = newBalances;
         this.updateUI();
     }
-    
+
     /**
      * Process a choice selection
      * @param {string} choiceId - ID of the selected choice
@@ -288,10 +288,10 @@ class CurrencyManager {
             showToast('Error', 'Insufficient funds for this choice');
             return;
         }
-        
+
         // Show loading overlay
         const loadingPercent = addLoadingOverlay('Processing choice...');
-        
+
         // Send choice request to server
         fetch('/make_choice', {
             method: 'POST',
@@ -309,7 +309,7 @@ class CurrencyManager {
                 // Update balances
                 this.balances = data.new_balances;
                 this.updateUI();
-                
+
                 // Call callback if provided
                 if (callback && typeof callback === 'function') {
                     callback(data);
@@ -325,7 +325,7 @@ class CurrencyManager {
             removeLoadingOverlay(loadingPercent);
         });
     }
-    
+
     /**
      * Process a custom choice
      * @param {string} customText - Custom choice text
@@ -337,10 +337,10 @@ class CurrencyManager {
             showToast('Error', 'Custom choices require 100 💎');
             return;
         }
-        
+
         // Show loading overlay
         const loadingPercent = addLoadingOverlay('Processing custom choice...');
-        
+
         // Send custom choice request to server
         fetch('/make_choice', {
             method: 'POST',
@@ -358,7 +358,7 @@ class CurrencyManager {
                 // Update balances
                 this.balances = data.new_balances;
                 this.updateUI();
-                
+
                 // Call callback if provided
                 if (callback && typeof callback === 'function') {
                     callback(data);
@@ -371,6 +371,47 @@ class CurrencyManager {
         .catch(error => {
             console.error('Error processing custom choice:', error);
             showToast('Error', 'Failed to process custom choice');
+            removeLoadingOverlay(loadingPercent);
+        });
+    }
+
+    /**
+     * Accepts a trade offer and updates balances.  Assumes data-amount attribute on button
+     * @param {string} fromCurrency Currency being traded from
+     * @param {string} toCurrency Currency being traded to
+     * @param {number} rate Exchange rate
+     * @param {number} amount Amount being traded
+     */
+    acceptTradeOffer(fromCurrency, toCurrency, rate, amount) {
+        const loadingPercent = addLoadingOverlay('Accepting trade offer...');
+
+        fetch('/api/currency/trade', { // Assuming this endpoint handles trade offers
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                from_currency: fromCurrency,
+                to_currency: toCurrency,
+                amount: amount,
+                trade_type: 'offer' // Indicate it's an offer
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                this.balances = data.new_balances;
+                this.updateUI();
+                showToast('Success', 'Trade offer accepted!');
+            } else {
+                showToast('Error', data.error || 'Failed to accept trade offer.');
+            }
+            removeLoadingOverlay(loadingPercent);
+        })
+        .catch(error => {
+            console.error('Error accepting trade offer:', error);
+            showToast('Error', 'Failed to accept trade offer.');
             removeLoadingOverlay(loadingPercent);
         });
     }
