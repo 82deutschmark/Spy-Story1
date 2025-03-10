@@ -67,9 +67,14 @@ export const imageAnalyzer = {
         const loadingPercent = dom.createLoadingOverlay('Saving to database...');
 
         try {
+            // Make sure the analysis is a proper object, not a string
+            const analysisData = typeof data.analysis === 'string' 
+                ? JSON.parse(data.analysis) 
+                : data.analysis;
+                
             const response = await api.post('/save_analysis', {
                 image_url: data.imageUrl,
-                analysis: data.analysis
+                analysis: analysisData
             });
 
             if (!response) {
