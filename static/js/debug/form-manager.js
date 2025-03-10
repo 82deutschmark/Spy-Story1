@@ -1,6 +1,7 @@
 /**
  * Form management module for debugging interface
  */
+import { api } from '../utils/api.js';
 import { dom } from '../utils/dom.js';
 
 export const formManager = {
@@ -36,7 +37,7 @@ export const formManager = {
         // Initialize apply changes button
         const applyChangesBtn = document.getElementById('applyChangesBtn');
         if (applyChangesBtn) {
-            applyChangesBtn.addEventListener('click', () => this.applyChanges());
+            applyChangesBtn.addEventListener('click', () => this.saveChanges());
         }
     },
 
@@ -108,84 +109,82 @@ export const formManager = {
     },
 
     /**
-     * Apply form changes to the analysis
-     * @returns {Object} Updated analysis data
+     * Save form changes directly to database
+     * @returns {Promise<boolean>} Success status
      */
-    applyChanges: function() {
+    saveChanges: async function() {
         try {
-            const generatedContent = document.getElementById('generatedContent');
-            if (!generatedContent || !this.currentAnalysis) {
+            if (!this.currentAnalysis) {
                 throw new Error('No analysis data found');
             }
 
-            const analysis = { ...this.currentAnalysis };
             const imageType = document.getElementById('imageType').value;
             const name = document.getElementById('imageName').value;
+            let updatedAnalysis = {};
 
             if (imageType === 'character') {
-                if (!analysis.character) {
-                    analysis.character = {};
-                }
-
-                // Update character fields
-                analysis.character.name = name;
-                analysis.name = name;
-                analysis.character_name = name;
-                analysis.character.code_name = document.getElementById('codeName').value;
-                analysis.character.role = document.getElementById('characterRole').value;
-                analysis.character.style = document.getElementById('characterStyle').value;
-                analysis.character.backstory = document.getElementById('backstory').value;
-
-                // Parse traits and plot lines
-                analysis.character.character_traits = document.getElementById('characterTraits').value
-                    .split(',')
-                    .map(t => t.trim())
-                    .filter(Boolean);
-
-                analysis.character.plot_lines = document.getElementById('plotLines').value
-                    .split('\n')
-                    .map(p => p.trim())
-                    .filter(Boolean);
-
-                // Clean up scene fields
-                delete analysis.scene_type;
-                delete analysis.setting;
-                delete analysis.dramatic_moments;
+                // Build character analysis
+                updatedAnalysis = {
+                    name: name,
+                    image_type: 'character',
+                    character: {
+                        name: name,
+                        code_name: document.getElementById('codeName').value,
+                        role: document.getElementById('characterRole').value,
+                        style: document.getElementById('characterStyle').value,
+                        backstory: document.getElementById('backstory').value,
+                        character_traits: document.getElementById('characterTraits').value
+                            .split(',')
+                            .map(t => t.trim())
+                            .filter(Boolean),
+                        plot_lines: document.getElementById('plotLines').value
+                            .split('\n')
+                            .map(p => p.trim())
+                            .filter(Boolean)
+                    }
+                };
             } else {
-                // Update scene fields
-                analysis.name = name;
-                analysis.scene_type = document.getElementById('sceneType').value;
-                analysis.setting = document.getElementById('sceneSetting').value;
-                analysis.dramatic_moments = document.getElementById('dramaticMoments').value
-                    .split('\n')
-                    .map(m => m.trim())
-                    .filter(Boolean);
-
-                // Clean up character fields
-                delete analysis.character;
-                delete analysis.character_name;
-                delete analysis.character_traits;
-                delete analysis.role;
-                delete analysis.plot_lines;
+                // Build scene analysis
+                updatedAnalysis = {
+                    name: name,
+                    image_type: 'scene',
+                    scene_type: document.getElementById('sceneType').value,
+                    setting: document.getElementById('sceneSetting').value,
+                    dramatic_moments: document.getElementById('dramaticMoments').value
+                        .split('\n')
+                        .map(m => m.trim())
+                        .filter(Boolean)
+                };
             }
 
-            // Update the display and stored data
-            generatedContent.textContent = JSON.stringify(analysis, null, 2);
-            this.currentAnalysis = analysis;
-            dom.showToast('Success', 'Changes applied successfully');
-            return analysis;
+            // Save updated analysis to database
+            const response = await api.post('/api/image/update', {
+                id: this.currentAnalysis.id,
+                analysis: updatedAnalysis
+            });
+
+            if (response.error) {
+                throw new Error(response.error);
+            }
+
+            // Update the display
+            const generatedContent = document.getElementById('generatedContent');
+            if (generatedContent) {
+                generatedContent.textContent = JSON.stringify(updatedAnalysis, null, 2);
+            }
+
+            // Update stored analysis
+            this.currentAnalysis = {
+                ...this.currentAnalysis,
+                ...updatedAnalysis
+            };
+
+            dom.showToast('Success', 'Changes saved successfully');
+            return true;
         } catch (error) {
-            console.error('Error applying changes:', error);
+            console.error('Error saving changes:', error);
             dom.showToast('Error', error.message, true);
-            return null;
+            return false;
         }
-    },
-    /**
-     * Get updated analysis data from form
-     * @param {Object} originalAnalysis - Original analysis data
-     * @returns {Object} Updated analysis data
-     */
-    getUpdatedAnalysis: (originalAnalysis) => {
-        return this.applyChanges();
     }
 };

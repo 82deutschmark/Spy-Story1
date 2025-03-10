@@ -5,12 +5,24 @@ import { api } from '../utils/api.js';
 import { dom } from '../utils/dom.js';
 
 export const databaseManager = {
+    // Pagination state
+    currentPage: 1,
+    currentFilter: '',
+    currentSearch: '',
+
     /**
      * Refresh the images list table
      * @param {HTMLElement} tableBody - Table body element to update
+     * @param {Object} options - Filter and pagination options
      */
-    refreshImagesList: async (tableBody) => {
+    refreshImagesList: async (tableBody, options = {}) => {
         if (!tableBody) return;
+
+        const {
+            page = databaseManager.currentPage,
+            filter = databaseManager.currentFilter,
+            search = databaseManager.currentSearch
+        } = options;
 
         // Show loading state
         tableBody.innerHTML = `
@@ -23,11 +35,27 @@ export const databaseManager = {
             </tr>`;
 
         try {
-            const data = await api.get('/api/images/all?per_page=10');
+            const params = new URLSearchParams({
+                page: page,
+                per_page: 10
+            });
+
+            if (filter) params.append('type', filter);
+            if (search) params.append('search', search);
+
+            const data = await api.get(`/api/images/all?${params.toString()}`);
 
             if (data.error) {
                 throw new Error(data.error);
             }
+
+            // Update pagination
+            databaseManager.updatePagination(
+                document.getElementById('imagesPagination'),
+                data.total_pages,
+                page,
+                (newPage) => databaseManager.refreshImagesList(tableBody, { ...options, page: newPage })
+            );
 
             if (data.images.length === 0) {
                 tableBody.innerHTML = `
@@ -58,6 +86,12 @@ export const databaseManager = {
                         </td>
                     </tr>`;
             });
+
+            // Store current state
+            databaseManager.currentPage = page;
+            databaseManager.currentFilter = filter;
+            databaseManager.currentSearch = search;
+
         } catch (error) {
             dom.showToast('Error', 'Failed to load images: ' + error.message, true);
             tableBody.innerHTML = `
@@ -67,6 +101,52 @@ export const databaseManager = {
                     </td>
                 </tr>`;
         }
+    },
+
+    /**
+     * Update pagination controls
+     * @param {HTMLElement} paginationElement - Pagination container element
+     * @param {number} totalPages - Total number of pages
+     * @param {number} currentPage - Current active page
+     * @param {Function} onPageChange - Callback for page change
+     */
+    updatePagination: (paginationElement, totalPages, currentPage, onPageChange) => {
+        if (!paginationElement) return;
+
+        let html = '';
+
+        // Previous button
+        html += `
+            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${currentPage - 1}">Previous</a>
+            </li>`;
+
+        // Page numbers
+        for (let i = 1; i <= totalPages; i++) {
+            html += `
+                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" data-page="${i}">${i}</a>
+                </li>`;
+        }
+
+        // Next button
+        html += `
+            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${currentPage + 1}">Next</a>
+            </li>`;
+
+        paginationElement.innerHTML = html;
+
+        // Add click handlers
+        paginationElement.querySelectorAll('.page-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const page = parseInt(e.target.dataset.page);
+                if (!isNaN(page) && page > 0 && page <= totalPages) {
+                    onPageChange(page);
+                }
+            });
+        });
     },
 
     /**
