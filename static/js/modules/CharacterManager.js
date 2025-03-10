@@ -16,11 +16,18 @@ class CharacterManager {
     
     // Initialize event listeners for character selection
     initializeEventListeners() {
-        // Add listeners when DOM is loaded
-        document.addEventListener('DOMContentLoaded', () => {
+        // Check if DOM is already loaded
+        if (document.readyState === 'loading') {
+            // Add listeners when DOM is loaded
+            document.addEventListener('DOMContentLoaded', () => {
+                this.setupCharacterSelectListeners();
+                this.setupRerollButtonListeners();
+            });
+        } else {
+            // DOM is already loaded, setup listeners immediately
             this.setupCharacterSelectListeners();
             this.setupRerollButtonListeners();
-        });
+        }
     }
     
     // Setup listeners for character selection cards
@@ -47,6 +54,77 @@ class CharacterManager {
         });
     }
     
+    // Fetch a random character from the API
+    fetchRandomCharacter() {
+        return fetch('/api/random_character')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch random character');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    return data;
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+            });
+    }
+    
+    // Update a character card with new data
+    updateCharacterCard(characterCard, cardContainer, data) {
+        // Update image
+        const cardImg = characterCard.querySelector('img');
+        if (cardImg) {
+            cardImg.src = data.image_url;
+        }
+        
+        // Update character name
+        const nameElement = cardContainer.querySelector('.character-name');
+        if (nameElement) {
+            nameElement.textContent = data.name;
+        }
+        
+        // Update character ID
+        characterCard.dataset.id = data.id;
+        
+        // Update select button
+        const selectBtn = cardContainer.querySelector('.select-character-btn');
+        if (selectBtn) {
+            selectBtn.dataset.characterId = data.id;
+        }
+        
+        // Update checkbox
+        const checkbox = cardContainer.querySelector('.character-checkbox');
+        if (checkbox) {
+            checkbox.value = data.id;
+            checkbox.id = `character${data.id}`;
+        }
+        
+        // Remove selection if it was selected
+        characterCard.classList.remove('selected');
+        const indicator = characterCard.querySelector('.selection-indicator');
+        if (indicator) {
+            indicator.style.display = 'none';
+        }
+        if (checkbox) {
+            checkbox.checked = false;
+        }
+        
+        // Update traits
+        const traitsContainer = cardContainer.querySelector('.character-traits');
+        if (traitsContainer && data.character_traits) {
+            traitsContainer.innerHTML = '';
+            data.character_traits.forEach(trait => {
+                const badge = document.createElement('span');
+                badge.className = 'badge me-1';
+                badge.textContent = trait;
+                traitsContainer.appendChild(badge);
+            });
+        }
+    }
+
     // Setup listeners for reroll buttons
     setupRerollButtonListeners() {
         const rerollButtons = document.querySelectorAll('.reroll-btn');
@@ -71,6 +149,11 @@ class CharacterManager {
                         this.updateCharacterCard(characterCard, cardContainer, data);
                         // Reset button
                         button.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
+                        
+                        // Show toast notification
+                        if (window.UIUtils) {
+                            window.UIUtils.showToast('Character Updated', 'A new character has been loaded!');
+                        }
                     })
                     .catch(error => {
                         console.error('Error rerolling character:', error);

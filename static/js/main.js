@@ -24,7 +24,7 @@ window.App = {
 
 // Initialize the application when the DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, checking PayPal integration...');
+    console.log('DOM loaded, initializing application modules...');
 
     // Initialize modules
     window.UIUtils = new UIUtils();
@@ -34,6 +34,13 @@ document.addEventListener('DOMContentLoaded', function() {
     window.storyManager = new StoryManager();
     window.userProgress = new UserProgress();
     window.missionManager = new MissionManager();
+    
+    // Initialize event handlers for the index page
+    if (document.querySelector('.character-select-card')) {
+        console.log('Character selection page detected, setting up character interactions');
+        window.characterManager.setupCharacterSelectListeners();
+        window.characterManager.setupRerollButtonListeners();
+    }
 
     // For debugging
     console.log('PayPal SDK loaded:', typeof paypal !== 'undefined');
