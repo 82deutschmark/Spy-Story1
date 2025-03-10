@@ -426,7 +426,7 @@ body[data-bs-theme="dark"] .trait-badge {
     padding: 0.75rem;
 
 /* Loading Indicators */
-.loading-percentage-display {
+.loading-percentage-display, .choice-loading-display {
     position: fixed;
     top: 50%;
     left: 50%;
@@ -441,7 +441,8 @@ body[data-bs-theme="dark"] .trait-badge {
     text-align: center;
 }
 
-.loading-percentage-display .phase {
+.loading-percentage-display .phase,
+.choice-loading-display .phase {
     text-align: left;
     margin-bottom: 10px;
     padding-left: 10px;
@@ -449,26 +450,53 @@ body[data-bs-theme="dark"] .trait-badge {
     color: #adb5bd;
 }
 
-.loading-percentage-display .phase:first-child {
+.loading-percentage-display .phase:first-child,
+.choice-loading-display .phase:first-child {
     margin-top: 10px;
 }
 
-.loading-percentage-display .loading-text {
+.loading-percentage-display .loading-text,
+.choice-loading-display .loading-text {
     color: white;
     font-size: 18px;
     font-weight: bold;
     margin-bottom: 15px;
 }
 
-.loading-percentage-display .progress {
+.loading-percentage-display .progress,
+.choice-loading-display .progress {
     height: 10px;
     background-color: #2c3034;
 }
 
-.loading-percentage-display .progress-text {
+.loading-percentage-display .progress-bar,
+.choice-loading-display .progress-bar {
+    background-color: #3498db;
+}
+
+.loading-percentage-display .progress-text,
+.choice-loading-display .progress-text {
     color: white;
     font-size: 16px;
     margin-top: 8px;
+}
+
+/* Loading overlay styles */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 9998;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+body.loading-in-progress {
+    overflow: hidden;
 }
 
     width: 100%;
