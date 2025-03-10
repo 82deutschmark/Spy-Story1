@@ -1000,3 +1000,110 @@ const UI = {
         }
     }
 };
+
+// Initialize story handler if on a storyboard page
+function initStoryHandler() {
+    // Check if we're on a storyboard page by looking for the story content element
+    const storyContent = document.querySelector('.story-content');
+    if (!storyContent) {
+        console.log('Story content element not found');
+        return;
+    }
+
+    // Get story ID from URL
+    const pathParts = window.location.pathname.split('/');
+    const storyId = pathParts[pathParts.length - 1];
+
+    if (storyId && !isNaN(storyId) && window.StoryHandler) {
+        // Initialize story handler with current story ID
+        window.StoryHandler.initialize(storyId);
+        console.log('Story handler initialized for story ID:', storyId);
+    }
+}
+
+// Document ready event
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, checking PayPal integration...');
+
+    // Initialize handlers
+    initCurrencyManager();
+    initStoryHandler();
+
+    // Check for PayPal integration
+    checkPayPalIntegration();
+
+    // Setup other handlers
+    setupModalHandlers();
+    setupFormHandlers();
+    setupStoryHandlers();
+});
+
+// Initialize currency manager
+function initCurrencyManager() {
+    if (!window.currencyManager) {
+        window.currencyManager = new CurrencyManager();
+
+        // Get initial currency balances
+        fetch('/api/user/inventory')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.currencyManager.initialize(data.currency_balances);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching currency balances:', error);
+            });
+    }
+}
+
+// Check for PayPal integration
+function checkPayPalIntegration() {
+    console.log('Checking PayPal integration...');
+
+    // Check if PayPal SDK is loaded
+    const paypalLoaded = typeof paypal !== 'undefined';
+    console.log('PayPal SDK loaded:', paypalLoaded);
+
+    // Check if PayPal button container exists
+    const buttonContainer = document.getElementById('paypal-button-container');
+    console.log('PayPal button container exists:', !!buttonContainer);
+
+    if (buttonContainer) {
+        console.log('Initializing PayPal integration...');
+
+        // Check for client ID
+        const clientIdElement = document.getElementById('paypal-client-id');
+        const clientIdAvailable = !!clientIdElement;
+        console.log('PayPal Client ID available:', clientIdAvailable);
+
+        if (paypalLoaded && clientIdAvailable) {
+            // Initialize PayPal buttons (implement based on your PayPal integration)
+            initializePayPalButtons(clientIdElement.value);
+        } else {
+            // Load PayPal SDK if not loaded yet
+            loadPayPalSDK();
+        }
+    }
+}
+
+// Setup modal handlers
+function setupModalHandlers() {
+    // Add event listeners for modals if needed
+    console.log('Setting up modal handlers...');
+    // Add your modal handler code here
+}
+
+// Setup form handlers
+function setupFormHandlers() {
+    // Add event listeners for forms if needed
+    console.log('Setting up form handlers...');
+    // Add your form handler code here
+}
+
+// Setup story handlers
+function setupStoryHandlers() {
+    // Add event listeners for story elements if needed
+    console.log('Setting up story handlers...');
+    // Add your story handler code here
+}
