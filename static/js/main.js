@@ -331,7 +331,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify({
                     choice_id: formData.get('choice_id'),
                     custom_choice: isCustom ? formData.get('custom_choice') : null,
-                    currency_requirements: currencyReq
+                    currency_requirements: currencyReq,
+                    story_id: document.querySelector('input[name="story_id"]')?.value || null
                 })
             });
 
