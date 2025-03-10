@@ -11,14 +11,13 @@ export const events = {
     init: () => {
         document.addEventListener('DOMContentLoaded', () => {
             // Character selection
-            document.querySelectorAll('.select-character-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const characterId = e.target.dataset.characterId;
+            document.querySelectorAll('.character-select-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    const characterId = card.dataset.id;
                     const checkbox = document.getElementById(`character${characterId}`);
                     if (checkbox) {
                         checkbox.checked = !checkbox.checked;
                         // Update visual selection
-                        const card = e.target.closest('.character-container');
                         const indicator = card.querySelector('.selection-indicator');
                         if (indicator) {
                             indicator.style.display = checkbox.checked ? 'block' : 'none';
@@ -32,7 +31,7 @@ export const events = {
             if (storyForm) {
                 storyForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
-                    const selectedCharacters = document.querySelectorAll('.character-checkbox:checked');
+                    const selectedCharacters = document.querySelectorAll('input[name="selected_images[]"]:checked');
 
                     if (selectedCharacters.length === 0) {
                         dom.showToast('Error', 'Please select at least one character for your story');
@@ -42,23 +41,19 @@ export const events = {
                     const btn = e.target.querySelector('button[type="submit"]');
                     if (btn) btn.disabled = true;
 
-                    await story.generate(new FormData(e.target));
-                    if (btn) btn.disabled = false;
-                });
-            }
+                    try {
+                        const formData = new FormData(e.target);
+                        // Ensure selected characters are added to form data
+                        selectedCharacters.forEach(char => {
+                            formData.append('selected_images[]', char.value);
+                        });
 
-            // Story choice forms
-            document.querySelectorAll('.choice-form').forEach(form => {
-                form.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const btn = e.target.querySelector('button[type="submit"]');
-                    if (btn && !btn.disabled) {
-                        btn.disabled = true;
-                        await story.makeChoice(new FormData(e.target));
-                        btn.disabled = false;
+                        await story.generate(formData);
+                    } finally {
+                        if (btn) btn.disabled = false;
                     }
                 });
-            });
+            }
 
             // Handle trade form if it exists (backend processing)
             const tradeForm = document.getElementById('tradeForm');
