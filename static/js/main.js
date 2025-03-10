@@ -1,35 +1,53 @@
 /**
  * Main application entry point
  */
-import { events } from './events.js';
-import { dom } from './utils/dom.js';
 import { currency } from './currency.js';
+import { dom } from './utils/dom.js';
+import { story } from './story.js';
+import { character } from './character.js';
 
 // Initialize main features when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize all event handlers
-    events.init();
-
-    // Show loading overlay for initial page load
-    const loadingPercent = dom.createLoadingOverlay('Loading application...');
     try {
-        // Update any existing currency displays
-        const currencyDisplays = document.querySelectorAll('.currency-display');
-        if (currencyDisplays.length > 0) {
-            currency.updateDisplays(window.initialBalances || {});
+        // Initialize currency manager with initial balances
+        const initialBalancesEl = document.getElementById('initialBalances');
+        if (initialBalancesEl) {
+            const initialBalances = JSON.parse(initialBalancesEl.value);
+            currency.initialize(initialBalances);
         }
 
-        dom.removeLoadingOverlay(loadingPercent);
+        // Handle story forms
+        const storyForm = document.getElementById('storyForm');
+        if (storyForm) {
+            storyForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                story.generate(new FormData(storyForm));
+            });
+        }
+
+        // Handle story choice forms
+        document.addEventListener('submit', (e) => {
+            if (!e.target.classList.contains('choice-form')) return;
+            e.preventDefault();
+
+            const btn = e.target.querySelector('button');
+            const currencyReq = btn.dataset.currencyReq ? 
+                JSON.parse(btn.dataset.currencyReq) : null;
+
+            story.makeChoice(new FormData(e.target), currencyReq);
+        });
+
+        // Initialize character highlighting
+        character.initializeHighlighting();
+
     } catch (error) {
         console.error('Error during initialization:', error);
-        dom.showToast('Error', 'Failed to initialize application');
-        dom.removeLoadingOverlay(loadingPercent);
+        dom.showToast('Error', 'Failed to initialize application', true);
     }
 });
 
-// Handle debug mode and character highlighting
+// Debug mode switch functionality
 document.addEventListener('DOMContentLoaded', () => {
-    // Edit mode switch functionality
     const editModeSwitch = document.getElementById('editModeSwitch');
     const generatedContent = document.getElementById('generatedContent');
 

@@ -32,13 +32,13 @@ export const dom = {
     /**
      * Update the loading percentage display
      * @param {HTMLElement} element - The loading percentage element
-     * @param {number} percent - The percentage to display
+     * @param {number} percent - The percentage to display (0-100)
      */
     updateLoadingPercent: (element, percent) => {
         if (!element) return;
         const progress = Math.min(100, Math.max(0, percent));
         element.textContent = `${progress}%`;
-        const progressBar = element.closest('.loading-overlay').querySelector('.progress-bar');
+        const progressBar = element.closest('.loading-overlay')?.querySelector('.progress-bar');
         if (progressBar) {
             progressBar.style.width = `${progress}%`;
         }
@@ -50,32 +50,30 @@ export const dom = {
      */
     removeLoadingOverlay: (element) => {
         if (!element) return;
-        const overlay = element.closest('.loading-overlay');
-        if (overlay) {
-            overlay.remove();
-        }
+        element.closest('.loading-overlay')?.remove();
     },
 
     /**
      * Show a toast notification
      * @param {string} title - The toast title
      * @param {string} message - The toast message
-     * @param {boolean} isError - Whether this is an error message
+     * @param {boolean} [isError=false] - Whether this is an error message
      */
     showToast: (title, message, isError = false) => {
-        const toastTitle = document.getElementById('toastTitle');
-        const toastMessage = document.getElementById('toastMessage');
         const toast = document.getElementById('notificationToast');
+        if (!toast) return;
 
-        if (toastTitle && toastMessage && toast) {
+        const toastTitle = toast.querySelector('#toastTitle');
+        const toastBody = toast.querySelector('#toastBody');
+
+        if (toastTitle && toastBody) {
             toastTitle.textContent = title;
-            toastMessage.textContent = message;
+            toastBody.textContent = message;
 
-            const toastElement = document.getElementById('notificationToast');
             if (isError) {
-                toastElement.classList.add('bg-danger', 'text-white');
+                toast.classList.add('bg-danger', 'text-white');
             } else {
-                toastElement.classList.remove('bg-danger', 'text-white');
+                toast.classList.remove('bg-danger', 'text-white');
             }
 
             const bsToast = new bootstrap.Toast(toast);
