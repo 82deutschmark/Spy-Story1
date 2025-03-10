@@ -1,221 +1,165 @@
-
 /**
  * LoadingManager.js - Unified loading indicator management
  */
-const LoadingManager = {
-  /**
-   * Show a loading overlay with percentage indicator
-   * @param {string} message - Loading message to display
-   * @param {Element} container - Optional container to append to (defaults to body)
-   * @returns {Object} Loading context with overlay and percent elements
-   */
-  showLoading(message = 'Loading...', container = document.body) {
-    // Create the loading overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'loading-overlay';
-    
-    // Create the loading content
-    const content = document.createElement('div');
-    content.className = 'loading-content';
-    
-    // Add spinner icon
-    const spinner = document.createElement('div');
-    spinner.className = 'loading-spinner';
-    spinner.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    content.appendChild(spinner);
-    
-    // Add message
-    const messageElement = document.createElement('div');
-    messageElement.className = 'loading-message';
-    messageElement.textContent = message;
-    content.appendChild(messageElement);
-    
-    // Add percentage indicator
-    const percentContainer = document.createElement('div');
-    percentContainer.className = 'loading-percent-container';
-    
-    const percentBar = document.createElement('div');
-    percentBar.className = 'loading-percent-bar';
-    
-    const percentFill = document.createElement('div');
-    percentFill.className = 'loading-percent-fill';
-    percentFill.style.width = '0%';
-    percentBar.appendChild(percentFill);
-    
-    const percentText = document.createElement('div');
-    percentText.className = 'loading-percent-text';
-    percentText.textContent = '0%';
-    
-    percentContainer.appendChild(percentBar);
-    percentContainer.appendChild(percentText);
-    content.appendChild(percentContainer);
-    
-    // Add content to overlay
-    overlay.appendChild(content);
-    
-    // Add overlay to container
-    container.appendChild(overlay);
-    
-    // Return context object for manipulation
-    return {
-      overlay,
-      percentFill,
-      percentText,
-      message: messageElement
-    };
-  },
-  
-  /**
-   * Update the loading percentage
-   * @param {Object} context - Loading context from showLoading
-   * @param {number} percent - Percentage complete (0-100)
-   */
-  updatePercent(context, percent) {
-    if (!context || !context.percentFill || !context.percentText) return;
-    
-    const validPercent = Math.max(0, Math.min(100, Math.round(percent)));
-    context.percentFill.style.width = `${validPercent}%`;
-    context.percentText.textContent = `${validPercent}%`;
-  },
-  
-  /**
-   * Update the loading message
-   * @param {Object} context - Loading context from showLoading
-   * @param {string} message - New message to display
-   */
-  updateMessage(context, message) {
-    if (!context || !context.message) return;
-    context.message.textContent = message;
-  },
-  
-  /**
-   * Hide the loading overlay
-   * @param {Object} context - Loading context from showLoading
-   * @param {Function} callback - Optional callback after removal
-   * @param {number} delay - Delay before removing the overlay (ms)
-   */
-  hideLoading(context, callback = null, delay = 300) {
-    if (!context || !context.overlay) return;
-    
-    // Update to 100% for visual completion
-    this.updatePercent(context, 100);
-    
-    // Fade out and remove after delay
-    setTimeout(() => {
-      context.overlay.classList.add('fade-out');
-      
-      setTimeout(() => {
-        context.overlay.remove();
-        if (callback && typeof callback === 'function') {
-          callback();
+class LoadingManager {
+    constructor() {
+        this.activeLoaders = new Map();
+        this.nextLoaderId = 1;
+    }
+
+    /**
+     * Create a loading overlay
+     * @param {string} message The loading message to display
+     * @param {string|Element} target Optional target element or selector (defaults to body)
+     * @returns {Object} Loading context with ID and methods
+     */
+    createLoadingOverlay(message = 'Loading...', target = null) {
+        const id = `loader-${this.nextLoaderId++}`;
+        const targetElement = target ? 
+            (typeof target === 'string' ? document.querySelector(target) : target) : 
+            document.body;
+
+        // Create overlay container
+        const overlay = document.createElement('div');
+        overlay.className = 'loading-overlay';
+        overlay.id = id;
+        overlay.innerHTML = `
+            <div class="loading-content">
+                <div class="spinner-border text-light" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <div class="loading-message mt-3">${message}</div>
+                <div class="progress mt-3" style="width: 200px; height: 10px;">
+                    <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        `;
+
+        // Apply styles
+        overlay.style.position = 'absolute';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+        overlay.style.display = 'flex';
+        overlay.style.justifyContent = 'center';
+        overlay.style.alignItems = 'center';
+        overlay.style.zIndex = '1000';
+
+        // Apply relative positioning to target if needed
+        if (targetElement !== document.body) {
+            const currentPosition = window.getComputedStyle(targetElement).position;
+            if (currentPosition === 'static') {
+                targetElement.style.position = 'relative';
+            }
         }
-      }, 300);
-    }, delay);
-  },
-  
-  /**
-   * Show button loading state
-   * @param {Element} button - Button element
-   * @param {string} loadingText - Text to show while loading
-   * @param {string} iconClass - Optional icon class
-   * @returns {Function} Function to restore the button
-   */
-  showButtonLoading(button, loadingText = 'Loading...', iconClass = 'fas fa-spinner fa-spin') {
-    if (!button) return () => {};
-    
-    // Store original button content and state
-    const originalHTML = button.innerHTML;
-    const originalDisabled = button.disabled;
-    
-    // Update button to loading state
-    button.disabled = true;
-    button.innerHTML = `<i class="${iconClass} me-1"></i> ${loadingText}`;
-    
-    // Return function to restore button
-    return function restoreButton(newText = null) {
-      button.disabled = originalDisabled;
-      button.innerHTML = newText ? newText : originalHTML;
-    };
-  }
-};
 
-// Add CSS for loading overlay
-function addLoadingStyles() {
-  const styleEl = document.createElement('style');
-  styleEl.textContent = `
-    .loading-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.6);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-      opacity: 1;
-      transition: opacity 0.3s ease;
+        // Add overlay to target
+        targetElement.appendChild(overlay);
+
+        // Save context
+        const context = {
+            id,
+            overlay,
+            targetElement,
+            updateMessage: (newMessage) => this.updateLoadingMessage(id, newMessage),
+            updateProgress: (percent) => this.updateLoadingPercent(id, percent),
+            remove: (callback) => this.removeLoadingOverlay(id, callback)
+        };
+
+        this.activeLoaders.set(id, context);
+        return context;
     }
-    
-    .loading-overlay.fade-out {
-      opacity: 0;
+
+    /**
+     * Update the loading message
+     * @param {string} id The loader ID
+     * @param {string} message The new message
+     */
+    updateLoadingMessage(id, message) {
+        const loader = this.activeLoaders.get(id);
+        if (!loader) return;
+
+        const messageElement = loader.overlay.querySelector('.loading-message');
+        if (messageElement) {
+            messageElement.textContent = message;
+        }
     }
-    
-    .loading-content {
-      background-color: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      text-align: center;
-      max-width: 80%;
-      width: 300px;
+
+    /**
+     * Update the loading progress percentage
+     * @param {string} id The loader ID
+     * @param {number} percent The progress percentage (0-100)
+     */
+    updateLoadingPercent(id, percent) {
+        const loader = this.activeLoaders.get(id);
+        if (!loader) return;
+
+        const progressBar = loader.overlay.querySelector('.progress-bar');
+        if (progressBar) {
+            const clampedPercent = Math.min(100, Math.max(0, percent));
+            progressBar.style.width = `${clampedPercent}%`;
+            progressBar.setAttribute('aria-valuenow', clampedPercent);
+        }
     }
-    
-    .loading-spinner {
-      font-size: 24px;
-      margin-bottom: 10px;
-      color: #0d6efd;
+
+    /**
+     * Remove a loading overlay
+     * @param {string} id The loader ID
+     * @param {Function} callback Optional callback after removal
+     */
+    removeLoadingOverlay(id, callback) {
+        const loader = this.activeLoaders.get(id);
+        if (!loader) return;
+
+        // Fade out animation
+        loader.overlay.style.transition = 'opacity 0.3s ease';
+        loader.overlay.style.opacity = '0';
+
+        setTimeout(() => {
+            if (loader.overlay.parentNode) {
+                loader.overlay.parentNode.removeChild(loader.overlay);
+            }
+            this.activeLoaders.delete(id);
+
+            if (typeof callback === 'function') {
+                callback();
+            }
+        }, 300);
     }
-    
-    .loading-message {
-      margin-bottom: 15px;
-      font-weight: 500;
+
+    /**
+     * Show loading state on a button
+     * @param {Element|string} button Button element or selector
+     * @param {string} loadingText Text to show during loading
+     * @returns {Function} Function to restore the button
+     */
+    showButtonLoading(button, loadingText = 'Loading...') {
+        const buttonElement = typeof button === 'string' ? 
+            document.querySelector(button) : button;
+
+        if (!buttonElement) return () => {};
+
+        const originalHTML = buttonElement.innerHTML;
+        const originalDisabled = buttonElement.disabled;
+
+        buttonElement.innerHTML = `
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <span>${loadingText}</span>
+        `;
+        buttonElement.disabled = true;
+
+        return (restoreText = originalHTML) => {
+            buttonElement.innerHTML = restoreText;
+            buttonElement.disabled = originalDisabled;
+        };
     }
-    
-    .loading-percent-container {
-      margin-top: 15px;
-    }
-    
-    .loading-percent-bar {
-      height: 8px;
-      background-color: #f0f0f0;
-      border-radius: 4px;
-      overflow: hidden;
-      margin-bottom: 5px;
-    }
-    
-    .loading-percent-fill {
-      height: 100%;
-      background-color: #0d6efd;
-      transition: width 0.3s ease;
-      width: 0%;
-    }
-    
-    .loading-percent-text {
-      font-size: 12px;
-      color: #666;
-    }
-  `;
-  document.head.appendChild(styleEl);
 }
 
-// Add the styles when the module is loaded
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', addLoadingStyles);
-} else {
-  addLoadingStyles();
-}
+// Create a global instance
+const loadingManager = new LoadingManager();
 
-// Export the module
-export default LoadingManager;
+// Export to global scope for now
+window.LoadingManager = loadingManager;
+export default loadingManager;

@@ -1,188 +1,221 @@
 
 /**
- * UIUtils.js - UI utility functions using standardized approach
+ * UIUtils.js - UI-related utility functions
  */
 import DOMUtils from './DOMUtils.js';
 import LoadingManager from './LoadingManager.js';
 import EventManager from './EventManager.js';
 
-const UIUtils = {
-  /**
-   * Initialize UI utilities
-   */
-  init() {
-    // Initialize toast container if it doesn't exist
-    this.initToastContainer();
-    console.log('UIUtils initialized');
-  },
-
-  /**
-   * Create a toast container if it doesn't exist
-   */
-  initToastContainer() {
-    if (!document.getElementById('toast-container')) {
-      const toastContainer = document.createElement('div');
-      toastContainer.id = 'toast-container';
-      toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
-      document.body.appendChild(toastContainer);
-    }
-  },
-
-  /**
-   * Show a toast notification
-   * @param {string} title - Toast title
-   * @param {string} message - Toast message
-   * @param {string} type - Toast type (success, warning, error, info)
-   */
-  showToast(title, message, type = 'success') {
-    // Initialize toast container if needed
-    this.initToastContainer();
-    
-    // Get toast container
-    const toastContainer = DOMUtils.getElement('#toast-container');
-    
-    // Create toast element
-    const toastEl = document.createElement('div');
-    toastEl.className = 'toast';
-    toastEl.setAttribute('role', 'alert');
-    toastEl.setAttribute('aria-live', 'assertive');
-    toastEl.setAttribute('aria-atomic', 'true');
-    
-    // Set toast background color based on type
-    let bgClass = 'bg-success';
-    let iconClass = 'fa-check-circle';
-    
-    switch (type.toLowerCase()) {
-      case 'warning':
-        bgClass = 'bg-warning';
-        iconClass = 'fa-exclamation-triangle';
-        break;
-      case 'error':
-        bgClass = 'bg-danger';
-        iconClass = 'fa-times-circle';
-        break;
-      case 'info':
-        bgClass = 'bg-info';
-        iconClass = 'fa-info-circle';
-        break;
+class UIUtils {
+    constructor() {
+        this.toastContainer = null;
+        this.activeToasts = new Set();
     }
     
-    // Create toast content
-    toastEl.innerHTML = `
-      <div class="toast-header ${bgClass} text-white">
-        <i class="fas ${iconClass} me-2"></i>
-        <strong class="me-auto">${title}</strong>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-      </div>
-      <div class="toast-body">${message}</div>
-    `;
+    /**
+     * Initialize the UI utilities
+     */
+    init() {
+        this.createToastContainer();
+    }
     
-    // Add toast to container
-    toastContainer.appendChild(toastEl);
+    /**
+     * Create a container for toast notifications
+     */
+    createToastContainer() {
+        // Check if container already exists
+        if (this.toastContainer) return;
+        
+        this.toastContainer = DOMUtils.createElement('div', {
+            className: 'toast-container position-fixed bottom-0 end-0 p-3',
+            style: 'z-index: 1100;'
+        });
+        
+        document.body.appendChild(this.toastContainer);
+    }
     
-    // Initialize and show toast
-    const toast = new bootstrap.Toast(toastEl, { autohide: true, delay: 5000 });
-    toast.show();
+    /**
+     * Show a toast notification
+     * @param {string} title The title of the toast
+     * @param {string} message The message to display
+     * @param {string} type The type of toast (success, error, info, warning)
+     * @param {number} duration How long to show the toast in ms
+     */
+    showToast(title, message, type = 'success', duration = 3000) {
+        if (!this.toastContainer) {
+            this.createToastContainer();
+        }
+        
+        // Map type to Bootstrap color class
+        const typeMap = {
+            'success': 'text-bg-success',
+            'error': 'text-bg-danger',
+            'warning': 'text-bg-warning',
+            'info': 'text-bg-info'
+        };
+        
+        const bgClass = typeMap[type] || 'text-bg-primary';
+        const toastId = `toast-${Date.now()}-${Math.round(Math.random() * 1000)}`;
+        
+        // Create toast element
+        const toast = DOMUtils.createElement('div', {
+            className: `toast ${bgClass}`,
+            id: toastId,
+            role: 'alert',
+            'aria-live': 'assertive',
+            'aria-atomic': 'true'
+        });
+        
+        toast.innerHTML = `
+            <div class="toast-header">
+                <strong class="me-auto">${title}</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                ${message}
+            </div>
+        `;
+        
+        // Add to DOM
+        this.toastContainer.appendChild(toast);
+        
+        // Initialize Bootstrap toast
+        const bsToast = new bootstrap.Toast(toast, {
+            autohide: true,
+            delay: duration
+        });
+        
+        // Track active toasts
+        this.activeToasts.add(toastId);
+        
+        // Show toast
+        bsToast.show();
+        
+        // Clean up when hidden
+        toast.addEventListener('hidden.bs.toast', () => {
+            if (this.toastContainer.contains(toast)) {
+                this.toastContainer.removeChild(toast);
+            }
+            this.activeToasts.delete(toastId);
+        });
+        
+        return toastId;
+    }
     
-    // Remove toast after it's hidden
-    toastEl.addEventListener('hidden.bs.toast', () => {
-      toastEl.remove();
-    });
-  },
-  
-  /**
-   * Show a loading overlay
-   * @param {string} message - Loading message
-   * @returns {Object} Loading context
-   */
-  createLoadingOverlay(message = 'Loading...') {
-    return LoadingManager.showLoading(message);
-  },
-  
-  /**
-   * Update loading overlay percentage
-   * @param {Object} loadingContext - Loading context
-   * @param {number} percent - Percentage (0-100)
-   */
-  updateLoadingPercent(loadingContext, percent) {
-    LoadingManager.updatePercent(loadingContext, percent);
-  },
-  
-  /**
-   * Remove loading overlay
-   * @param {Object} loadingContext - Loading context
-   * @param {Function} callback - Optional callback after removal
-   */
-  removeLoadingOverlay(loadingContext, callback) {
-    LoadingManager.hideLoading(loadingContext, callback);
-  },
-  
-  /**
-   * Show button loading state
-   * @param {Element|string} button - Button element or selector
-   * @param {string} loadingText - Text to display while loading
-   * @returns {Function} Function to restore button
-   */
-  showButtonLoading(button, loadingText = 'Loading...') {
-    // If button is a selector, get the element
-    const buttonEl = typeof button === 'string' ? DOMUtils.getElement(button) : button;
-    return LoadingManager.showButtonLoading(buttonEl, loadingText);
-  },
-  
-  /**
-   * Disable a form
-   * @param {Element|string} form - Form element or selector
-   */
-  disableForm(form) {
-    const formEl = typeof form === 'string' ? DOMUtils.getElement(form) : form;
-    if (!formEl) return;
+    /**
+     * Hide a toast by ID
+     * @param {string} toastId The ID of the toast to hide
+     */
+    hideToast(toastId) {
+        const toast = DOMUtils.getElement(`#${toastId}`);
+        if (toast) {
+            const bsToast = bootstrap.Toast.getInstance(toast);
+            if (bsToast) {
+                bsToast.hide();
+            }
+        }
+    }
     
-    const inputs = DOMUtils.getElements('input, textarea, select, button', formEl);
-    inputs.forEach(input => {
-      input.disabled = true;
-    });
-  },
-  
-  /**
-   * Enable a form
-   * @param {Element|string} form - Form element or selector
-   */
-  enableForm(form) {
-    const formEl = typeof form === 'string' ? DOMUtils.getElement(form) : form;
-    if (!formEl) return;
+    /**
+     * Create a loading overlay
+     * @param {string} message Loading message
+     * @param {string|Element} target Target element (optional)
+     * @returns {Object} Loading context
+     */
+    createLoadingOverlay(message, target) {
+        return LoadingManager.createLoadingOverlay(message, target);
+    }
     
-    const inputs = DOMUtils.getElements('input, textarea, select, button', formEl);
-    inputs.forEach(input => {
-      input.disabled = false;
-    });
-  },
-  
-  /**
-   * Trigger an event through the EventManager
-   * @param {string} eventName - Name of the event
-   * @param {any} data - Event data
-   */
-  triggerEvent(eventName, data = {}) {
-    EventManager.publish(eventName, data);
-  },
-  
-  /**
-   * Subscribe to an event
-   * @param {string} eventName - Name of the event
-   * @param {Function} handler - Event handler
-   * @returns {Object} Subscription object
-   */
-  onEvent(eventName, handler) {
-    return EventManager.subscribe(eventName, handler);
-  }
-};
+    /**
+     * Update the loading message
+     * @param {Object} context Loading context
+     * @param {string} message New message
+     */
+    updateLoadingMessage(context, message) {
+        if (context && context.id) {
+            LoadingManager.updateLoadingMessage(context.id, message);
+        }
+    }
+    
+    /**
+     * Update loading percentage
+     * @param {Object} context Loading context
+     * @param {number} percent Percentage (0-100)
+     */
+    updateLoadingPercent(context, percent) {
+        if (context && context.id) {
+            LoadingManager.updateLoadingPercent(context.id, percent);
+        }
+    }
+    
+    /**
+     * Remove a loading overlay
+     * @param {Object} context Loading context
+     * @param {Function} callback Optional callback
+     */
+    removeLoadingOverlay(context, callback) {
+        if (context && context.id) {
+            LoadingManager.removeLoadingOverlay(context.id, callback);
+        }
+    }
+    
+    /**
+     * Show loading state on a button
+     * @param {Element|string} button Button element or selector
+     * @param {string} loadingText Text to show while loading
+     * @returns {Function} Function to restore button
+     */
+    showButtonLoading(button, loadingText) {
+        return LoadingManager.showButtonLoading(button, loadingText);
+    }
+    
+    /**
+     * Highlight character names in text
+     * @param {string} text The text to process
+     * @param {Object} characters Map of character names to data
+     * @returns {string} HTML with highlighted character names
+     */
+    highlightCharacterNames(text, characters) {
+        if (!text || !characters) return text;
+        
+        const names = Object.keys(characters).sort((a, b) => b.length - a.length);
+        if (names.length === 0) return text;
+        
+        let processedText = text;
+        names.forEach(name => {
+            const characterData = characters[name];
+            if (!characterData) return;
+            
+            const regex = new RegExp(`\\b${name}\\b`, 'g');
+            processedText = processedText.replace(regex, match => {
+                return `<span class="character-highlight" data-character-id="${characterData.id || ''}" data-character-name="${name}">${match}</span>`;
+            });
+        });
+        
+        return processedText;
+    }
+    
+    /**
+     * Trigger a custom event
+     * @param {string} eventName Event name
+     * @param {Object} data Event data
+     */
+    triggerEvent(eventName, data) {
+        EventManager.emit(eventName, data);
+        EventManager.triggerDOMEvent(eventName, data);
+    }
+}
+
+// Create a global instance
+const uiUtils = new UIUtils();
 
 // Initialize on DOM load
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => UIUtils.init());
+    document.addEventListener('DOMContentLoaded', () => uiUtils.init());
 } else {
-  UIUtils.init();
+    uiUtils.init();
 }
 
-// Export the module
-export default UIUtils;
+// Export to global scope for now
+window.UIUtils = uiUtils;
+export default uiUtils;
