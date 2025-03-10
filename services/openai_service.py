@@ -76,17 +76,17 @@ def analyze_artwork(image_url):
         messages = [
             {
                 "role": "system",
-                "content": """You are an expert at analyzing images for a storytelling app set in a hormone-fueled high stakes sexy dramatic international spy universe.
+                "content": """You are an expert at analyzing images for a storytelling app set in a sexy dramatic international spy universe.
 
                 Your task is to analyze the image and determine if it's a character or a scene. 
 
                 If it's a CHARACTER:
                 - Provide a detailed description of the character
                 - Assign a name that fits their appearance
-                - Classify their role (hero, villain, neutral, protagonist, antagonist)
+                - Classify their role (undetermined, villain, neutral, mission-giver)
                 - Generate 3-5 personality traits that seem to match the character
                 - Suggest 2-3 potential plot lines for this character in a spy narrative
-                - Note their style and visual characteristics
+                - Speculate on backstory for this character
 
                 If it's a SCENE:
                 - Describe the setting in detail
@@ -99,10 +99,10 @@ def analyze_artwork(image_url):
                   "type": "CHARACTER",
                   "name": "character name",
                   "description": "detailed character description",
-                  "role": "hero/villain/neutral",
+                  "role": "undetermined, villain, neutral, mission-giver",
                   "personality_traits": ["trait1", "trait2", "trait3"],
                   "potential_plot_lines": ["plot line 1", "plot line 2"],
-                  "style_and_visual_characteristics": "visual details"
+                  "backstory": "["back1", "back2", "back3"]"
                 }
 
                 Or the following structure for SCENE:
@@ -116,11 +116,7 @@ def analyze_artwork(image_url):
                 }"""
             },
             {
-                "role": "user", 
-                "content": [
-                    {"type": "text", "text": "Analyze this image for our spy story app:"},
-                    {"type": "image_url", "image_url": {"url": image_url}}
-                ]
+                
             }
         ]
 
@@ -128,7 +124,7 @@ def analyze_artwork(image_url):
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=messages,
-            max_tokens=1000,
+            max_tokens=2000,
             response_format={"type": "json_object"}
         )
 
@@ -176,58 +172,6 @@ def generate_image_description(analysis):
             is_character = True
         elif any(key in analysis for key in ['character_name', 'character_traits', 'plot_lines']):
             is_character = True
-        elif 'role' in analysis and analysis['role'] in ['hero', 'villain', 'neutral']:
-            is_character = True
-
-        if is_character:
-            # Extract character information
-            name = None
-
-            # Check for name in all possible locations
-            if 'character' in analysis and isinstance(analysis['character'], dict):
-                if 'name' in analysis['character']:
-                    name = analysis['character'].get('name')
-
-            # If not found in character object, check top level fields
-            if not name:
-                if 'character_name' in analysis:
-                    name = analysis.get('character_name')
-                elif 'name' in analysis:
-                    name = analysis.get('name')
-
-            if not name:
-                name = "Unnamed Character"
-
-            # Extract traits from different possible structures
-            traits = []
-            if 'character' in analysis and 'character_traits' in analysis['character']:
-                traits = analysis['character'].get('character_traits', [])
-            elif 'character_traits' in analysis:
-                traits = analysis.get('character_traits', [])
-
-            # Get role information
-            role = None
-            if 'character' in analysis and 'role' in analysis['character']:
-                role = analysis['character'].get('role')
-            else:
-                role = analysis.get('role')
-
-            traits_text = ", ".join(traits) if traits else "mysterious personality"
-
-            # Get style information
-            style = None
-            if 'character' in analysis and 'style' in analysis['character']:
-                style = analysis['character'].get('style')
-            else:
-                style = analysis.get('style')
-
-            style_text = style if style else "distinctive appearance"
-
-            # Construct description for character
-            description = f"This image shows {name}, a {role or 'mysterious'} character with a {traits_text}. " \
-                          f"They have a {style_text}. This character would fit well in an international spy thriller."
-
-            return description
 
         else:
             # This is a scene image
