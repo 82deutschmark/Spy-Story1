@@ -1,9 +1,10 @@
 
 /**
- * Debug UI Module
- * Handles DOM interactions for the debug interface
+ * DebugUI.js - UI manipulation for the debug interface
  */
-export default {
+import DebugUtils from './DebugUtils.js';
+
+const DebugUI = {
     elements: {
         imageForm: document.getElementById('imageForm'),
         imageUrl: document.getElementById('imageUrl'),
@@ -16,24 +17,24 @@ export default {
         imageType: document.getElementById('imageType'),
         characterFields: document.getElementById('characterFields'),
         sceneFields: document.getElementById('sceneFields'),
-        // Image table elements
         imagesTableBody: document.getElementById('imagesTableBody'),
         imagesPagination: document.getElementById('imagesPagination'),
-        // Stories table elements
         storiesTableBody: document.getElementById('storiesTableBody'),
         storiesPagination: document.getElementById('storiesPagination')
     },
     
-    initialize() {
+    initialize(formHandler, dataHandler) {
+        this.formHandler = formHandler;
+        this.dataHandler = dataHandler;
         this.setupEventListeners();
-        console.log('Debug UI module initialized');
+        console.log('UI module initialized');
     },
     
     setupEventListeners() {
         if (this.elements.imageForm) {
             this.elements.imageForm.addEventListener('submit', event => {
                 event.preventDefault();
-                FormHandler.handleImageAnalysis();
+                this.formHandler.handleImageAnalysis();
             });
         }
         
@@ -60,14 +61,14 @@ export default {
         
         if (this.elements.applyChangesBtn) {
             this.elements.applyChangesBtn.addEventListener('click', () => {
-                FormHandler.applyChanges();
+                this.formHandler.applyChanges();
             });
         }
         
         document.querySelectorAll('.filter-btn').forEach(button => {
             button.addEventListener('click', () => {
                 const filter = button.getAttribute('data-filter');
-                DataHandler.filterImages(filter);
+                this.dataHandler.filterImages(filter);
             });
         });
     },
@@ -93,20 +94,25 @@ export default {
     
     populateEditForm(data) {
         console.log('Populated edit form with data:', data);
-        document.getElementById('imageName').value = data.name || '';
-        document.getElementById('descriptionField').value = data.description || '';
-        document.getElementById('imageType').value = data.image_type || 'character';
-        this.toggleFieldsByImageType();
+        const imageName = document.getElementById('imageName');
+        const descriptionField = document.getElementById('descriptionField');
+        const imageType = document.getElementById('imageType');
         
-        if (data.image_type === 'character') {
-            document.getElementById('characterRole').value = data.role || 'undetermined';
-            document.getElementById('characterTraits').value = Array.isArray(data.traits) ? data.traits.join(', ') : 
-                (Array.isArray(data.character_traits) ? data.character_traits.join(', ') : '');
-            document.getElementById('plotLines').value = Array.isArray(data.plot_lines) ? data.plot_lines.join('\n') : '';
-        } else if (data.image_type === 'scene') {
-            document.getElementById('sceneType').value = data.scene_type || 'action';
-            document.getElementById('sceneSetting').value = data.setting || '';
-            document.getElementById('dramaticMoments').value = Array.isArray(data.dramatic_moments) ? data.dramatic_moments.join('\n') : '';
+        if (imageName) imageName.value = data.name || '';
+        if (descriptionField) descriptionField.value = data.description || '';
+        if (imageType) {
+            imageType.value = data.image_type || 'character';
+            this.toggleFieldsByImageType();
+            
+            if (data.image_type === 'character') {
+                document.getElementById('characterRole').value = data.role || 'undetermined';
+                document.getElementById('characterTraits').value = Array.isArray(data.traits) ? data.traits.join(', ') : '';
+                document.getElementById('plotLines').value = Array.isArray(data.plot_lines) ? data.plot_lines.join('\n') : '';
+            } else if (data.image_type === 'scene') {
+                document.getElementById('sceneType').value = data.scene_type || 'action';
+                document.getElementById('sceneSetting').value = data.setting || '';
+                document.getElementById('dramaticMoments').value = Array.isArray(data.dramatic_moments) ? data.dramatic_moments.join('\n') : '';
+            }
         }
     },
     
@@ -115,9 +121,9 @@ export default {
         if (!paginationEl) return;
         
         paginationEl.innerHTML = '';
-        
+
         if (totalPages <= 1) return;
-        
+
         const prevLi = document.createElement('li');
         prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
         const prevLink = document.createElement('a');
@@ -132,7 +138,7 @@ export default {
         }
         prevLi.appendChild(prevLink);
         paginationEl.appendChild(prevLi);
-        
+
         for (let i = 1; i <= totalPages; i++) {
             const li = document.createElement('li');
             li.className = `page-item ${i === currentPage ? 'active' : ''}`;
@@ -149,7 +155,7 @@ export default {
             li.appendChild(link);
             paginationEl.appendChild(li);
         }
-        
+
         const nextLi = document.createElement('li');
         nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
         const nextLink = document.createElement('a');
@@ -166,3 +172,5 @@ export default {
         paginationEl.appendChild(nextLi);
     }
 };
+
+export default DebugUI;

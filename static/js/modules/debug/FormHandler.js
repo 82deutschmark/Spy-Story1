@@ -1,22 +1,19 @@
+
 /**
- * Form Handling Module
- * Manages forms for image analysis and editing
+ * FormHandler.js - Form handling for the debug interface
  */
 import DebugUtils from './DebugUtils.js';
 import DebugAPI from './DebugAPI.js';
-import DebugUI from './DebugUI.js';
-import DataHandler from './DataHandler.js';
 
-export default {
-    initialize() {
+export default class FormHandler {
+    constructor(debugUI, dataHandler) {
+        this.debugUI = debugUI;
+        this.dataHandler = dataHandler;
         console.log('Form handler initialized');
-    },
-
+    }
+    
     async handleImageAnalysis() {
-        const imageUrlElement = document.getElementById('imageUrl');
-        if (!imageUrlElement) return;
-
-        const imageUrl = imageUrlElement.value.trim();
+        const imageUrl = this.debugUI.elements.imageUrl.value.trim();
         if (!imageUrl) {
             DebugUtils.showToast('Error', 'Please enter an image URL', true);
             return;
@@ -27,9 +24,8 @@ export default {
             const response = await DebugAPI.post('/debug/analyze-image', { image_url: imageUrl });
 
             if (response.success) {
-                DebugUI.displayGeneratedContent(JSON.stringify(response.analysis, null, 2));
-                DebugUI.populateEditForm(response.analysis);
-
+                this.debugUI.displayGeneratedContent(JSON.stringify(response.analysis, null, 2));
+                this.debugUI.populateEditForm(response.analysis);
                 const saveContainer = document.querySelector('.save-button-container');
                 if (saveContainer && !saveContainer.querySelector('#saveToDbBtn')) {
                     const saveBtn = document.createElement('button');
@@ -45,16 +41,13 @@ export default {
         } catch (error) {
             DebugUtils.showToast('Error', 'Failed to analyze image: ' + error.message, true);
         }
-    },
-
+    }
+    
     applyChanges() {
-        const generatedContent = document.getElementById('generatedContent');
-        if (!generatedContent) return;
-
-        const currentContent = generatedContent.textContent;
+        const content = this.debugUI.elements.generatedContent.textContent;
         let contentObj;
         try {
-            contentObj = JSON.parse(currentContent);
+            contentObj = JSON.parse(content);
         } catch (e) {
             DebugUtils.showToast('Error', 'Failed to parse current content', true);
             return;
@@ -80,17 +73,14 @@ export default {
                 .value.split('\n').map(moment => moment.trim()).filter(moment => moment);
         }
 
-        generatedContent.textContent = JSON.stringify(contentObj, null, 2);
+        this.debugUI.elements.generatedContent.textContent = JSON.stringify(contentObj, null, 2);
         console.log('Edited form data:', contentObj);
         DebugUtils.showToast('Success', 'Changes applied');
-    },
-
+    }
+    
     async saveAnalysisToDb(analysis, imageUrl) {
         try {
-            const generatedContent = document.getElementById('generatedContent');
-            if (!generatedContent) return;
-
-            const currentContent = generatedContent.textContent;
+            const currentContent = this.debugUI.elements.generatedContent.textContent;
             let contentObj;
             try {
                 contentObj = JSON.parse(currentContent);
@@ -98,18 +88,16 @@ export default {
                 DebugUtils.showToast('Error', 'Failed to parse current content', true);
                 return;
             }
-
             const saveData = {
                 image_url: imageUrl,
                 analysis: contentObj
             };
-
             console.log('Saving analysis data:', saveData);
             const response = await DebugAPI.post('/debug/save-image', saveData);
 
             if (response.success) {
                 DebugUtils.showToast('Success', 'Image saved to database');
-                DataHandler.loadImages();
+                this.dataHandler.loadImages();
             } else {
                 DebugUtils.showToast('Error', response.message || 'Failed to save image', true);
             }
@@ -117,4 +105,4 @@ export default {
             DebugUtils.showToast('Error', 'Failed to save image: ' + error.message, true);
         }
     }
-};
+}
