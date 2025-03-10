@@ -70,4 +70,29 @@ const DebugUtils = {
     }
 };
 
+function createCurrencyDisplay(balances) {
+    const currencyContainer = document.createElement('div');
+    currencyContainer.className = 'debug-currency-display';
+
+    for (const [currency, amount] of Object.entries(balances)) {
+        const currencyItem = document.createElement('div');
+        currencyItem.className = 'currency-item';
+
+        const symbolSpan = document.createElement('span');
+        symbolSpan.className = 'currency-symbol';
+        symbolSpan.textContent = currency;
+
+        const amountSpan = document.createElement('span');
+        amountSpan.className = 'currency-amount';
+        amountSpan.setAttribute('data-currency', currency);
+        amountSpan.textContent = amount;
+
+        currencyItem.appendChild(symbolSpan);
+        currencyItem.appendChild(amountSpan);
+        currencyContainer.appendChild(currencyItem);
+    }
+
+    return currencyContainer;
+}
+
 export default DebugUtils;
