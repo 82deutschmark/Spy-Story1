@@ -621,25 +621,57 @@ def generate_post():
     try:
         # Validate URL format
         if not image_url.startswith(('http://', 'https://')):
-            return jsonify({'error': 'Invalid image URL format'}), 400
+            return jsonify({'error': 'Invalid image URL format. URL must start with http:// or https://'}), 400
 
         # Check for OpenAI API key
         if not os.environ.get("OPENAI_API_KEY"):
             return jsonify({'error': 'OpenAI API key not configured. Please add it to your Replit Secrets.'}), 500
 
-        # Analyze the artwork using OpenAI
-        analysis = analyze_artwork(image_url)
+        # Check for Midjourney URLs which are known to cause issues
+        if 'midjourney.com' in image_url:
+            return jsonify({
+                'warning': 'Midjourney image URLs are often blocked by OpenAI API. Please try a different image host like Imgur or Unsplash.',
+                'suggestion': 'Try uploading your image to imgur.com and use that URL instead.'
+            }), 400
 
-        # Generate a description of the analyzed image
-        description = generate_image_description(analysis)
+        try:
+            # Analyze the artwork using OpenAI
+            analysis = analyze_artwork(image_url)
 
-        return jsonify({
-            'success': True,
-            'description': description,
-            'analysis': analysis,
-            'saved_to_db': False,
-            'image_url': image_url
-        })
+            # Generate a description of the analyzed image
+            description = generate_image_description(analysis)
+
+            return jsonify({
+                'success': True,
+                'description': description,
+                'analysis': analysis,
+                'saved_to_db': False,
+                'image_url': image_url
+            })
+            
+        except ValueError as validation_error:
+            # Handle specific validation errors
+            logger.error(f"Image validation error: {str(validation_error)}")
+            return jsonify({'error': f"Image validation error: {str(validation_error)}"}), 400
+            
+        except Exception as analysis_error:
+            # Handle OpenAI API errors
+            error_message = str(analysis_error)
+            
+            # Check for specific error patterns
+            if "invalid_image_url" in error_message:
+                return jsonify({
+                    'error': 'The image URL cannot be accessed by OpenAI API.',
+                    'suggestion': 'Please try a different image URL from sources like Imgur or Unsplash.'
+                }), 400
+            elif "image" in error_message.lower() and "download" in error_message.lower():
+                return jsonify({
+                    'error': 'OpenAI had trouble downloading the image.',
+                    'suggestion': 'Please check that the URL is publicly accessible or try a different image host.'
+                }), 400
+            else:
+                logger.error(f"OpenAI analysis error: {error_message}")
+                return jsonify({'error': f"OpenAI analysis error: {error_message}"}), 500
 
     except Exception as e:
         logger.error(f"Error generating post: {str(e)}")
