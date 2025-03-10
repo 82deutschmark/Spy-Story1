@@ -128,16 +128,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
                 
-                // Call form manager to save the data
+                // Call form manager to save the data - this is the only save method we'll use
                 const formSaveResult = await formManager.saveToDatabase(this);
                 
-                if (!formSaveResult) {
-                    // If form save fails, try the direct save method as a fallback
-                    console.log('Form save failed, trying direct save method');
-                    
-                    if (!dataElement || !dataElement.dataset.analysis) {
-                        throw new Error('Analysis data not found');
-                    }
+                // Remove the fallback save method to prevent double saving
+                if (formSaveResult === false) {
+                    // Only if we get an explicit false (not undefined or null) show an error
+                    console.error('Save failed');
+                    throw new Error('Failed to save analysis');
+                }
                     
                     // Parse or use the analysis data
                     let analysisData;

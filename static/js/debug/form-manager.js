@@ -156,6 +156,8 @@ export const formManager = {
                 throw new Error('No analysis data found to update');
             }
 
+            console.log('Starting save operation with current analysis:', this.currentAnalysis);
+            
             // Show loading state
             saveBtn.disabled = true;
             saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
@@ -275,13 +277,15 @@ export const formManager = {
             // Show success message
             dom.showToast('Success', 'Analysis saved successfully');
             saveBtn.innerHTML = '<i class="fas fa-check me-2"></i>Saved';
+            
+            console.log('Save operation completed successfully');
 
             // Refresh the page after a short delay
             setTimeout(() => {
                 location.reload();
             }, 1500);
 
-            return true;
+            return true; // Explicitly return true to indicate success
         } catch (error) {
             console.error('Error saving to database:', error);
             dom.showToast('Error', error.message, true);
