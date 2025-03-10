@@ -24,6 +24,13 @@ This application allows users to generate interactive stories featuring images f
 
 ## Recent Improvements
 
+- **Backend Route Refactoring**:
+  - Restructured routes.py into modular components for better organization and maintainability
+  - Created separate route modules for main, debug, and API functionality
+  - Implemented proper blueprint registration for all route modules
+  - Fixed endpoint naming conflicts and URL building errors
+  - Enhanced route organization with clearer separation of concerns
+
 - **JavaScript Modularization**: 
   - Restructured frontend code with ES6 modules for better maintainability and organization
   - Separated main.js into UIUtils, CurrencyManager, UserProgressManager, CharacterManager, StoryManager, MissionManager, and PaymentManager modules
@@ -35,11 +42,13 @@ This application allows users to generate interactive stories featuring images f
   - Enhanced debug interface with better image analysis workflow
   - Improved form handling for character data editing and saving
   - Added detailed statistics and health checks for database records
+  - Fixed template linking for debug dashboard routes
 
 - **Character System Enhancements**:
   - Standardized character roles (undetermined, villain, neutral, mission-giver)
   - Improved character introduction logic (limited to 10% chance after 4 characters)
   - Enhanced character evolution based on story interactions
+  - Added improved character editing capabilities in debug interface
 
 - **Gameplay Features**:
   - Added mission tracking and objectives to story generation
@@ -53,6 +62,7 @@ This application allows users to generate interactive stories featuring images f
   - Updated backend story generation logic for multiple character selection
   - Enhanced UI with better character highlighting and progress display
   - Fixed form submission duplicates and storyboard rendering issues
+  - Resolved routing conflicts between refactored modules
 
 ## Technology Stack
 
