@@ -11,8 +11,6 @@ export const imageAnalyzer = {
      * @returns {Promise<Object>} Analysis result
      */
     analyze: async (imageUrl) => {
-        console.log('Starting image analysis for URL:', imageUrl);
-
         if (!imageUrl) {
             dom.showToast('Error', 'Please enter an image URL', true);
             return null;
@@ -21,25 +19,31 @@ export const imageAnalyzer = {
         const loadingPercent = dom.createLoadingOverlay('Analyzing image...');
 
         try {
-            console.log('Making API request to /generate');
-            const response = await api.post('/generate', {
-                image_url: imageUrl
-            });
+            // Create form data for the request
+            const formData = new FormData();
+            formData.append('image_url', imageUrl);
 
-            console.log('Received API response:', response);
+            const response = await api.postForm('/generate', formData);
 
-            if (response.success) {
-                console.log('Analysis successful:', response.analysis);
-                return {
-                    analysis: response.analysis,
-                    imageUrl: response.image_url,
-                    savedToDb: response.saved_to_db || false
-                };
-            } else {
-                throw new Error(response.error || 'Failed to analyze image');
+            if (!response) {
+                throw new Error('No response received from server');
             }
+
+            if (response.error) {
+                throw new Error(response.error);
+            }
+
+            if (!response.success) {
+                throw new Error('Failed to analyze image');
+            }
+
+            return {
+                analysis: response.analysis,
+                imageUrl: response.image_url,
+                savedToDb: response.saved_to_db || false
+            };
         } catch (error) {
-            console.error('Error in image analysis:', error);
+            console.error('Image analysis error:', error);
             dom.showToast('Error', error.message, true);
             return null;
         } finally {
@@ -53,14 +57,12 @@ export const imageAnalyzer = {
      * @returns {Promise<boolean>} Success status
      */
     saveToDatabase: async (data) => {
-        console.log('Attempting to save analysis to database:', data);
-
         if (!data.imageUrl || !data.analysis) {
-            dom.showToast('Error', 'No image URL or analysis found', true);
+            dom.showToast('Error', 'Missing image URL or analysis data', true);
             return false;
         }
 
-        const loadingPercent = dom.createLoadingOverlay('Saving analysis...');
+        const loadingPercent = dom.createLoadingOverlay('Saving to database...');
 
         try {
             const response = await api.post('/save_analysis', {
@@ -68,17 +70,19 @@ export const imageAnalyzer = {
                 analysis: data.analysis
             });
 
-            console.log('Save response:', response);
+            if (!response) {
+                throw new Error('No response received from server');
+            }
 
             if (response.error) {
                 throw new Error(response.error);
             }
 
-            dom.showToast('Success', 'Analysis saved to database');
+            dom.showToast('Success', 'Analysis saved successfully');
             return true;
         } catch (error) {
-            console.error('Error saving analysis:', error);
-            dom.showToast('Error', `Failed to save analysis: ${error.message}`, true);
+            console.error('Save to database error:', error);
+            dom.showToast('Error', error.message, true);
             return false;
         } finally {
             dom.removeLoadingOverlay(loadingPercent);

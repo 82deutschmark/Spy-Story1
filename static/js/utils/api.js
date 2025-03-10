@@ -16,21 +16,25 @@ export const api = {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             return await response.json();
         } catch (error) {
-            console.error('API Error:', error);
+            console.error('GET request failed:', error);
             throw error;
         }
     },
 
     /**
-     * Make a POST request to the server
+     * Make a POST request with JSON data
      * @param {string} url - The endpoint URL
      * @param {Object} data - The data to send
      * @returns {Promise} - The response promise
      */
     post: async (url, data = {}) => {
-        console.log('Making POST request to:', url, 'with data:', data);
         try {
             const response = await fetch(url, {
                 method: 'POST',
@@ -40,11 +44,14 @@ export const api = {
                 },
                 body: JSON.stringify(data)
             });
-            const jsonResponse = await response.json();
-            console.log('Received response:', jsonResponse);
-            return jsonResponse;
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
         } catch (error) {
-            console.error('API Error:', error);
+            console.error('POST request failed:', error);
             throw error;
         }
     },
@@ -56,8 +63,11 @@ export const api = {
      * @returns {Promise} - The response promise
      */
     postForm: async (url, formData) => {
-        console.log('Making POST form request to:', url);
         try {
+            if (!(formData instanceof FormData)) {
+                throw new Error('Invalid FormData object');
+            }
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -65,11 +75,14 @@ export const api = {
                 },
                 body: formData
             });
-            const jsonResponse = await response.json();
-            console.log('Received form response:', jsonResponse);
-            return jsonResponse;
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
         } catch (error) {
-            console.error('API Error:', error);
+            console.error('POST form request failed:', error);
             throw error;
         }
     },
@@ -87,9 +100,14 @@ export const api = {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             return await response.json();
         } catch (error) {
-            console.error('API Error:', error);
+            console.error('DELETE request failed:', error);
             throw error;
         }
     }

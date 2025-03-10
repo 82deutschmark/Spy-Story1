@@ -12,6 +12,7 @@ export const databaseManager = {
     refreshImagesList: async (tableBody) => {
         if (!tableBody) return;
 
+        // Show loading state
         tableBody.innerHTML = `
             <tr>
                 <td colspan="6" class="text-center">
@@ -42,9 +43,9 @@ export const databaseManager = {
                     <tr data-id="${img.id}">
                         <td>${img.id}</td>
                         <td><img src="${img.image_url}" class="img-thumbnail" width="100" alt="Thumbnail"></td>
-                        <td>${img.image_type}</td>
+                        <td>${img.image_type || 'N/A'}</td>
                         <td>${img.name || 'N/A'}</td>
-                        <td>${img.created_at}</td>
+                        <td>${new Date(img.created_at).toLocaleString()}</td>
                         <td>
                             <div class="btn-group">
                                 <button class="btn btn-sm btn-info view-details-btn" data-id="${img.id}" title="View Details">
@@ -58,7 +59,13 @@ export const databaseManager = {
                     </tr>`;
             });
         } catch (error) {
-            dom.showToast('Error', 'Failed to load images: ' + error.message, 'error');
+            dom.showToast('Error', 'Failed to load images: ' + error.message, true);
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center text-danger">
+                        Error loading images: ${error.message}
+                    </td>
+                </tr>`;
         }
     },
 
@@ -68,17 +75,21 @@ export const databaseManager = {
      * @returns {Promise<boolean>} Success status
      */
     deleteImage: async (imageId) => {
+        if (!confirm('Are you sure you want to delete this image record?')) {
+            return false;
+        }
+
         try {
             const response = await api.delete(`/api/image/${imageId}`);
-            
+
             if (response.error) {
                 throw new Error(response.error);
             }
-            
-            dom.showToast('Success', response.message, 'success');
+
+            dom.showToast('Success', 'Image deleted successfully');
             return true;
         } catch (error) {
-            dom.showToast('Error', 'Failed to delete image: ' + error.message, 'error');
+            dom.showToast('Error', 'Failed to delete image: ' + error.message, true);
             return false;
         }
     },
@@ -88,18 +99,42 @@ export const databaseManager = {
      * @returns {Promise<boolean>} Success status
      */
     deleteAllImages: async () => {
+        if (!confirm('WARNING: Are you sure you want to delete ALL image records? This cannot be undone.')) {
+            return false;
+        }
+
         try {
-            const response = await api.post('/api/db/delete-all-images');
-            
+            const response = await api.delete('/api/images/all');
+
             if (response.error) {
                 throw new Error(response.error);
             }
-            
-            dom.showToast('Success', response.message, 'success');
+
+            dom.showToast('Success', 'All images deleted successfully');
             return true;
         } catch (error) {
-            dom.showToast('Error', 'Failed to delete all images: ' + error.message, 'error');
+            dom.showToast('Error', 'Failed to delete all images: ' + error.message, true);
             return false;
+        }
+    },
+
+    /**
+     * Load image details
+     * @param {string} imageId - ID of the image to load
+     * @returns {Promise<Object>} Image details
+     */
+    loadImageDetails: async (imageId) => {
+        try {
+            const response = await api.get(`/api/image/${imageId}`);
+
+            if (response.error) {
+                throw new Error(response.error);
+            }
+
+            return response;
+        } catch (error) {
+            dom.showToast('Error', 'Failed to load image details: ' + error.message, true);
+            return null;
         }
     }
 };
