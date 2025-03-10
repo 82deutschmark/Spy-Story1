@@ -13,6 +13,8 @@ export default {
      * @returns {Promise} - Promise resolving to story generation result
      */
     generateStory(formData) {
+        console.log('Generating story, showing loading indicators...');
+        
         // Create loading overlay with percentage
         const loadingPercent = UIUtils.createLoadingOverlay('Generating your adventure...');
 
@@ -33,15 +35,61 @@ export default {
         // Add loading UI element to show percentage
         const loadingUI = document.createElement('div');
         loadingUI.className = 'loading-percentage-display';
-        loadingUI.innerHTML = '<div class="loading-text">Crafting your adventure...</div><div class="progress"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%"></div></div>';
+        loadingUI.style.position = 'fixed';
+        loadingUI.style.top = '50%';
+        loadingUI.style.left = '50%';
+        loadingUI.style.transform = 'translate(-50%, -50%)';
+        loadingUI.style.width = '80%';
+        loadingUI.style.maxWidth = '500px';
+        loadingUI.style.backgroundColor = 'rgba(33, 37, 41, 0.95)';
+        loadingUI.style.borderRadius = '10px';
+        loadingUI.style.padding = '20px';
+        loadingUI.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.5)';
+        loadingUI.style.zIndex = '9999';
+        loadingUI.style.textAlign = 'center';
+        
+        loadingUI.innerHTML = `
+            <div class="loading-text mb-3" style="color: white; font-size: 18px; font-weight: bold;">
+                Crafting your adventure...
+            </div>
+            <div class="loading-phases mb-3" style="color: #adb5bd; font-size: 14px; text-align: left;">
+                <div class="phase" style="margin-bottom: 10px;">✓ Analyzing selected characters</div>
+                <div class="phase" style="margin-bottom: 10px;">⋯ Generating story framework</div>
+                <div class="phase" style="margin-bottom: 10px;">⋯ Building character relationships</div>
+                <div class="phase" style="margin-bottom: 10px;">⋯ Creating dramatic plot points</div>
+                <div class="phase" style="margin-bottom: 10px;">⋯ Finalizing your adventure</div>
+            </div>
+            <div class="progress">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%"></div>
+            </div>
+            <div class="progress-text mt-2" style="color: white; font-size: 16px;">0%</div>
+        `;
+        
         document.body.appendChild(loadingUI);
         
-        // Update loading bar
+        // Update loading bar and phases
         const progressBar = loadingUI.querySelector('.progress-bar');
+        const progressText = loadingUI.querySelector('.progress-text');
+        const phases = loadingUI.querySelectorAll('.phase');
+        
         const progressUpdate = setInterval(() => {
             if (progress < 90) {
                 progressBar.style.width = progress + '%';
                 progressBar.setAttribute('aria-valuenow', progress);
+                progressText.textContent = progress + '%';
+                
+                // Update phases based on progress
+                if (progress > 10 && progress <= 30) {
+                    phases[0].innerHTML = '✓ Analyzing selected characters';
+                    phases[1].innerHTML = '✓ Generating story framework';
+                    phases[2].innerHTML = '⋯ Building character relationships';
+                } else if (progress > 30 && progress <= 50) {
+                    phases[2].innerHTML = '✓ Building character relationships';
+                    phases[3].innerHTML = '⋯ Creating dramatic plot points';
+                } else if (progress > 50 && progress <= 80) {
+                    phases[3].innerHTML = '✓ Creating dramatic plot points';
+                    phases[4].innerHTML = '⋯ Finalizing your adventure';
+                }
             }
         }, 500);
 
