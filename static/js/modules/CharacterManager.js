@@ -65,13 +65,29 @@ class CharacterManager {
             button.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation(); // Prevent event from bubbling up
-                const characterContainer = button.closest('.character-select-card');
+                
+                // Look for character container in parents
+                let characterContainer = button.closest('.character-select-card');
+                
+                // If not found directly, try to find it through parent elements
                 if (!characterContainer) {
-                    console.error('Character container not found');
+                    characterContainer = button.closest('.character-info-box')?.parentElement;
+                }
+                
+                // If still not found, try to get it using the data-card-index attribute
+                if (!characterContainer) {
+                    const cardIndex = button.getAttribute('data-card-index');
+                    if (cardIndex !== null) {
+                        characterContainer = document.querySelectorAll('.character-select-card')[parseInt(cardIndex)];
+                    }
+                }
+                
+                if (!characterContainer) {
+                    console.error('Character container not found for reroll button:', button);
                     return;
                 }
 
-                console.log(`Rerolling character at index: ${characterContainer.dataset.index}`);
+                console.log(`Rerolling character at index: ${button.dataset.cardIndex || 'unknown'}`);
 
                 // Disable the button and show loading state
                 button.disabled = true;
