@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.UIUtils = UIUtils;  // UIUtils is already an object, not a constructor
     window.currencyManager = new CurrencyManager();
     window.characterManager = new CharacterManager(); // Added CharacterManager initialization
+    console.log('Character manager initialized: ', window.characterManager);
     window.paymentManager = new PaymentManager();
     window.storyManager = new StoryManager();
     window.userProgress = new UserProgress();
@@ -39,10 +40,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (document.querySelector('.character-select-card')) {
         console.log('Character selection page detected, setting up character interactions');
         
+        // Check for reroll buttons
+        const rerollButtons = document.querySelectorAll('.reroll-btn');
+        console.log(`Found ${rerollButtons.length} reroll buttons`);
+        
         // Add a small delay to ensure DOM is fully rendered
         setTimeout(() => {
             if (window.characterManager) {
+                console.log('Setting up character select listeners');
                 window.characterManager.setupCharacterSelectListeners();
+                console.log('Setting up reroll button listeners');
                 window.characterManager.setupRerollButtonListeners();
                 console.log('Character interactions initialized');
             } else {

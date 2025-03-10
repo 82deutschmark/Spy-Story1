@@ -10,16 +10,19 @@ export default {
      * @returns {HTMLElement} - The percentage element for updating
      */
     createLoadingOverlay(message = 'Loading...') {
+        console.log('Creating loading overlay with message:', message);
         const overlay = document.createElement('div');
         overlay.className = 'loading-overlay';
         overlay.innerHTML = `
             <div class="loading-content">
                 <div class="loading-spinner"></div>
+                <div class="loading-message">${message}</div>
                 <div class="loading-percentage">0%</div>
             </div>
         `;
         document.body.appendChild(overlay);
         overlay.style.display = 'flex';
+        console.log('Loading overlay created');
         return overlay.querySelector('.loading-percentage');
     },
 
@@ -30,7 +33,10 @@ export default {
      */
     updateLoadingPercent(element, percent) {
         if (element) {
+            console.log('Updating loading percent:', percent);
             element.textContent = `${Math.round(percent)}%`;
+        } else {
+            console.error('Loading percentage element not found');
         }
     },
 
@@ -39,8 +45,12 @@ export default {
      * @param {HTMLElement} overlay - The percentage element within the overlay
      */
     removeLoadingOverlay(overlay) {
+        console.log('Removing loading overlay');
         if (overlay && overlay.closest('.loading-overlay')) {
             overlay.closest('.loading-overlay').remove();
+            console.log('Loading overlay removed');
+        } else {
+            console.error('Loading overlay not found for removal');
         }
     },
 
