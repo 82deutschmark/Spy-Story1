@@ -1,25 +1,22 @@
-
 /**
  * Form Handling Module
- * Handles form submissions and data processing
+ * Manages forms for image analysis and editing
  */
 import DebugUtils from './DebugUtils.js';
 import DebugAPI from './DebugAPI.js';
 import DebugUI from './DebugUI.js';
+import DataHandler from './DataHandler.js';
 
 export default {
-    /**
-     * Initialize form handler
-     */
     initialize() {
         console.log('Form handler initialized');
     },
 
-    /**
-     * Handle image analysis form submission
-     */
     async handleImageAnalysis() {
-        const imageUrl = DebugUI.elements.imageUrl.value.trim();
+        const imageUrlElement = document.getElementById('imageUrl');
+        if (!imageUrlElement) return;
+
+        const imageUrl = imageUrlElement.value.trim();
         if (!imageUrl) {
             DebugUtils.showToast('Error', 'Please enter an image URL', true);
             return;
@@ -27,20 +24,14 @@ export default {
 
         try {
             DebugUtils.showToast('Processing', 'Analyzing image...');
-
-            // Send to backend for analysis
             const response = await DebugAPI.post('/debug/analyze-image', { image_url: imageUrl });
 
             if (response.success) {
-                // Display the result
                 DebugUI.displayGeneratedContent(JSON.stringify(response.analysis, null, 2));
-
-                // Populate edit form with data
                 DebugUI.populateEditForm(response.analysis);
 
-                // Add save button if not already present
                 const saveContainer = document.querySelector('.save-button-container');
-                if (!saveContainer.querySelector('#saveToDbBtn')) {
+                if (saveContainer && !saveContainer.querySelector('#saveToDbBtn')) {
                     const saveBtn = document.createElement('button');
                     saveBtn.id = 'saveToDbBtn';
                     saveBtn.className = 'btn btn-primary';
@@ -56,12 +47,11 @@ export default {
         }
     },
 
-    /**
-     * Apply changes from edit form
-     */
     applyChanges() {
-        // Get the current content as an object
-        const currentContent = DebugUI.elements.generatedContent.textContent;
+        const generatedContent = document.getElementById('generatedContent');
+        if (!generatedContent) return;
+
+        const currentContent = generatedContent.textContent;
         let contentObj;
         try {
             contentObj = JSON.parse(currentContent);
@@ -70,25 +60,18 @@ export default {
             return;
         }
 
-        // Update with form values
         contentObj.name = document.getElementById('imageName').value;
         contentObj.type = document.getElementById('imageType').value.toUpperCase();
         contentObj.image_type = document.getElementById('imageType').value;
         contentObj.description = document.getElementById('descriptionField').value;
 
-        // Type-specific fields
         if (contentObj.image_type === 'character') {
             contentObj.role = document.getElementById('characterRole').value;
             contentObj.personality_traits = document.getElementById('characterTraits')
                 .value.split(',').map(trait => trait.trim()).filter(trait => trait);
-
-            // For compatibility
             contentObj.character_traits = [...contentObj.personality_traits];
-
             contentObj.potential_plot_lines = document.getElementById('plotLines')
                 .value.split('\n').map(line => line.trim()).filter(line => line);
-
-            // For compatibility
             contentObj.plot_lines = [...contentObj.potential_plot_lines];
         } else {
             contentObj.scene_type = document.getElementById('sceneType').value;
@@ -97,22 +80,17 @@ export default {
                 .value.split('\n').map(moment => moment.trim()).filter(moment => moment);
         }
 
-        // Update the displayed content
-        DebugUI.elements.generatedContent.textContent = JSON.stringify(contentObj, null, 2);
+        generatedContent.textContent = JSON.stringify(contentObj, null, 2);
         console.log('Edited form data:', contentObj);
-
         DebugUtils.showToast('Success', 'Changes applied');
     },
 
-    /**
-     * Save analysis to database
-     * @param {object} analysis - Analysis data
-     * @param {string} imageUrl - Image URL
-     */
     async saveAnalysisToDb(analysis, imageUrl) {
         try {
-            // Get the current content as it might have been edited
-            const currentContent = DebugUI.elements.generatedContent.textContent;
+            const generatedContent = document.getElementById('generatedContent');
+            if (!generatedContent) return;
+
+            const currentContent = generatedContent.textContent;
             let contentObj;
             try {
                 contentObj = JSON.parse(currentContent);
@@ -121,20 +99,16 @@ export default {
                 return;
             }
 
-            // Prepare data to save
             const saveData = {
                 image_url: imageUrl,
                 analysis: contentObj
             };
 
             console.log('Saving analysis data:', saveData);
-
-            // Send to backend
             const response = await DebugAPI.post('/debug/save-image', saveData);
 
             if (response.success) {
                 DebugUtils.showToast('Success', 'Image saved to database');
-                // Refresh image list
                 DataHandler.loadImages();
             } else {
                 DebugUtils.showToast('Error', response.message || 'Failed to save image', true);

@@ -23,92 +23,101 @@ export default {
         storiesTableBody: document.getElementById('storiesTableBody'),
         storiesPagination: document.getElementById('storiesPagination')
     },
-
-    /**
-     * Initialize UI elements
-     */
+    
     initialize() {
+        this.setupEventListeners();
         console.log('Debug UI module initialized');
     },
-
-    /**
-     * Toggle fields based on image type
-     */
+    
+    setupEventListeners() {
+        if (this.elements.imageForm) {
+            this.elements.imageForm.addEventListener('submit', event => {
+                event.preventDefault();
+                FormHandler.handleImageAnalysis();
+            });
+        }
+        
+        if (this.elements.editModeSwitch) {
+            this.elements.editModeSwitch.addEventListener('change', () => {
+                this.elements.editContainer.style.display = this.elements.editModeSwitch.checked ? 'block' : 'none';
+            });
+        }
+        
+        if (this.elements.copyBtn) {
+            this.elements.copyBtn.addEventListener('click', () => {
+                const content = this.elements.generatedContent.textContent;
+                navigator.clipboard.writeText(content)
+                    .then(() => DebugUtils.showToast('Success', 'Content copied to clipboard'))
+                    .catch(err => DebugUtils.showToast('Error', 'Failed to copy: ' + err, true));
+            });
+        }
+        
+        if (this.elements.imageType) {
+            this.elements.imageType.addEventListener('change', () => {
+                this.toggleFieldsByImageType();
+            });
+        }
+        
+        if (this.elements.applyChangesBtn) {
+            this.elements.applyChangesBtn.addEventListener('click', () => {
+                FormHandler.applyChanges();
+            });
+        }
+        
+        document.querySelectorAll('.filter-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const filter = button.getAttribute('data-filter');
+                DataHandler.filterImages(filter);
+            });
+        });
+    },
+    
     toggleFieldsByImageType() {
         const type = this.elements.imageType.value;
         this.elements.characterFields.style.display = type === 'character' ? 'block' : 'none';
         this.elements.sceneFields.style.display = type === 'scene' ? 'block' : 'none';
     },
-
-    /**
-     * Show result container
-     */
+    
     showResult() {
         this.elements.resultContainer.style.display = 'block';
     },
-
-    /**
-     * Hide result container
-     */
+    
     hideResult() {
         this.elements.resultContainer.style.display = 'none';
     },
-
-    /**
-     * Display generated content
-     * @param {string} content - Content to display
-     */
+    
     displayGeneratedContent(content) {
         this.elements.generatedContent.textContent = content;
         this.showResult();
     },
-
-    /**
-     * Populate edit form with data
-     * @param {object} data - Data to populate form with
-     */
+    
     populateEditForm(data) {
         console.log('Populated edit form with data:', data);
-
-        // Common fields
         document.getElementById('imageName').value = data.name || '';
         document.getElementById('descriptionField').value = data.description || '';
-
-        // Set image type and show corresponding fields
         document.getElementById('imageType').value = data.image_type || 'character';
         this.toggleFieldsByImageType();
-
-        // Character-specific fields
+        
         if (data.image_type === 'character') {
             document.getElementById('characterRole').value = data.role || 'undetermined';
-            document.getElementById('characterTraits').value = 
-                Array.isArray(data.traits) ? data.traits.join(', ') : '';
-            document.getElementById('plotLines').value = 
-                Array.isArray(data.plot_lines) ? data.plot_lines.join('\n') : '';
-        } 
-        // Scene-specific fields
-        else if (data.image_type === 'scene') {
+            document.getElementById('characterTraits').value = Array.isArray(data.traits) ? data.traits.join(', ') : 
+                (Array.isArray(data.character_traits) ? data.character_traits.join(', ') : '');
+            document.getElementById('plotLines').value = Array.isArray(data.plot_lines) ? data.plot_lines.join('\n') : '';
+        } else if (data.image_type === 'scene') {
             document.getElementById('sceneType').value = data.scene_type || 'action';
             document.getElementById('sceneSetting').value = data.setting || '';
-            document.getElementById('dramaticMoments').value = 
-                Array.isArray(data.dramatic_moments) ? data.dramatic_moments.join('\n') : '';
+            document.getElementById('dramaticMoments').value = Array.isArray(data.dramatic_moments) ? data.dramatic_moments.join('\n') : '';
         }
     },
-
-    /**
-     * Create pagination controls
-     * @param {string} elementId - ID of pagination container
-     * @param {number} totalPages - Total number of pages
-     * @param {number} currentPage - Current page
-     * @param {function} clickHandler - Click handler for page links
-     */
+    
     createPagination(elementId, totalPages, currentPage, clickHandler) {
         const paginationEl = document.getElementById(elementId);
+        if (!paginationEl) return;
+        
         paginationEl.innerHTML = '';
-
+        
         if (totalPages <= 1) return;
-
-        // Previous button
+        
         const prevLi = document.createElement('li');
         prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
         const prevLink = document.createElement('a');
@@ -123,12 +132,10 @@ export default {
         }
         prevLi.appendChild(prevLink);
         paginationEl.appendChild(prevLi);
-
-        // Page numbers
+        
         for (let i = 1; i <= totalPages; i++) {
             const li = document.createElement('li');
             li.className = `page-item ${i === currentPage ? 'active' : ''}`;
-
             const link = document.createElement('a');
             link.className = 'page-link';
             link.href = '#';
@@ -139,12 +146,10 @@ export default {
                     clickHandler(i);
                 }
             });
-
             li.appendChild(link);
             paginationEl.appendChild(li);
         }
-
-        // Next button
+        
         const nextLi = document.createElement('li');
         nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
         const nextLink = document.createElement('a');
