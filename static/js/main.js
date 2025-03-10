@@ -1018,6 +1018,25 @@ function initStoryHandler() {
         // Initialize story handler with current story ID
         window.StoryHandler.initialize(storyId);
         console.log('Story handler initialized for story ID:', storyId);
+        
+        // Manually add event listener for trade offer buttons
+        document.querySelectorAll('.accept-trade-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                const fromCurrency = e.target.dataset.from;
+                const toCurrency = e.target.dataset.to;
+                const rate = parseFloat(e.target.dataset.rate);
+                const amount = e.target.dataset.amount ? parseFloat(e.target.dataset.amount) : 100;
+                
+                console.log('Trade offer clicked:', {fromCurrency, toCurrency, rate, amount});
+                
+                // Call the currency handler to accept the trade offer
+                if (window.CurrencyHandler && typeof window.CurrencyHandler.acceptTradeOffer === 'function') {
+                    window.CurrencyHandler.acceptTradeOffer(fromCurrency, toCurrency, rate, amount);
+                } else {
+                    console.error('CurrencyHandler is not available or acceptTradeOffer is not a function');
+                }
+            });
+        });
     }
 }
 
