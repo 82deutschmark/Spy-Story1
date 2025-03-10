@@ -120,7 +120,9 @@ def analyze_artwork(image_url):
                 "content": [
                     {
                         "type": "image_url",
-                        "image_url": image_url
+                        "image_url": {
+                            "url": image_url
+                        }
                     }
                 ]
             }
