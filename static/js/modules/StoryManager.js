@@ -13,172 +13,86 @@ export default {
      * @returns {Promise} - Promise resolving to story generation result
      */
     generateStory(form) {
-        // Check if already in progress
-        if (document.body.classList.contains('loading-in-progress')) {
-            return;
-        }
+        return new Promise((resolve, reject) => {
+            if (!form) {
+                reject(new Error('Form not provided'));
+                return;
+            }
 
-        // Mark as in progress
-        document.body.classList.add('loading-in-progress');
+            // Get the selected character(s)
+            const selectedCharacters = document.querySelectorAll('.character-select-card.selected');
+            if (selectedCharacters.length === 0) {
+                window.UIUtils.showToast('Error', 'Please select at least one character for your story.', 'error');
+                reject(new Error('No characters selected'));
+                return;
+            }
 
-        // Get the submit button and disable it
-        const generateStoryBtn = form.querySelector('button[type="submit"]');
-        if (generateStoryBtn) {
-            generateStoryBtn.disabled = true;
-            generateStoryBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
-        }
+            // Get the selected story theme
+            const themeSelect = form.querySelector('select[name="theme"]');
+            if (!themeSelect || !themeSelect.value) {
+                window.UIUtils.showToast('Error', 'Please select a story theme.', 'error');
+                reject(new Error('No theme selected'));
+                return;
+            }
 
-        // Create a progress counter
-        let progress = 0;
-        let loadingPercent = null;
+            // Get form data
+            const formData = new FormData(form);
 
-        // First create loading overlay for immediate visual feedback
-        const loadingOverlay = document.createElement('div');
-        loadingOverlay.className = 'loading-overlay';
-        loadingOverlay.innerHTML = `
-            <div class="loading-content">
-                <div class="loading-spinner"></div>
-                <div class="loading-message">Generating your adventure...</div>
-                <div class="loading-percentage">0%</div>
-            </div>
-        `;
-        document.body.appendChild(loadingOverlay);
-        loadingPercent = loadingOverlay.querySelector('.loading-percentage');
+            // Create a loading overlay using the LoadingManager
+            const loadingContext = window.UIUtils.createLoadingOverlay('Creating your adventure...');
 
-        // Set up simulated progress updates
-        const progressInterval = setInterval(() => {
-            if (progress < 90) {
-                progress += Math.random() * 5;
-                progress = Math.min(progress, 90);
-
-                // Update the simple overlay
-                if (loadingPercent) {
-                    loadingPercent.textContent = Math.round(progress) + '%';
+            // Simulate progress updates
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                if (progress < 90) {
+                    progress += Math.floor(Math.random() * 5) + 1;
+                    window.UIUtils.updateLoadingPercent(loadingContext, progress);
                 }
-            }
-        }, 1000);
+            }, 500);
 
-        // Create the detailed loading UI
-        const loadingUI = this.createLoadingUI();
-        document.body.appendChild(loadingUI);
-
-        // Update loading bar and phases
-        const progressBar = loadingUI.querySelector('.progress-bar');
-        const progressText = loadingUI.querySelector('.progress-text');
-        const phases = loadingUI.querySelectorAll('.phase');
-
-        const progressUpdate = setInterval(() => {
-            if (progress < 90) {
-                // Update progress bar
-                progressBar.style.width = progress + '%';
-                progressBar.setAttribute('aria-valuenow', progress);
-                progressText.textContent = progress + '%';
-
-                // Update phases based on progress
-                this.updateProgressPhases(phases, progress);
-            }
-        }, 500);
-
-        // Make the API request
-        return fetch('/generate_story', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
+            // Submit the form data
+            fetch('/api/generate_story', {
+                method: 'POST',
+                body: formData
+            })
             .then(response => {
                 if (!response.ok) {
-                    return response.json().then(data => {
-                        throw new Error(data.error || `Server error: ${response.status}`);
-                    });
+                    throw new Error('Failed to generate story');
                 }
                 return response.json();
             })
             .then(data => {
-                // Clear the automatic progress update
                 clearInterval(progressInterval);
-                clearInterval(progressUpdate);
+                window.UIUtils.updateLoadingPercent(loadingContext, 100);
 
                 if (data.success) {
-                    // Update progress to 100%
-                    progress = 100;
+                    // Trigger an event that the story was generated successfully
+                    window.UIUtils.triggerEvent('story-generated', {
+                        storyId: data.story_id,
+                        redirectUrl: data.redirect_url
+                    });
 
-                    // Update loading percentage display
-                    const loadingPercentElement = document.querySelector('.loading-percentage');
-                    if (loadingPercentElement) {
-                        loadingPercentElement.textContent = '100%';
-                    }
-
-                    if (progressBar) {
-                        progressBar.style.width = progress + '%';
-                        progressBar.setAttribute('aria-valuenow', progress);
-                    }
-                    if (progressText) {
-                        progressText.textContent = progress + '%';
-                    }
-
-                    // Update phase indicators
-                    if (phases && phases.length) {
-                        for (let i = 0; i < phases.length; i++) {
-                            phases[i].style.color = '#4CAF50';
-                            phases[i].innerHTML = '<i class="fas fa-check-circle me-2"></i>' + phases[i].textContent;
-                        }
-                    }
-
-                    // Wait a moment so user can see completion before redirect
-                    setTimeout(() => {
-                        // Clean up loading UI elements
-                        if (loadingUI) loadingUI.remove();
-
-                        // Remove loading overlay
-                        const loadingOverlay = document.querySelector('.loading-overlay');
-                        if (loadingOverlay) {
-                            loadingOverlay.remove();
-                        }
-
-                        document.body.classList.remove('loading-in-progress');
-
-                        // Redirect to the new story
-                        window.location.href = data.redirect;
-                    }, 1000);
-                    return data;
+                    // Redirect to the story page after a brief delay
+                    window.UIUtils.removeLoadingOverlay(loadingContext, () => {
+                        window.location.href = data.redirect_url;
+                        resolve(data);
+                    });
                 } else {
                     throw new Error(data.error || 'Failed to generate story');
                 }
             })
             .catch(error => {
+                clearInterval(progressInterval);
+                window.UIUtils.removeLoadingOverlay(loadingContext);
                 console.error('Error generating story:', error);
 
-                // Clean up all intervals
-                clearInterval(progressInterval);
-                clearInterval(progressUpdate);
-
-                // Reset UI elements
-                if (generateStoryBtn) {
-                    generateStoryBtn.disabled = false;
-                    generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
-                }
-
-                // Remove loading indicators
-                if (loadingPercent) loadingPercent.textContent = '0%'; //added
-                UIUtils.removeLoadingOverlay(loadingPercent);
-                document.body.classList.remove('loading-in-progress');
-
-                // Remove the detailed loading UI
-                if (loadingUI && loadingUI.parentNode) {
-                    loadingUI.parentNode.removeChild(loadingUI);
-                }
-
-                // Remove loading overlay
-                const loadingOverlay = document.querySelector('.loading-overlay');
-                if (loadingOverlay) loadingOverlay.remove();
-
                 // Show error message
-                UIUtils.showToast('Error', error.message || 'Failed to generate story. Please try again.');
+                window.UIUtils.showToast('Error', 'Failed to generate story. Please try again.', 'error');
 
-                throw error;
+                // Reject the promise
+                reject(error);
             });
+        });
     },
 
     /**
@@ -644,5 +558,72 @@ export default {
                 }
                 return response.json();
             });
+    },
+
+    /**
+     * Initialize story generation event listeners
+     */
+    initEventListeners() {
+        // Get form and button using DOMUtils
+        const storyForm = document.getElementById('storyForm');
+        const generateBtn = document.getElementById('generateStoryBtn');
+
+        if (storyForm) {
+            storyForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.generateStory(e.target)
+                    .then(data => {
+                        // Success handling (if needed)
+                    })
+                    .catch(error => {
+                        console.error('Error generating story:', error);
+                        window.UIUtils.showToast('Error', 'Failed to generate story. Please try again.', 'error');
+                    });
+            });
+            console.log('Story form submit listener initialized');
+        }
+
+        if (generateBtn) {
+            generateBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+
+                // Use UIUtils to show button loading state
+                const restoreButton = window.UIUtils.showButtonLoading(
+                    generateBtn, 
+                    'Generating Story...'
+                );
+
+                // Trigger event before generation starts
+                window.UIUtils.triggerEvent('story-generation-started');
+
+                const form = document.getElementById('storyForm');
+                if (form) {
+                    // Disable the form during generation
+                    window.UIUtils.disableForm(form);
+
+                    // Generate the story
+                    this.generateStory(form)
+                        .catch(error => {
+                            console.error('Error generating story:', error);
+                            window.UIUtils.showToast('Error', 'Failed to generate story. Please try again.', 'error');
+                        })
+                        .finally(() => {
+                            // Re-enable the form
+                            window.UIUtils.enableForm(form);
+
+                            // Restore the button
+                            restoreButton();
+
+                            // Trigger event when generation is complete
+                            window.UIUtils.triggerEvent('story-generation-completed');
+                        });
+                } else {
+                    // If form not found, restore the button
+                    restoreButton();
+                    window.UIUtils.showToast('Error', 'Story form not found', 'error');
+                }
+            });
+            console.log('Generate story button listener initialized');
+        }
     }
 };

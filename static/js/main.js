@@ -2,6 +2,9 @@
  * Main entry point for the application
  * Imports all modules and initializes the application
  */
+import DOMUtils from './modules/DOMUtils.js';
+import EventManager from './modules/EventManager.js';
+import LoadingManager from './modules/LoadingManager.js';
 import UIUtils from './modules/UIUtils.js';
 import CurrencyManager from './modules/CurrencyManager.js';
 import UserProgress from './modules/UserProgress.js';
@@ -13,6 +16,9 @@ import EventHandlers from './modules/EventHandlers.js';
 
 // Make core modules available globally for debugging
 window.App = {
+    DOM: DOMUtils,
+    Events: EventManager,
+    Loading: LoadingManager,
     UI: UIUtils,
     Currency: CurrencyManager,
     Progress: UserProgress,
@@ -26,15 +32,25 @@ window.App = {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, initializing application modules...');
 
-    // Initialize modules
-    window.UIUtils = UIUtils;  // UIUtils is already an object, not a constructor
+    // Initialize utility modules
+    window.DOMUtils = DOMUtils;
+    window.EventManager = EventManager;
+    window.LoadingManager = LoadingManager;
+    window.UIUtils = UIUtils;
+    
+    // Initialize application modules
     window.currencyManager = new CurrencyManager();
-    window.characterManager = new CharacterManager(); // Added CharacterManager initialization
+    window.characterManager = new CharacterManager();
     console.log('Character manager initialized: ', window.characterManager);
     window.paymentManager = new PaymentManager();
     window.storyManager = new StoryManager();
     window.userProgress = new UserProgress();
     window.missionManager = new MissionManager();
+    
+    // Subscribe to global events for debugging
+    EventManager.subscribe('*', (eventData) => {
+        console.debug(`Event triggered: ${eventData.eventName}`, eventData);
+    });
 
     // Initialize event handlers for the index page
     if (document.querySelector('.character-select-card')) {

@@ -72,26 +72,30 @@ class CharacterManager {
     // Setup listeners for reroll buttons
     setupRerollButtonListeners() {
         console.log('Setting up reroll button listeners');
-        // Set up event listeners for the reroll buttons
-        document.querySelectorAll('.reroll-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
+        
+        // Set up event listeners for the reroll buttons using delegation
+        const characterContainers = document.querySelectorAll('.character-container');
+        characterContainers.forEach(container => {
+            // Use delegation for each character container
+            container.addEventListener('click', (e) => {
+                // Only handle clicks on reroll buttons
+                const button = e.target.closest('.reroll-btn');
+                if (!button) return;
+                
                 e.preventDefault();
                 e.stopPropagation(); // Prevent event from bubbling up
                 
-                // Look for character container in parents
-                let characterContainer = button.closest('.character-select-card');
-                
-                // If not found directly, try to find it through parent elements
-                if (!characterContainer) {
-                    characterContainer = button.closest('.character-info-box')?.parentElement;
+                // Get the character card consistently using data attributes
+                const cardIndex = button.getAttribute('data-card-index');
+                if (cardIndex === null) {
+                    console.error('Button missing data-card-index attribute:', button);
+                    return;
                 }
                 
-                // If still not found, try to get it using the data-card-index attribute
+                // Find character container - either the direct parent card or by index
+                let characterContainer = button.closest('.character-select-card');
                 if (!characterContainer) {
-                    const cardIndex = button.getAttribute('data-card-index');
-                    if (cardIndex !== null) {
-                        characterContainer = document.querySelectorAll('.character-select-card')[parseInt(cardIndex)];
-                    }
+                    characterContainer = document.querySelectorAll('.character-select-card')[parseInt(cardIndex)];
                 }
                 
                 if (!characterContainer) {
@@ -99,58 +103,63 @@ class CharacterManager {
                     return;
                 }
 
-                console.log(`Rerolling character at index: ${button.dataset.cardIndex || 'unknown'}`);
+                console.log(`Rerolling character at index: ${cardIndex}`);
 
-                // Disable the button and show loading state
-                button.disabled = true;
-                button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Loading...';
+                // Use the LoadingManager through UIUtils for button state
+                const restoreButton = window.UIUtils.showButtonLoading(button, 'Loading...');
 
                 // Create loading overlay with percentage
-                const loadingPercent = window.UIUtils.createLoadingOverlay('Finding new character...');
+                const loadingContext = window.UIUtils.createLoadingOverlay('Finding new character...');
+                
+                // Simulate progress updates
                 let progress = 0;
                 const progressInterval = setInterval(() => {
                     if (progress < 90) {
                         progress += 5;
-                        window.UIUtils.updateLoadingPercent(loadingPercent, progress);
+                        window.UIUtils.updateLoadingPercent(loadingContext, progress);
                     }
                 }, 500);
 
-                const characterCard = characterContainer;
-
-                fetch('/api/random_character')
-                    .then(response => response.json())
+                // Fetch new character
+                this.fetchRandomCharacter()
                     .then(data => {
                         clearInterval(progressInterval);
-                        window.UIUtils.updateLoadingPercent(loadingPercent, 100);
-
-                        if (data.success) {
-                            setTimeout(() => {
-                                this.updateCharacterCard(characterContainer, data);
-                                window.UIUtils.removeLoadingOverlay(loadingPercent);
-
-                                // Re-enable the button
-                                button.disabled = false;
-                                button.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
-
-                                window.UIUtils.showToast('Success', 'Character rerolled successfully!');
-                            }, 500);
-                        } else {
-                            throw new Error(data.error || 'Failed to reroll character');
-                        }
+                        window.UIUtils.updateLoadingPercent(loadingContext, 100);
+                        
+                        // Update the character card
+                        this.updateCharacterCard(characterContainer, data);
+                        
+                        // Remove loading overlay with a small delay for visual polish
+                        window.UIUtils.removeLoadingOverlay(loadingContext, () => {
+                            // Restore button state
+                            restoreButton('<i class="fas fa-dice me-1"></i> Reroll Character');
+                            
+                            // Show success message
+                            window.UIUtils.showToast('Success', 'Character rerolled successfully!');
+                            
+                            // Trigger event for any interested listeners
+                            window.UIUtils.triggerEvent('character-rerolled', {
+                                characterId: data.id,
+                                cardIndex: cardIndex
+                            });
+                        });
                     })
                     .catch(error => {
                         console.error('Error fetching random character:', error);
                         clearInterval(progressInterval);
-                        window.UIUtils.removeLoadingOverlay(loadingPercent);
-
-                        // Re-enable the button
-                        button.disabled = false;
-                        button.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
-
-                        window.UIUtils.showToast('Error', 'Failed to reroll character. Please try again.');
+                        
+                        // Remove loading overlay
+                        window.UIUtils.removeLoadingOverlay(loadingContext);
+                        
+                        // Restore button state
+                        restoreButton('<i class="fas fa-dice me-1"></i> Reroll Character');
+                        
+                        // Show error message
+                        window.UIUtils.showToast('Error', 'Failed to reroll character. Please try again.', 'error');
                     });
             });
         });
+        
         console.log('Reroll button listeners configured');
     }
 
