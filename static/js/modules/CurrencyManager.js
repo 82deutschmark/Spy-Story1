@@ -1,115 +1,118 @@
+
 /**
  * Currency Manager Module
  * Handles currency display and trading functionality
  */
-import UIUtils from './UIUtils.js';
-
-// CurrencyManager.js - Handles all currency operations
 class CurrencyManager {
     constructor() {
         // Initialize currency system
         console.log('CurrencyManager initialized');
-
+        
         // Store current balances
         this.currentBalances = {};
+        
+        // Fetch initial balances
+        this.fetchCurrentBalances();
+    }
+
+    // Fetch current balances from the server
+    fetchCurrentBalances() {
+        fetch('/api/user/balances')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.currentBalances = data.balances || {};
+                    this.updateCurrencyDisplay(this.currentBalances);
+                    console.log('Initial balances loaded:', this.currentBalances);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching initial balances:', error);
+            });
     }
 
     // Update all currency displays with new balances
-    updateCurrencyDisplays(balances) {
+    updateCurrencyDisplay(balances) {
         if (!balances) {
-            console.warn('No balances provided to updateCurrencyDisplays');
+            console.error('No balances provided to updateCurrencyDisplay');
             return;
         }
 
-        try {
-            // Store the new balances
-            this.currentBalances = {...balances};
-
-            Object.keys(balances).forEach(currency => {
-                // Find all elements that display this currency
-                const elements = document.querySelectorAll(`.currency-${currency}, .currency[data-currency="${currency}"]`);
-                if (elements.length === 0) {
-                    console.log(`No display elements found for currency ${currency}`);
-                    return;
-                }
-
-                // Update the displayed value in each element
-                elements.forEach(el => {
-                    el.textContent = balances[currency];
-                    console.log(`Updated currency display for ${currency} to ${balances[currency]}`);
-                });
+        console.log('Updating currency displays with:', balances);
+        
+        // Update each currency display element
+        Object.keys(balances).forEach(currency => {
+            const amount = balances[currency];
+            
+            // Find all elements that display this currency
+            const elements = document.querySelectorAll(`.currency-amount[data-currency="${currency}"]`);
+            if (elements.length === 0) {
+                console.log(`No display elements found for currency ${currency}`);
+                return;
+            }
+            
+            elements.forEach(element => {
+                element.textContent = amount;
             });
+        });
 
-            // Dispatch currency-updated event for other modules to listen to
-            document.dispatchEvent(new CustomEvent('currency-updated', { 
-                detail: { balances }
-            }));
-        } catch (error) {
-            console.error('Error updating currency displays:', error);
-        }
+        console.log('Updated currency UI with new balances:', balances);
+        
+        // Update our stored balances
+        this.currentBalances = {...balances};
     }
 
-    // Get current balances
-    getCurrentBalances() {
-        return this.currentBalances;
-    }
-
-    // Trade currencies
-    async tradeCurrency(fromCurrency, toCurrency, amount) {
-        try {
-            const response = await fetch('/api/currency/trade', {
+    // Trade one currency for another
+    tradeCurrency(fromCurrency, toCurrency, amount) {
+        return new Promise((resolve, reject) => {
+            if (!fromCurrency || !toCurrency || !amount) {
+                reject('Missing required parameters for currency trade');
+                return;
+            }
+            
+            // Send trade request to server
+            fetch('/api/currency/trade', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     from_currency: fromCurrency,
                     to_currency: toCurrency,
                     amount: amount
                 })
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                console.log(`Successfully traded ${amount} ${fromCurrency} for ${toCurrency}`);
-                // Update UI with new balances
-                this.updateCurrencyUI(data.new_balances);
-                return data;
-            } else {
-                throw new Error(data.error || 'Failed to trade currency');
-            }
-        } catch (error) {
-            console.error('Error trading currency:', error);
-            throw error;
-        }
-    }
-
-    // Update the UI with new currency balances
-    updateCurrencyUI(balances) {
-        if (!balances) return;
-
-        // Update each currency display
-        Object.keys(balances).forEach(currency => {
-            const amount = balances[currency];
-            const elements = document.querySelectorAll(`.currency-amount[data-currency="${currency}"]`);
-            elements.forEach(element => {
-                element.textContent = amount;
-            });
-
-            // Also update any regular currency displays without data attributes
-            const currencyElements = document.querySelectorAll('.currency-item');
-            currencyElements.forEach(item => {
-                const symbol = item.querySelector('.currency-symbol');
-                const amountElement = item.querySelector('.currency-amount');
-                if (symbol && amountElement && symbol.textContent === currency) {
-                    amountElement.textContent = amount;
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update display with new balances
+                    this.updateCurrencyDisplay(data.new_balances);
+                    
+                    // Notify any listeners
+                    document.dispatchEvent(new CustomEvent('currency-updated', {
+                        detail: { 
+                            balances: data.new_balances,
+                            message: data.message
+                        }
+                    }));
+                    
+                    resolve(data);
+                } else {
+                    console.error('Trade failed:', data.error);
+                    reject(data.error);
                 }
+            })
+            .catch(error => {
+                console.error('Error making trade:', error);
+                reject(error);
             });
         });
+    }
 
-        console.log('Updated currency UI with new balances:', balances);
+    // Get current balances
+    getBalances() {
+        return this.currentBalances;
     }
 }
 
-// Create and export singleton instance
-export default new CurrencyManager();
+export default CurrencyManager;
