@@ -25,6 +25,12 @@ export const formManager = {
                 if (editModeSwitch.checked && this.currentAnalysis) {
                     this.populateEditForm(this.currentAnalysis);
                 }
+
+                // Show/hide save button based on edit mode
+                const saveBtn = document.getElementById('saveAnalysisBtn');
+                if (saveBtn) {
+                    saveBtn.style.display = editModeSwitch.checked ? 'inline-block' : 'none';
+                }
             });
         }
 
@@ -34,31 +40,10 @@ export const formManager = {
             imageType.addEventListener('change', () => this.toggleTypeFields());
         }
 
-        // Initialize save to database button
-        const saveToDbBtn = document.getElementById('saveToDbBtn');
-        if (saveToDbBtn) {
-            saveToDbBtn.addEventListener('click', async () => {
-                // Disable button during save
-                saveToDbBtn.disabled = true;
-                saveToDbBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
-
-                try {
-                    const success = await this.saveToDatabase();
-                    if (success) {
-                        saveToDbBtn.innerHTML = '<i class="fas fa-check me-2"></i>Saved';
-                        setTimeout(() => {
-                            location.reload();
-                        }, 1000);
-                    }
-                } catch (error) {
-                    console.error('Save error:', error);
-                } finally {
-                    if (!success) {
-                        saveToDbBtn.disabled = false;
-                        saveToDbBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save to Database';
-                    }
-                }
-            });
+        // Initialize save button
+        const saveBtn = document.getElementById('saveAnalysisBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => this.saveToDatabase(saveBtn));
         }
     },
 
@@ -120,13 +105,18 @@ export const formManager = {
 
     /**
      * Save form changes directly to database
+     * @param {HTMLButtonElement} saveBtn - The save button element
      * @returns {Promise<boolean>} Success status
      */
-    saveToDatabase: async function() {
+    saveToDatabase: async function(saveBtn) {
         try {
             if (!this.currentAnalysis) {
                 throw new Error('No analysis data found');
             }
+
+            // Show loading state
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
 
             const imageType = document.getElementById('imageType').value;
             const name = document.getElementById('imageName').value;
@@ -177,10 +167,21 @@ export const formManager = {
                 throw new Error(response.error);
             }
 
+            // Show success message
+            dom.showToast('Success', 'Changes saved successfully');
+            saveBtn.innerHTML = '<i class="fas fa-check me-2"></i>Saved';
+
+            // Refresh the page after a short delay
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+
             return true;
         } catch (error) {
             console.error('Error saving to database:', error);
             dom.showToast('Error', error.message, true);
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save to Database';
             return false;
         }
     }
