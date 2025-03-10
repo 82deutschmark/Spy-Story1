@@ -240,14 +240,36 @@ export const formManager = {
 
             console.log('Saving updated analysis:', updatedAnalysis);
 
-            // Save updated analysis to database
-            const response = await api.post('/api/image/update', {
-                id: this.currentAnalysis.id || null,
-                analysis: updatedAnalysis
-            });
+            // If we don't have an ID, we need to save as a new record using save_analysis
+            if (!this.currentAnalysis.id) {
+                // Make sure we have the image URL
+                const dataElement = document.getElementById('analysisData');
+                if (!dataElement || !dataElement.dataset.imageUrl) {
+                    throw new Error('Image URL not found for new record');
+                }
+                
+                const imageUrl = dataElement.dataset.imageUrl;
+                
+                // Save as new record using save_analysis endpoint
+                const response = await api.post('/save_analysis', {
+                    image_url: imageUrl,
+                    analysis: updatedAnalysis
+                });
+                
+                if (response.error) {
+                    throw new Error(response.error);
+                }
+                
+            } else {
+                // Update existing record
+                const response = await api.post('/api/image/update', {
+                    id: this.currentAnalysis.id,
+                    analysis: updatedAnalysis
+                });
 
-            if (response.error) {
-                throw new Error(response.error);
+                if (response.error) {
+                    throw new Error(response.error);
+                }
             }
 
             // Show success message

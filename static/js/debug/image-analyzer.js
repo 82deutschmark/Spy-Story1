@@ -78,6 +78,19 @@ export const imageAnalyzer = {
                 }
             }
             
+            // Ensure image_type is set
+            if (!analysisData.image_type) {
+                // Try to determine image type from data
+                if (analysisData.character && typeof analysisData.character === 'object') {
+                    analysisData.image_type = 'character';
+                } else if (analysisData.scene_type || analysisData.setting) {
+                    analysisData.image_type = 'scene';
+                } else {
+                    // Default to character if we can't determine
+                    analysisData.image_type = 'character';
+                }
+            }
+            
             console.log('Saving analysis to database:', {
                 image_url: data.imageUrl,
                 analysis: analysisData
