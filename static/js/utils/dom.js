@@ -5,8 +5,8 @@
 export const dom = {
     /**
      * Create a loading overlay with progress indicator
-     * @param {string} message - The loading message to display
-     * @returns {HTMLElement} - The loading percentage element
+     * @param {string} message - Loading message to display
+     * @returns {HTMLElement} - Loading percentage element
      */
     createLoadingOverlay: (message) => {
         const overlay = document.createElement('div');
@@ -16,7 +16,7 @@ export const dom = {
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
-                <p class="loading-message">${message}</p>
+                <p class="loading-message">${message || 'Loading...'}</p>
                 <div class="loading-progress">
                     <div class="progress">
                         <div class="progress-bar" role="progressbar" style="width: 0%"></div>
@@ -30,9 +30,9 @@ export const dom = {
     },
 
     /**
-     * Update the loading percentage display
-     * @param {HTMLElement} element - The loading percentage element
-     * @param {number} percent - The percentage to display (0-100)
+     * Update loading percentage display
+     * @param {HTMLElement} element - Loading percentage element
+     * @param {number} percent - Percentage to display (0-100)
      */
     updateLoadingPercent: (element, percent) => {
         if (!element) return;
@@ -45,8 +45,8 @@ export const dom = {
     },
 
     /**
-     * Remove a loading overlay
-     * @param {HTMLElement} element - Any element within the loading overlay
+     * Remove loading overlay
+     * @param {HTMLElement} element - Any element within loading overlay
      */
     removeLoadingOverlay: (element) => {
         if (!element) return;
@@ -54,9 +54,9 @@ export const dom = {
     },
 
     /**
-     * Show a toast notification
-     * @param {string} title - The toast title
-     * @param {string} message - The toast message
+     * Show toast notification
+     * @param {string} title - Toast title
+     * @param {string} message - Toast message
      * @param {boolean} [isError=false] - Whether this is an error message
      */
     showToast: (title, message, isError = false) => {
@@ -78,6 +78,101 @@ export const dom = {
 
             const bsToast = new bootstrap.Toast(toast);
             bsToast.show();
+        }
+    },
+
+    /**
+     * Form utilities
+     */
+    form: {
+        /**
+         * Clear form inputs
+         * @param {HTMLFormElement} form - Form to clear
+         */
+        clear: (form) => {
+            if (!form) return;
+            form.reset();
+            form.querySelectorAll('input, select, textarea').forEach(input => {
+                input.value = '';
+            });
+        },
+
+        /**
+         * Disable/enable form submission
+         * @param {HTMLFormElement} form - Form to toggle
+         * @param {boolean} disabled - Whether to disable the form
+         */
+        toggleSubmit: (form, disabled) => {
+            if (!form) return;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = disabled;
+                submitBtn.classList.toggle('loading', disabled);
+            }
+        }
+    },
+
+    /**
+     * Character selection utilities
+     */
+    character: {
+        /**
+         * Update character selection UI
+         * @param {HTMLElement} card - Character card element
+         * @param {boolean} selected - Whether character is selected
+         */
+        updateSelection: (card, selected) => {
+            if (!card) return;
+            const indicator = card.querySelector('.selection-indicator');
+            const checkbox = card.querySelector('.character-checkbox');
+
+            card.classList.toggle('selected', selected);
+            if (indicator) {
+                indicator.style.display = selected ? 'block' : 'none';
+            }
+            if (checkbox) {
+                checkbox.checked = selected;
+            }
+        },
+
+        /**
+         * Clear all character selections
+         */
+        clearAllSelections: () => {
+            document.querySelectorAll('.character-select-card').forEach(card => {
+                dom.character.updateSelection(card, false);
+            });
+        }
+    },
+
+    /**
+     * Modal utilities
+     */
+    modal: {
+        /**
+         * Show modal
+         * @param {string} modalId - Modal element ID
+         */
+        show: (modalId) => {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                const bsModal = new bootstrap.Modal(modal);
+                bsModal.show();
+            }
+        },
+
+        /**
+         * Hide modal
+         * @param {string} modalId - Modal element ID
+         */
+        hide: (modalId) => {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                const bsModal = bootstrap.Modal.getInstance(modal);
+                if (bsModal) {
+                    bsModal.hide();
+                }
+            }
         }
     }
 };
