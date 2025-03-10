@@ -54,6 +54,42 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 300);
     }
 
+    // Initialize character highlighting if on storyboard page
+    const storyContent = document.querySelector('.story-content');
+    if (storyContent) {
+        console.log('Story content detected, initializing character highlighting');
+        // Get character data from the character gallery
+        const characterData = [];
+        document.querySelectorAll('.character-mini-name').forEach(nameEl => {
+            const portraitEl = nameEl.closest('.character-portrait-mini');
+            if (portraitEl) {
+                const imgEl = portraitEl.querySelector('img');
+                if (imgEl) {
+                    const charName = nameEl.textContent.trim();
+                    // Find traits if available
+                    const mainCharInfo = document.querySelector('.character-traits-list');
+                    let traits = [];
+                    if (mainCharInfo && portraitEl.dataset.characterName === document.querySelector('.character-info-box h3').textContent.trim().toLowerCase().replace(/\s+/g, '-')) {
+                        traits = Array.from(mainCharInfo.querySelectorAll('.trait-badge')).map(badge => badge.textContent.trim());
+                    }
+                    
+                    characterData.push({
+                        name: charName,
+                        image_url: imgEl.src,
+                        traits: traits
+                    });
+                }
+            }
+        });
+        
+        // Initialize character highlighting
+        if (characterData.length > 0) {
+            console.log(`Found ${characterData.length} characters for highlighting`);
+            window.storyManager.highlightCharacters(storyContent, characterData);
+        }
+    }
+
+
     // For debugging
     console.log('PayPal SDK loaded:', typeof paypal !== 'undefined');
     console.log('PayPal button container exists:', !!document.getElementById('paypal-button-container'));

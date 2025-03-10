@@ -93,6 +93,99 @@ export default {
     },
 
     /**
+     * Highlight character names in story text
+     * @param {HTMLElement} storyElement - The story content container element
+     * @param {Array} characters - Array of character objects with name and image_url
+     */
+    highlightCharacters(storyElement, characters) {
+        if (!storyElement || !characters || characters.length === 0) return;
+        
+        // Create a regular expression to match all character names
+        const characterNames = characters
+            .map(char => char.name)
+            .filter(name => name && name.length > 2) // Ignore very short names to avoid false positives
+            .sort((a, b) => b.length - a.length); // Sort by length (longest first) to avoid partial matches
+            
+        if (characterNames.length === 0) return;
+        
+        const namePattern = new RegExp(`\\b(${characterNames.join('|')})\\b`, 'gi');
+        
+        // We need to work with the HTML content
+        let html = storyElement.innerHTML;
+        
+        // Replace character names with highlighted spans
+        html = html.replace(namePattern, (match) => {
+            // Find the character that matches this name (case-insensitive)
+            const character = characters.find(char => 
+                char.name && char.name.toLowerCase() === match.toLowerCase());
+                
+            if (!character) return match; // Safety check
+            
+            return `<span class="character-highlight" data-character="${character.name.toLowerCase().replace(/\s+/g, '-')}">${match}</span>`;
+        });
+        
+        // Set the updated HTML
+        storyElement.innerHTML = html;
+        
+        // Add click event listeners to the highlighted spans
+        const highlightedSpans = storyElement.querySelectorAll('.character-highlight');
+        highlightedSpans.forEach(span => {
+            span.addEventListener('click', (e) => {
+                const characterSlug = span.getAttribute('data-character');
+                
+                // Find the character in the characters array
+                const character = characters.find(char => 
+                    char.name && char.name.toLowerCase().replace(/\s+/g, '-') === characterSlug);
+                
+                if (!character) return;
+                
+                // Remove any existing tooltips
+                document.querySelectorAll('.character-tooltip').forEach(el => el.remove());
+                
+                // Create tooltip
+                const tooltip = document.createElement('div');
+                tooltip.className = 'character-tooltip';
+                tooltip.innerHTML = `
+                    <img src="${character.image_url}" alt="${character.name}">
+                    <div class="character-name">${character.name}</div>
+                    <div class="character-traits">
+                        ${(character.traits || []).map(trait => 
+                            `<span class="character-trait">${trait}</span>`
+                        ).join('')}
+                    </div>
+                `;
+                
+                // Position tooltip near the character name
+                const rect = span.getBoundingClientRect();
+                tooltip.style.left = `${rect.left}px`;
+                tooltip.style.top = `${rect.bottom + window.scrollY}px`;
+                
+                // Add to body and make visible
+                document.body.appendChild(tooltip);
+                
+                // Force reflow
+                tooltip.offsetHeight;
+                
+                // Show tooltip
+                tooltip.classList.add('visible');
+                
+                // Close tooltip when clicking outside
+                document.addEventListener('click', function closeTooltip(e) {
+                    if (!tooltip.contains(e.target) && e.target !== span) {
+                        tooltip.classList.remove('visible');
+                        setTimeout(() => {
+                            tooltip.remove();
+                        }, 300);
+                        document.removeEventListener('click', closeTooltip);
+                    }
+                });
+                
+                e.stopPropagation();
+            });
+        });
+    },
+    
+    /**
      * Processes a story choice
      * @param {HTMLFormElement} form - The choice form
      * @returns {Promise} - Promise resolving to choice processing result
