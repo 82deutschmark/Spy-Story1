@@ -105,20 +105,49 @@ export default {
         
         console.log("Updating currency displays:", balances);
         
+        // Store balances in local memory for other functions to access
+        this.currentBalances = balances;
+        
         // Update all currency displays in the DOM
         Object.keys(balances).forEach(currency => {
             const amount = balances[currency];
-            const elements = document.querySelectorAll(`.currency-${currency}, .currency[data-currency="${currency}"]`);
+            // Use multiple selectors to catch all possible currency elements
+            const elements = document.querySelectorAll(
+                `.currency-${currency}, 
+                 .currency[data-currency="${currency}"], 
+                 [data-currency-display="${currency}"]`
+            );
             
             if (elements.length === 0) {
                 console.warn(`No display elements found for currency: ${currency}`);
             }
             
             elements.forEach(el => {
+                // Directly set the text content
                 el.textContent = amount;
                 // Also update data attribute for any elements using it
                 el.setAttribute('data-amount', amount);
             });
+            
+            // Also update any input fields that might show the balance
+            const inputElements = document.querySelectorAll(`input[data-currency="${currency}"]`);
+            inputElements.forEach(input => {
+                input.setAttribute('max', amount); // Set max value for inputs
+                // If there's a related display element, update it too
+                if (input.dataset.balanceDisplay) {
+                    const displayEl = document.getElementById(input.dataset.balanceDisplay);
+                    if (displayEl) displayEl.textContent = amount;
+                }
+            });
+        });
+        
+        // Update header/navbar currency displays if they exist
+        const headerDisplays = document.querySelectorAll('.currency-display');
+        headerDisplays.forEach(display => {
+            const currency = display.dataset.currency;
+            if (currency && balances[currency] !== undefined) {
+                display.textContent = balances[currency];
+            }
         });
         
         // Trigger a custom event that other components can listen for
