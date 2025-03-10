@@ -1,302 +1,194 @@
 /**
- * StoryManager.js - Manages story generation and continuation
+ * Story Generation Module
+ * Handles story generation and choice processing
  */
-import DOMUtils from './DOMUtils.js';
 import UIUtils from './UIUtils.js';
-import EventManager from './EventManager.js';
+import CurrencyManager from './CurrencyManager.js';
+import UserProgress from './UserProgress.js';
 
-class StoryManager {
-    constructor() {
-        console.log('StoryManager initialized');
-        this.storyData = null;
-        this.loadingContext = null;
-    }
-
+export default {
     /**
-     * Begin story generation
-     * @param {HTMLFormElement} form The form containing story parameters
-     * @returns {Promise<boolean>} Whether the generation was successful
+     * Generates a new story based on form data
+     * @param {FormData} formData - Form data for story generation
+     * @returns {Promise} - Promise resolving to story generation result
      */
-    beginStoryGeneration(form) {
-        console.log('Beginning story generation...');
+    generateStory(formData) {
+        // Create loading overlay with percentage
+        const loadingPercent = UIUtils.createLoadingOverlay('Generating your adventure...');
 
-        // Show loading overlay for the entire form
-        this.loadingContext = UIUtils.createLoadingOverlay('Crafting your adventure...', form);
+        const generateStoryBtn = document.getElementById('generateStoryBtn');
+        if (generateStoryBtn) {
+            generateStoryBtn.disabled = true;
+            generateStoryBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Story...';
+        }
 
-        // Disable form and Begin button
-        const beginButton = DOMUtils.getElement('#beginAdventureBtn');
-        const restoreButton = beginButton ? UIUtils.showButtonLoading(beginButton, 'Creating...') : null;
-
-        // Initialize progress updates
         let progress = 0;
         const progressInterval = setInterval(() => {
             if (progress < 90) {
                 progress += 5;
-                UIUtils.updateLoadingPercent(this.loadingContext, progress);
-
-                // Update message at certain thresholds
-                if (progress === 20) {
-                    UIUtils.updateLoadingMessage(this.loadingContext, 'Creating characters...');
-                } else if (progress === 40) {
-                    UIUtils.updateLoadingMessage(this.loadingContext, 'Building the world...');
-                } else if (progress === 60) {
-                    UIUtils.updateLoadingMessage(this.loadingContext, 'Crafting the narrative...');
-                } else if (progress === 80) {
-                    UIUtils.updateLoadingMessage(this.loadingContext, 'Almost ready...');
-                }
+                UIUtils.updateLoadingPercent(loadingPercent, progress);
             }
         }, 500);
 
-        // Submit the form using fetch API
         return fetch('/generate_story', {
             method: 'POST',
-            body: new FormData(form)
-        })
-        .then(response => {
-            clearInterval(progressInterval);
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-
-            return response.json();
-        })
-        .then(data => {
-            UIUtils.updateLoadingPercent(this.loadingContext, 100);
-            UIUtils.updateLoadingMessage(this.loadingContext, 'Story ready!');
-
-            console.log('Story generation successful:', data);
-
-            // Process the response
-            if (data.success) {
-                this.storyData = data;
-
-                // Small delay for visual polish
-                setTimeout(() => {
-                    UIUtils.removeLoadingOverlay(this.loadingContext, () => {
-                        // Redirect to the story page
-                        window.location.href = `/story/${data.story_id}`;
-                    });
-                }, 500);
-
-                return true;
-            } else {
-                UIUtils.removeLoadingOverlay(this.loadingContext);
-                if (restoreButton) restoreButton('Begin Your Adventure');
-
-                UIUtils.showToast('Error', data.error || 'Failed to generate story', 'error');
-                return false;
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
             }
         })
-        .catch(error => {
-            clearInterval(progressInterval);
-            console.error('Error generating story:', error);
+            .then(response => response.json())
+            .then(data => {
+                clearInterval(progressInterval);
 
-            UIUtils.removeLoadingOverlay(this.loadingContext);
-            if (restoreButton) restoreButton('Begin Your Adventure');
+                if (data.success && data.redirect) {
+                    UIUtils.updateLoadingPercent(loadingPercent, 100);
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 500);
+                    return data;
+                } else {
+                    throw new Error(data.error || 'Failed to generate story');
+                }
+            })
+            .catch(error => {
+                console.error('Error generating story:', error);
+                UIUtils.showToast('Error', error.message || 'Failed to generate story. Please try again.');
+                clearInterval(progressInterval);
 
-            UIUtils.showToast('Error', 'Failed to generate story. Please try again.', 'error');
-            return false;
-        });
-    }
+                if (generateStoryBtn) {
+                    generateStoryBtn.disabled = false;
+                    generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
+                }
+
+                UIUtils.removeLoadingOverlay(loadingPercent);
+                throw error;
+            });
+    },
 
     /**
-     * Continue the story with a choice
-     * @param {string} choiceId The ID of the selected choice
-     * @param {number} storyId The ID of the current story
-     * @returns {Promise<boolean>} Whether the continuation was successful
+     * Processes a story choice
+     * @param {HTMLFormElement} form - The choice form
+     * @returns {Promise} - Promise resolving to choice processing result
      */
-    continueStory(choiceId, storyId) {
-        console.log(`Continuing story ${storyId} with choice ${choiceId}`);
+    processChoice(form) {
+        const btn = form.querySelector('button');
 
-        // Get the choice button
-        const choiceButton = DOMUtils.getElement(`#choice-${choiceId}`);
+        // Prevent double-submission by checking if button is disabled
+        if (btn.disabled) return Promise.reject('Button is disabled');
 
-        // Disable all choice buttons
-        const allChoiceButtons = DOMUtils.getElements('.choice-btn');
-        allChoiceButtons.forEach(btn => {
-            btn.disabled = true;
-        });
+        // Get currency requirements from data attribute
+        const currencyReq = btn.dataset.currencyReq ? JSON.parse(btn.dataset.currencyReq) : null;
+        const isCustomChoice = form.querySelector('.custom-choice-input') !== null;
 
-        // Show loading state on the selected button
-        const restoreButton = choiceButton ? 
-            UIUtils.showButtonLoading(choiceButton, 'Selecting...') : null;
+        btn.disabled = true;
+        btn.classList.add('loading');
 
-        // Create loading overlay for the story container
-        const storyContainer = DOMUtils.getElement('#story-container');
-        this.loadingContext = UIUtils.createLoadingOverlay('Continuing your adventure...', storyContainer);
-
-        // Initialize progress updates
+        const loadingPercent = UIUtils.createLoadingOverlay('Processing your choice...');
         let progress = 0;
         const progressInterval = setInterval(() => {
             if (progress < 90) {
-                progress += 10;
-                UIUtils.updateLoadingPercent(this.loadingContext, progress);
-
-                // Update message at certain thresholds
-                if (progress === 30) {
-                    UIUtils.updateLoadingMessage(this.loadingContext, 'Exploring new paths...');
-                } else if (progress === 60) {
-                    UIUtils.updateLoadingMessage(this.loadingContext, 'Crafting the next chapter...');
-                }
+                progress += 5;
+                UIUtils.updateLoadingPercent(loadingPercent, progress);
             }
-        }, 600);
+        }, 500);
 
-        // Make the API request
-        return fetch('/api/continue_story', {
+        // Prepare form data
+        const formData = new FormData(form);
+        const isCustom = form.querySelector('.custom-choice-input') !== null;
+
+        return fetch('/make_choice', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify({
-                choice_id: choiceId,
-                story_id: storyId
+                choice_id: formData.get('choice_id'),
+                custom_choice: isCustom ? formData.get('custom_choice') : null,
+                currency_requirements: currencyReq,
+                story_id: document.querySelector('input[name="story_id"]')?.value || null
             })
         })
-        .then(response => {
-            clearInterval(progressInterval);
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        if (response.status === 400 && data.error && data.error.includes('Insufficient')) {
+                            let errorMessage = isCustomChoice ?
+                                `Insufficient diamonds. You need 100 💎 but only have ${data.current_balance} 💎.` :
+                                'Insufficient funds for this choice.';
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-
-            return response.json();
-        })
-        .then(data => {
-            UIUtils.updateLoadingPercent(this.loadingContext, 100);
-            UIUtils.updateLoadingMessage(this.loadingContext, 'Story updated!');
-
-            console.log('Story continuation successful:', data);
-
-            // Process the response
-            if (data.success) {
-                // Small delay for visual polish
-                setTimeout(() => {
-                    UIUtils.removeLoadingOverlay(this.loadingContext, () => {
-                        // Reload the page to show the updated story
-                        window.location.reload();
+                            throw new Error(errorMessage);
+                        }
+                        throw new Error(data.error || 'Failed to process choice');
                     });
-                }, 500);
-
-                return true;
-            } else {
-                UIUtils.removeLoadingOverlay(this.loadingContext);
-
-                // Re-enable all choice buttons
-                allChoiceButtons.forEach(btn => {
-                    btn.disabled = false;
-                });
-
-                if (restoreButton) restoreButton('Select');
-
-                UIUtils.showToast('Error', data.error || 'Failed to continue story', 'error');
-                return false;
-            }
-        })
-        .catch(error => {
-            clearInterval(progressInterval);
-            console.error('Error continuing story:', error);
-
-            UIUtils.removeLoadingOverlay(this.loadingContext);
-
-            // Re-enable all choice buttons
-            allChoiceButtons.forEach(btn => {
-                btn.disabled = false;
-            });
-
-            if (restoreButton) restoreButton('Select');
-
-            UIUtils.showToast('Error', 'Failed to continue story. Please try again.', 'error');
-            return false;
-        });
-    }
-
-    /**
-     * Highlight character names in the story text
-     * @param {Object} encounteredCharacters Map of character names to data
-     */
-    highlightCharacters(encounteredCharacters) {
-        if (!encounteredCharacters) return;
-
-        const storyText = DOMUtils.getElement('#story-text');
-        if (!storyText) return;
-
-        // Process the text
-        const originalText = storyText.innerHTML;
-        const highlightedText = UIUtils.highlightCharacterNames(originalText, encounteredCharacters);
-        storyText.innerHTML = highlightedText;
-
-        // Add event listeners for character highlights
-        const highlights = DOMUtils.getElements('.character-highlight');
-        highlights.forEach(highlight => {
-            highlight.addEventListener('mouseenter', () => {
-                const name = highlight.dataset.characterName;
-                const character = encounteredCharacters[name];
-                if (character && character.image_url) {
-                    this.showCharacterTooltip(highlight, character);
                 }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to process choice');
+                }
+
+                // Update currency displays with new balances
+                if (data.new_balances) {
+                    CurrencyManager.updateCurrencyDisplays(data.new_balances);
+                }
+
+                // Update user level and XP if provided
+                if (data.level && data.experience) {
+                    UserProgress.updateUserProgress(data.level, data.experience);
+                }
+
+                // Record character encounters if any
+                if (data.characters) {
+                    data.characters.forEach(character => {
+                        if (character.id && character.name) {
+                            // Record character encounter
+                            import('./CharacterManager.js').then(module => {
+                                const CharacterManager = module.default;
+                                CharacterManager.recordCharacterEncounter(
+                                    character.id,
+                                    character.name,
+                                    character.initial_relationship || 0
+                                ).catch(err => console.error('Error recording character encounter:', err));
+                            });
+                        }
+                    });
+                }
+
+
+                // Generate next part of the story
+                return fetch('/generate_story', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+            })
+            .then(response => response.json())
+            .then(storyData => {
+                clearInterval(progressInterval);
+
+                if (storyData.success && storyData.redirect) {
+                    UIUtils.updateLoadingPercent(loadingPercent, 100);
+                    setTimeout(() => {
+                        window.location.href = storyData.redirect;
+                    }, 500);
+                    return storyData;
+                } else {
+                    throw new Error(storyData.error || 'Failed to generate next story part');
+                }
+            })
+            .catch(error => {
+                console.error('Error processing choice:', error);
+                UIUtils.showToast('Error', error.message || 'Failed to process your choice');
+                btn.disabled = false;
+                btn.classList.remove('loading');
+                clearInterval(progressInterval);
+                UIUtils.removeLoadingOverlay(loadingPercent);
+                throw error;
             });
-
-            highlight.addEventListener('mouseleave', () => {
-                this.hideCharacterTooltip();
-            });
-        });
     }
-
-    /**
-     * Show a tooltip with character info
-     * @param {Element} element The element to show the tooltip near
-     * @param {Object} character The character data
-     */
-    showCharacterTooltip(element, character) {
-        // Remove any existing tooltip
-        this.hideCharacterTooltip();
-
-        // Create tooltip
-        const tooltip = DOMUtils.createElement('div', {
-            className: 'character-tooltip',
-            dataset: {
-                characterId: character.id || ''
-            }
-        });
-
-        tooltip.innerHTML = `
-            <div class="character-tooltip-content">
-                <img src="${character.image_url}" alt="${character.name}" class="character-tooltip-img">
-                <div class="character-tooltip-info">
-                    <div class="character-tooltip-name">${character.name}</div>
-                    <div class="character-tooltip-relationship">
-                        Relationship: ${character.relationship || 'Neutral'}
-                    </div>
-                </div>
-            </div>
-        `;
-
-        // Position the tooltip
-        const rect = element.getBoundingClientRect();
-        tooltip.style.position = 'absolute';
-        tooltip.style.top = `${window.scrollY + rect.bottom + 10}px`;
-        tooltip.style.left = `${window.scrollX + rect.left}px`;
-        tooltip.style.zIndex = '1000';
-
-        // Add to DOM
-        document.body.appendChild(tooltip);
-    }
-
-    /**
-     * Hide the character tooltip
-     */
-    hideCharacterTooltip() {
-        const tooltip = DOMUtils.getElement('.character-tooltip');
-        if (tooltip && tooltip.parentNode) {
-            tooltip.parentNode.removeChild(tooltip);
-        }
-    }
-}
-
-// Create a global instance
-const storyManager = new StoryManager();
-
-// Export to global scope for now
-window.StoryManager = storyManager;
-export default storyManager;
+};

@@ -22,26 +22,26 @@
         </div>
         <div class="currency-item">
             <span class="currency-symbol">💎</span>
-            <span class="currency-amount" data-currency="💎">{{ user_progress.currency_balances.get('💎', 500) }}</span>
+            <span class="currency-amount">{{ user_progress.currency_balances.get('💎', 500) }}</span>
             <button class="btn btn-sm btn-outline-primary buy-currency" data-bs-toggle="modal" data-bs-target="#purchaseModal">
                 <i class="fas fa-plus-circle"></i>
             </button>
         </div>
         <div class="currency-item">
             <span class="currency-symbol">💷</span>
-            <span class="currency-amount" data-currency="💷">{{ user_progress.currency_balances.get('💷', 5000) }}</span>
+            <span class="currency-amount">{{ user_progress.currency_balances.get('💷', 5000) }}</span>
         </div>
         <div class="currency-item">
             <span class="currency-symbol">💶</span>
-            <span class="currency-amount" data-currency="💶">{{ user_progress.currency_balances.get('💶', 5000) }}</span>
+            <span class="currency-amount">{{ user_progress.currency_balances.get('💶', 5000) }}</span>
         </div>
         <div class="currency-item">
             <span class="currency-symbol">💴</span>
-            <span class="currency-amount" data-currency="💴">{{ user_progress.currency_balances.get('💴', 5000) }}</span>
+            <span class="currency-amount">{{ user_progress.currency_balances.get('💴', 5000) }}</span>
         </div>
         <div class="currency-item">
             <span class="currency-symbol">💵</span>
-            <span class="currency-amount" data-currency="💵">{{ user_progress.currency_balances.get('💵', 5000) }}</span>
+            <span class="currency-amount">{{ user_progress.currency_balances.get('💵', 5000) }}</span>
         </div>
         <button class="btn btn-sm btn-outline-secondary ms-2" data-bs-toggle="modal" data-bs-target="#tradeModal">
             <i class="fas fa-exchange-alt"></i> Trade
@@ -171,13 +171,11 @@
                         Trade {{ story.currency_trade_offer.from_currency }} for {{ story.currency_trade_offer.to_currency }} 
                         at rate: {{ story.currency_trade_offer.rate }}
                     </div>
-                    {% set amount = story.currency_trade_offer.amount|default(1) %}
                     <button class="btn btn-outline-primary accept-trade-btn" 
                             data-from="{{ story.currency_trade_offer.from_currency }}"
                             data-to="{{ story.currency_trade_offer.to_currency }}"
-                            data-rate="{{ story.currency_trade_offer.rate }}"
-                            data-amount="{{ amount }}">
-                        Accept Trade Offer ({{ amount }} {{ story.currency_trade_offer.from_currency }} ➡️ {{ story.currency_trade_offer.rate }} {{ story.currency_trade_offer.to_currency }})
+                            data-rate="{{ story.currency_trade_offer.rate }}">
+                        Accept Trade Offer
                     </button>
                 </div>
                 {% endif %}

@@ -27,7 +27,7 @@ const DebugApp = (function() {
 
         // Initialize modules that depend on others
         dataHandler.initialize();
-
+        
         // Make sure we can access the CurrencyManager from main app
         if (window.CurrencyManager) {
             console.log('CurrencyManager found in global scope');
@@ -38,20 +38,16 @@ const DebugApp = (function() {
                 updateCurrencyDisplays: function(balances) {
                     console.log('Debug placeholder CurrencyManager updating displays:', balances);
                     DebugUtils.validateCurrencyDisplays(balances);
-                },
-                updateCurrencyUI: function(balances) {
-                    console.log('Debug placeholder CurrencyManager updating UI:', balances);
-                    DebugUtils.validateCurrencyDisplays(balances);
                 }
             };
         }
-
+        
         // Set up currency transaction monitoring
         monitorCurrencySystem();
 
         console.log('Debug application initialized');
     }
-
+    
     // Set up currency transaction monitoring
     function monitorCurrencySystem() {
         // Monitor currency update events
@@ -60,12 +56,12 @@ const DebugApp = (function() {
             // Validate that the UI is correctly updated
             validateCurrencyDisplays(e.detail.balances);
         });
-
+        
         // Patch the fetch API to monitor currency trade calls
         const originalFetch = window.fetch;
         window.fetch = function(url, options) {
             const result = originalFetch.apply(this, arguments);
-
+            
             // Only intercept currency trade API calls
             if (typeof url === 'string' && url.includes('/api/currency/trade')) {
                 result.then(response => {
@@ -85,20 +81,20 @@ const DebugApp = (function() {
                     });
                 });
             }
-
+            
             return result;
         };
     }
-
+    
     // Validate that currency displays match the expected values
     function validateCurrencyDisplays(balances) {
         if (!balances) return;
-
+        
         setTimeout(() => {
             Object.keys(balances).forEach(currency => {
                 const expected = balances[currency];
                 const elements = document.querySelectorAll(`.currency-${currency}, .currency[data-currency="${currency}"]`);
-
+                
                 elements.forEach(el => {
                     const displayed = el.textContent.trim();
                     if (displayed != expected) {
@@ -136,39 +132,3 @@ DebugApp.initialize();
 
 // Export for external use
 window.Debug = DebugApp;
-
-function setupCurrencyTrade() {
-    const form = document.getElementById('currencyTradeForm');
-    if (!form) return;
-
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const fromCurrency = document.getElementById('fromCurrency').value;
-        const toCurrency = document.getElementById('toCurrency').value;
-        const amount = document.getElementById('tradeAmount').value;
-
-        if (!fromCurrency || !toCurrency || !amount) {
-            alert('Please fill in all fields');
-            return;
-        }
-
-        try {
-            const currencyManager = new CurrencyManager();
-            const result = await currencyManager.tradeCurrency(fromCurrency, toCurrency, parseInt(amount));
-            console.log('Trade result:', result);
-
-            if (result && result.success) {
-                // Update UI with new balances
-                currencyManager.updateCurrencyUI(result.new_balances);
-                alert(`Successfully traded ${amount} ${fromCurrency} for ${result.new_balances[toCurrency]} ${toCurrency}`);
-
-                // No need to reload the page, UI is updated dynamically
-            }
-        } catch (error) {
-            alert(`Trade failed: ${error.message}`);
-        }
-    });
-}
-
-setupCurrencyTrade();

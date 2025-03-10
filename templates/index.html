@@ -10,33 +10,32 @@
     <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/character-selection.css') }}">
 </head>
 <body data-bs-theme="dark">
     <!-- Currency Display -->
     <div class="currency-bar">
         <div class="currency-item">
             <span class="currency-symbol">💎</span>
-            <span class="currency-amount" data-currency="💎">{{ user_progress.currency_balances.get('💎', 500) }}</span>
+            <span class="currency-amount">{{ user_progress.currency_balances.get('💎', 500) }}</span>
             <button class="btn btn-sm btn-outline-primary buy-currency" data-bs-toggle="modal" data-bs-target="#purchaseModal">
                 <i class="fas fa-plus-circle"></i>
             </button>
         </div>
         <div class="currency-item">
             <span class="currency-symbol">💷</span>
-            <span class="currency-amount" data-currency="💷">{{ user_progress.currency_balances.get('💷', 5000) }}</span>
+            <span class="currency-amount">{{ user_progress.currency_balances.get('💷', 5000) }}</span>
         </div>
         <div class="currency-item">
             <span class="currency-symbol">💶</span>
-            <span class="currency-amount" data-currency="💶">{{ user_progress.currency_balances.get('💶', 5000) }}</span>
+            <span class="currency-amount">{{ user_progress.currency_balances.get('💶', 5000) }}</span>
         </div>
         <div class="currency-item">
             <span class="currency-symbol">💴</span>
-            <span class="currency-amount" data-currency="💴">{{ user_progress.currency_balances.get('💴', 5000) }}</span>
+            <span class="currency-amount">{{ user_progress.currency_balances.get('💴', 5000) }}</span>
         </div>
         <div class="currency-item">
             <span class="currency-symbol">💵</span>
-            <span class="currency-amount" data-currency="💵">{{ user_progress.currency_balances.get('💵', 5000) }}</span>
+            <span class="currency-amount">{{ user_progress.currency_balances.get('💵', 5000) }}</span>
         </div>
         <button class="btn btn-sm btn-outline-secondary ms-2" data-bs-toggle="modal" data-bs-target="#tradeModal">
             <i class="fas fa-exchange-alt"></i> Trade
@@ -69,10 +68,10 @@
                                 <div class="col-md-5 mb-4">
                                     <div class="character-container">
                                         <div class="character-select-card" data-id="{{ img.id }}">
+                                            <img src="{{ img.image_url }}" class="card-img" alt="{{ img.name }}">
                                             <div class="selection-indicator position-absolute top-0 end-0 m-2 bg-primary text-white rounded-circle p-2" style="display: none;">
                                                 <i class="fas fa-check"></i>
                                             </div>
-                                            <img src="{{ img.image_url }}" class="card-img" alt="{{ img.name }}">
                                         </div>
                                         <div class="character-info-box">
                                             <h3 class="character-name">{{ img.name }}</h3>
@@ -84,11 +83,11 @@
                                                 {% endif %}
                                             </div>
                                             <div class="character-controls d-flex justify-content-between align-items-center">
+                                                <button type="button" class="reroll-btn" data-card-index="{{ loop.index0 }}">
+                                                    <i class="fas fa-dice me-1"></i> Reroll Character
+                                                </button>
                                                 <button type="button" class="select-character-btn" data-character-id="{{ img.id }}">
                                                     <i class="fas fa-check-circle me-1"></i> Select Character
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-primary reroll-btn" data-card-index="{{ loop.index0 }}">
-                                                    <i class="fas fa-dice me-1"></i> Reroll Character
                                                 </button>
                                                 <input type="radio" class="character-checkbox d-none" name="selectedCharacter" value="{{ img.id }}" id="character{{ img.id }}">
                                             </div>
