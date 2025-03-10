@@ -3,6 +3,8 @@ import os
 import json
 import requests
 import logging
+import base64
+from io import BytesIO
 from openai import OpenAI
 
 # Configure logging
@@ -10,6 +12,33 @@ logger = logging.getLogger(__name__)
 
 # Initialize OpenAI client
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+def url_to_base64(image_url):
+    """
+    Downloads an image from a URL and converts it to base64 encoding
+    
+    Args:
+        image_url (str): URL of the image
+        
+    Returns:
+        str: Base64 encoded image
+    """
+    try:
+        response = requests.get(image_url, timeout=10)
+        response.raise_for_status()
+        
+        # Get content type to determine file extension
+        content_type = response.headers.get('Content-Type', '')
+        if not content_type.startswith('image/'):
+            raise ValueError(f"URL does not point to an image. Content-Type: {content_type}")
+            
+        # Convert image to base64
+        image_base64 = base64.b64encode(response.content).decode('utf-8')
+        return f"data:{content_type};base64,{image_base64}"
+        
+    except Exception as e:
+        logger.error(f"Error converting image to base64: {str(e)}")
+        raise ValueError(f"Failed to convert image to base64: {str(e)}")
 
 def analyze_artwork(image_url):
     """
@@ -49,10 +78,19 @@ def analyze_artwork(image_url):
             # Check if image is from a midjourney CDN, which is known to have issues
             if 'midjourney.com' in image_url:
                 logger.warning(f"Midjourney image URLs may not be accessible to OpenAI: {image_url}")
+                # Convert to base64 for Midjourney images
+                image_url = url_to_base64(image_url)
+                logger.info("Converted Midjourney image to base64 format")
             
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to validate image URL: {str(e)}")
-            raise ValueError(f"Image URL is not accessible: {str(e)}")
+            try:
+                # Try converting to base64 if direct URL fails
+                image_url = url_to_base64(image_url)
+                logger.info("URL validation failed, converted image to base64 format")
+            except Exception as base64_error:
+                logger.error(f"Failed to convert to base64: {str(base64_error)}")
+                raise ValueError(f"Image URL is not accessible: {str(e)}")
         
         # Prepare the message for OpenAI
         messages = [
