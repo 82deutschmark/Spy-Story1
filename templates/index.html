@@ -96,6 +96,11 @@
                         </div>
 
                         <form id="storyForm" method="POST" action="{{ url_for('main.generate_story_route') }}">
+                            <!-- Add hidden inputs for selected characters -->
+                            {% for img in images %}
+                            <input type="checkbox" name="selected_images[]" value="{{ img.id }}" id="character{{ img.id }}" class="character-checkbox" style="display: none;">
+                            {% endfor %}
+
                             <div class="selected-characters-container mb-3" style="display: none;">
                                 <h4>Selected Characters:</h4>
                                 <div class="selected-characters-list d-flex flex-wrap"></div>
