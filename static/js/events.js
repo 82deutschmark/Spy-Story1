@@ -12,17 +12,21 @@ export const events = {
         document.addEventListener('DOMContentLoaded', () => {
             // Character selection
             document.querySelectorAll('.character-select-card').forEach(card => {
-                card.addEventListener('click', (e) => {
-                    const characterId = card.dataset.id;
-                    const checkbox = document.getElementById(`character${characterId}`);
-                    if (checkbox) {
-                        checkbox.checked = !checkbox.checked;
-                        // Update visual selection
-                        const indicator = card.querySelector('.selection-indicator');
-                        if (indicator) {
-                            indicator.style.display = checkbox.checked ? 'block' : 'none';
-                        }
-                    }
+                const container = card.closest('.character-container');
+                const checkbox = container.querySelector('.character-checkbox');
+                const indicator = card.querySelector('.selection-indicator');
+
+                // Initialize selected state if checkbox is checked
+                if (checkbox.checked) {
+                    card.classList.add('selected');
+                    indicator.style.display = 'flex';
+                }
+
+                // Handle click events for character selection
+                card.addEventListener('click', () => {
+                    checkbox.checked = !checkbox.checked;
+                    card.classList.toggle('selected', checkbox.checked);
+                    indicator.style.display = checkbox.checked ? 'flex' : 'none';
                 });
             });
 
@@ -31,7 +35,7 @@ export const events = {
             if (storyForm) {
                 storyForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
-                    const selectedCharacters = document.querySelectorAll('input[name="selected_images[]"]:checked');
+                    const selectedCharacters = document.querySelectorAll('.character-checkbox:checked');
 
                     if (selectedCharacters.length === 0) {
                         dom.showToast('Error', 'Please select at least one character for your story');
@@ -43,12 +47,14 @@ export const events = {
 
                     try {
                         const formData = new FormData(e.target);
-                        // Ensure selected characters are added to form data
-                        selectedCharacters.forEach(char => {
-                            formData.append('selected_images[]', char.value);
+                        // Ensure selected characters are properly added to form data
+                        selectedCharacters.forEach(checkbox => {
+                            formData.append('selected_images[]', checkbox.value);
                         });
-
                         await story.generate(formData);
+                    } catch (error) {
+                        console.error('Error generating story:', error);
+                        dom.showToast('Error', error.message || 'Failed to generate story');
                     } finally {
                         if (btn) btn.disabled = false;
                     }
