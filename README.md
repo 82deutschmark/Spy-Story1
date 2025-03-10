@@ -17,13 +17,20 @@ This application allows users to generate interactive stories featuring images f
 - **Interactive Choices**: Make decisions that affect the story's outcome
 - **Image Analysis**: Upload character/scene images for AI analysis 
 - **Debug Tools**: View and manage database records
+- **Gamification System**: Earn experience points, level up, and track relationships with characters
+- **Virtual Currency**: Earn and spend various currencies (💎, 💵, 💷, 💶, 💴) on story choices
+- **Plot Arcs**: Track active and completed story arcs across multiple sessions
 
 ## Recent Improvements
 
+- **Gamification System**: Added user levels, experience points, and character relationships
+- **Currency System**: Implemented virtual currencies with exchange features
+- **Plot Arc Tracking**: Added system to track story progress across multiple sessions
+- **Character Evolution**: Characters now evolve based on story interactions
 - **Multi-Character Support**: Enhanced the app to support selecting multiple characters for stories
 - **Improved Error Handling**: Fixed issues with story continuation and form submission
 - **Backend Optimization**: Updated the story generation logic to handle multiple character selections
-- **UI Enhancements**: Fixed character highlighting in story text
+- **UI Enhancements**: Fixed character highlighting in story text and added progress display
 - **Bug Fixes**: Resolved form submission duplicates and storyboard rendering issues
 
 ## Technology Stack
@@ -48,6 +55,8 @@ Set up the following environment variables:
 DATABASE_URL=postgresql://username:password@localhost/dbname
 OPENAI_API_KEY=your_openai_api_key
 SESSION_SECRET=your_session_secret
+PAYPAL_CLIENT_ID=your_paypal_client_id
+PAYPAL_SECRET=your_paypal_secret
 ```
 
 ### Installation
@@ -76,6 +85,13 @@ SESSION_SECRET=your_session_secret
 3. Click "Begin Your Adventure"
 4. Make choices to progress through the story
 
+### Currency and Progress
+
+1. Make choices to earn experience points and level up
+2. Trade different currency types in the currency exchange
+3. Purchase premium options using diamonds (💎)
+4. View your progress and character relationships in the progress panel
+
 ### Using Debug Tools
 
 1. Navigate to `/debug` endpoint
@@ -86,7 +102,9 @@ SESSION_SECRET=your_session_secret
 ## Project Structure
 
 - `app.py`: Main application file with Flask routes
+- `routes.py`: Modularized route handlers
 - `models.py`: Database models (SQLAlchemy)
+- `migrations/`: Database migration scripts
 - `services/`: 
   - `openai_service.py`: OpenAI API integration (contains artwork analysis prompts)
   - `story_maker.py`: Story generation logic (contains the core story generation prompts)
@@ -115,13 +133,15 @@ The application uses two main AI prompts:
 
 ## Character Universe
 
-The story universe centers around whatever is defined in the story_maker.py
+The story universe is set in a high-stakes, sexy dramatic international spy network in the year 2070. The world is in a state of emergency with charismatic but incompetent protagonists who are more interested in partying and romance than saving the world.
 
 ## Known Issues and Future Improvements
 
+- **PayPal Integration**: Complete payment processing for diamond purchases
 - **UI/UX Refinements**: Further improve the user interface for character selection
 - **Performance Optimization**: Enhance loading times for story generation
 - **Mobile Responsiveness**: Improve the mobile experience
+- **Achievement System**: Implement unlockable achievements for players
 
 ## Credits
 
