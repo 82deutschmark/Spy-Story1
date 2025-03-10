@@ -220,7 +220,12 @@ document.addEventListener('DOMContentLoaded', function() {
         applyChangesBtn.addEventListener('click', function() {
             if (!currentImageData) return;
 
-            const updatedAnalysis = getEditedDataFromForm();
+            const updatedAnalysis = getEditedDataFromForm('main');
+            if (Object.keys(updatedAnalysis).length === 0) {
+                showToast('Error', 'Failed to get form data. Please check the form values.', true);
+                return;
+            }
+            
             generatedContent.textContent = JSON.stringify(updatedAnalysis, null, 2);
             currentImageData.analysis = updatedAnalysis;
 
@@ -432,7 +437,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Get the edited values from the form
         const editedData = getEditedDataFromForm('main');
+        
+        // Validate data before saving
+        if (Object.keys(editedData).length === 0) {
+            showToast('Error', 'Missing required data in the form', true);
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save to Database';
+            }
+            return;
+        }
 
+        console.log("Saving analysis data:", editedData);
+        
         // Save to database
         fetch('/save_analysis', {
             method: 'POST',
