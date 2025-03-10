@@ -78,11 +78,17 @@ class CurrencyManager {
                 return;
             }
 
+            console.log(`Trading ${amount} ${fromCurrency} for ${toCurrency}`);
+
+            // Show loading indicator
+            const loadingToast = UIUtils.showToast('Processing', 'Processing trade...', 0);
+
             // Send trade request to server
             fetch('/api/currency/trade', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: JSON.stringify({
                     from_currency: fromCurrency,
@@ -90,10 +96,25 @@ class CurrencyManager {
                     amount: amount
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || `Server error: ${response.status}`);
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
+                // Close loading toast
+                if (loadingToast) {
+                    loadingToast.hide();
+                }
+                
                 if (data.success) {
+                    console.log('Trade successful, new balances:', data.new_balances);
+                    
                     // Update display with new balances
+                    this.currentBalances = data.new_balances;
                     this.updateCurrencyDisplay(data.new_balances);
 
                     // Notify any listeners
@@ -111,8 +132,13 @@ class CurrencyManager {
                 }
             })
             .catch(error => {
+                // Close loading toast
+                if (loadingToast) {
+                    loadingToast.hide();
+                }
+                
                 console.error('Error making trade:', error);
-                reject(error);
+                reject(error.message || 'Failed to complete trade');
             });
         });
     }

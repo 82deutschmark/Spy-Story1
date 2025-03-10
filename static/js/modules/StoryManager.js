@@ -79,18 +79,45 @@ export default {
                 clearInterval(progressInterval);
                 clearInterval(progressUpdate);
 
-                if (data.success && data.redirect) {
-                    // Show 100% completion
-                    UIUtils.updateLoadingPercent(loadingPercent, 100);
-                    this.updateLoadingUICompletion(loadingUI);
+                if (data.success) {
+                    // Update progress to 100%
+                    progress = 100;
+
+                    // Update loading percentage display
+                    const loadingPercentElement = document.querySelector('.loading-percentage');
+                    if (loadingPercentElement) {
+                        loadingPercentElement.textContent = '100%';
+                    }
+
+                    if (progressBar) {
+                        progressBar.style.width = progress + '%';
+                        progressBar.setAttribute('aria-valuenow', progress);
+                    }
+                    if (progressText) {
+                        progressText.textContent = progress + '%';
+                    }
+
+                    // Update phase indicators
+                    if (phases && phases.length) {
+                        for (let i = 0; i < phases.length; i++) {
+                            phases[i].style.color = '#4CAF50';
+                            phases[i].innerHTML = '<i class="fas fa-check-circle me-2"></i>' + phases[i].textContent;
+                        }
+                    }
 
                     // Wait a moment so user can see completion before redirect
                     setTimeout(() => {
                         // Clean up loading UI elements
                         if (loadingUI) loadingUI.remove();
-                        UIUtils.removeLoadingOverlay(loadingPercent);
+
+                        // Remove loading overlay
+                        const loadingOverlay = document.querySelector('.loading-overlay');
+                        if (loadingOverlay) {
+                            loadingOverlay.remove();
+                        }
+
                         document.body.classList.remove('loading-in-progress');
-                        
+
                         // Redirect to the new story
                         window.location.href = data.redirect;
                     }, 1000);
@@ -101,33 +128,33 @@ export default {
             })
             .catch(error => {
                 console.error('Error generating story:', error);
-                
+
                 // Clean up all intervals
                 clearInterval(progressInterval);
                 clearInterval(progressUpdate);
-                
+
                 // Reset UI elements
                 if (generateStoryBtn) {
                     generateStoryBtn.disabled = false;
                     generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
                 }
-                
+
                 // Remove loading indicators
                 UIUtils.removeLoadingOverlay(loadingPercent);
                 document.body.classList.remove('loading-in-progress');
-                
+
                 // Remove the detailed loading UI
                 if (loadingUI && loadingUI.parentNode) {
                     loadingUI.parentNode.removeChild(loadingUI);
                 }
-                
+
                 // Show error message
                 UIUtils.showToast('Error', error.message || 'Failed to generate story. Please try again.');
-                
+
                 throw error;
             });
     },
-    
+
     /**
      * Creates the detailed loading UI component
      * @returns {HTMLElement} The loading UI element
@@ -164,10 +191,10 @@ export default {
             </div>
             <div class="progress-text mt-2" style="color: white; font-size: 16px;">0%</div>
         `;
-        
+
         return loadingUI;
     },
-    
+
     /**
      * Updates the progress phases based on current progress percentage
      * @param {NodeList} phases - The phase elements to update
@@ -186,14 +213,14 @@ export default {
             phases[4].innerHTML = '⋯ Finalizing your adventure';
         }
     },
-    
+
     /**
      * Updates the loading UI to show completion
      * @param {HTMLElement} loadingUI - The loading UI element
      */
     updateLoadingUICompletion(loadingUI) {
         if (!loadingUI) return;
-        
+
         const progressBar = loadingUI.querySelector('.progress-bar');
         const progressText = loadingUI.querySelector('.progress-text');
         const phases = loadingUI.querySelectorAll('.phase');
@@ -227,7 +254,7 @@ export default {
         // Replace character names with highlighted spans
         html = html.replace(namePattern, (match) => {
             // Find the character that matches this name (case-insensitive)
-            const character = characters.find(char => 
+            const character = characters.find(char =>
                 char.name && char.name.toLowerCase() === match.toLowerCase());
 
             if (!character) return match; // Safety check
@@ -245,7 +272,7 @@ export default {
                 const characterSlug = span.getAttribute('data-character');
 
                 // Find the character in the characters array
-                const character = characters.find(char => 
+                const character = characters.find(char =>
                     char.name && char.name.toLowerCase().replace(/\s+/g, '-') === characterSlug);
 
                 if (!character) return;
@@ -260,7 +287,7 @@ export default {
                     <img src="${character.image_url}" alt="${character.name}">
                     <div class="character-name">${character.name}</div>
                     <div class="character-traits">
-                        ${(character.traits || []).map(trait => 
+                        ${(character.traits || []).map(trait =>
                             `<span class="character-trait">${trait}</span>`
                         ).join('')}
                     </div>
@@ -319,7 +346,7 @@ export default {
 
         // Create loading overlay
         const loadingPercent = UIUtils.createLoadingOverlay('Processing your choice...');
-        
+
         // Track progress
         let progress = 0;
         const progressInterval = setInterval(() => {
@@ -341,7 +368,7 @@ export default {
                 progressBar.style.width = progress + '%';
                 progressBar.setAttribute('aria-valuenow', progress);
                 if (progressText) progressText.textContent = progress + '%';
-                
+
                 // Update the phases text
                 this.updateChoiceProgressPhases(loadingUI, progress);
             }
@@ -356,7 +383,7 @@ export default {
             .then(data => {
                 // Update game state with choice results
                 this.updateGameState(data);
-                
+
                 // Generate the next part of the story
                 return this.apiGenerateNextStory(formData);
             })
@@ -364,22 +391,22 @@ export default {
                 // Clear the progress intervals
                 clearInterval(progressInterval);
                 clearInterval(progressUpdateInterval);
-                
+
                 if (storyData.success && storyData.redirect) {
                     // Show 100% completion
                     UIUtils.updateLoadingPercent(loadingPercent, 100);
                     this.updateChoiceLoadingUICompletion(loadingUI);
-                    
+
                     // Wait a moment before redirecting
                     setTimeout(() => {
                         // Remove loading UI elements
                         if (loadingUI) loadingUI.remove();
                         UIUtils.removeLoadingOverlay(loadingPercent);
-                        
+
                         // Redirect to the next part of the story
                         window.location.href = storyData.redirect;
                     }, 1000);
-                    
+
                     return storyData;
                 } else {
                     throw new Error(storyData.error || 'Failed to generate next story part');
@@ -387,29 +414,29 @@ export default {
             })
             .catch(error => {
                 console.error('Error processing choice:', error);
-                
+
                 // Show error message
                 UIUtils.showToast('Error', error.message || 'Failed to process your choice');
-                
+
                 // Reset the button
                 btn.disabled = false;
                 btn.classList.remove('loading');
                 btn.innerHTML = originalBtnText;
-                
+
                 // Clear all intervals
                 clearInterval(progressInterval);
                 clearInterval(progressUpdateInterval);
-                
+
                 // Remove loading UI elements
                 UIUtils.removeLoadingOverlay(loadingPercent);
                 if (loadingUI && loadingUI.parentNode) {
                     loadingUI.parentNode.removeChild(loadingUI);
                 }
-                
+
                 throw error;
             });
     },
-    
+
     /**
      * Creates a detailed loading UI for choice processing
      * @returns {HTMLElement} The loading UI element
@@ -429,7 +456,7 @@ export default {
         loadingUI.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.5)';
         loadingUI.style.zIndex = '9999';
         loadingUI.style.textAlign = 'center';
-        
+
         loadingUI.innerHTML = `
             <div class="loading-text mb-3" style="color: white; font-size: 18px; font-weight: bold;">
                 Crafting the next part of your adventure...
@@ -445,10 +472,10 @@ export default {
             </div>
             <div class="progress-text mt-2" style="color: white; font-size: 16px;">0%</div>
         `;
-        
+
         return loadingUI;
     },
-    
+
     /**
      * Updates the choice loading UI phases based on progress
      * @param {HTMLElement} loadingUI - The loading UI element
@@ -456,10 +483,10 @@ export default {
      */
     updateChoiceProgressPhases(loadingUI, progress) {
         if (!loadingUI) return;
-        
+
         const phases = loadingUI.querySelectorAll('.phase');
         if (!phases || phases.length < 4) return;
-        
+
         if (progress > 10 && progress <= 30) {
             phases[0].innerHTML = '✓ Processing your choice';
             phases[1].innerHTML = '⋯ Updating character relationships';
@@ -471,28 +498,28 @@ export default {
             phases[3].innerHTML = '⋯ Finalizing your adventure';
         }
     },
-    
+
     /**
      * Updates the choice loading UI to show completion
      * @param {HTMLElement} loadingUI - The loading UI element
      */
     updateChoiceLoadingUICompletion(loadingUI) {
         if (!loadingUI) return;
-        
+
         const progressBar = loadingUI.querySelector('.progress-bar');
         const progressText = loadingUI.querySelector('.progress-text');
         const phases = loadingUI.querySelectorAll('.phase');
-        
+
         if (progressBar) progressBar.style.width = '100%';
         if (progressText) progressText.textContent = '100%';
-        
+
         if (phases && phases.length >= 4) {
             for (let i = 0; i < phases.length; i++) {
                 phases[i].innerHTML = phases[i].innerHTML.replace('⋯', '✓');
             }
         }
     },
-    
+
     /**
      * Makes an API call to process the user's choice
      * @param {FormData} formData - The form data
@@ -514,29 +541,29 @@ export default {
                 story_id: document.querySelector('input[name="story_id"]')?.value || null
             })
         })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(data => {
-                    if (response.status === 400 && data.error && data.error.includes('Insufficient')) {
-                        let errorMessage = isCustom ?
-                            `Insufficient diamonds. You need 100 💎 but only have ${data.current_balance} 💎.` :
-                            'Insufficient funds for this choice.';
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        if (response.status === 400 && data.error && data.error.includes('Insufficient')) {
+                            let errorMessage = isCustom ?
+                                `Insufficient diamonds. You need 100 💎 but only have ${data.current_balance} 💎.` :
+                                'Insufficient funds for this choice.';
 
-                        throw new Error(errorMessage);
-                    }
+                            throw new Error(errorMessage);
+                        }
+                        throw new Error(data.error || 'Failed to process choice');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.success) {
                     throw new Error(data.error || 'Failed to process choice');
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to process choice');
-            }
-            return data;
-        });
+                }
+                return data;
+            });
     },
-    
+
     /**
      * Updates the game state with choice results
      * @param {Object} data - Data returned from the make_choice API
@@ -569,7 +596,7 @@ export default {
             });
         }
     },
-    
+
     /**
      * Makes an API call to generate the next part of the story
      * @param {FormData} formData - The form data
@@ -583,13 +610,13 @@ export default {
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(data => {
-                    throw new Error(data.error || `Server error: ${response.status}`);
-                });
-            }
-            return response.json();
-        });
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || `Server error: ${response.status}`);
+                    });
+                }
+                return response.json();
+            });
     }
 };
