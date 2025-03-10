@@ -1,159 +1,163 @@
+
 /**
- * Currency management system
+ * Currency management module
  */
 import { dom } from './utils/dom.js';
 import { api } from './utils/api.js';
 
 export const currency = {
     balances: {},
-
+    transactionHistory: [],
+    
     /**
-     * Initialize currency system with current balances
-     * @param {Object} initialBalances - Initial currency balances
+     * Initialize currency manager with balances
+     * @param {Object} balances - Initial currency balances
      */
-    initialize(initialBalances) {
-        this.balances = initialBalances || {};
+    initialize(balances) {
+        this.balances = balances || {};
+        console.log('Currency initialized with balances:', this.balances);
         this.updateUI();
-        console.log('Currency system initialized with balances:', this.balances);
-
-        // Initialize event listeners
-        this.initEventListeners();
+        this.setupEventListeners();
     },
-
+    
     /**
-     * Initialize event listeners for currency UI elements
+     * Setup event listeners for currency-related functionality
      */
-    initEventListeners() {
-        // Trade form submission
+    setupEventListeners() {
+        // Trade form
         const tradeForm = document.getElementById('tradeForm');
         if (tradeForm) {
-            tradeForm.addEventListener('submit', async (e) => {
+            tradeForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-
-                const fromCurrency = document.getElementById('fromCurrency').value;
-                const toCurrency = document.getElementById('toCurrency').value;
-                const amount = parseInt(document.getElementById('tradeAmount').value);
-
-                if (!fromCurrency || !toCurrency || isNaN(amount) || amount <= 0) {
-                    dom.showToast('Invalid Trade', 'Please enter valid trade details');
-                    return;
-                }
-
-                try {
-                    const data = await api.postForm('/api/currency/trade', new FormData(tradeForm), 'Processing trade...');
-
-                    if (data.success) {
-                        this.balances = data.new_balances;
-                        this.updateUI();
-                        dom.showToast('Trade Complete', data.message || 'Trade completed successfully');
-
-                        // Close modal
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('tradeModal'));
-                        if (modal) {
-                            modal.hide();
-                        }
-                    } else {
-                        dom.showToast('Trade Failed', data.error || 'Failed to complete trade', true);
-                    }
-                } catch (error) {
-                    console.error('Error trading currencies:', error);
-                    dom.showToast('Error', 'Failed to process trade', true);
-                }
+                this.processTrade();
             });
         }
-
-        // Trade offer acceptance
+        
+        // Trade offers
         document.querySelectorAll('.accept-trade-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const fromCurrency = e.target.dataset.from;
-                const toCurrency = e.target.dataset.to;
-                const rate = parseFloat(e.target.dataset.rate);
-                const amount = parseInt(e.target.dataset.amount || '100');
-
-                if (!fromCurrency || !toCurrency || isNaN(rate) || isNaN(amount)) {
-                    dom.showToast('Invalid Trade', 'Trade offer details are invalid');
-                    return;
-                }
-
-                try {
-                    const formData = new FormData();
-                    formData.append('from_currency', fromCurrency);
-                    formData.append('to_currency', toCurrency);
-                    formData.append('amount', amount);
-                    formData.append('rate', rate);
-
-                    const data = await api.postForm('/api/currency/trade', formData, 'Processing trade offer...');
-
-                    if (data.success) {
-                        this.balances = data.new_balances;
-                        this.updateUI();
-                        dom.showToast('Trade Complete', data.message || 'Trade completed successfully');
-                    } else {
-                        dom.showToast('Trade Failed', data.error || 'Failed to complete trade', true);
-                    }
-                } catch (error) {
-                    console.error('Error accepting trade offer:', error);
-                    dom.showToast('Error', 'Failed to process trade offer', true);
-                }
+            btn.addEventListener('click', () => {
+                const fromCurrency = btn.dataset.from;
+                const toCurrency = btn.dataset.to;
+                const rate = parseFloat(btn.dataset.rate);
+                const amount = parseInt(btn.dataset.amount || 100);
+                this.acceptTradeOffer(fromCurrency, toCurrency, rate, amount);
             });
         });
     },
-
+    
     /**
-     * Update currency UI elements with current balances
+     * Update UI elements with current balances
      */
     updateUI() {
-        // Update currency display in the top bar
-        Object.entries(this.balances).forEach(([currency, amount]) => {
-            const amountEl = document.querySelector(`.currency-item[data-currency="${currency}"] .currency-amount`);
-            if (amountEl) {
-                amountEl.textContent = amount;
+        // Update currency displays
+        document.querySelectorAll('.currency-amount').forEach(el => {
+            const currencySymbol = el.previousElementSibling?.textContent;
+            if (currencySymbol && this.balances[currencySymbol]) {
+                el.textContent = this.balances[currencySymbol];
             }
         });
-
-        // Update any choice buttons that might have currency requirements
-        document.querySelectorAll('.choice-btn').forEach(button => {
-            if (button.dataset.currencyReq) {
-                try {
-                    const requirements = JSON.parse(button.dataset.currencyReq);
-                    const canAfford = this.canAfford(requirements);
-                    button.disabled = !canAfford;
-                    button.classList.toggle('insufficient-funds', !canAfford);
-                } catch (e) {
-                    console.error('Error parsing currency requirements:', e);
-                }
-            }
-        });
-
-        // Update currency requirement indicators
-        document.querySelectorAll('.currency-req-item').forEach(item => {
-            const currencyText = item.textContent.trim();
-            const currencySymbol = currencyText.charAt(0);
-            const amountText = currencyText.substring(1);
-            const amount = parseInt(amountText);
-
-            if (!isNaN(amount) && this.balances[currencySymbol] < amount) {
-                item.classList.add('currency-req-insufficient');
-            } else {
-                item.classList.remove('currency-req-insufficient');
+        
+        // Update choice button states based on available currency
+        document.querySelectorAll('.choice-btn').forEach(btn => {
+            if (btn.dataset.currencyReq) {
+                const requirements = JSON.parse(btn.dataset.currencyReq);
+                const canAfford = this.canAfford(requirements);
+                btn.disabled = !canAfford;
+                btn.classList.toggle('insufficient-funds', !canAfford);
             }
         });
     },
-
+    
     /**
-     * Check if user can afford specified currency requirements
-     * @param {Object} requirements - Currency requirements object
+     * Process a currency trade
+     */
+    async processTrade() {
+        const fromCurrency = document.getElementById('fromCurrency').value;
+        const toCurrency = document.getElementById('toCurrency').value;
+        const amount = parseInt(document.getElementById('tradeAmount').value);
+        
+        if (!fromCurrency || !toCurrency || isNaN(amount) || amount <= 0) {
+            dom.showToast('Error', 'Please enter valid trade details');
+            return;
+        }
+        
+        const loadingPercent = dom.createLoadingOverlay('Processing trade...');
+        
+        try {
+            const response = await api.post('/api/currency/trade', {
+                from_currency: fromCurrency,
+                to_currency: toCurrency,
+                amount: amount
+            });
+            
+            if (response.success) {
+                this.balances = response.new_balances;
+                this.updateUI();
+                dom.showToast('Success', response.message || 'Trade completed successfully');
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('tradeModal'));
+                if (modal) modal.hide();
+                
+                // Reset form
+                document.getElementById('tradeAmount').value = '';
+            } else {
+                dom.showToast('Error', response.error || 'Failed to trade currencies');
+            }
+        } catch (error) {
+            console.error('Error trading currencies:', error);
+            dom.showToast('Error', 'Failed to process trade');
+        } finally {
+            dom.removeLoadingOverlay(loadingPercent);
+        }
+    },
+    
+    /**
+     * Accept a trade offer
+     * @param {string} fromCurrency - Currency to trade from
+     * @param {string} toCurrency - Currency to trade to
+     * @param {number} rate - Exchange rate
+     * @param {number} amount - Amount to trade
+     */
+    async acceptTradeOffer(fromCurrency, toCurrency, rate, amount) {
+        const loadingPercent = dom.createLoadingOverlay('Processing trade offer...');
+        
+        try {
+            const response = await api.post('/api/currency/trade', {
+                from_currency: fromCurrency,
+                to_currency: toCurrency,
+                amount: amount,
+                trade_type: 'offer'
+            });
+            
+            if (response.success) {
+                this.balances = response.new_balances;
+                this.updateUI();
+                dom.showToast('Success', 'Trade offer accepted!');
+            } else {
+                dom.showToast('Error', response.error || 'Failed to accept trade offer');
+            }
+        } catch (error) {
+            console.error('Error accepting trade offer:', error);
+            dom.showToast('Error', 'Failed to process trade offer');
+        } finally {
+            dom.removeLoadingOverlay(loadingPercent);
+        }
+    },
+    
+    /**
+     * Check if user can afford requirements
+     * @param {Object} requirements - Currency requirements
      * @returns {boolean} - Whether user can afford
      */
     canAfford(requirements) {
         if (!requirements) return true;
-
+        
         for (const [currency, amount] of Object.entries(requirements)) {
             if ((this.balances[currency] || 0) < amount) {
                 return false;
             }
         }
-
         return true;
     }
 };

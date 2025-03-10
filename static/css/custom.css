@@ -158,6 +158,44 @@ body.storyboard-body {
     background-color: var(--secondary-color);
 }
 
+/* Character Selection Card */
+.character-select-card {
+    position: relative;
+    cursor: pointer;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.character-select-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.character-select-card.selected {
+    box-shadow: 0 0 0 3px var(--primary-color), 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.selection-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    background-color: var(--primary-color);
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    z-index: 2;
+}
+
+.character-select-card.selected .selection-indicator {
+    display: flex;
+}
+
 /* Story Icon */
 .story-icon {
     font-size: 48px;

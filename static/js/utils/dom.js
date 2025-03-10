@@ -4,9 +4,24 @@
 
 export const dom = {
     /**
-     * Create a loading overlay with specified message
-     * @param {string} message - Loading message to display
-     * @returns {HTMLElement} - The loading percentage element for updates
+     * Show a toast notification
+     * @param {string} title - Toast title
+     * @param {string} message - Toast message
+     */
+    showToast(title, message) {
+        const toastEl = document.getElementById('notificationToast');
+        if (toastEl) {
+            const toast = new bootstrap.Toast(toastEl);
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+            toast.show();
+        }
+    },
+
+    /**
+     * Create a loading overlay
+     * @param {string} message - Loading message
+     * @returns {HTMLElement} - The loading percentage element
      */
     createLoadingOverlay(message = 'Generating Story...') {
         const overlay = document.createElement('div');
@@ -23,58 +38,20 @@ export const dom = {
     },
 
     /**
-     * Update loading percentage display
-     * @param {HTMLElement} element - The loading percentage element
-     * @param {number} percent - Percentage value to display
+     * Update loading percentage
+     * @param {HTMLElement} element - Loading percentage element
+     * @param {number} percent - Loading percentage
      */
     updateLoadingPercent(element, percent) {
-        if (element) {
-            element.textContent = `${Math.round(percent)}%`;
-        }
+        element.textContent = `${Math.round(percent)}%`;
     },
 
     /**
-     * Remove loading overlay from DOM
-     * @param {HTMLElement} element - The loading percentage element
+     * Remove loading overlay
+     * @param {HTMLElement} overlay - Loading percentage element
      */
-    removeLoadingOverlay(element) {
-        if (element) {
-            const overlay = element.closest('.loading-overlay');
-            if (overlay) {
-                overlay.remove();
-            }
-        }
-    },
-
-    /**
-     * Show toast notification
-     * @param {string} title - Toast title
-     * @param {string} message - Toast message
-     * @param {boolean} isError - Whether this is an error toast
-     */
-    showToast(title, message, isError = false) {
-        const toastEl = document.getElementById('notificationToast');
-        if (toastEl) {
-            const toastTitle = document.getElementById('toastTitle');
-            const toastMessage = document.getElementById('toastMessage');
-
-            if (toastTitle) {
-                toastTitle.textContent = title;
-            }
-
-            if (toastMessage) {
-                toastMessage.textContent = message;
-            }
-
-            if (isError) {
-                toastEl.classList.add('bg-danger', 'text-white');
-            } else {
-                toastEl.classList.remove('bg-danger', 'text-white');
-            }
-
-            const toast = new bootstrap.Toast(toastEl);
-            toast.show();
-        }
+    removeLoadingOverlay(overlay) {
+        overlay.closest('.loading-overlay').remove();
     },
 
     /**

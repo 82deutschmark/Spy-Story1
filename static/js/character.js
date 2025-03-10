@@ -2,6 +2,7 @@
  * Character highlighting and interaction module
  */
 import { dom } from './utils/dom.js';
+import { api } from './utils/api.js';
 
 export const character = {
     /**
@@ -31,8 +32,8 @@ export const character = {
             return {
                 name: name,
                 image: imageElement.src,
-                dataName: portrait.getAttribute('data-character-name') || 
-                         name.toLowerCase().replace(/\s/g, '-')
+                dataName: portrait.getAttribute('data-character-name') ||
+                    name.toLowerCase().replace(/\s/g, '-')
             };
         }).filter(Boolean);
 
@@ -52,7 +53,7 @@ export const character = {
             const escapedName = character.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const regex = new RegExp(`\\b${escapedName}\\b(?![^<]*>)`, 'gi');
 
-            storyHTML = storyHTML.replace(regex, match => 
+            storyHTML = storyHTML.replace(regex, match =>
                 `<span class="character-mention" data-character="${character.dataName}">` +
                 `${match}<span class="character-tooltip"><img src="${character.image}" ` +
                 `alt="${match}">${match}</span></span>`
@@ -81,9 +82,9 @@ export const character = {
                         const portraitImg = targetPortrait.querySelector('.character-mini-img');
                         if (portraitImg) {
                             portraitImg.classList.add('character-mini-highlight');
-                            targetPortrait.scrollIntoView({ 
-                                behavior: 'smooth', 
-                                block: 'nearest' 
+                            targetPortrait.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'nearest'
                             });
 
                             // Remove highlight after 3 seconds
@@ -95,70 +96,20 @@ export const character = {
                 });
             });
         }
-    }
-};
-
-// Initialize character highlighting when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    character.initializeHighlighting();
-});
-/**
- * Character management functionality
- */
-import { dom } from './utils/dom.js';
-import { api } from './utils/api.js';
-
-export const character = {
+    },
     /**
-     * Initialize character selection functionality
+     * Initialize character selection
      */
     initialize() {
         const characterCards = document.querySelectorAll('.character-select-card');
         const characterCheckboxes = document.querySelectorAll('.character-checkbox');
-        const storyForm = document.getElementById('storyForm');
 
-        if (!characterCards.length) {
-            console.log('No character cards found');
-            return;
-        }
+        if (!characterCards.length) return;
 
-        /**
-         * Clear all character selections
-         */
-        const clearAllSelections = () => {
-            characterCards.forEach(card => {
-                card.classList.remove('selected');
-                const indicator = card.querySelector('.selection-indicator');
-                if (indicator) {
-                    indicator.style.display = 'none';
-                }
-            });
+        // Clear all selections on start
+        this.clearAllSelections(characterCards, characterCheckboxes);
 
-            characterCheckboxes.forEach(checkbox => {
-                checkbox.checked = false;
-            });
-        };
-
-        /**
-         * Update hidden inputs with selected characters
-         */
-        const updateSelectedImagesInput = () => {
-            if (!storyForm) return;
-
-            // Remove any existing hidden inputs
-            document.querySelectorAll('input[name="selected_images[]"]').forEach(el => el.remove());
-
-            // Add new hidden inputs for each selected character
-            document.querySelectorAll('.character-checkbox:checked').forEach(checkbox => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'selected_images[]';
-                input.value = checkbox.value;
-                storyForm.appendChild(input);
-            });
-        };
-
-        // Handle character card clicks
+        // Handle character selection when clicking on card
         characterCards.forEach(card => {
             card.addEventListener('click', function() {
                 const characterId = this.dataset.id;
@@ -167,145 +118,167 @@ export const character = {
 
                 if (!checkbox || !selectionIndicator) return;
 
-                // Single-select behavior
-                clearAllSelections();
+                // For single-select behavior
+                character.clearAllSelections(characterCards, characterCheckboxes);
 
                 // Select this character
                 checkbox.checked = true;
                 selectionIndicator.style.display = 'block';
                 this.classList.add('selected');
 
-                // Update form inputs
-                updateSelectedImagesInput();
+                // Update selected images input
+                character.updateSelectedImagesInput();
 
-                // Provide feedback
-                dom.showToast('Character Selected', 'Character has been selected for your story.');
+                // Show toast notification
+                dom.showToast('Character Selected', 'Character has been selected for your story');
             });
         });
 
         // Handle reroll buttons
-        const rerollButtons = document.querySelectorAll('.reroll-btn');
-        rerollButtons.forEach(button => {
-            button.addEventListener('click', async function(e) {
+        const rerollBtns = document.querySelectorAll('.reroll-btn');
+        rerollBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-
-                const cardContainer = this.closest('.character-container');
-                if (!cardContainer) return;
-
-                const characterCard = cardContainer.querySelector('.character-select-card');
-                if (!characterCard) return;
-
-                // Show loading state
-                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Rerolling...';
-
-                try {
-                    // Fetch a new random character
-                    const data = await api.get('/api/random_character', false);
-
-                    if (data.success) {
-                        // Update image
-                        const cardImg = characterCard.querySelector('img');
-                        if (cardImg) {
-                            cardImg.src = data.image_url;
-                        }
-
-                        // Update character info
-                        const nameEl = cardContainer.querySelector('.character-name');
-                        if (nameEl) {
-                            nameEl.textContent = data.name;
-                        }
-
-                        const traitsContainer = cardContainer.querySelector('.character-traits-list');
-                        if (traitsContainer && data.character_traits) {
-                            traitsContainer.innerHTML = '';
-                            data.character_traits.forEach(trait => {
-                                const span = document.createElement('span');
-                                span.className = 'trait-badge';
-                                span.textContent = trait;
-                                traitsContainer.appendChild(span);
-                            });
-                        }
-
-                        // Update checkbox value
-                        const checkbox = cardContainer.querySelector('.character-checkbox');
-                        if (checkbox) {
-                            checkbox.value = data.id;
-                            checkbox.id = `character${data.id}`;
-                        }
-
-                        // Update card data id
-                        characterCard.dataset.id = data.id;
-
-                        dom.showToast('Character Updated', 'A new character has been loaded!');
-                    } else {
-                        dom.showToast('Error', 'Failed to load a new character', true);
-                    }
-                } catch (error) {
-                    console.error('Error fetching random character:', error);
-                    dom.showToast('Error', 'Failed to load a new character', true);
-                } finally {
-                    // Reset button
-                    this.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
-                }
+                this.rerollCharacter(btn.dataset.id);
             });
-        });
-
-        // Set initial state for any pre-selected characters
-        characterCheckboxes.forEach((checkbox, index) => {
-            if (checkbox.checked && index < characterCards.length) {
-                characterCards[index].classList.add('selected');
-                const indicator = characterCards[index].querySelector('.selection-indicator');
-                if (indicator) {
-                    indicator.style.display = 'block';
-                }
-            }
         });
     },
 
     /**
-     * Initialize character highlighting in story text
+     * Clear all character selections
+     * @param {NodeList} cards - Character cards
+     * @param {NodeList} checkboxes - Character checkboxes
      */
-    initializeHighlighting() {
+    clearAllSelections(cards, checkboxes) {
+        // Reset card visual state
+        cards.forEach(card => {
+            card.classList.remove('selected');
+            const indicator = card.querySelector('.selection-indicator');
+            if (indicator) {
+                indicator.style.display = 'none';
+            }
+        });
+
+        // Uncheck all checkboxes
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    },
+
+    /**
+     * Update hidden inputs for selected images
+     */
+    updateSelectedImagesInput() {
+        const storyForm = document.getElementById('storyForm');
+        if (!storyForm) return;
+
+        // Remove any existing hidden inputs
+        document.querySelectorAll('input[name="selected_images[]"]').forEach(el => {
+            if (el.type === 'hidden') {
+                el.remove();
+            }
+        });
+
+        // Add new hidden inputs for each selected character
+        document.querySelectorAll('.character-checkbox:checked').forEach(checkbox => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'selected_images[]';
+            input.value = checkbox.value;
+            storyForm.appendChild(input);
+        });
+    },
+
+    /**
+     * Initialize character highlighting in story
+     */
+    initializeHighlightingImproved() {
         const storyContent = document.querySelector('.story-content');
-        if (!storyContent) {
+        const characterPortraits = document.querySelectorAll('.character-portrait-mini');
+
+        if (!storyContent || !characterPortraits.length) {
             console.log('Story content element not found');
             return;
         }
 
-        // Get character names from mini-portraits
-        const characterPortraits = document.querySelectorAll('.character-portrait-mini');
-        const characterNames = Array.from(characterPortraits).map(portrait => {
-            return {
-                name: portrait.querySelector('.character-mini-name').textContent.trim(),
-                image: portrait.querySelector('img').src,
-                element: portrait
-            };
+        // Highlight character mentions in the story text
+        characterPortraits.forEach(portrait => {
+            const characterName = portrait.dataset.characterName;
+            if (!characterName) return;
+
+            // Highlight this character's name in the story text
+            const regex = new RegExp(`\\b${characterName}\\b`, 'gi');
+            storyContent.innerHTML = storyContent.innerHTML.replace(
+                regex,
+                match => `<span class="character-highlight" data-character="${characterName}">${match}</span>`
+            );
         });
 
-        if (!characterNames.length) return;
-
-        // Replace character names with highlighted versions
-        characterNames.forEach(character => {
-            const regex = new RegExp(`\\b${character.name}\\b`, 'gi');
-            storyContent.innerHTML = storyContent.innerHTML.replace(regex, match => {
-                return `<span class="character-highlight" data-character="${character.name.toLowerCase().replace(/\s+/g, '-')}">${match}</span>`;
-            });
-        });
-
-        // Add click events to highlighted character names
+        // Add hover effects
         document.querySelectorAll('.character-highlight').forEach(highlight => {
-            highlight.addEventListener('click', function() {
-                const characterName = this.dataset.character;
-                const characterEl = document.querySelector(`.character-portrait-mini[data-character-name="${characterName}"]`);
-                if (characterEl) {
-                    characterEl.scrollIntoView({ behavior: 'smooth' });
-                    characterEl.classList.add('highlight-pulse');
-                    setTimeout(() => {
-                        characterEl.classList.remove('highlight-pulse');
-                    }, 2000);
-                }
+            const characterName = highlight.dataset.character;
+            const portrait = document.querySelector(`.character-portrait-mini[data-character-name="${characterName}"]`);
+
+            if (!portrait) return;
+
+            highlight.addEventListener('mouseenter', () => {
+                portrait.classList.add('highlighted');
+            });
+
+            highlight.addEventListener('mouseleave', () => {
+                portrait.classList.remove('highlighted');
             });
         });
+    },
+
+    /**
+     * Reroll a character to get new traits
+     * @param {string} characterId - Character ID
+     */
+    async rerollCharacter(characterId) {
+        try {
+            // Show loading overlay
+            const loadingPercent = dom.createLoadingOverlay('Regenerating character...');
+
+            // Call API to reroll character
+            const response = await api.post('/api/character/reroll', {
+                character_id: characterId
+            });
+
+            // Update UI with new character traits
+            if (response && response.success) {
+                const characterContainer = document.querySelector(`.character-select-card[data-id="${characterId}"]`).closest('.character-container');
+                const traitsContainer = characterContainer.querySelector('.character-traits-list');
+
+                // Update traits list
+                if (traitsContainer && response.traits) {
+                    traitsContainer.innerHTML = '';
+                    response.traits.forEach(trait => {
+                        const traitEl = document.createElement('span');
+                        traitEl.className = 'trait-badge';
+                        traitEl.textContent = trait;
+                        traitsContainer.appendChild(traitEl);
+                    });
+                }
+
+                dom.showToast('Character Updated', 'Character traits have been refreshed');
+            } else {
+                dom.showToast('Error', response.error || 'Failed to update character');
+            }
+
+            dom.removeLoadingOverlay(loadingPercent);
+        } catch (error) {
+            console.error('Error rerolling character:', error);
+            dom.showToast('Error', 'Failed to update character');
+            dom.removeLoadingOverlay(document.querySelector('.loading-percentage'));
+        }
     }
 };
+
+// Initialize character highlighting when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    character.initializeHighlighting();
+    character.initialize();
+    character.initializeHighlightingImproved();
+});

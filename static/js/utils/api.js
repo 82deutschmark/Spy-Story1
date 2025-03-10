@@ -1,81 +1,68 @@
 /**
- * API utility functions for making requests
+ * API utility functions
  */
 import { dom } from './dom.js';
 
 export const api = {
     /**
-     * Post form data to an endpoint
-     * @param {string} url - API endpoint
-     * @param {FormData} formData - Form data to submit
-     * @param {string} loadingMessage - Message to show during loading
-     * @returns {Promise} - Promise resolving to response data
+     * Make a GET request
+     * @param {string} url - URL to fetch
+     * @returns {Promise<Object>} - Response data
      */
-    async postForm(url, formData, loadingMessage = 'Processing...') {
-        // Create loading overlay
-        const loadingPercent = dom.createLoadingOverlay(loadingMessage);
-
+    async get(url) {
         try {
-            // Update progress to show activity
-            dom.updateLoadingPercent(loadingPercent, 25);
-
-            // Make the POST request
-            const response = await fetch(url, {
-                method: 'POST',
-                body: formData
-            });
-
-            dom.updateLoadingPercent(loadingPercent, 75);
-
-            // Parse the response
-            const data = await response.json();
-
-            dom.updateLoadingPercent(loadingPercent, 100);
-
-            // Remove the loading overlay
-            dom.removeLoadingOverlay(loadingPercent);
-
-            return data;
+            const response = await fetch(url);
+            return await response.json();
         } catch (error) {
-            // Remove loading overlay on error
-            dom.removeLoadingOverlay(loadingPercent);
+            console.error('API GET error:', error);
+            dom.showToast('Error', 'Failed to fetch data from server');
             throw error;
         }
     },
 
     /**
-     * Make a GET request to an endpoint
-     * @param {string} url - API endpoint
-     * @param {boolean} showLoading - Whether to show loading overlay
-     * @returns {Promise} - Promise resolving to response data
+     * Make a POST request
+     * @param {string} url - URL to post to
+     * @param {Object} data - Data to send
+     * @returns {Promise<Object>} - Response data
      */
-    async get(url, showLoading = false) {
-        let loadingPercent = null;
-
-        if (showLoading) {
-            loadingPercent = dom.createLoadingOverlay('Loading...');
-            dom.updateLoadingPercent(loadingPercent, 25);
-        }
-
+    async post(url, data) {
         try {
-            const response = await fetch(url);
-
-            if (showLoading) {
-                dom.updateLoadingPercent(loadingPercent, 75);
-            }
-
-            const data = await response.json();
-
-            if (showLoading) {
-                dom.updateLoadingPercent(loadingPercent, 100);
-                dom.removeLoadingOverlay(loadingPercent);
-            }
-
-            return data;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(data)
+            });
+            return await response.json();
         } catch (error) {
-            if (showLoading && loadingPercent) {
-                dom.removeLoadingOverlay(loadingPercent);
-            }
+            console.error('API POST error:', error);
+            dom.showToast('Error', 'Failed to send data to server');
+            throw error;
+        }
+    },
+
+    /**
+     * Submit a form with FormData
+     * @param {string} url - URL to post to
+     * @param {FormData} formData - Form data to send
+     * @returns {Promise<Object>} - Response data
+     */
+    async submitForm(url, formData) {
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Form submission error:', error);
+            dom.showToast('Error', 'Failed to submit form');
             throw error;
         }
     }

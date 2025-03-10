@@ -1,30 +1,9 @@
+
 /**
- * Story generation and choice handling module
+ * Story management module
  */
-import { api } from './utils/api.js';
 import { dom } from './utils/dom.js';
-
-function createLoadingOverlay(message = 'Generating Story...') {
-    const overlay = document.createElement('div');
-    overlay.className = 'loading-overlay';
-    overlay.innerHTML = `
-        <div class="loading-content">
-            <div class="loading-spinner"></div>
-            <div class="loading-percentage">0%</div>
-        </div>
-    `;
-    document.body.appendChild(overlay);
-    overlay.style.display = 'flex';
-    return overlay.querySelector('.loading-percentage');
-}
-
-function updateLoadingPercent(element, percent) {
-    element.textContent = `${Math.round(percent)}%`;
-}
-
-function removeLoadingOverlay(overlay) {
-    overlay.closest('.loading-overlay').remove();
-}
+import { api } from './utils/api.js';
 
 export const story = {
     /**
@@ -32,80 +11,121 @@ export const story = {
      * @param {FormData} formData - Form data with story parameters
      */
     async generate(formData) {
-        // Get the button to update its state
-        const generateBtn = document.getElementById('generateStoryBtn');
-        if (generateBtn) {
-            generateBtn.disabled = true;
-            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Story...';
-        }
-
+        // Create loading overlay
+        const loadingPercent = dom.createLoadingOverlay('Generating your adventure...');
+        
         try {
-            // Check if at least one character is selected
-            const selectedImages = formData.getAll('selected_images[]');
-            if (!selectedImages.length) {
-                const characterSelectionError = document.getElementById('characterSelectionError');
-                if (characterSelectionError) {
-                    characterSelectionError.style.display = 'block';
-                    characterSelectionError.textContent = 'Please select a character for your story';
+            // Get the button to update its state
+            const generateBtn = document.getElementById('generateStoryBtn');
+            if (generateBtn) {
+                generateBtn.disabled = true;
+                generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Story...';
+            }
+
+            // Progress updates simulation
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 5;
+                if (progress > 95) {
+                    clearInterval(interval);
+                    return;
                 }
+                dom.updateLoadingPercent(loadingPercent, progress);
+            }, 700);
 
-                dom.showToast('Selection Needed', 'Please select a character before continuing');
-
-                // Re-enable the button
+            // Submit form to server
+            const response = await fetch('/generate_story', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            // Clear the interval
+            clearInterval(interval);
+            
+            // Process the response
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                // Show full progress before redirect
+                dom.updateLoadingPercent(loadingPercent, 100);
+                setTimeout(() => {
+                    // Redirect to the generated story
+                    window.location.href = result.redirect;
+                }, 500);
+            } else {
+                // Show error and re-enable button
+                dom.showToast('Error', result.error || 'Failed to generate story');
                 if (generateBtn) {
                     generateBtn.disabled = false;
                     generateBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
                 }
-
-                return;
-            }
-
-            // Hide any error messages
-            const characterSelectionError = document.getElementById('characterSelectionError');
-            if (characterSelectionError) {
-                characterSelectionError.style.display = 'none';
-            }
-
-            // Send the form data to the server
-            const data = await api.postForm('/generate_story', formData, 'Generating your adventure...');
-
-            if (data.success && data.redirect) {
-                // Redirect to the new story
-                window.location.href = data.redirect;
-            } else {
-                throw new Error(data.error || 'Failed to generate story');
+                dom.removeLoadingOverlay(loadingPercent);
             }
         } catch (error) {
             console.error('Error generating story:', error);
-            dom.showToast('Error', error.message || 'Failed to generate story', true);
-
-            // Re-enable the button
+            dom.showToast('Error', 'Failed to generate story');
+            
+            // Re-enable button
+            const generateBtn = document.getElementById('generateStoryBtn');
             if (generateBtn) {
                 generateBtn.disabled = false;
                 generateBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
             }
+            
+            dom.removeLoadingOverlay(loadingPercent);
         }
     },
 
     /**
-     * Make a story choice
-     * @param {FormData} formData - Form data for the choice
-     * @param {Object} currencyReq - Currency requirements, if any
+     * Process a story choice
+     * @param {FormData} formData - Form data with choice parameters
+     * @param {Object} currencyRequirements - Currency requirements for the choice
      */
-    async makeChoice(formData, currencyReq) {
+    async makeChoice(formData, currencyRequirements) {
+        // Create loading overlay
+        const loadingPercent = dom.createLoadingOverlay('Processing your choice...');
+        
         try {
-            // Submit form data
-            const data = await api.postForm('/generate_story', formData, 'Continuing your story...');
+            // Progress updates simulation
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 8;
+                if (progress > 95) {
+                    clearInterval(interval);
+                    return;
+                }
+                dom.updateLoadingPercent(loadingPercent, progress);
+            }, 500);
 
-            if (data.success && data.redirect) {
-                // Redirect to the new story segment
-                window.location.href = data.redirect;
+            // Submit form to server
+            const response = await fetch('/generate_story', {
+                method: 'POST',
+                body: formData
+            });
+            
+            // Clear the interval
+            clearInterval(interval);
+            
+            // Show full progress before redirect
+            dom.updateLoadingPercent(loadingPercent, 100);
+            
+            // Handle response - simply reload with the new page
+            if (response.ok) {
+                setTimeout(() => {
+                    window.location.href = response.url;
+                }, 500);
             } else {
-                throw new Error(data.error || 'Failed to continue story');
+                const result = await response.json();
+                dom.showToast('Error', result.error || 'Failed to process choice');
+                dom.removeLoadingOverlay(loadingPercent);
             }
         } catch (error) {
-            console.error('Error making choice:', error);
-            dom.showToast('Error', error.message || 'Failed to continue the story', true);
+            console.error('Error processing choice:', error);
+            dom.showToast('Error', 'Failed to process choice');
+            dom.removeLoadingOverlay(loadingPercent);
         }
     }
 };
