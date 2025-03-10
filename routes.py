@@ -1301,17 +1301,26 @@ def trade_currency():
         )
         db.session.add(transaction)
 
-        # Perform the exchange
-        user_progress.currency_balances[from_currency] = current_balance - amount
-        user_progress.currency_balances[to_currency] = user_progress.currency_balances.get(to_currency, 0) + converted_amount
+        # Ensure currency_balances is a dictionary
+        if user_progress.currency_balances is None:
+            user_progress.currency_balances = {}
+
+        # Perform the exchange - make sure we're working with a copy, not a reference
+        new_balances = dict(user_progress.currency_balances)
+        new_balances[from_currency] = current_balance - amount
+        new_balances[to_currency] = new_balances.get(to_currency, 0) + converted_amount
+        
+        # Update the user_progress with the new balances
+        user_progress.currency_balances = new_balances
 
         try:
             db.session.commit()
             logger.info(f"Currency trade successful for user {user_progress.user_id}: {amount} {from_currency} -> {converted_amount} {to_currency}")
+            logger.debug(f"Updated balances: {user_progress.currency_balances}")
         except Exception as e:
             db.session.rollback()
             logger.error(f"Database error during currency trade: {str(e)}")
-            return jsonify({'error': 'Failed to process trade'}), 500
+            return jsonify({'error': f'Failed to process trade: {str(e)}'}), 500
 
         return jsonify({
             'success': True,
@@ -1321,6 +1330,7 @@ def trade_currency():
 
     except Exception as e:
         logger.error(f"Error trading currency: {str(e)}")
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 # Add more routes as needed
