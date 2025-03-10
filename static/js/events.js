@@ -10,23 +10,48 @@ export const events = {
      */
     init: () => {
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('Initializing character selection handlers');
+
             // Character selection
             document.querySelectorAll('.character-select-card').forEach(card => {
                 const container = card.closest('.character-container');
                 const checkbox = container.querySelector('.character-checkbox');
                 const indicator = card.querySelector('.selection-indicator');
 
+                console.log('Setting up card:', card.dataset.id, 'Initial checkbox state:', checkbox?.checked);
+
                 // Initialize selected state if checkbox is checked
-                if (checkbox.checked) {
+                if (checkbox?.checked) {
+                    console.log('Card initially selected:', card.dataset.id);
                     card.classList.add('selected');
                     indicator.style.display = 'flex';
                 }
 
                 // Handle click events for character selection
                 card.addEventListener('click', () => {
+                    console.log('Card clicked:', card.dataset.id);
                     checkbox.checked = !checkbox.checked;
+                    console.log('New checkbox state:', checkbox.checked);
+
                     card.classList.toggle('selected', checkbox.checked);
                     indicator.style.display = checkbox.checked ? 'flex' : 'none';
+
+                    console.log('Updated card state:', {
+                        id: card.dataset.id,
+                        checked: checkbox.checked,
+                        selected: card.classList.contains('selected'),
+                        indicatorDisplay: indicator.style.display
+                    });
+                });
+            });
+
+            // Reroll functionality
+            document.querySelectorAll('.reroll-btn').forEach(btn => {
+                console.log('Setting up reroll button:', btn.dataset.id);
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent triggering card selection
+                    console.log('Reroll clicked for character:', btn.dataset.id);
+                    // TODO: Implement reroll functionality
                 });
             });
 
@@ -36,6 +61,9 @@ export const events = {
                 storyForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     const selectedCharacters = document.querySelectorAll('.character-checkbox:checked');
+                    console.log('Form submitted. Selected characters:', 
+                        Array.from(selectedCharacters).map(cb => cb.value)
+                    );
 
                     if (selectedCharacters.length === 0) {
                         dom.showToast('Error', 'Please select at least one character for your story');
@@ -51,6 +79,14 @@ export const events = {
                         selectedCharacters.forEach(checkbox => {
                             formData.append('selected_images[]', checkbox.value);
                         });
+
+                        // Log form data for debugging
+                        console.log('Form data entries:', 
+                            Array.from(formData.entries())
+                                .map(([key, value]) => `${key}: ${value}`)
+                                .join(', ')
+                        );
+
                         await story.generate(formData);
                     } catch (error) {
                         console.error('Error generating story:', error);
