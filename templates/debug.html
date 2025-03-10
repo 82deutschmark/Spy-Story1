@@ -48,7 +48,7 @@
                             </h3>
                             <div class="alert alert-light border">
                                 <i class="fas fa-info-circle me-2"></i>
-                                Review and edit the image analysis below before saving to the database.
+                                Review and edit the analysis below before saving to the database.
                             </div>
                             <div class="row">
                                 <div class="col-12 col-lg-6">
@@ -58,10 +58,12 @@
                                             <i class="fas fa-edit me-1"></i>Enable Edit Mode
                                         </label>
                                     </div>
-                                    <div class="border rounded p-4 mt-2" id="generatedContent">
-                                        <!-- Image preview and analysis will appear here -->
+                                    <div class="border rounded p-4 mt-2 result-content" id="generatedContent"></div>
+                                    <div class="text-center mt-3">
+                                        <button class="btn btn-outline-secondary btn-sm" id="copyBtn">
+                                            <i class="fas fa-copy me-2"></i>Copy to Clipboard
+                                        </button>
                                     </div>
-                                    
                                 </div>
                                 <div class="col-12 col-lg-6" id="editContainer" style="display: none;">
                                     <h4><i class="fas fa-edit me-2"></i>Edit Analysis</h4>
@@ -78,10 +80,6 @@
                                     </div>
                                     <div id="characterFields">
                                         <div class="mb-3">
-                                            <label for="codeName" class="form-label">Code Name</label>
-                                            <input type="text" class="form-control" id="codeName">
-                                        </div>
-                                        <div class="mb-3">
                                             <label for="characterRole" class="form-label">Character Role</label>
                                             <select class="form-select" id="characterRole">
                                                 <option value="protagonist">Protagonist</option>
@@ -89,16 +87,7 @@
                                                 <option value="neutral">Neutral</option>
                                                 <option value="villain">Villain</option>
                                                 <option value="hero">Hero</option>
-                                                <option value="undetermined">Undetermined</option>
                                             </select>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="characterStyle" class="form-label">Character Style</label>
-                                            <input type="text" class="form-control" id="characterStyle">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="backstory" class="form-label">Character Backstory</label>
-                                            <textarea class="form-control" id="backstory" rows="3"></textarea>
                                         </div>
                                         <div class="mb-3">
                                             <label for="characterTraits" class="form-label">Character Traits (comma separated)</label>
@@ -128,9 +117,9 @@
                                             <textarea class="form-control" id="dramaticMoments" rows="3"></textarea>
                                         </div>
                                     </div>
-                                    <div class="text-center mt-3">
-                                        <button class="btn btn-outline-primary btn-sm" id="saveToDbBtn">
-                                            <i class="fas fa-save me-2"></i>Save to Database
+                                    <div class="mb-3">
+                                        <button type="button" class="btn btn-primary" id="applyChangesBtn">
+                                            <i class="fas fa-check me-2"></i>Apply Changes
                                         </button>
                                     </div>
                                 </div>
@@ -138,8 +127,7 @@
                         </div>
                     </div>
                 </div>
-
-
+                
                 <!-- Database Management -->
                 <div class="card shadow-lg">
                     <div class="card-header bg-secondary text-white">
@@ -163,21 +151,12 @@
                                 </button>
                             </li>
                         </ul>
-
+                        
                         <div class="tab-content p-3 border border-top-0 rounded-bottom" id="dbTabsContent">
                             <!-- Images Tab -->
                             <div class="tab-pane fade show active" id="images" role="tabpanel" aria-labelledby="images-tab">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h4>Image Records</h4>
-                                    <div class="input-group" style="max-width: 300px;">
-                                        <input type="text" class="form-control" id="imageSearchInput" placeholder="Search images...">
-                                        <button class="btn btn-outline-secondary" type="button" id="imageSearchBtn">
-                                            <i class="fas fa-search"></i>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div class="mb-3">
+                                    <h4>Image Analysis Records</h4>
                                     <div class="btn-group">
                                         <button class="btn btn-sm btn-outline-danger" id="deleteAllImagesBtn">
                                             <i class="fas fa-trash me-1"></i>Delete All
@@ -185,15 +164,9 @@
                                         <button class="btn btn-sm btn-outline-secondary" id="refreshImagesBtn">
                                             <i class="fas fa-sync-alt me-1"></i>Refresh
                                         </button>
-                                        <button class="btn btn-sm btn-outline-secondary filter-btn" data-filter="character">
-                                            <i class="fas fa-user me-1"></i>Characters Only
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-secondary filter-btn" data-filter="scene">
-                                            <i class="fas fa-image me-1"></i>Scenes Only
-                                        </button>
                                     </div>
                                 </div>
-
+                                
                                 <div class="table-responsive">
                                     <table class="table table-hover">
                                         <thead>
@@ -208,9 +181,7 @@
                                         </thead>
                                         <tbody id="imagesTableBody">
                                             {% for img in recent_images %}
-                                            {% for img in recent_images %}
-{% for img in recent_images %}
-<tr data-id="{{ img.id }}">
+                                            <tr data-id="{{ img.id }}">
                                                 <td>{{ img.id }}</td>
                                                 <td>
                                                     <img src="{{ img.image_url }}" class="img-thumbnail" width="100" alt="Thumbnail">
@@ -219,7 +190,6 @@
                                                 <td>{{ img.analysis_result.name if img.analysis_result and 'name' in img.analysis_result else 'N/A' }}</td>
                                                 <td>{{ img.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                                                 <td>
-{% endfor %}
                                                     <div class="btn-group">
                                                         <button class="btn btn-sm btn-info view-details-btn" data-id="{{ img.id }}" title="View Details">
                                                             <i class="fas fa-eye"></i>
@@ -233,44 +203,31 @@
                                             {% endfor %}
                                         </tbody>
                                     </table>
-                                    <nav aria-label="Image pagination" class="d-flex justify-content-center mt-3">
-                                        <ul class="pagination" id="imagesPagination">
-                                            <!-- Pagination controls will be added by JavaScript -->
-                                        </ul>
-                                    </nav>
                                 </div>
                             </div>
-
+                            
                             <!-- Stories Tab -->
                             <div class="tab-pane fade" id="stories" role="tabpanel" aria-labelledby="stories-tab">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h4>Story Records</h4>
-                                    <div class="input-group" style="max-width: 300px;">
-                                        <input type="text" class="form-control" id="storySearchInput" placeholder="Search stories...">
-                                        <button class="btn btn-outline-secondary" type="button" id="storySearchBtn">
-                                            <i class="fas fa-search"></i>
+                                    <h4>Story Generation Records</h4>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-danger" id="deleteAllStoriesBtn">
+                                            <i class="fas fa-trash me-1"></i>Delete All
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" id="refreshStoriesBtn">
+                                            <i class="fas fa-sync-alt me-1"></i>Refresh
                                         </button>
                                     </div>
                                 </div>
-
-                                <div class="btn-group mb-3">
-                                    <button class="btn btn-sm btn-outline-danger" id="deleteAllStoriesBtn">
-                                        <i class="fas fa-trash me-1"></i>Delete All
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-secondary" id="refreshStoriesBtn">
-                                        <i class="fas fa-sync-alt me-1"></i>Refresh
-                                    </button>
-                                </div>
-
+                                
                                 <div class="table-responsive">
                                     <table class="table table-hover">
                                         <thead>
                                             <tr>
                                                 <th>ID</th>
-                                                <th>Title</th>
                                                 <th>Conflict</th>
                                                 <th>Setting</th>
-                                                <th>Characters</th>
+                                                <th>Images</th>
                                                 <th>Created</th>
                                                 <th>Actions</th>
                                             </tr>
@@ -279,10 +236,9 @@
                                             {% for story in recent_stories %}
                                             <tr data-id="{{ story.id }}">
                                                 <td>{{ story.id }}</td>
-                                                <td>{{ story.title }}</td>
                                                 <td>{{ story.primary_conflict }}</td>
                                                 <td>{{ story.setting }}</td>
-                                                <td>{{ story.characters|length }}</td>
+                                                <td>{{ story.images|length }}</td>
                                                 <td>{{ story.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                                                 <td>
                                                     <div class="btn-group">
@@ -298,15 +254,10 @@
                                             {% endfor %}
                                         </tbody>
                                     </table>
-                                    <nav aria-label="Story pagination" class="d-flex justify-content-center mt-3">
-                                        <ul class="pagination" id="storiesPagination">
-                                            <!-- Pagination controls will be added by JavaScript -->
-                                        </ul>
-                                    </nav>
                                 </div>
                             </div>
-
-                            <!-- Health Tab -->
+                            
+                            <!-- DB Health Tab -->
                             <div class="tab-pane fade" id="health" role="tabpanel" aria-labelledby="health-tab">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h4>Database Health Check</h4>
@@ -314,7 +265,7 @@
                                         <i class="fas fa-stethoscope me-1"></i>Run Health Check
                                     </button>
                                 </div>
-
+                                
                                 <div class="card mb-3">
                                     <div class="card-header bg-dark">
                                         <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Database Statistics</h5>
@@ -356,7 +307,7 @@
                                         </div>
                                     </div>
                                 </div>
-
+                                
                                 <div class="card">
                                     <div class="card-header bg-dark">
                                         <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Potential Issues</h5>
@@ -375,190 +326,260 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Modal for viewing details -->
-                <div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="detailsModalLabel">
-                                    <i class="fas fa-edit me-2"></i>Edit Analysis
-                                </h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body" id="detailsModalBody">
-                                <div class="row">
-                                    <div class="col-12 mb-4">
-                                        <div class="text-center">
-                                            <img id="modalImage" src="" class="img-fluid rounded" alt="Image">
-                                        </div>
-                                    </div>
-                                    <div class="col-12">
-                                        <div class="form-check form-switch mb-3">
-                                            <input class="form-check-input" type="checkbox" id="editModeSwitch">
-                                            <label class="form-check-label" for="editModeSwitch">
-                                                <i class="fas fa-edit me-1"></i>Enable Edit Mode
-                                            </label>
-                                        </div>
-                                        <div id="editContainer" style="display: none;">
-                                            <div class="mb-3">
-                                                <label for="imageName" class="form-label">Name</label>
-                                                <input type="text" class="form-control" id="imageName">
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="imageType" class="form-label">Type</label>
-                                                <select class="form-select" id="imageType">
-                                                    <option value="character">Character</option>
-                                                    <option value="scene">Scene</option>
-                                                </select>
-                                            </div>
-                                            <!-- Character Fields -->
-                                            <div id="characterFields">
-                                                <div class="mb-3">
-                                                    <label for="codeName" class="form-label">Code Name</label>
-                                                    <input type="text" class="form-control" id="codeName">
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="characterRole" class="form-label">Role</label>
-                                                    <select class="form-select" id="characterRole">
-                                                        <option value="protagonist">Protagonist</option>
-                                                        <option value="antagonist">Antagonist</option>
-                                                        <option value="neutral">Neutral</option>
-                                                        <option value="villain">Villain</option>
-                                                        <option value="hero">Hero</option>
-                                                        <option value="undetermined">Undetermined</option>
-                                                    </select>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="characterStyle" class="form-label">Style</label>
-                                                    <input type="text" class="form-control" id="characterStyle">
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="backstory" class="form-label">Backstory</label>
-                                                    <textarea class="form-control" id="backstory" rows="3"></textarea>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="characterTraits" class="form-label">Character Traits (comma separated)</label>
-                                                    <input type="text" class="form-control" id="characterTraits">
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="plotLines" class="form-label">Plot Lines (comma separated)</label>
-                                                    <textarea class="form-control" id="plotLines" rows="3"></textarea>
-                                                </div>
-                                            </div>
-                                            <!-- Scene Fields -->
-                                            <div id="sceneFields" style="display: none;">
-                                                <div class="mb-3">
-                                                    <label for="sceneType" class="form-label">Scene Type</label>
-                                                    <select class="form-select" id="sceneType">
-                                                        <option value="action">Action</option>
-                                                        <option value="narrative">Narrative</option>
-                                                        <option value="choice">Choice</option>
-                                                        <option value="conclusion">Conclusion</option>
-                                                    </select>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="sceneSetting" class="form-label">Setting</label>
-                                                    <input type="text" class="form-control" id="sceneSetting">
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="dramaticMoments" class="form-label">Dramatic Moments (comma separated)</label>
-                                                    <textarea class="form-control" id="dramaticMoments" rows="3"></textarea>
-                                                </div>
-                                            </div>
-                                            <div class="mb-3">
-                                                <button type="button" class="btn btn-primary" id="saveToDbBtn">
-                                                    <i class="fas fa-save me-2"></i>Save to Database
-                                                </button>
-                                            </div>
-                                        </div>
+                
+                <!-- Advanced Database Browser (NEW) -->
+                <div class="card shadow-lg mt-4">
+                    <div class="card-header bg-info text-white">
+                        <h3><i class="fas fa-database me-2"></i>Advanced Database Browser</h3>
+                    </div>
+                    <div class="card-body">
+                        <ul class="nav nav-tabs" id="advancedDbTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="all-images-tab" data-bs-toggle="tab" data-bs-target="#all-images" type="button" role="tab" aria-controls="all-images" aria-selected="true">
+                                    <i class="fas fa-images me-2"></i>All Images
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="all-stories-tab" data-bs-toggle="tab" data-bs-target="#all-stories" type="button" role="tab" aria-controls="all-stories" aria-selected="false">
+                                    <i class="fas fa-book-open me-2"></i>All Stories
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="story-nodes-tab" data-bs-toggle="tab" data-bs-target="#story-nodes" type="button" role="tab" aria-controls="story-nodes" aria-selected="false">
+                                    <i class="fas fa-sitemap me-2"></i>Story Nodes
+                                </button>
+                            </li>
+                        </ul>
+                        
+                        <div class="tab-content p-3 border border-top-0 rounded-bottom" id="advancedDbTabsContent">
+                            <!-- All Images Tab -->
+                            <div class="tab-pane fade show active" id="all-images" role="tabpanel" aria-labelledby="all-images-tab">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h4>All Image Records</h4>
+                                    <div class="input-group" style="max-width: 300px;">
+                                        <input type="text" class="form-control" id="imageSearchInput" placeholder="Search images...">
+                                        <button class="btn btn-outline-secondary" type="button" id="imageSearchBtn">
+                                            <i class="fas fa-search"></i>
+                                        </button>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                <button type="button" class="btn btn-danger" id="reanalyzeImageBtn">
-                                    <i class="fas fa-sync-alt me-2"></i>Reanalyze Image
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-
-                <!-- Modal for reanalysis confirmation -->
-                <div class="modal fade" id="reanalyzeConfirmModal" tabindex="-1" aria-labelledby="reanalyzeConfirmModalLabel" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header bg-warning">
-                                <h5 class="modal-title" id="reanalyzeConfirmModalLabel">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>Confirm Reanalysis
-                                </h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <p>You are about to reanalyze this image using the OpenAI API. This will:</p>
-                                <ul>
-                                    <li>Send the image URL to OpenAI for a fresh analysis</li>
-                                    <li>Replace the current analysis data with new results</li>
-                                    <li>Potentially change character attributes or scene details</li>
-                                </ul>
-                                <p>Are you sure you want to proceed?</p>
-                                <div class="form-check mt-3">
-                                    <input class="form-check-input" type="checkbox" id="preserveRelationsCheck" checked>
-                                    <label class="form-check-label" for="preserveRelationsCheck">
-                                        Preserve existing story relationships
-                                    </label>
+                                
+                                <div class="mb-3">
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-secondary" id="loadAllImagesBtn">
+                                            <i class="fas fa-sync-alt me-1"></i>Load All Images
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary filter-btn" data-filter="character">
+                                            <i class="fas fa-user me-1"></i>Characters Only
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary filter-btn" data-filter="scene">
+                                            <i class="fas fa-image me-1"></i>Scenes Only
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="allImagesTable">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Image</th>
+                                                <th>Type</th>
+                                                <th>Name</th>
+                                                <th>Created</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="allImagesTableBody">
+                                            <!-- Images will be loaded here -->
+                                            <tr>
+                                                <td colspan="6" class="text-center">
+                                                    <div class="spinner-border text-primary" role="status">
+                                                        <span class="visually-hidden">Loading...</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                    <nav aria-label="Image pagination" class="d-flex justify-content-center mt-3">
+                                        <ul class="pagination" id="imagesPagination">
+                                            <!-- Pagination controls will appear here -->
+                                        </ul>
+                                    </nav>
                                 </div>
                             </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="button" class="btn btn-danger" id="confirmReanalyzeBtn">
-                                    <i class="fas fa-sync-alt me-2"></i>Reanalyze
-                                </button>
+                            
+                            <!-- All Stories Tab -->
+                            <div class="tab-pane fade" id="all-stories" role="tabpanel" aria-labelledby="all-stories-tab">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h4>All Story Records</h4>
+                                    <div class="input-group" style="max-width: 300px;">
+                                        <input type="text" class="form-control" id="storySearchInput" placeholder="Search stories...">
+                                        <button class="btn btn-outline-secondary" type="button" id="storySearchBtn">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="allStoriesTable">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Title</th>
+                                                <th>Conflict</th>
+                                                <th>Setting</th>
+                                                <th>Characters</th>
+                                                <th>Created</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="allStoriesTableBody">
+                                            <!-- Stories will be loaded here -->
+                                            <tr>
+                                                <td colspan="7" class="text-center">
+                                                    <div class="spinner-border text-primary" role="status">
+                                                        <span class="visually-hidden">Loading...</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                    <nav aria-label="Story pagination" class="d-flex justify-content-center mt-3">
+                                        <ul class="pagination" id="storiesPagination">
+                                            <!-- Pagination controls will appear here -->
+                                        </ul>
+                                    </nav>
+                                </div>
+                            </div>
+                            
+                            <!-- Story Nodes Tab -->
+                            <div class="tab-pane fade" id="story-nodes" role="tabpanel" aria-labelledby="story-nodes-tab">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h4>Story Nodes</h4>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-secondary" id="loadNodesBtn">
+                                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="storyNodesTable">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Parent</th>
+                                                <th>Text</th>
+                                                <th>Choices</th>
+                                                <th>Is Endpoint</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="storyNodesTableBody">
+                                            <!-- Story nodes will be loaded here -->
+                                            <tr>
+                                                <td colspan="6" class="text-center">
+                                                    <div class="spinner-border text-primary" role="status">
+                                                        <span class="visually-hidden">Loading...</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-
-
-                <!-- Toast notification -->
-                <div class="toast-container position-fixed bottom-0 end-0 p-3">
-                    <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-                        <div class="toast-header">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong class="me-auto" id="toastTitle">Notification</strong>
-                            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-                        </div>
-                        <div class="toast-body" id="toastMessage"></div>
-                    </div>
-                </div>
-
-
-                <!-- Store current analysis data if any -->
-                <input type="hidden" id="currentAnalysis" value="{{ current_analysis|tojson if current_analysis else '' }}">
-
-
-                <!-- Bootstrap first -->
-                <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-
-                <!-- Utility modules -->
-                <script type="module" src="{{ url_for('static', filename='js/utils/dom.js') }}"></script>
-                <script type="module" src="{{ url_for('static', filename='js/utils/api.js') }}"></script>
-
-
-                <!-- Debug modules -->
-                <script type="module" src="{{ url_for('static', filename='js/debug/image-analyzer.js') }}"></script>
-                <script type="module" src="{{ url_for('static', filename='js/debug/form-manager.js') }}"></script>
-                <script type="module" src="{{ url_for('static', filename='js/debug/database-manager.js') }}"></script>
-
-
-                <!-- Main debug script -->
-                <script type="module" src="{{ url_for('static', filename='js/debug.js') }}"></script>
             </div>
         </div>
     </div>
 
+        <!-- Modal for viewing details -->
+        <div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="detailsModalLabel">
+                            <i class="fas fa-edit me-2"></i>Edit Analysis
+                        </h5>
+                        <div class="form-check form-switch ms-3">
+                            <input class="form-check-input" type="checkbox" id="editModeSwitch">
+                            <label class="form-check-label" for="editModeSwitch">Enable Editing</label>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="detailsModalBody">
+                        <div class="text-center mb-3">
+                            <img id="modalImage" src="" class="img-fluid rounded" alt="Image">
+                        </div>
+                        <div class="mt-3">
+                            <pre id="modalContent" class="result-content"></pre>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-danger" id="reanalyzeImageBtn">
+                            <i class="fas fa-sync-alt me-2"></i>Reanalyze Image
+                        </button>
+                        <button type="button" class="btn btn-primary" id="saveAnalysisBtn" style="display: none;">
+                            <i class="fas fa-save me-2"></i>Save Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal for reanalysis confirmation -->
+        <div class="modal fade" id="reanalyzeConfirmModal" tabindex="-1" aria-labelledby="reanalyzeConfirmModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning">
+                        <h5 class="modal-title" id="reanalyzeConfirmModalLabel">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Confirm Reanalysis
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>You are about to reanalyze this image using the OpenAI API. This will:</p>
+                        <ul>
+                            <li>Send the image URL to OpenAI for a fresh analysis</li>
+                            <li>Replace the current analysis data with new results</li>
+                            <li>Potentially change character attributes or scene details</li>
+                        </ul>
+                        <p>Are you sure you want to proceed?</p>
+                        <div class="form-check mt-3">
+                            <input class="form-check-input" type="checkbox" id="preserveRelationsCheck" checked>
+                            <label class="form-check-label" for="preserveRelationsCheck">
+                                Preserve existing story relationships
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" id="confirmReanalyzeBtn">
+                            <i class="fas fa-sync-alt me-2"></i>Reanalyze
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast notification -->
+        <div class="toast-container position-fixed bottom-0 end-0 p-3">
+            <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-header">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong class="me-auto" id="toastTitle">Notification</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body" id="toastMessage"></div>
+            </div>
+        </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/debug.js') }}"></script>
 </body>
 </html>

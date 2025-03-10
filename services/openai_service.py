@@ -1,4 +1,3 @@
-
 import os
 import json
 import requests
@@ -19,6 +18,7 @@ if not api_key:
 # Initialize OpenAI client with the API key
 # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
 # do not change this unless explicitly requested by the user
+# Initialize the OpenAI client, using the environment variable directly
 client = OpenAI()
 
 # Ensure we have the API key
@@ -43,54 +43,56 @@ def analyze_artwork(image_url):
 
         # Download the image with a timeout and retries
         import base64
+        import requests
         from io import BytesIO
         from PIL import Image
 
-        # Download the image
-        response = requests.get(image_url, headers=headers, timeout=10)
-        response.raise_for_status()  # Raise an exception for bad status codes
+        # Ensure we have proper error handling for the image download
+        try:
+            response = requests.get(image_url, headers=headers, timeout=10)
+            response.raise_for_status()  # Raise an exception for bad status codes
 
-        # Get image dimensions
-        image_data = BytesIO(response.content)
-        img = Image.open(image_data)
-        width, height = img.size
-        format = img.format
+            # Get image dimensions
+            image_data = BytesIO(response.content)
+            img = Image.open(image_data)
+            width, height = img.size
+            format = img.format
 
-        # Convert image to base64
-        image_data.seek(0)
-        base64_image = base64.b64encode(image_data.getvalue()).decode('utf-8')
+            # Convert image to base64
+            image_data.seek(0)
+            base64_image = base64.b64encode(image_data.getvalue()).decode('utf-8')
 
-        # Infer content type from response headers or URL
-        content_type = response.headers.get('Content-Type', '')
-        if not content_type:
-            if image_url.lower().endswith('.png'):
-                content_type = 'image/png'
-            elif image_url.lower().endswith(('.jpg', '.jpeg')):
-                content_type = 'image/jpeg'
-            elif image_url.lower().endswith('.webp'):
-                content_type = 'image/webp'
-            else:
-                content_type = 'image/jpeg'  # Default to jpeg
+            # Infer content type from response headers or URL
+            content_type = response.headers.get('Content-Type', '')
+            if not content_type:
+                if image_url.lower().endswith('.png'):
+                    content_type = 'image/png'
+                elif image_url.lower().endswith(('.jpg', '.jpeg')):
+                    content_type = 'image/jpeg'
+                elif image_url.lower().endswith('.webp'):
+                    content_type = 'image/webp'
+                else:
+                    content_type = 'image/jpeg'  # Default to jpeg
 
-        # Prepare base64 URL
-        base64_url = f"data:{content_type};base64,{base64_image}"
+            # Prepare base64 URL
+            base64_url = f"data:{content_type};base64,{base64_image}"
 
-        # Store image metadata
-        image_metadata = {
-            "url": image_url,
-            "width": width,
-            "height": height,
-            "format": format,
-            "size_bytes": len(response.content)
-        }
+            # Store image metadata
+            image_metadata = {
+                "url": image_url,
+                "width": width,
+                "height": height,
+                "format": format,
+                "size_bytes": len(response.content)
+            }
 
-        logger.debug("Successfully downloaded and encoded image. Analyzing artwork...")
+            logger.debug(f"Successfully downloaded and encoded image. Analyzing artwork...")
 
-        # Prepare the messages with system prompt and user query
-        messages = [
-            {
-                "role": "system",
-                "content": """You are an expert analyzer of images for a "Choose Your Own Adventure" story universe.
+            # Prepare the messages with system prompt and user query
+            messages = [
+                {
+                    "role": "system",
+                    "content": """You are an expert analyzer of images for a "Choose Your Own Adventure" story universe.
 
 The universe is based in the hormone-fueled high stakes sexy dramatic international spy network. All the characters are constantly betraying each other and having romantic flings.
 
@@ -98,15 +100,12 @@ The story is set in the year 2070, and the world is in the midst of a global cri
 
 Analyze the image and determine:
 1. If it's a CHARACTER:
-   - Format the response with a nested 'character' object containing all character details
-   - Inside the character object include:
-     - 'name': Choose an unusual Slavic or German first name 
-     - 'code_name': A creative code name consisting of an adjective and noun
-     - 'backstory': A detailed character backstory 
-     - 'role': Set as 'villain', 'undetermined', or 'neutral'
-     - 'character_traits': Array of 9 unusual and creative character traits
-     - 'plot_lines': Array of 3 potential international plot lines involving this character
-     - 'style': Character motivations and goals
+   - Suggest a creative code name consisting of an adjective and noun
+   - Suggest a character backstory 
+   - Determine if they are, villain, undetermined, or neutral character.   (use 'role' field with appropriate value 'undetermined', 'villain', or 'neutral')
+   - List 9 unusual and creative character traits or backstory elements (in 'character_traits' array)
+   - Suggest 3 potential international plot lines involving this character (in 'plot_lines' array)
+   - Suggested motivations and goals (in 'style' field)
 
 2. If it's a SCENE:
    - Determine the scene type (narrative, choice moment, action, etc.) (in 'scene_type' field)
@@ -114,47 +113,38 @@ Analyze the image and determine:
    - Suggest how this scene fits into the story (in 'story_fit' field)
    - Potential dramatic moments that could occur (in 'dramatic_moments' array)
 
-Respond in JSON format with the appropriate keys based on the image type. Use snake_case for all field names. For CHARACTER images, ensure the response follows this structure:
-{
-  "character": {
-    "name": "John Doe",
-    "code_name": "Adjective Noun",
-    "backstory": "Character backstory...",
-    "role": "undetermined|villain|neutral",
-    "character_traits": ["trait1", "trait2", ...],
-    "plot_lines": ["plot line 1", "plot line 2", "plot line 3"],
-    "style": "Character motivations and goals"
-  }
-}"""
-            },
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": "Please analyze this image for our Choose Your Own Adventure story:"
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": base64_url}
-                    }
-                ]
-            }
-        ]
-        
-        # Call OpenAI API with the prepared messages
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=messages,
-            response_format={"type": "json_object"}
-        )
-        
-        # Add the assistant's response to the conversation history
-        messages.append({
-            "role": "assistant",
-            "content": response.choices[0].message.content
-        })
-        
+Respond in JSON format with the appropriate keys based on the image type. Use snake_case for all field names (e.g., 'scene_type', 'story_fit', 'dramatic_moments')."""
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Please analyze this image for our Choose Your Own Adventure story:"
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": base64_url}
+                        }
+                    ]
+                }
+            ]
+            
+            # Call OpenAI API with the prepared messages
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=messages,
+                response_format={"type": "json_object"}
+            )
+            
+            # Add the assistant's response to the conversation history
+            messages.append({
+                "role": "assistant",
+                "content": response.choices[0].message.content
+            })
+        except requests.exceptions.RequestException as req_err:
+            logger.error(f"Error downloading image: {str(req_err)}")
+            raise Exception(f"Failed to download image from {image_url}: {str(req_err)}")
         result = json.loads(response.choices[0].message.content)
 
         # Add image metadata to the result
@@ -174,30 +164,19 @@ Respond in JSON format with the appropriate keys based on the image type. Use sn
 
 def generate_image_description(analysis):
     """Generate a concise description of the analyzed image"""
-    if "character" in analysis and isinstance(analysis["character"], dict):
-        # It's a character with the nested character object structure
-        character = analysis["character"]
+    if "name" in analysis:
+        # It's a character
         description = (
-            f"Character: {character.get('name', '')} - {character.get('code_name', '')}\n\n"
-            f"Role: {character.get('role', 'undetermined')}\n\n"
-            f"Character Traits: {', '.join(character.get('character_traits', [])[:3])}\n\n"
-            f"Backstory: {character.get('backstory', '')[:150]}...\n\n"
-            f"Potential Plot: {character.get('plot_lines', [''])[0] if character.get('plot_lines') else ''}\n\n"
-            f"Style: {character.get('style', '')}"
-        )
-    elif "name" in analysis:
-        # It's a character with top-level structure
-        description = (
-            f"Character: {analysis.get('name', '')} - {'Hero' if analysis.get('role') == 'hero' else 'Neutral' if analysis.get('role') == 'neutral' else 'Villain'}\n\n"
+            f"Character: {analysis['name']} - {'Hero' if analysis.get('role') == 'hero' else 'Neutral' if analysis.get('role') == 'neutral' else 'Villain'}\n\n"
             f"Character Traits: {', '.join(analysis.get('character_traits', [])[:3])}\n\n"
-            f"Potential Plot: {analysis.get('plot_lines', [''])[0] if analysis.get('plot_lines') else ''}\n\n"
-            f"Style: {analysis.get('style', '')}"
+            f"Potential Plot: {analysis.get('plot_lines', [''])[0]}\n\n"
+            f"Art Style: {analysis.get('style', '')}"
         )
     else:
         # It's a scene
         description = (
             f"Scene Type: {analysis.get('scene_type', 'Adventure')}\n\n"
             f"Setting: {analysis.get('setting', '')}\n\n"
-            f"Dramatic Moment: {analysis.get('dramatic_moments', [''])[0] if analysis.get('dramatic_moments') else ''}"
+            f"Dramatic Moment: {analysis.get('dramatic_moments', [''])[0]}"
         )
     return description
