@@ -954,7 +954,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (runHealthCheckBtn) {
         runHealthCheckBtn.addEventListener('click', function() {
             runHealthCheckBtn.disabled = true;
-            runHealthCheckBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true`></span> Running...';
+            runHealthCheckBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
 
             fetch('/api/db/health-check')
                 .then(response => response.json())
@@ -2300,4 +2300,29 @@ function saveToDatabase() {
 }
 let currentAnalysisData = null;
 let currentImageUrl = null;
+});
+
+// Helper function for making API calls
+function makeApiCall(url, method = 'GET', data = null) {
+    const options = {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    };
+
+    if (data && (method === 'POST' || method === 'PUT')) {
+        options.body = JSON.stringify(data);
+    }
+
+    return fetch(url, options).then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error: ${response.status}`);
+        }
+        return response.json();
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+
 });
