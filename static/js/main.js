@@ -449,12 +449,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const characterNames = [];
-        
+
         // Collect character data, handling possible missing elements
         characterPortraits.forEach(portrait => {
             const nameElement = portrait.querySelector('.character-mini-name');
             const imageElement = portrait.querySelector('img');
-            
+
             if (nameElement && imageElement) {
                 const name = nameElement.textContent.trim();
                 if (name) { // Only add if name is not empty
@@ -474,7 +474,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         console.log(`Found ${characterNames.length} characters to highlight`);
-        
+
         // Sort names by length (longest first) to avoid partial matches
         characterNames.sort((a, b) => b.name.length - a.name.length);
 
@@ -488,7 +488,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const escapedName = escapeRegExp(character.name);
                 // Only match whole words
                 const regex = new RegExp(`\\b${escapedName}\\b(?![^<]*>)`, 'gi');
-                
+
                 storyHTML = storyHTML.replace(regex, match => {
                     return `<span class="character-mention" data-character="${character.dataName}">${match}<span class="character-tooltip"><img src="${character.image}" alt="${match}">${match}</span></span>`;
                 });
@@ -500,13 +500,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Only update if changes were made
         if (storyHTML !== originalHTML) {
             storyContent.innerHTML = storyHTML;
-            
+
             // Add click event to highlight corresponding mini-portrait
             document.querySelectorAll('.character-mention').forEach(mention => {
                 mention.addEventListener('click', function() {
                     const characterId = this.dataset.character;
                     if (!characterId) return;
-                    
+
                     // Remove highlight from all portraits
                     document.querySelectorAll('.character-mini-img').forEach(img => {
                         img.classList.remove('character-mini-highlight');
@@ -530,7 +530,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
             });
-            
+
             console.log('Character highlighting applied successfully');
         } else {
             console.log('No character names matched in the story text');
@@ -802,3 +802,62 @@ document.querySelectorAll('.choice-form').forEach(form => {
         button.parentNode.insertBefore(reqDiv, button.nextSibling);
     }
 });
+
+// Handle choice form submission
+document.querySelectorAll('.choice-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const choiceId = this.querySelector('input[name="choice_id"]').value;
+        const currencyReq = this.querySelector('button').dataset.currencyReq;
+        const requirements = currencyReq ? JSON.parse(currencyReq) : null;
+
+        if (!choiceId) {
+            showToast('Error', 'No choice selected');
+            return;
+        }
+
+        // Use currency manager to process the choice
+        window.currencyManager.processChoice(choiceId, requirements, (data) => {
+            if (data.success) {
+                // Handle successful choice
+                showToast('Success', 'Your choice has been processed');
+
+                // Submit the form to continue the story
+                this.submit();
+            }
+        });
+    });
+});
+
+// Handle custom choice form submission
+const customChoiceForm = document.querySelector('.custom-choice-form');
+if (customChoiceForm) {
+    customChoiceForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const customChoiceInput = this.querySelector('textarea[name="custom_choice"]');
+        if (!customChoiceInput.value.trim()) {
+            showToast('Error', 'Please enter your custom choice');
+            return;
+        }
+
+        // Use currency manager to process the custom choice
+        window.currencyManager.processCustomChoice(customChoiceInput.value, (data) => {
+            if (data.success) {
+                // Handle successful choice
+                showToast('Success', 'Your custom choice has been processed');
+
+                // Submit the form to continue the story
+                this.submit();
+            }
+        });
+    });
+}
+
+// Setup currency trade modal handlers
+function setupCurrencyTradeHandlers() {
+    // Trade form submission is now handled by the currency manager
+    // This function is kept for backward compatibility
+    console.log('Currency trade handling delegated to currency manager');
+}
