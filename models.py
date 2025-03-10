@@ -190,135 +190,7 @@ class UserProgress(db.Model):
                 )
                 db.session.add(transaction)
 
-class CharacterEvolution(db.Model):
-    """Model for tracking how characters evolve through a user's story"""
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String(255), nullable=False)
-    character_id = db.Column(db.Integer, db.ForeignKey('image_analysis.id', ondelete='CASCADE'))
-    story_id = db.Column(db.Integer, db.ForeignKey('story_generation.id', ondelete='CASCADE'))
-    
-    # Character status in story
-    status = db.Column(db.String(32), default='active')  # active, deceased, missing, etc.
-    role = db.Column(db.String(32))  # protagonist, antagonist, ally, enemy, etc.
-    
-    # Character evolution data
-    evolved_traits = db.Column(JSONB, default=[])  # New traits developed during story
-    plot_contributions = db.Column(JSONB, default=[])  # Plot developments related to this character
-    relationship_network = db.Column(JSONB, default={})  # Relations with other characters
-    
-    # Evolution metadata
-    first_appearance = db.Column(db.DateTime, default=datetime.utcnow)
-    last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    evolution_log = db.Column(JSONB, default=[])  # Log of changes to character
-    
-    # Relationships
-    character = db.relationship('ImageAnalysis')
-    story = db.relationship('StoryGeneration')
-    
-    def add_trait(self, trait, reason=None):
-        """Add a new trait to the character's evolved traits"""
-        if not self.evolved_traits:
-            self.evolved_traits = []
-            
-        if trait not in self.evolved_traits:
-            self.evolved_traits.append(trait)
-            
-            # Log the evolution
-            if not self.evolution_log:
-                self.evolution_log = []
-                
-            self.evolution_log.append({
-                "type": "trait_added",
-                "trait": trait,
-                "reason": reason,
-                "timestamp": datetime.utcnow().isoformat()
-            })
-            
             db.session.commit()
-            return True
-        return False
-    
-    def update_role(self, new_role, reason=None):
-        """Update the character's role in the story"""
-        old_role = self.role
-        self.role = new_role
-        
-        # Log the evolution
-        if not self.evolution_log:
-            self.evolution_log = []
-            
-        self.evolution_log.append({
-            "type": "role_changed",
-            "old_role": old_role,
-            "new_role": new_role,
-            "reason": reason,
-            "timestamp": datetime.utcnow().isoformat()
-        })
-        
-        db.session.commit()
-        return True
-    
-    def add_relationship(self, target_character_id, relationship_type, strength=0):
-        """Add or update relationship with another character"""
-        if not self.relationship_network:
-            self.relationship_network = {}
-            
-        self.relationship_network[str(target_character_id)] = {
-            "type": relationship_type,  # friend, enemy, romantic, etc.
-            "strength": strength,       # -10 to 10 scale
-            "last_updated": datetime.utcnow().isoformat()
-        }
-        
-        db.session.commit()
-        return True
-    
-    def add_plot_contribution(self, plot_point, importance=1):
-        """Record character's contribution to the plot"""
-        if not self.plot_contributions:
-            self.plot_contributions = []
-            
-        self.plot_contributions.append({
-            "plot_point": plot_point,
-            "importance": importance,  # 1-5 scale of importance
-            "timestamp": datetime.utcnow().isoformat()
-        })
-        
-        db.session.commit()
-        return True
-
-
-            db.session.commit()
-
-class PlotArc(db.Model):
-    """Model for tracking story plot arcs"""
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(255), nullable=False)
-    description = db.Column(db.Text)
-    arc_type = db.Column(db.String(32))  # main, side, character, etc.
-    story_id = db.Column(db.Integer, db.ForeignKey('story_generation.id', ondelete='CASCADE'))
-    
-    # Plot arc status and progress
-    status = db.Column(db.String(32), default='active')  # active, completed, failed
-    completion_criteria = db.Column(JSONB)  # Criteria to complete this arc
-    progress_markers = db.Column(JSONB, default=[])  # Key points in the arc's progress
-    
-    # Key nodes and choices in this arc
-    key_nodes = db.Column(JSONB, default=[])  # List of important node IDs in this arc
-    branching_choices = db.Column(JSONB, default=[])  # Important choice points
-    
-    # Involved characters
-    primary_characters = db.Column(JSONB, default=[])  # Character IDs central to this arc
-    
-    # Rewards for completion
-    rewards = db.Column(JSONB)  # Currency, items, achievements, etc.
-    
-    # Metadata
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationships
-    story = db.relationship('StoryGeneration')
-
             logger.info(f"Successfully processed currency transaction for user {self.user_id}")
             return True
         except Exception as e:
@@ -434,6 +306,132 @@ class PlotArc(db.Model):
             
         db.session.commit()
         return level_up
+
+class CharacterEvolution(db.Model):
+    """Model for tracking how characters evolve through a user's story"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(255), nullable=False)
+    character_id = db.Column(db.Integer, db.ForeignKey('image_analysis.id', ondelete='CASCADE'))
+    story_id = db.Column(db.Integer, db.ForeignKey('story_generation.id', ondelete='CASCADE'))
+    
+    # Character status in story
+    status = db.Column(db.String(32), default='active')  # active, deceased, missing, etc.
+    role = db.Column(db.String(32))  # protagonist, antagonist, ally, enemy, etc.
+    
+    # Character evolution data
+    evolved_traits = db.Column(JSONB, default=[])  # New traits developed during story
+    plot_contributions = db.Column(JSONB, default=[])  # Plot developments related to this character
+    relationship_network = db.Column(JSONB, default={})  # Relations with other characters
+    
+    # Evolution metadata
+    first_appearance = db.Column(db.DateTime, default=datetime.utcnow)
+    last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    evolution_log = db.Column(JSONB, default=[])  # Log of changes to character
+    
+    # Relationships
+    character = db.relationship('ImageAnalysis')
+    story = db.relationship('StoryGeneration')
+    
+    def add_trait(self, trait, reason=None):
+        """Add a new trait to the character's evolved traits"""
+        if not self.evolved_traits:
+            self.evolved_traits = []
+            
+        if trait not in self.evolved_traits:
+            self.evolved_traits.append(trait)
+            
+            # Log the evolution
+            if not self.evolution_log:
+                self.evolution_log = []
+                
+            self.evolution_log.append({
+                "type": "trait_added",
+                "trait": trait,
+                "reason": reason,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+            
+            db.session.commit()
+            return True
+        return False
+    
+    def update_role(self, new_role, reason=None):
+        """Update the character's role in the story"""
+        old_role = self.role
+        self.role = new_role
+        
+        # Log the evolution
+        if not self.evolution_log:
+            self.evolution_log = []
+            
+        self.evolution_log.append({
+            "type": "role_changed",
+            "old_role": old_role,
+            "new_role": new_role,
+            "reason": reason,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+        
+        db.session.commit()
+        return True
+    
+    def add_relationship(self, target_character_id, relationship_type, strength=0):
+        """Add or update relationship with another character"""
+        if not self.relationship_network:
+            self.relationship_network = {}
+            
+        self.relationship_network[str(target_character_id)] = {
+            "type": relationship_type,  # friend, enemy, romantic, etc.
+            "strength": strength,       # -10 to 10 scale
+            "last_updated": datetime.utcnow().isoformat()
+        }
+        
+        db.session.commit()
+        return True
+    
+    def add_plot_contribution(self, plot_point, importance=1):
+        """Record character's contribution to the plot"""
+        if not self.plot_contributions:
+            self.plot_contributions = []
+            
+        self.plot_contributions.append({
+            "plot_point": plot_point,
+            "importance": importance,  # 1-5 scale of importance
+            "timestamp": datetime.utcnow().isoformat()
+        })
+        
+        db.session.commit()
+        return True
+
+class PlotArc(db.Model):
+    """Model for tracking story plot arcs"""
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+    arc_type = db.Column(db.String(32))  # main, side, character, etc.
+    story_id = db.Column(db.Integer, db.ForeignKey('story_generation.id', ondelete='CASCADE'))
+    
+    # Plot arc status and progress
+    status = db.Column(db.String(32), default='active')  # active, completed, failed
+    completion_criteria = db.Column(JSONB)  # Criteria to complete this arc
+    progress_markers = db.Column(JSONB, default=[])  # Key points in the arc's progress
+    
+    # Key nodes and choices in this arc
+    key_nodes = db.Column(JSONB, default=[])  # List of important node IDs in this arc
+    branching_choices = db.Column(JSONB, default=[])  # Important choice points
+    
+    # Involved characters
+    primary_characters = db.Column(JSONB, default=[])  # Character IDs central to this arc
+    
+    # Rewards for completion
+    rewards = db.Column(JSONB)  # Currency, items, achievements, etc.
+    
+    # Metadata
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    story = db.relationship('StoryGeneration')
 
 class Achievement(db.Model):
     """New: Model for story achievements"""
