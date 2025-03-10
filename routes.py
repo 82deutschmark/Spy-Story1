@@ -7,9 +7,10 @@ import paypalrestsdk
 from decimal import Decimal
 
 from database import db
-from models import AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, StoryChoice, UserProgress, Transaction, PlotArc, CharacterEvolution
+from models import AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, StoryChoice, UserProgress, Transaction, PlotArc, CharacterEvolution, Mission
 from services.openai_service import analyze_artwork, generate_image_description
 from services.story_maker import generate_story, get_story_options
+from services.mission_generator import generate_mission, get_user_active_missions, get_mission_by_id, update_mission_progress, complete_mission, fail_mission
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -891,6 +892,254 @@ def random_character():
         })
     except Exception as e:
         logger.error(f"Error getting random character: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/missions/active')
+def get_active_missions():
+    """API endpoint to get all active missions for the current user"""
+    try:
+        # Get user progress
+        user_progress = get_or_create_user_progress()
+        
+        # Get active missions
+        if not user_progress.active_missions:
+            return jsonify({
+                'success': True,
+                'missions': []
+            })
+            
+        missions = Mission.query.filter(Mission.id.in_(user_progress.active_missions)).all()
+        
+        # Format mission data
+        mission_data = []
+        for mission in missions:
+            # Get giver and target names
+            giver_name = "Unknown"
+            target_name = "Unknown"
+            
+            if mission.giver:
+                giver_name = mission.giver.character_name
+                
+            if mission.target:
+                target_name = mission.target.character_name
+            
+            mission_data.append({
+                'id': mission.id,
+                'title': mission.title,
+                'description': mission.description,
+                'objective': mission.objective,
+                'giver': giver_name,
+                'target': target_name,
+                'difficulty': mission.difficulty,
+                'reward_currency': mission.reward_currency,
+                'reward_amount': mission.reward_amount,
+                'deadline': mission.deadline,
+                'progress': mission.progress,
+                'status': mission.status,
+                'created_at': mission.created_at.strftime('%Y-%m-%d %H:%M')
+            })
+        
+        return jsonify({
+            'success': True,
+            'missions': mission_data
+        })
+    except Exception as e:
+        logger.error(f"Error getting active missions: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/missions/<int:mission_id>')
+def get_mission_details(mission_id):
+    """API endpoint to get details of a specific mission"""
+    try:
+        mission = get_mission_by_id(mission_id)
+        if not mission:
+            return jsonify({'error': 'Mission not found'}), 404
+            
+        # Get user progress to verify the mission belongs to the user
+        user_progress = get_or_create_user_progress()
+        
+        if mission.user_id != user_progress.user_id:
+            return jsonify({'error': 'Unauthorized access to mission'}), 403
+            
+        # Get giver and target details
+        giver_data = None
+        target_data = None
+        
+        if mission.giver:
+            giver_data = {
+                'id': mission.giver.id,
+                'name': mission.giver.character_name,
+                'image_url': mission.giver.image_url
+            }
+            
+        if mission.target:
+            target_data = {
+                'id': mission.target.id,
+                'name': mission.target.character_name,
+                'image_url': mission.target.image_url
+            }
+            
+        # Format mission data
+        mission_data = {
+            'id': mission.id,
+            'title': mission.title,
+            'description': mission.description,
+            'objective': mission.objective,
+            'giver': giver_data,
+            'target': target_data,
+            'difficulty': mission.difficulty,
+            'reward_currency': mission.reward_currency,
+            'reward_amount': mission.reward_amount,
+            'deadline': mission.deadline,
+            'progress': mission.progress,
+            'status': mission.status,
+            'created_at': mission.created_at.strftime('%Y-%m-%d %H:%M'),
+            'completed_at': mission.completed_at.strftime('%Y-%m-%d %H:%M') if mission.completed_at else None,
+            'progress_updates': mission.progress_updates
+        }
+        
+        return jsonify({
+            'success': True,
+            'mission': mission_data
+        })
+    except Exception as e:
+        logger.error(f"Error getting mission details: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/missions/generate', methods=['POST'])
+def generate_new_mission():
+    """API endpoint to generate a new mission for the user"""
+    try:
+        # Get user progress
+        user_progress = get_or_create_user_progress()
+        
+        # Get story ID if provided
+        story_id = request.json.get('story_id')
+        
+        # Generate the mission
+        mission = generate_mission(user_progress.user_id, story_id)
+        
+        if not mission:
+            return jsonify({'error': 'Failed to generate mission'}), 500
+            
+        # Get giver and target names
+        giver_name = "Unknown"
+        target_name = "Unknown"
+        
+        if mission.giver:
+            giver_name = mission.giver.character_name
+            
+        if mission.target:
+            target_name = mission.target.character_name
+        
+        # Format mission data
+        mission_data = {
+            'id': mission.id,
+            'title': mission.title,
+            'description': mission.description,
+            'objective': mission.objective,
+            'giver': giver_name,
+            'target': target_name,
+            'difficulty': mission.difficulty,
+            'reward_currency': mission.reward_currency,
+            'reward_amount': mission.reward_amount,
+            'deadline': mission.deadline,
+            'progress': mission.progress,
+            'status': mission.status,
+            'created_at': mission.created_at.strftime('%Y-%m-%d %H:%M')
+        }
+        
+        return jsonify({
+            'success': True,
+            'mission': mission_data
+        })
+    except Exception as e:
+        logger.error(f"Error generating new mission: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/missions/<int:mission_id>/update', methods=['POST'])
+def update_mission(mission_id):
+    """API endpoint to update mission progress"""
+    try:
+        # Get user progress
+        user_progress = get_or_create_user_progress()
+        
+        # Get mission
+        mission = get_mission_by_id(mission_id)
+        if not mission:
+            return jsonify({'error': 'Mission not found'}), 404
+            
+        # Verify the mission belongs to the user
+        if mission.user_id != user_progress.user_id:
+            return jsonify({'error': 'Unauthorized access to mission'}), 403
+            
+        # Get progress and description
+        data = request.json
+        progress = data.get('progress')
+        description = data.get('description')
+        
+        if progress is None:
+            return jsonify({'error': 'Progress is required'}), 400
+            
+        # Update the mission
+        success = update_mission_progress(mission_id, progress, description)
+        
+        if not success:
+            return jsonify({'error': 'Failed to update mission progress'}), 500
+            
+        return jsonify({
+            'success': True,
+            'message': 'Mission progress updated successfully',
+            'new_progress': progress
+        })
+    except Exception as e:
+        logger.error(f"Error updating mission progress: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/missions/<int:mission_id>/complete', methods=['POST'])
+def complete_mission_route(mission_id):
+    """API endpoint to complete a mission"""
+    try:
+        # Get user progress
+        user_progress = get_or_create_user_progress()
+        
+        # Complete the mission
+        success = complete_mission(mission_id, user_progress.user_id)
+        
+        if not success:
+            return jsonify({'error': 'Failed to complete mission'}), 500
+            
+        return jsonify({
+            'success': True,
+            'message': 'Mission completed successfully',
+            'new_balances': user_progress.currency_balances
+        })
+    except Exception as e:
+        logger.error(f"Error completing mission: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/missions/<int:mission_id>/fail', methods=['POST'])
+def fail_mission_route(mission_id):
+    """API endpoint to mark a mission as failed"""
+    try:
+        # Get user progress
+        user_progress = get_or_create_user_progress()
+        
+        # Get reason if provided
+        reason = request.json.get('reason')
+        
+        # Fail the mission
+        success = fail_mission(mission_id, user_progress.user_id, reason)
+        
+        if not success:
+            return jsonify({'error': 'Failed to mark mission as failed'}), 500
+            
+        return jsonify({
+            'success': True,
+            'message': 'Mission marked as failed'
+        })
+    except Exception as e:
+        logger.error(f"Error failing mission: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 # Add more routes as needed
