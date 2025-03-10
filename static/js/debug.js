@@ -46,7 +46,11 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.success) {
                     // Display the generated content
-                    generatedContent.textContent = data.description;
+                    generatedContent.textContent = JSON.stringify(data.analysis, null, 2);
+                    
+                    // Store the analysis in a data attribute for later use
+                    generatedContent.dataset.analysis = JSON.stringify(data.analysis);
+                    generatedContent.dataset.imageUrl = data.image_url;
 
                     // Store the image data for later use
                     currentImageData = {
@@ -417,8 +421,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         notificationToast.show();
     }
-
-    // Handle image analysis form submission
 
     // Handle copy button click
     if (copyBtn) {
@@ -1975,10 +1977,6 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('Error', 'Failed to set up analysis editing: ' + error.message, true);
         }
     }
-
-    // Initialize image analysis form
-    if (imageForm && generateBtn) {
-        imageForm.addEventListener('submit', function(e) {
             // Prevent the default form submission that would reload the page
             e.preventDefault();
 
