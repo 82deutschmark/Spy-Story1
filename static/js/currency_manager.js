@@ -42,9 +42,10 @@ class CurrencyManager {
                     const fromCurrency = e.target.dataset.from;
                     const toCurrency = e.target.dataset.to;
                     const rate = parseFloat(e.target.dataset.rate);
-                    const amount = parseFloat(e.target.dataset.amount); // Added amount
+                    // Get amount from data attribute or set a default value
+                    const amount = e.target.dataset.amount ? parseFloat(e.target.dataset.amount) : 100;
 
-                    this.acceptTradeOffer(fromCurrency, toCurrency, rate, amount); //Call new function
+                    this.acceptTradeOffer(fromCurrency, toCurrency, rate, amount);
                 });
             });
 
@@ -376,16 +377,18 @@ class CurrencyManager {
     }
 
     /**
-     * Accepts a trade offer and updates balances.  Assumes data-amount attribute on button
+     * Accepts a trade offer and updates balances
      * @param {string} fromCurrency Currency being traded from
      * @param {string} toCurrency Currency being traded to
      * @param {number} rate Exchange rate
-     * @param {number} amount Amount being traded
+     * @param {number} amount Amount being traded - if not provided, will use a default amount
      */
     acceptTradeOffer(fromCurrency, toCurrency, rate, amount) {
+        // Default amount if not provided (100 of the from currency)
+        const tradeAmount = amount || 100;
         const loadingPercent = addLoadingOverlay('Accepting trade offer...');
 
-        fetch('/api/currency/trade', { // Assuming this endpoint handles trade offers
+        fetch('/api/currency/trade', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -394,7 +397,7 @@ class CurrencyManager {
             body: JSON.stringify({
                 from_currency: fromCurrency,
                 to_currency: toCurrency,
-                amount: amount,
+                amount: tradeAmount,
                 trade_type: 'offer' // Indicate it's an offer
             })
         })
