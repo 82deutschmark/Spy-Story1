@@ -24,5 +24,25 @@ window.App = {
 
 // Initialize the application when the DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    EventHandlers.initialize();
+    console.log('DOM loaded, checking PayPal integration...');
+
+    // Initialize modules
+    window.UIUtils = new UIUtils();
+    window.currencyManager = new CurrencyManager();
+    window.characterManager = new CharacterManager(); // Added CharacterManager initialization
+    window.paymentManager = new PaymentManager();
+    window.storyManager = new StoryManager();
+    window.userProgress = new UserProgress();
+    window.missionManager = new MissionManager();
+
+    // For debugging
+    console.log('PayPal SDK loaded:', typeof paypal !== 'undefined');
+    console.log('PayPal button container exists:', !!document.getElementById('paypal-button-container'));
+
+    // Initialize PayPal buttons if SDK is loaded
+    console.log('Initializing PayPal integration...');
+    window.paymentManager.initializePayPalButtons();
+
+    // Set up event handlers for currency trading
+    setupCurrencyTradeForm();
 });
