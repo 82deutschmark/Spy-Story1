@@ -357,14 +357,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Validate role - ensure it's one of the valid options
             const validRoles = ['undetermined', 'villain', 'neutral', 'mission-giver'];
-            if (!validRoles.includes(role.toLowerCase())) {
+            let normalizedRole = role.toLowerCase();
+            if (!validRoles.includes(normalizedRole)) {
                 // Default to "undetermined" if invalid role
-                role = 'undetermined';
-                console.warn(`Invalid role detected. Using '${role}' instead.`);
-            } else {
-                // Normalize to lowercase
-                role = role.toLowerCase();
+                normalizedRole = 'undetermined';
+                console.warn(`Invalid role detected. Using '${normalizedRole}' instead.`);
             }
+            // Use the normalized role
+            role = normalizedRole;
 
             if (isNewFormat) {
                 // New format fields
