@@ -102,6 +102,7 @@
                     <form action="{{ url_for('main.generate_story_route') }}" method="POST" class="choice-form">
                         <input type="hidden" name="previous_choice" value="{{ choice.text }}">
                         <input type="hidden" name="story_context" value="{{ story.story }}">
+                        <input type="hidden" name="story_id" value="{{ story_id }}">
                         <!-- Character selection data - include all characters -->
                         {% for image in character_images %}
                         <input type="hidden" name="selected_images[]" value="{{ image.id }}">
@@ -129,6 +130,7 @@
                     <!-- Custom Choice Option -->
                     <form action="{{ url_for('main.generate_story_route') }}" method="POST" class="choice-form custom-choice-form">
                         <input type="hidden" name="story_context" value="{{ story.story }}">
+                        <input type="hidden" name="story_id" value="{{ story_id }}">
                         <!-- Character selection data - include all characters -->
                         {% for image in character_images %}
                         <input type="hidden" name="selected_images[]" value="{{ image.id }}">
