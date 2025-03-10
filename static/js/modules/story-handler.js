@@ -40,6 +40,9 @@ const StoryHandler = (function() {
         const toCurrency = e.target.dataset.to;
         const rate = parseFloat(e.target.dataset.rate);
         const amount = e.target.dataset.amount ? parseFloat(e.target.dataset.amount) : 100;
+        
+        // Call the currency handler to accept the trade offer
+        window.CurrencyHandler.acceptTradeOffer(fromCurrency, toCurrency, rate, amount);
 
         CurrencyHandler.acceptTradeOffer(fromCurrency, toCurrency, rate, amount);
     }
