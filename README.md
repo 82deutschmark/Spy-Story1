@@ -20,10 +20,13 @@ This application allows users to generate interactive stories featuring images f
 - **Gamification System**: Earn experience points, level up, and track relationships with characters
 - **Virtual Currency**: Earn and spend various currencies (💎, 💵, 💷, 💶, 💴) on story choices
 - **Plot Arcs**: Track active and completed story arcs across multiple sessions
+- **Mission System**: Characters assign missions targeting villain characters
 
 ## Recent Improvements
 
-- **Gamification System**: Added user levels, experience points, and character relationships
+- **Mission System**: Added mission tracking and objectives to story generation
+- **Character Dynamics**: Improved how new characters are introduced (limited to 10% chance after 4 characters)
+- **Debug Tools Enhancement**: Improved image analysis workflow with proper editing and saving
 - **Currency System**: Implemented virtual currencies with exchange features
 - **Plot Arc Tracking**: Added system to track story progress across multiple sessions
 - **Character Evolution**: Characters now evolve based on story interactions
@@ -105,9 +108,11 @@ PAYPAL_SECRET=your_paypal_secret
 - `routes.py`: Modularized route handlers
 - `models.py`: Database models (SQLAlchemy)
 - `migrations/`: Database migration scripts
+  - `add_mission_system.py`: Database migration for mission tracking features
 - `services/`: 
   - `openai_service.py`: OpenAI API integration (contains artwork analysis prompts)
   - `story_maker.py`: Story generation logic (contains the core story generation prompts)
+  - `mission_generator.py`: Mission creation and tracking system
 - `static/`: CSS and JavaScript files
 - `templates/`: HTML templates
 - `api/`: API endpoints for potential Unity integration
@@ -142,6 +147,7 @@ The story universe is set in a high-stakes, sexy dramatic international spy netw
 - **Performance Optimization**: Enhance loading times for story generation
 - **Mobile Responsiveness**: Improve the mobile experience
 - **Achievement System**: Implement unlockable achievements for players
+- **Interactive Map**: Add a visual map showing story locations and mission objectives
 
 ## Credits
 
