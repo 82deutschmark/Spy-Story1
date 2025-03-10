@@ -96,9 +96,11 @@ document.addEventListener('DOMContentLoaded', function() {
             this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
 
             try {
+                // Get the analysis data from the dataset attributes we stored
+                const generatedContent = document.getElementById('generatedContent');
                 const success = await imageAnalyzer.saveToDatabase({
                     imageUrl: currentImageData.imageUrl,
-                    analysis: JSON.parse(document.getElementById('generatedContent').textContent)
+                    analysis: JSON.parse(generatedContent.dataset.analysis)
                 });
 
                 if (success) {
