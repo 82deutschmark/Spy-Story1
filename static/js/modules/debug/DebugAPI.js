@@ -1,16 +1,9 @@
-
 /**
- * Debug API Module
- * Handles API communication for the debug interface
+ * DebugAPI.js - API communication for the debug interface
  */
 import DebugUtils from './DebugUtils.js';
 
 export default {
-    /**
-     * Make GET request to endpoint
-     * @param {string} url - API endpoint
-     * @returns {Promise} - Promise resolving to response data
-     */
     async get(url) {
         try {
             const response = await fetch(url);
@@ -23,12 +16,6 @@ export default {
         }
     },
 
-    /**
-     * Make POST request to endpoint
-     * @param {string} url - API endpoint
-     * @param {object} data - Request data
-     * @returns {Promise} - Promise resolving to response data
-     */
     async post(url, data) {
         try {
             const response = await fetch(url, {
@@ -45,11 +32,6 @@ export default {
         }
     },
 
-    /**
-     * Delete resource
-     * @param {string} url - API endpoint
-     * @returns {Promise} - Promise resolving to response data
-     */
     async delete(url) {
         try {
             const response = await fetch(url, { method: 'DELETE' });

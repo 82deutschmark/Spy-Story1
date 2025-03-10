@@ -1,26 +1,27 @@
 
 /**
- * Modal Handling Module
- * Manages modal dialogues
+ * ModalHandler.js - Modal dialog management for the debug interface
  */
 export default {
-    /**
-     * Initialize modal handlers
-     */
     initialize() {
-        // Initialize modals
         const detailsModal = document.getElementById('detailsModal');
         if (detailsModal) {
             detailsModal.addEventListener('hidden.bs.modal', () => {
-                // Reset modal when closed
-                document.getElementById('detailsModalLabel').innerHTML = 
-                    '<i class="fas fa-edit me-2"></i>Image Details';
-                document.getElementById('modalImage').style.display = '';
-                document.getElementById('modalEditModeSwitch').style.display = '';
-                document.getElementById('reanalyzeImageBtn').style.display = '';
+                const detailsModalLabel = document.getElementById('detailsModalLabel');
+                if (detailsModalLabel) {
+                    detailsModalLabel.innerHTML = '<i class="fas fa-edit me-2"></i>Image Details';
+                }
+                
+                const modalImage = document.getElementById('modalImage');
+                if (modalImage) modalImage.style.display = '';
+                
+                const modalEditModeSwitch = document.getElementById('modalEditModeSwitch');
+                if (modalEditModeSwitch) modalEditModeSwitch.style.display = '';
+                
+                const reanalyzeImageBtn = document.getElementById('reanalyzeImageBtn');
+                if (reanalyzeImageBtn) reanalyzeImageBtn.style.display = '';
             });
         }
-
         console.log('Modal handler initialized');
     }
 };

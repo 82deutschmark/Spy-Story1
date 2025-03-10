@@ -1,15 +1,7 @@
-
 /**
- * Debug Utilities Module
- * Common utility functions for the debug interface
+ * DebugUtils.js - Utility functions for the debug interface
  */
 export default {
-    /**
-     * Shows a toast notification
-     * @param {string} title - Toast title
-     * @param {string} message - Toast message content
-     * @param {boolean} isError - Whether to show as error
-     */
     showToast(title, message, isError = false) {
         const toastEl = document.getElementById('notificationToast');
         if (toastEl) {
@@ -27,11 +19,6 @@ export default {
         }
     },
 
-    /**
-     * Deep clone object to avoid reference issues
-     * @param {object} obj - Object to clone
-     * @returns {object} Cloned object
-     */
     deepClone(obj) {
         try {
             return JSON.parse(JSON.stringify(obj));
@@ -41,20 +28,10 @@ export default {
         }
     },
 
-    /**
-     * Log object for debugging
-     * @param {string} title - Log title
-     * @param {object} data - Data to log
-     */
     logDebug(title, data) {
         console.log(`${title}:`, data);
     },
 
-    /**
-     * Safely parse JSON
-     * @param {string} text - Text to parse
-     * @returns {object|null} Parsed object or null
-     */
     safeParseJSON(text) {
         try {
             return JSON.parse(text);
