@@ -1174,12 +1174,14 @@ body[data-bs-theme="dark"] .character-select-card {
 }
 
 .custom-choice-btn {
-    background: linear-gradient(135deg, #0077CC 0%, #004499 100%);
-    color: white;
-    border: none;
+    background: transparent;
+    color: black;
+    border: 1px solid rgba(0, 0, 0, 0.2);
     transition: all 0.3s ease;
 }
 
 .custom-choice-btn:hover {
-    background: linear-gradient(135deg, #0097FB 0%, #0057AB 100%);
+    background: rgba(0, 0, 0, 0.05);
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
