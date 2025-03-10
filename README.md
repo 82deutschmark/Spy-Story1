@@ -1,4 +1,3 @@
-
 # Choose Your Own Adventure
 
 An interactive storytelling application that lets users create custom adventures featuring animal characters in Uncle Mark's forest farm.
@@ -15,27 +14,48 @@ This application allows users to generate interactive stories featuring Pawel an
 - **Multi-Character Support**: Select multiple characters to include in your adventures
 - **Story Customization**: Set conflict, setting, narrative style, and mood
 - **Interactive Choices**: Make decisions that affect the story's outcome
+- **Currency System**: In-game currency for making choices and trading
 - **Image Analysis**: Upload character/scene images for AI analysis 
 - **Debug Tools**: View and manage database records
 
-## Recent Improvements
+## Known Issues and Current Development Status
 
-- **Multi-Character Support**: Enhanced the app to support selecting multiple characters for stories
-- **Improved Error Handling**: Fixed issues with story continuation and form submission
-- **Backend Optimization**: Updated the story generation logic to handle multiple character selections
-- **UI Enhancements**: Fixed character highlighting in story text
-- **Bug Fixes**: Resolved form submission duplicates and storyboard rendering issues
+### Critical Issues
+1. **Story Generation**:
+   - Character selection not properly sending to backend
+   - Form data missing selected characters array
+   - Selection UI feedback incomplete
 
-## Technology Stack
+2. **JavaScript Modularization**:
+   - Recent modularization attempt introduced bugs
+   - Story generation functionality broken
+   - Need to fix module imports and dependencies
 
-- **Backend**: Flask, PostgreSQL, SQLAlchemy
-- **Frontend**: HTML, CSS, JavaScript, Bootstrap
-- **AI Services**: OpenAI's API (GPT-4o for story generation and image analysis)
+3. **Currency System**:
+   - Currently in transition from client-side to server-side implementation
+   - Removed redundant JavaScript currency management
+   - Backend currency system working but needs UI updates
+
+### Pending Fixes
+1. **Character Selection UI**:
+   - Restore checkmark indicator visibility
+   - Fix reroll button functionality
+   - Improve selection state feedback
+
+2. **Form Submission**:
+   - Fix character selection data in form submission
+   - Ensure proper data structure for selected_images[]
+   - Add proper error handling for form submission
+
+### Next Steps
+1. Complete server-side currency management transition
+2. Fix character selection UI and form submission
+3. Restore and test story generation functionality
+4. Update documentation for new currency system
 
 ## Setup Instructions
 
 ### Prerequisites
-
 - Python 3.11+
 - PostgreSQL database
 - OpenAI API key
@@ -127,16 +147,6 @@ The story universe centers around Uncle Mark's forest farm with:
 - **The Rat Wizard**: Steals eggs and vegetables for potions
 - **Mice and Moles**: Forced by squirrels to help with schemes
 
-## Known Issues and Future Improvements
-
-- **UI/UX Refinements**: Further improve the user interface for character selection
-- **Performance Optimization**: Enhance loading times for story generation
-- **Mobile Responsiveness**: Improve the mobile experience
-
-## Credits
-
-- OpenAI for GPT-4o
-- Bootstrap for UI framework
 
 ## License
 
