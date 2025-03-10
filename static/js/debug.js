@@ -242,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const targetMoments = formType === 'main' ? dramaticMoments : modalDramaticMoments;
             const targetCharFields = formType === 'main' ? characterFields : modalCharacterFields;
             const targetSceneFields = formType === 'main' ? sceneFields : modalSceneFields;
-            
+
             // Add description field
             const targetDescription = formType === 'main' ? 
                 document.getElementById('descriptionField') : 
@@ -268,7 +268,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Set name (prioritize nested character name, then top-level)
             targetName.value = character.name || analysis.name || analysis.character_name || '';
-            
+
             // Set description field (should exist in both character and scene)
             if (targetDescription && analysis.description) {
                 targetDescription.value = analysis.description;
@@ -294,7 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const moments = analysis.dramatic_moments || [];
                 if (targetMoments) targetMoments.value = Array.isArray(moments) ? moments.join('\n') : moments;
             }
-            
+
             console.log('Populated edit form with data:', analysis);
         } catch (error) {
             console.error('Error populating edit form:', error);
@@ -321,15 +321,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Create a new empty object instead of copying the original to ensure changes replace, not append
         let editedData = {};
-        
+
         // Preserve image metadata
         if (currentImageData.analysis.image_metadata) {
             editedData.image_metadata = currentImageData.analysis.image_metadata;
         }
-        
+
         // Determine format - new or old
         const isNewFormat = currentImageData.analysis.type === 'CHARACTER' || currentImageData.analysis.type === 'SCENE';
-        
+
         // Update with form values
         const isCharacter = targetType.value === 'character';
 
@@ -339,7 +339,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             editedData.image_type = targetType.value;
         }
-        
+
         // Set description regardless of character or scene
         if (targetDescription && targetDescription.value) {
             editedData.description = targetDescription.value;
@@ -354,7 +354,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Update character fields based on format
             editedData.name = name;
-            
+
             // Validate role - ensure it's one of the valid options
             const validRoles = ['undetermined', 'villain', 'neutral', 'mission-giver'];
             if (!validRoles.includes(role.toLowerCase())) {
@@ -365,13 +365,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Normalize to lowercase
                 role = role.toLowerCase();
             }
-            
+
             if (isNewFormat) {
                 // New format fields
                 editedData.role = role;
                 editedData.personality_traits = traits;
                 editedData.potential_plot_lines = plots;
-                
+
                 // Ensure backward compatibility
                 editedData.character_name = name;
                 editedData.character_traits = traits;
@@ -382,7 +382,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 editedData.role = role;
                 editedData.character_traits = traits;
                 editedData.plot_lines = plots;
-                
+
                 // Add character object for compatibility
                 editedData.character = {
                     name: name,
@@ -390,12 +390,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     character_traits: traits,
                     plot_lines: plots
                 };
-                
+
                 // Add new format fields for future compatibility
                 editedData.personality_traits = traits;
                 editedData.potential_plot_lines = plots;
             }
-            
+
             // Add style and visual characteristics if present in original
             if (currentImageData.analysis.style_and_visual_characteristics) {
                 editedData.style_and_visual_characteristics = currentImageData.analysis.style_and_visual_characteristics;
@@ -407,7 +407,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const moments = targetMoments ? targetMoments.value.split('\n').map(m => m.trim()).filter(m => m) : [];
             editedData.dramatic_moments = moments;
-            
+
             // Add story_fit if present in original
             if (currentImageData.analysis.story_fit) {
                 editedData.story_fit = currentImageData.analysis.story_fit;
@@ -873,8 +873,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const pageLink = document.createElement('a');
             pageLink.className = 'page-link';
-            pageLink.href = '#';
-            pageLink.textContent = i;
+            pageLink.href = '#';            pageLink.textContent = i;
 
             if (i !== pagination.page) {
                 pageLink.addEventListener('click', (e) => {
@@ -1132,4 +1131,79 @@ document.addEventListener('DOMContentLoaded', function() {
     loadImages(1);
     loadStories(1);
     runHealthCheck();
+
+    // Update edit form with data
+    function populateEditForm(data) {
+        console.log("Populated edit form with data:", data);
+        const editForm = document.getElementById('analysisEditForm');
+        if (!editForm) return;
+
+        const editData = document.getElementById('editData');
+        if (editData) {
+            editData.innerHTML = JSON.stringify(data, null, 2);
+        }
+
+        // Set image ID
+        const imageIdField = document.getElementById('editImageId');
+        if (imageIdField) {
+            imageIdField.value = data.id || '';
+        }
+    }
+
+    // Save edited analysis
+    document.getElementById('saveEditBtn')?.addEventListener('click', function() {
+        const imageId = document.getElementById('editImageId').value;
+        const editData = document.getElementById('editData');
+
+        if (!imageId || !editData) {
+            alert('Missing data');
+            return;
+        }
+
+        let editedData = getEditedDataFromForm();
+
+        // Send to server
+        fetch('/api/save_analysis', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                image_id: imageId,
+                analysis: editedData
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Analysis saved successfully!');
+                // Refresh the page
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error saving analysis. See console for details.');
+        });
+    });
+
+    // Get data from form
+    function getEditedDataFromForm() {
+        let data = {};
+        const editData = document.getElementById('editData');
+
+        if (editData) {
+            try {
+                return JSON.parse(editData.innerText);
+            } catch (e) {
+                console.error('Error parsing JSON:', e);
+                alert('Error parsing JSON. Please check format.');
+                return {};
+            }
+        }
+
+        return data;
+    }
 });
