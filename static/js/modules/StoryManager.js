@@ -14,7 +14,7 @@ export default {
      */
     generateStory(formData) {
         console.log('Generating story, showing loading indicators...');
-        
+
         // Create loading overlay with percentage
         const loadingPercent = UIUtils.createLoadingOverlay('Generating your adventure...');
 
@@ -31,7 +31,7 @@ export default {
                 UIUtils.updateLoadingPercent(loadingPercent, progress);
             }
         }, 500);
-        
+
         // Add loading UI element to show percentage
         const loadingUI = document.createElement('div');
         loadingUI.className = 'loading-percentage-display';
@@ -47,7 +47,7 @@ export default {
         loadingUI.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.5)';
         loadingUI.style.zIndex = '9999';
         loadingUI.style.textAlign = 'center';
-        
+
         loadingUI.innerHTML = `
             <div class="loading-text mb-3" style="color: white; font-size: 18px; font-weight: bold;">
                 Crafting your adventure...
@@ -64,20 +64,20 @@ export default {
             </div>
             <div class="progress-text mt-2" style="color: white; font-size: 16px;">0%</div>
         `;
-        
+
         document.body.appendChild(loadingUI);
-        
+
         // Update loading bar and phases
         const progressBar = loadingUI.querySelector('.progress-bar');
         const progressText = loadingUI.querySelector('.progress-text');
         const phases = loadingUI.querySelectorAll('.phase');
-        
+
         const progressUpdate = setInterval(() => {
             if (progress < 90) {
                 progressBar.style.width = progress + '%';
                 progressBar.setAttribute('aria-valuenow', progress);
                 progressText.textContent = progress + '%';
-                
+
                 // Update phases based on progress
                 if (progress > 10 && progress <= 30) {
                     phases[0].innerHTML = '✓ Analyzing selected characters';
@@ -106,16 +106,24 @@ export default {
 
                 if (data.success && data.redirect) {
                     UIUtils.updateLoadingPercent(loadingPercent, 100);
-                    if (progressBar) {
-                        progressBar.style.width = '100%';
-                        progressBar.setAttribute('aria-valuenow', 100);
+
+                    // Update loading UI to 100%
+                    const loadingUI = document.querySelector('.loading-percentage-display');
+                    if (loadingUI) {
+                        const progressBar = loadingUI.querySelector('.progress-bar');
+                        const progressText = loadingUI.querySelector('.progress-text');
+                        const phases = loadingUI.querySelectorAll('.phase');
+
+                        if (progressBar) progressBar.style.width = '100%';
+                        if (progressText) progressText.textContent = '100%';
+                        if (phases && phases.length >= 5) phases[4].innerHTML = '✓ Finalizing your adventure';
                     }
+
                     setTimeout(() => {
-                        if (loadingUI && loadingUI.parentNode) {
-                            loadingUI.parentNode.removeChild(loadingUI);
-                        }
+                        // Remove loading UI before redirect
+                        if (loadingUI) loadingUI.remove();
                         window.location.href = data.redirect;
-                    }, 500);
+                    }, 1000);
                     return data;
                 } else {
                     throw new Error(data.error || 'Failed to generate story');
@@ -125,7 +133,6 @@ export default {
                 console.error('Error generating story:', error);
                 UIUtils.showToast('Error', error.message || 'Failed to generate story. Please try again.');
                 clearInterval(progressInterval);
-                clearInterval(progressUpdate);
 
                 if (generateStoryBtn) {
                     generateStoryBtn.disabled = false;
@@ -133,9 +140,13 @@ export default {
                 }
 
                 UIUtils.removeLoadingOverlay(loadingPercent);
+
+                // Remove loading UI if exists
+                const loadingUI = document.querySelector('.loading-percentage-display');
                 if (loadingUI && loadingUI.parentNode) {
                     loadingUI.parentNode.removeChild(loadingUI);
                 }
+
                 throw error;
             });
     },
@@ -147,49 +158,49 @@ export default {
      */
     highlightCharacters(storyElement, characters) {
         if (!storyElement || !characters || characters.length === 0) return;
-        
+
         // Create a regular expression to match all character names
         const characterNames = characters
             .map(char => char.name)
             .filter(name => name && name.length > 2) // Ignore very short names to avoid false positives
             .sort((a, b) => b.length - a.length); // Sort by length (longest first) to avoid partial matches
-            
+
         if (characterNames.length === 0) return;
-        
+
         const namePattern = new RegExp(`\\b(${characterNames.join('|')})\\b`, 'gi');
-        
+
         // We need to work with the HTML content
         let html = storyElement.innerHTML;
-        
+
         // Replace character names with highlighted spans
         html = html.replace(namePattern, (match) => {
             // Find the character that matches this name (case-insensitive)
             const character = characters.find(char => 
                 char.name && char.name.toLowerCase() === match.toLowerCase());
-                
+
             if (!character) return match; // Safety check
-            
+
             return `<span class="character-highlight" data-character="${character.name.toLowerCase().replace(/\s+/g, '-')}">${match}</span>`;
         });
-        
+
         // Set the updated HTML
         storyElement.innerHTML = html;
-        
+
         // Add click event listeners to the highlighted spans
         const highlightedSpans = storyElement.querySelectorAll('.character-highlight');
         highlightedSpans.forEach(span => {
             span.addEventListener('click', (e) => {
                 const characterSlug = span.getAttribute('data-character');
-                
+
                 // Find the character in the characters array
                 const character = characters.find(char => 
                     char.name && char.name.toLowerCase().replace(/\s+/g, '-') === characterSlug);
-                
+
                 if (!character) return;
-                
+
                 // Remove any existing tooltips
                 document.querySelectorAll('.character-tooltip').forEach(el => el.remove());
-                
+
                 // Create tooltip
                 const tooltip = document.createElement('div');
                 tooltip.className = 'character-tooltip';
@@ -202,21 +213,21 @@ export default {
                         ).join('')}
                     </div>
                 `;
-                
+
                 // Position tooltip near the character name
                 const rect = span.getBoundingClientRect();
                 tooltip.style.left = `${rect.left}px`;
                 tooltip.style.top = `${rect.bottom + window.scrollY}px`;
-                
+
                 // Add to body and make visible
                 document.body.appendChild(tooltip);
-                
+
                 // Force reflow
                 tooltip.offsetHeight;
-                
+
                 // Show tooltip
                 tooltip.classList.add('visible');
-                
+
                 // Close tooltip when clicking outside
                 document.addEventListener('click', function closeTooltip(e) {
                     if (!tooltip.contains(e.target) && e.target !== span) {
@@ -227,12 +238,12 @@ export default {
                         document.removeEventListener('click', closeTooltip);
                     }
                 });
-                
+
                 e.stopPropagation();
             });
         });
     },
-    
+
     /**
      * Processes a story choice
      * @param {HTMLFormElement} form - The choice form
@@ -259,13 +270,13 @@ export default {
                 UIUtils.updateLoadingPercent(loadingPercent, progress);
             }
         }, 500);
-        
+
         // Add loading UI element to show percentage
         const loadingUI = document.createElement('div');
         loadingUI.className = 'choice-loading-display';
         loadingUI.innerHTML = '<div class="loading-text">Crafting the next part of your adventure...</div><div class="progress"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%"></div></div>';
         document.body.appendChild(loadingUI);
-        
+
         // Update loading bar
         const progressBar = loadingUI.querySelector('.progress-bar');
         const progressBarUpdate = setInterval(() => {
@@ -355,16 +366,19 @@ export default {
 
                 if (storyData.success && storyData.redirect) {
                     UIUtils.updateLoadingPercent(loadingPercent, 100);
-                    if (progressBar) {
-                        progressBar.style.width = '100%';
-                        progressBar.setAttribute('aria-valuenow', 100);
+
+                    // Update loading UI to 100%
+                    const loadingUI = document.querySelector('.choice-loading-display');
+                    if (loadingUI) {
+                        const progressBar = loadingUI.querySelector('.progress-bar');
+                        if (progressBar) progressBar.style.width = '100%';
                     }
+
                     setTimeout(() => {
-                        if (loadingUI && loadingUI.parentNode) {
-                            loadingUI.parentNode.removeChild(loadingUI);
-                        }
+                        // Remove loading UI before redirect
+                        if (loadingUI) loadingUI.remove();
                         window.location.href = storyData.redirect;
-                    }, 500);
+                    }, 1000);
                     return storyData;
                 } else {
                     throw new Error(storyData.error || 'Failed to generate next story part');

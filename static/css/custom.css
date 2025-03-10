@@ -424,6 +424,53 @@ body[data-bs-theme="dark"] .trait-badge {
     background: rgba(255, 255, 255, 0.85);
     border-radius: 10px;
     padding: 0.75rem;
+
+/* Loading Indicators */
+.loading-percentage-display {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    max-width: 500px;
+    background-color: rgba(33, 37, 41, 0.95);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    text-align: center;
+}
+
+.loading-percentage-display .phase {
+    text-align: left;
+    margin-bottom: 10px;
+    padding-left: 10px;
+    font-size: 14px;
+    color: #adb5bd;
+}
+
+.loading-percentage-display .phase:first-child {
+    margin-top: 10px;
+}
+
+.loading-percentage-display .loading-text {
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.loading-percentage-display .progress {
+    height: 10px;
+    background-color: #2c3034;
+}
+
+.loading-percentage-display .progress-text {
+    color: white;
+    font-size: 16px;
+    margin-top: 8px;
+}
+
     width: 100%;
 }
 
