@@ -798,6 +798,133 @@ def save_analysis():
         logger.info(f"Successfully saved analysis for image ID {image_id}")
 
         return jsonify({
+
+@main_bp.route('/debug/images')
+def debug_images():
+    """API endpoint for debug page to get images with pagination"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        limit = request.args.get('limit', 10, type=int)
+        image_type = request.args.get('type')
+        search = request.args.get('search')
+
+        query = ImageAnalysis.query
+
+        # Apply filters
+        if image_type:
+            query = query.filter_by(image_type=image_type)
+
+        if search:
+            # Search by ID or character name
+            if search.isdigit():
+                query = query.filter(ImageAnalysis.id == int(search))
+            else:
+                query = query.filter(ImageAnalysis.character_name.ilike(f'%{search}%'))
+
+        # Execute count query
+        total = query.count()
+
+        # Get paginated results
+        images = query.order_by(ImageAnalysis.id.desc()).paginate(page=page, per_page=limit)
+
+        # Format results
+        results = []
+        for img in images.items:
+            analysis = img.analysis_result or {}
+            name = img.character_name or ''
+            if not name and analysis:
+                name = analysis.get('name', '')
+
+            results.append({
+                'id': img.id,
+                'image_url': img.image_url,
+                'image_type': img.image_type,
+                'name': name,
+                'created_at': img.created_at.strftime('%Y-%m-%d %H:%M'),
+                'traits': img.character_traits or [],
+                'role': img.character_role or '',
+                'stories_count': img.stories.count()
+            })
+
+        return jsonify({
+            'success': True,
+            'images': results,
+            'pagination': {
+                'page': page,
+                'per_page': limit,
+                'total': total,
+                'pages': (total + limit - 1) // limit
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error getting debug images: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/debug/stories')
+def debug_stories():
+    """API endpoint for debug page to get stories with pagination"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        limit = request.args.get('limit', 10, type=int)
+        search = request.args.get('search')
+
+        query = StoryGeneration.query
+
+        # Apply search filter
+        if search:
+            if search.isdigit():
+                query = query.filter(StoryGeneration.id == int(search))
+            else:
+                query = query.filter(
+                    db.or_(
+                        StoryGeneration.primary_conflict.ilike(f'%{search}%'),
+                        StoryGeneration.setting.ilike(f'%{search}%')
+                    )
+                )
+
+        # Execute count query
+        total = query.count()
+
+        # Get paginated results
+        stories = query.order_by(StoryGeneration.id.desc()).paginate(page=page, per_page=limit)
+
+        # Format results
+        results = []
+        for story in stories.items:
+            # Extract title from JSON if available
+            title = "Untitled Story"
+            if story.generated_story:
+                try:
+                    story_data = json.loads(story.generated_story)
+                    if isinstance(story_data, dict) and 'title' in story_data:
+                        title = story_data['title']
+                except:
+                    pass
+
+            results.append({
+                'id': story.id,
+                'title': title,
+                'conflict': story.primary_conflict,
+                'setting': story.setting,
+                'images_count': len(story.images),
+                'character_names': [img.character_name for img in story.images if img.character_name],
+                'created_at': story.created_at.strftime('%Y-%m-%d %H:%M')
+            })
+
+        return jsonify({
+            'success': True,
+            'stories': results,
+            'pagination': {
+                'page': page,
+                'per_page': limit,
+                'total': total,
+                'pages': (total + limit - 1) // limit
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error getting debug stories: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
             'success': True,
             'message': 'Analysis updated successfully'
         })
