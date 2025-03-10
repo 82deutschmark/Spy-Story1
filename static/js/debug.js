@@ -28,6 +28,20 @@ const DebugApp = (function() {
         // Initialize modules that depend on others
         dataHandler.initialize();
         
+        // Make sure we can access the CurrencyManager from main app
+        if (window.CurrencyManager) {
+            console.log('CurrencyManager found in global scope');
+        } else {
+            console.warn('CurrencyManager not found in global scope, creating placeholder');
+            // Create a placeholder if it doesn't exist
+            window.CurrencyManager = {
+                updateCurrencyDisplays: function(balances) {
+                    console.log('Debug placeholder CurrencyManager updating displays:', balances);
+                    DebugUtils.validateCurrencyDisplays(balances);
+                }
+            };
+        }
+        
         // Set up currency transaction monitoring
         monitorCurrencySystem();
 
