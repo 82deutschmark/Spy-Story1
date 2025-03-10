@@ -35,10 +35,13 @@ class CharacterManager {
         const characterCards = document.querySelectorAll('.character-select-card');
         const selectButtons = document.querySelectorAll('.select-character-btn');
         
+        console.log(`Found ${characterCards.length} character cards and ${selectButtons.length} select buttons`);
+        
         // Add listeners to character cards
         characterCards.forEach(card => {
             card.addEventListener('click', (e) => {
                 const characterId = card.dataset.id;
+                console.log(`Character card clicked: ${characterId}`);
                 this.toggleCharacterSelection(characterId, card);
             });
         });
@@ -48,6 +51,7 @@ class CharacterManager {
             button.addEventListener('click', (e) => {
                 e.stopPropagation(); // Prevent card click event
                 const characterId = button.dataset.characterId;
+                console.log(`Select button clicked for character: ${characterId}`);
                 const card = document.querySelector(`.character-select-card[data-id="${characterId}"]`);
                 this.toggleCharacterSelection(characterId, card);
             });
@@ -185,16 +189,20 @@ class CharacterManager {
             
             // Remove from selected array
             this.selectedCharacters = this.selectedCharacters.filter(id => id !== characterId);
+            
+            console.log(`Character ${characterId} deselected`);
         } else {
             // Select
             card.classList.add('selected');
-            if (selectionIndicator) selectionIndicator.style.display = 'block';
+            if (selectionIndicator) selectionIndicator.style.display = 'flex';
             if (checkbox) checkbox.checked = true;
             
             // Add to selected array
             if (!this.selectedCharacters.includes(characterId)) {
                 this.selectedCharacters.push(characterId);
             }
+            
+            console.log(`Character ${characterId} selected`);
             
             // Show toast notification
             if (window.UIUtils) {

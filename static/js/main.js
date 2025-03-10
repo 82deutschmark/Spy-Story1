@@ -38,8 +38,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize event handlers for the index page
     if (document.querySelector('.character-select-card')) {
         console.log('Character selection page detected, setting up character interactions');
-        window.characterManager.setupCharacterSelectListeners();
-        window.characterManager.setupRerollButtonListeners();
+        
+        // Add a small delay to ensure DOM is fully rendered
+        setTimeout(() => {
+            window.characterManager.setupCharacterSelectListeners();
+            window.characterManager.setupRerollButtonListeners();
+            console.log('Character interactions initialized');
+        }, 100);
     }
 
     // For debugging
