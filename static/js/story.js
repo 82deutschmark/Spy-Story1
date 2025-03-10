@@ -28,123 +28,47 @@ function removeLoadingOverlay(overlay) {
 
 export const story = {
     /**
-     * Generate a new story
-     * @param {FormData} formData - The form data for story generation
-     * @returns {Promise<boolean>} - Success status
-     */
-    generate: async (formData) => {
-        const loadingPercent = createLoadingOverlay('Generating your adventure...');
-        let progress = 0;
-        const progressInterval = setInterval(() => {
-            if (progress < 90) {
-                progress += 5;
-                updateLoadingPercent(loadingPercent, progress);
-            }
-        }, 500);
-
-        try {
-            // Debug log form data
-            console.log('Submitting form with data:', Array.from(formData.entries()));
-
-            const data = await api.postForm('/generate_story', formData);
-            clearInterval(progressInterval);
-
-            if (data.success && data.redirect) {
-                updateLoadingPercent(loadingPercent, 100);
-                setTimeout(() => {
-                    window.location.href = data.redirect;
-                }, 500);
-                return true;
-            } else {
-                throw new Error(data.error || 'Failed to generate story');
-            }
-        } catch (error) {
-            console.error('Error generating story:', error);
-            dom.showToast('Error', error.message || 'Failed to generate story', true);
-            return false;
-        } finally {
-            clearInterval(progressInterval);
-            removeLoadingOverlay(loadingPercent);
-        }
-    },
-
-    /**
-     * Process a story choice
-     * @param {FormData} formData - The choice form data
-     * @returns {Promise<boolean>} - Success status
-     */
-    makeChoice: async (formData) => {
-        const loadingPercent = createLoadingOverlay('Processing your choice...');
-        let progress = 0;
-        const progressInterval = setInterval(() => {
-            if (progress < 90) {
-                progress += 5;
-                updateLoadingPercent(loadingPercent, progress);
-            }
-        }, 500);
-
-        try {
-            const response = await api.postForm('/make_choice', formData);
-
-            if (!response.success) {
-                throw new Error(response.error || 'Failed to process choice');
-            }
-
-            updateLoadingPercent(loadingPercent, 100);
-            setTimeout(() => {
-                if (response.redirect) {
-                    window.location.href = response.redirect;
-                }
-            }, 500);
-            return true;
-        } catch (error) {
-            console.error('Error processing choice:', error);
-            dom.showToast('Error', error.message || 'Failed to process your choice', true);
-            return false;
-        } finally {
-            clearInterval(progressInterval);
-            removeLoadingOverlay(loadingPercent);
-        }
-    }
-};
-/**
- * Story generation and interaction functionality
- */
-import { dom } from './utils/dom.js';
-import { api } from './utils/api.js';
-
-export const story = {
-    /**
-     * Generate a new story
-     * @param {FormData} formData - Form data for story generation
+     * Generate a new story based on form data
+     * @param {FormData} formData - Form data with story parameters
      */
     async generate(formData) {
-        // Validate form data
-        const selectedCharacters = formData.getAll('selected_images[]');
-        if (selectedCharacters.length === 0) {
-            dom.showToast('Selection Needed', 'Please select a character for your story', true);
-            
-            // Show error message if it exists
-            const characterSelectionError = document.getElementById('characterSelectionError');
-            if (characterSelectionError) {
-                characterSelectionError.style.display = 'block';
-                characterSelectionError.textContent = 'Please select a character for your story';
-                window.scrollTo(0, 0);
-            }
-            return;
-        }
-        
-        // Disable the generate button to prevent multiple submissions
+        // Get the button to update its state
         const generateBtn = document.getElementById('generateStoryBtn');
         if (generateBtn) {
             generateBtn.disabled = true;
             generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Story...';
         }
-        
+
         try {
-            // Submit form data
+            // Check if at least one character is selected
+            const selectedImages = formData.getAll('selected_images[]');
+            if (!selectedImages.length) {
+                const characterSelectionError = document.getElementById('characterSelectionError');
+                if (characterSelectionError) {
+                    characterSelectionError.style.display = 'block';
+                    characterSelectionError.textContent = 'Please select a character for your story';
+                }
+
+                dom.showToast('Selection Needed', 'Please select a character before continuing');
+
+                // Re-enable the button
+                if (generateBtn) {
+                    generateBtn.disabled = false;
+                    generateBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
+                }
+
+                return;
+            }
+
+            // Hide any error messages
+            const characterSelectionError = document.getElementById('characterSelectionError');
+            if (characterSelectionError) {
+                characterSelectionError.style.display = 'none';
+            }
+
+            // Send the form data to the server
             const data = await api.postForm('/generate_story', formData, 'Generating your adventure...');
-            
+
             if (data.success && data.redirect) {
                 // Redirect to the new story
                 window.location.href = data.redirect;
@@ -154,7 +78,7 @@ export const story = {
         } catch (error) {
             console.error('Error generating story:', error);
             dom.showToast('Error', error.message || 'Failed to generate story', true);
-            
+
             // Re-enable the button
             if (generateBtn) {
                 generateBtn.disabled = false;
@@ -162,7 +86,7 @@ export const story = {
             }
         }
     },
-    
+
     /**
      * Make a story choice
      * @param {FormData} formData - Form data for the choice
@@ -172,7 +96,7 @@ export const story = {
         try {
             // Submit form data
             const data = await api.postForm('/generate_story', formData, 'Continuing your story...');
-            
+
             if (data.success && data.redirect) {
                 // Redirect to the new story segment
                 window.location.href = data.redirect;
