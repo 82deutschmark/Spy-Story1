@@ -1,51 +1,9 @@
+
 # Choose Your Own Adventure
 
-An interactive storytelling platform that generates dynamic narratives with AI integration.
+An interactive storytelling application that lets users create custom adventures featuring animal characters in Uncle Mark's forest farm.
 
-## Current Status and Known Issues (As of March 10, 2025)
-
-### Critical Problems:
-1. **Character Selection System Broken**
-   - ✅ UI elements exist but not functioning
-   - ❌ Checkmark indicator not visible when selecting characters
-   - ❌ Selection state not properly maintained
-   - ❌ Form submission missing selected character data
-
-2. **JavaScript Modularization Issues**
-   - ❌ Recent attempts to modularize code broke working functionality
-   - ❌ Loading overlay system not properly implemented
-   - ❌ Event handlers not correctly transferring form data
-   - ❌ Previous working implementation lost during refactoring
-
-3. **Form Submission Failures**
-   - ❌ No characters being sent to backend (selected_images[] empty)
-   - ❌ Debug logs show form data missing critical fields
-   - ❌ Backend returning 400 errors due to missing data
-
-### Root Causes Identified:
-1. CSS visibility issues hiding selection indicators
-2. Event handler modifications broke character selection
-3. Form data collection process disrupted during modularization
-4. Reroll functionality removed during updates
-
-### Failed Fix Attempts:
-1. Attempted CSS updates for selection visibility
-2. Tried modifying event handlers for selection state
-3. Attempted to restore loading overlay system
-4. Failed to properly implement previous working version
-
-### Next Steps:
-1. Revert to last known working implementation
-2. Re-implement character selection using working example
-3. Restore proper form submission process
-4. Fix CSS visibility issues
-
-## Original Features (Currently Partially Working)
-- Multi-Character Support
-- Story Customization
-- Interactive Choices
-- Currency System
-- Debug Tools
+![Adventure Story App](static/images/app-preview.png)
 
 ## Overview
 
@@ -57,13 +15,27 @@ This application allows users to generate interactive stories featuring Pawel an
 - **Multi-Character Support**: Select multiple characters to include in your adventures
 - **Story Customization**: Set conflict, setting, narrative style, and mood
 - **Interactive Choices**: Make decisions that affect the story's outcome
-- **Currency System**: In-game currency for making choices and trading
 - **Image Analysis**: Upload character/scene images for AI analysis 
 - **Debug Tools**: View and manage database records
+
+## Recent Improvements
+
+- **Multi-Character Support**: Enhanced the app to support selecting multiple characters for stories
+- **Improved Error Handling**: Fixed issues with story continuation and form submission
+- **Backend Optimization**: Updated the story generation logic to handle multiple character selections
+- **UI Enhancements**: Fixed character highlighting in story text
+- **Bug Fixes**: Resolved form submission duplicates and storyboard rendering issues
+
+## Technology Stack
+
+- **Backend**: Flask, PostgreSQL, SQLAlchemy
+- **Frontend**: HTML, CSS, JavaScript, Bootstrap
+- **AI Services**: OpenAI's API (GPT-4o for story generation and image analysis)
 
 ## Setup Instructions
 
 ### Prerequisites
+
 - Python 3.11+
 - PostgreSQL database
 - OpenAI API key
@@ -155,6 +127,16 @@ The story universe centers around Uncle Mark's forest farm with:
 - **The Rat Wizard**: Steals eggs and vegetables for potions
 - **Mice and Moles**: Forced by squirrels to help with schemes
 
+## Known Issues and Future Improvements
+
+- **UI/UX Refinements**: Further improve the user interface for character selection
+- **Performance Optimization**: Enhance loading times for story generation
+- **Mobile Responsiveness**: Improve the mobile experience
+
+## Credits
+
+- OpenAI for GPT-4o
+- Bootstrap for UI framework
 
 ## License
 

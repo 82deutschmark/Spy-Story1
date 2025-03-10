@@ -76,48 +76,43 @@ def index():
     user_progress = get_or_create_user_progress()
 
     # Get 2 random images for character selection
-    try:
-        images = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).limit(2).all()
-        image_data = []
-        for img in images:
-            analysis = img.analysis_result or {}
-            char_name = img.character_name or ''
-            if not char_name and analysis:
-                if 'character' in analysis and 'name' in analysis['character']:
-                    char_name = analysis['character'].get('name', '')
-                elif 'character_name' in analysis:
-                    char_name = analysis.get('character_name', '')
-                elif 'name' in analysis:
-                    char_name = analysis.get('name', '')
+    images = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).limit(2).all()
+    image_data = []
+    for img in images:
+        analysis = img.analysis_result or {}
+        char_name = img.character_name or ''
+        if not char_name and analysis:
+            if 'character' in analysis and 'name' in analysis['character']:
+                char_name = analysis['character'].get('name', '')
+            elif 'character_name' in analysis:
+                char_name = analysis.get('character_name', '')
+            elif 'name' in analysis:
+                char_name = analysis.get('name', '')
 
-            char_traits = []
-            plot_lines = []
-            try:
-                if hasattr(img, 'character_traits') and img.character_traits:
-                    char_traits = img.character_traits
-                elif analysis and 'character_traits' in analysis:
-                    char_traits = analysis.get('character_traits', [])
+        char_traits = []
+        plot_lines = []
+        try:
+            if hasattr(img, 'character_traits') and img.character_traits:
+                char_traits = img.character_traits
+            elif analysis and 'character_traits' in analysis:
+                char_traits = analysis.get('character_traits', [])
 
-                if hasattr(img, 'plot_lines') and img.plot_lines:
-                    plot_lines = img.plot_lines
-                elif analysis and 'plot_lines' in analysis:
-                    plot_lines = analysis.get('plot_lines', [])
-            except Exception as e:
-                logger.error(f"Error processing character traits: {str(e)}")
-                pass
+            if hasattr(img, 'plot_lines') and img.plot_lines:
+                plot_lines = img.plot_lines
+            elif analysis and 'plot_lines' in analysis:
+                plot_lines = analysis.get('plot_lines', [])
+        except:
+            pass
 
-            image_data.append({
-                'id': img.id,
-                'image_url': img.image_url,
-                'name': char_name or 'Mystery Character',
-                'style': analysis.get('style', ''),
-                'story': analysis.get('story', ''),
-                'character_traits': char_traits or [],
-                'plot_lines': plot_lines or []
-            })
-    except Exception as e:
-        logger.error(f"Error loading character images: {str(e)}")
-        image_data = []
+        image_data.append({
+            'id': img.id,
+            'image_url': img.image_url,
+            'name': char_name,
+            'style': analysis.get('style', ''),
+            'story': analysis.get('story', ''),
+            'character_traits': char_traits,
+            'plot_lines': plot_lines
+        })
 
     return render_template(
         'index.html',
@@ -554,47 +549,61 @@ def db_health_check():
 def make_choice():
     """Process a story choice and handle currency requirements"""
     try:
-        from services.game_handler import GameHandler
-        
         data = request.json
         choice_id = data.get('choice_id')
         custom_choice = data.get('custom_choice')
-        previous_choice = data.get('previous_choice')
 
-        # Get user ID from session
-        if 'user_id' not in session:
-            return jsonify({'error': 'Session expired'}), 401
-        
-        user_id = session['user_id']
-        
-        # Process the choice using the GameHandler
-        result = GameHandler.process_choice(
-            user_id=user_id,
-            choice_id=choice_id,
-            custom_choice=custom_choice,
-            previous_choice=previous_choice
-        )
-        
-        if not result['success']:
-            # Return error with appropriate status code
-            status_code = 400
-            if result.get('code') == 'server_error':
-                status_code = 500
-            elif result.get('code') == 'user_not_found':
-                status_code = 404
-                
-            return jsonify({
-                'error': result.get('error', 'An error occurred'),
-                'requirements': result.get('requirements'),
-                'current_balances': result.get('current_balances')
-            }), status_code
+        # Get user progress
+        user_progress = get_or_create_user_progress()
+
+        if custom_choice:
+            # Validate diamond balance for custom choice
+            currency_requirements = {'💎': 100}
+            if not user_progress.can_afford(currency_requirements):
+                return jsonify({
+                    'error': 'Insufficient diamonds',
+                    'required': 100,
+                    'current_balance': user_progress.currency_balances.get('💎', 0)
+                }), 400
+
+            # Spend diamonds and record transaction
+            success = user_progress.spend_currency(
+                currency_requirements,
+                'choice',
+                f'Custom choice: {custom_choice[:50]}...' if len(custom_choice) > 50 else custom_choice
+            )
+            if not success:
+                return jsonify({'error': 'Failed to process currency transaction'}), 500
+
+        else:
+            # Get the choice and validate currency requirements
+            choice = StoryChoice.query.get_or_404(choice_id)
+            if not choice.currency_requirements:
+                return jsonify({'error': 'Invalid choice: missing currency requirements'}), 400
+
+            # Check if user can afford the choice
+            if not user_progress.can_afford(choice.currency_requirements):
+                return jsonify({
+                    'error': 'Insufficient funds',
+                    'requirements': choice.currency_requirements,
+                    'current_balances': user_progress.currency_balances
+                }), 400
+
+            # Spend currency and record transaction
+            success = user_progress.spend_currency(
+                choice.currency_requirements,
+                'choice',
+                f'Story choice: {choice.choice_text[:50]}...' if len(choice.choice_text) > 50 else choice.choice_text,
+                choice.node_id
+            )
+            if not success:
+                return jsonify({'error': 'Failed to process currency transaction'}), 500
 
         # Return success response with updated balances
         return jsonify({
             'success': True,
-            'new_balances': result.get('new_balances'),
-            'message': result.get('message', 'Choice processed successfully'),
-            'next_node_id': result.get('next_node_id')
+            'new_balances': user_progress.currency_balances,
+            'message': 'Choice processed successfully'
         })
 
     except Exception as e:
@@ -618,14 +627,11 @@ def generate_post():
         if not os.environ.get("OPENAI_API_KEY"):
             return jsonify({'error': 'OpenAI API key not configured. Please add it to your Replit Secrets.'}), 500
 
-        # Analyze the artwork using OpenAI - this should only happen ONCE
+        # Analyze the artwork using OpenAI
         analysis = analyze_artwork(image_url)
 
         # Generate a description of the analyzed image
         description = generate_image_description(analysis)
-        
-        # Log that we've processed this image to help with debugging
-        logger.debug(f"Successfully analyzed image at URL: {image_url}")
 
         return jsonify({
             'success': True,
@@ -649,8 +655,7 @@ def save_analysis_original():
 
     try:
         image_url = data.get('image_url')
-        analysis = data.get('analysis')  # Use the analysis data that was sent from the client
-                                         # This is from the first analyze call - don't re-analyze
+        analysis = data.get('analysis')
 
         # Extract image metadata
         metadata = analysis.get('image_metadata', {})
@@ -683,8 +688,6 @@ def save_analysis_original():
             if 'character' in analysis and isinstance(analysis['character'], dict):
                 if 'name' in analysis['character']:
                     character_name = analysis['character'].get('name')
-                elif 'code_name' in analysis['character']:
-                    character_name = analysis['character'].get('code_name')
 
             # If not found in character object, check top level fields
             if not character_name:
@@ -692,8 +695,6 @@ def save_analysis_original():
                     character_name = analysis.get('character_name')
                 elif 'name' in analysis:
                     character_name = analysis.get('name')
-                elif 'code_name' in analysis:
-                    character_name = analysis.get('code_name')
 
             # Log character name extraction for debugging
             logger.debug(f"Extracted character name: {character_name} from analysis structure")
@@ -789,34 +790,6 @@ def random_character():
         })
     except Exception as e:
         logger.error(f"Error getting random character: {str(e)}")
-
-@main_bp.route('/api/user/inventory', methods=['GET'])
-def get_user_inventory():
-    """Get the user's inventory and currency balances"""
-    try:
-        from services.game_handler import GameHandler
-        
-        # Check for active session
-        if 'user_id' not in session:
-            return jsonify({'error': 'Session expired'}), 401
-            
-        # Get inventory data using GameHandler
-        result = GameHandler.get_user_inventory(session['user_id'])
-        
-        if not result['success']:
-            return jsonify({'error': result.get('error', 'Failed to get inventory')}), 404
-            
-        return jsonify({
-            'success': True,
-            'currency_balances': result['balances'],
-            'transactions': result['transactions'],
-            'achievements': result['achievements']
-        })
-        
-    except Exception as e:
-        logger.error(f"Error getting user inventory: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
         return jsonify({'error': str(e)}), 500
 
 @main_bp.route('/api/image/<int:image_id>', methods=['DELETE'])
@@ -994,8 +967,6 @@ def reanalyze_image(image_id):
 def trade_currency():
     """Trade between different currency types"""
     try:
-        from services.game_handler import GameHandler
-        
         data = request.json
         from_currency = data.get('from_currency')
         to_currency = data.get('to_currency')
@@ -1008,25 +979,83 @@ def trade_currency():
         if 'user_id' not in session:
             return jsonify({'error': 'Session expired'}), 401
 
-        # Process the trade using GameHandler
-        result = GameHandler.trade_currency(
-            user_id=session['user_id'],
-            from_currency=from_currency,
-            to_currency=to_currency,
-            amount=amount
-        )
-        
-        if not result['success']:
+        # Get exchange rates based on the new rules
+        rates = {
+            "💎": {  # Diamonds can only be converted to EUR and YEN
+                "💶": 1000,    # 1 diamond = 1000 EUR
+                "💴": 150000,  # 1 diamond = 150000 YEN
+            },
+            "💶": {  # EUR to other currencies (except diamonds)
+                "💴": 150,     # 1 EUR = 150 YEN
+                "💵": 1.1,     # 1 EUR = 1.1 USD
+                "💷": 0.85,    # 1 EUR = 0.85 GBP
+            },
+            "💴": {  # YEN to other currencies (except diamonds)
+                "💶": 0.0067,  # 1 YEN = 0.0067 EUR
+                "💵": 0.0073,  # 1 YEN = 0.0073 USD
+                "💷": 0.0057,  # 1 YEN = 0.0057 GBP
+            },
+            "💵": {  # USD to other currencies (except diamonds)
+                "💶": 0.91,    # 1 USD = 0.91 EUR
+                "💴": 136.5,   # 1 USD = 136.5 YEN
+                "💷": 0.77,    # 1 USD = 0.77 GBP
+            },
+            "💷": {  # GBP to other currencies (except diamonds)
+                "💶": 1.18,    # 1 GBP = 1.18 EUR
+                "💴": 177,     # 1 GBP = 177 YEN
+                "💵": 1.3,     # 1 GBP = 1.3 USD
+            }
+        }
+
+        # Check if the conversion is allowed
+        if from_currency == "💎" and to_currency not in ["💶", "💴"]:
             return jsonify({
-                'error': result.get('error', 'An error occurred'),
-                'current_balance': result.get('current_balance'),
-                'required_amount': result.get('required_amount')
+                'error': 'Diamonds can only be converted to Euros (💶) or Yen (💴)'
             }), 400
+
+        if to_currency == "💎":
+            return jsonify({
+                'error': 'Cannot convert other currencies to diamonds'
+            }), 400
+
+        if from_currency not in rates or to_currency not in rates[from_currency]:
+            return jsonify({
+                'error': 'Invalid currency conversion'
+            }), 400
+
+        # Get user progress
+        user_progress = UserProgress.query.filter_by(user_id=session['user_id']).first()
+        if not user_progress:
+            return jsonify({'error': 'User progress not found'}), 404
+
+        # Check if user has enough currency
+        current_balance = user_progress.currency_balances.get(from_currency, 0)
+        if current_balance < amount:
+            return jsonify({
+                'error': 'Insufficient funds',
+                'current_balance': current_balance,
+                'required_amount': amount
+            }), 400
+
+        # Calculate conversion
+        conversion_rate = rates[from_currency][to_currency]
+        converted_amount = int(amount * conversion_rate)  # Use integer for currency amounts
+
+        # Perform the exchange
+        user_progress.currency_balances[from_currency] = current_balance - amount
+        user_progress.currency_balances[to_currency] = user_progress.currency_balances.get(to_currency, 0) + converted_amount
+
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Database error during currency trade: {str(e)}")
+            return jsonify({'error': 'Failed to process trade'}), 500
 
         return jsonify({
             'success': True,
-            'message': result.get('message'),
-            'new_balances': result.get('new_balances')
+            'message': f'Successfully traded {amount} {from_currency} for {converted_amount} {to_currency}',
+            'new_balances': user_progress.currency_balances
         })
 
     except Exception as e:
@@ -1051,55 +1080,25 @@ def get_image_details(image_id):
         logger.error(f"Error getting image details: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@main_bp.route('/api/image/update', methods=['POST'])
-def update_image_analysis():
-    """Update existing image analysis with edited data"""
+@main_bp.route('/api/save_analysis', methods=['POST'])
+def save_analysis():
+    """Save edited analysis from debug page"""
     try:
         data = request.json
-        image_id = data.get('id')
+        image_id = data.get('image_id')
         analysis = data.get('analysis')
 
         if not image_id or not analysis:
-            return jsonify({'error': 'Missing image ID or analysis data'}), 400
+            return jsonify({'error': 'Missing image_id or analysis'}), 400
 
         image = ImageAnalysis.query.get_or_404(image_id)
-        
-        # Update the analysis_result with edited data
         image.analysis_result = analysis
-        
-        # Update other related fields based on analysis content
-        is_character = analysis.get('image_type') == 'character' or bool(analysis.get('character'))
-        
-        # Get character data either from nested object or top level
-        character_data = analysis.get('character', {}) if is_character else {}
-        if not character_data and is_character:
-            character_data = analysis  # Use top-level data if no nested character object
-            
-        # Update character fields if it's a character
-        if is_character:
-            image.image_type = 'character'
-            image.character_name = character_data.get('name') or analysis.get('name')
-            image.character_role = character_data.get('role')
-            image.character_traits = character_data.get('character_traits')
-            image.plot_lines = character_data.get('plot_lines')
-        else:
-            # Update scene fields
-            image.image_type = 'scene'
-            image.scene_type = analysis.get('scene_type')
-            image.setting = analysis.get('setting')
-            image.setting_description = analysis.get('setting_description')
-            image.story_fit = analysis.get('story_fit')
-            image.dramatic_moments = analysis.get('dramatic_moments')
-        
         db.session.commit()
-        logger.info(f"Successfully updated image analysis: {image_id}")
 
         return jsonify({
             'success': True,
-            'message': 'Analysis updated successfully',
-            'id': image.id
+            'message': 'Analysis updated successfully'
         })
     except Exception as e:
-        logger.error(f"Error updating image analysis: {str(e)}")
-        db.session.rollback()
+        logger.error(f"Error saving analysis: {str(e)}")
         return jsonify({'error': str(e)}), 500
