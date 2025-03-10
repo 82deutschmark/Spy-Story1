@@ -24,6 +24,9 @@ export default {
             generateStoryBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Story...';
         }
 
+        // Show loading display for story generation
+        document.body.classList.add('loading-in-progress');
+
         let progress = 0;
         const progressInterval = setInterval(() => {
             if (progress < 90) {
