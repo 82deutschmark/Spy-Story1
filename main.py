@@ -36,14 +36,17 @@ def create_app():
 
     # Register blueprints
     with app.app_context():
-        # Import blueprint registration function
-        from routes import main_routes, debug_routes, api_routes
-        from api import unity_routes, game_api
-        app.register_blueprint(main_routes)
-        app.register_blueprint(debug_routes)
-        app.register_blueprint(api_routes)
-        app.register_blueprint(unity_routes)
-        app.register_blueprint(game_api.game_api)
+        # Import blueprint objects
+        from routes.main_routes import main_bp
+        from routes.debug_routes import debug_bp
+        from routes.api_routes import api_bp
+        from api.unity_routes import unity_api
+        from api.game_api import game_api
+        app.register_blueprint(main_bp)
+        app.register_blueprint(debug_bp)
+        app.register_blueprint(api_bp)
+        app.register_blueprint(unity_api)
+        app.register_blueprint(game_api)
 
         # Create database tables
         db.create_all()
