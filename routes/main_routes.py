@@ -373,32 +373,6 @@ def generate_story_route():
             )
             db.session.add(char_evolution)
 
-        # Extract mission information from the story result
-        if 'mission' in result:
-            mission_data = result.get('mission', {})
-            if mission_data and isinstance(mission_data, dict):
-                # Create a new mission
-                mission = Mission(
-                    title=mission_data.get('title', 'Mysterious Mission'),
-                    description=mission_data.get('description', 'Details unknown'),
-                    user_id=user_progress.user_id,
-                    story_id=story.id,
-                    giver_name=mission_data.get('giver', 'Unknown'),
-                    target_name=mission_data.get('target', 'Unknown'),
-                    objective=mission_data.get('objective', 'Unspecified objective'),
-                    reward_currency=mission_data.get('reward_currency', '💵'),
-                    reward_amount=mission_data.get('reward_amount', 1000),
-                    deadline_description=mission_data.get('deadline', 'Soon'),
-                    difficulty=mission_data.get('difficulty', 'Medium')
-                )
-                db.session.add(mission)
-                db.session.flush()  # Get the ID without committing
-
-                # Add this mission to user's active missions
-                if not user_progress.active_missions:
-                    user_progress.active_missions = []
-                user_progress.active_missions.append(mission.id)
-
         # If this is a continuation of previous story
         if previous_story_id and story_context:
             # Check if there are any plot arcs from previous story to carry over
@@ -579,26 +553,3 @@ def make_choice():
     except Exception as e:
         logger.error(f"Error processing choice: {str(e)}")
         return jsonify({'error': str(e)}), 500
-
-@main_bp.route('/user-progress/current')
-def get_current_user_progress():
-    """Get the current user's progress data for AJAX updates"""
-    try:
-        user_progress = get_or_create_user_progress()
-
-        # Return user progress data in JSON format
-        return jsonify({
-            'success': True,
-            'progress': {
-                'level': user_progress.level,
-                'experience_points': user_progress.experience_points,
-                'active_missions': user_progress.active_missions,
-                'completed_missions': user_progress.completed_missions,
-                'active_plot_arcs': user_progress.active_plot_arcs,
-                'completed_plot_arcs': user_progress.completed_plot_arcs,
-                'encountered_characters': user_progress.encountered_characters
-            }
-        })
-    except Exception as e:
-        logger.error(f"Error getting user progress: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500

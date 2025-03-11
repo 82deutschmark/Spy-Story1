@@ -25,11 +25,4 @@ window.App = {
 // Initialize the application when the DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     EventHandlers.initialize();
-
-    // Refresh adventure progress on page load
-    if (document.querySelector('.card-header:contains("Active Missions")')) {
-        setTimeout(() => {
-            UserProgress.refreshAdventureProgress();
-        }, 1000);
-    }
 });
