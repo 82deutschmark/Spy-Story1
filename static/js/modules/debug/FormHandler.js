@@ -92,7 +92,7 @@ export default class FormHandler {
                 analysis: contentObj
             };
             console.log('Saving analysis data:', saveData);
-            const response = await DebugAPI.post('/debug/save-image', saveData);
+            const response = await DebugAPI.post('/debug/save_analysis', saveData);
 
             if (response.success) {
                 DebugUtils.showToast('Success', 'Image saved to database');
