@@ -20,7 +20,6 @@ class ImageAnalysis(db.Model):
     # Character-specific fields
     character_name = db.Column(db.String(255))  # Character name field
     character_traits = db.Column(JSONB)  # Array of character traits
-    personality_traits = db.Column(JSONB)  # Duplicate of character_traits for compatibility
     character_role = db.Column(db.String(32))  # 'mission-giver', 'villain', or 'neutral'
     role = db.Column(db.String(32))  # Alias for character_role used by the form
     
