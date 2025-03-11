@@ -1,0 +1,154 @@
+import random
+from datetime import datetime
+from typing import List, Optional
+
+import logging
+from models import ImageAnalysis, Mission, UserProgress, StoryGeneration
+from database import db
+
+logger = logging.getLogger(__name__)
+
+# Constants for game mechanics
+DIFFICULTY_LEVELS = {'easy': 1.0, 'medium': 2.0, 'hard': 3.5}
+BASE_REWARDS = {'💎': 1, '💵': 1500, '💷': 1400, '💶': 1450, '💴': 150000}
+
+# Templates
+TEMPLATES = {
+    'objectives': [
+        "Steal {item} from {target}", "Infiltrate {target}'s {location} and gather intelligence",
+        "Sabotage {target}'s {plot} before it's too late", "Seduce {target} to extract crucial information",
+        "Plant evidence to frame {target} for {crime}", "Protect {innocent} from {target}'s assassination attempt",
+        "Intercept a secret delivery to {target}", "Hack into {target}'s security system",
+        "Rescue {hostage} from {target}'s compound", "Gather evidence of {target}'s involvement in {scandal}"
+    ],
+    'locations': ["secret lair", "penthouse", "private island", "underground bunker", "luxury yacht", "mountain hideout", "skyscraper office", "private jet", "research facility", "mansion"],
+    'items': ["experimental weapon", "encryption key", "secret formula", "confidential files", "prototype device", "valuable artwork", "incriminating evidence", "rare artifact", "security codes", "cryptocurrency wallet"],
+    'plots': ["world domination scheme", "heist plan", "blackmail operation", "terrorist plot", "money laundering scheme", "cryptocurrency fraud", "election rigging plan", "corporate espionage operation", "kidnapping scheme", "assassination plot"],
+    'crimes': ["corporate espionage", "art theft", "illegal weapons dealing", "money laundering", "data breach", "insider trading", "blackmail", "counterfeiting", "smuggling", "identity theft"],
+    'scandals': ["corruption scandal", "embezzlement scheme", "offshore account fraud", "political bribery", "illegal surveillance operation", "data manipulation plot", "human experimentation", "environmental disaster cover-up", "tax evasion scheme", "illegal drug manufacturing"]
+}
+
+# ---------- Helper Functions ---------- #
+
+def random_choice(category: str) -> str:
+    return random.choice(TEMPLATES[category])
+
+def get_characters_by_role(role: str) -> List[ImageAnalysis]:
+    return ImageAnalysis.query.filter(
+        (ImageAnalysis.image_type == 'character') &
+        (ImageAnalysis.character_role == role)
+    ).all()
+
+def get_story_characters(story_id: int, roles: List[str]) -> List[ImageAnalysis]:
+    story = StoryGeneration.query.get(story_id)
+    if not story or not story.images:
+        return []
+    return [img for img in story.images if img.character_role in roles]
+
+def filter_mission_givers(user_id: str, mission_givers: List[ImageAnalysis]) -> List[ImageAnalysis]:
+    user_progress = UserProgress.query.filter_by(user_id=user_id).first()
+    if not user_progress:
+        return mission_givers
+
+    previous_givers = set()
+    for mission_list in [user_progress.active_missions, user_progress.completed_missions]:
+        if mission_list:
+            missions = Mission.query.filter(Mission.id.in_(mission_list)).all()
+            previous_givers.update(m.giver_id for m in missions if m.giver_id)
+
+    filtered = [g for g in mission_givers if g.id not in previous_givers]
+    return filtered if filtered else mission_givers
+
+def generate_mission_title(target_name: str) -> str:
+    return random.choice([
+        f"Operation: {random.choice(['Midnight', 'Shadow', 'Phoenix', 'Viper'])} {random.choice(['Strike', 'Protocol'])}",
+        f"The {random.choice(['Secret', 'Hidden', 'Lost'])} {random.choice(['File', 'Key', 'Code'])}",
+        f"{target_name}'s {random.choice(['Downfall', 'Nemesis'])}",
+        f"Mission: {random.choice(['Critical', 'Impossible'])}"
+    ])
+
+def generate_deadline(target_name: str) -> str:
+    days = random.randint(1, 5)
+    return random.choice([
+        f"You have {days} days before disaster strikes",
+        f"Complete within {days} days or face serious consequences",
+        f"The clock is ticking - {days} days until {target_name}'s plan succeeds"
+    ])
+
+def build_objective(target: str) -> str:
+    return random_choice('objectives').format(
+        target=target,
+        location=random_choice('locations'),
+        item=random_choice('items'),
+        plot=random_choice('plots'),
+        crime=random_choice('crimes'),
+        scandal=random_choice('scandals'),
+        hostage=f"Agent {chr(random.randint(65, 90))}",
+        innocent=f"Diplomat {chr(random.randint(65, 90))}"
+    )
+
+# ---------- Core Mission Generation ---------- #
+
+def generate_mission(user_id: str, story_id: Optional[int] = None) -> Optional[Mission]:
+    try:
+        mission_givers = get_characters_by_role('neutral') + get_characters_by_role('mission giver')
+        villains = get_characters_by_role('villain')
+
+        if story_id:
+            story_givers = get_story_characters(story_id, ['mission-giver', 'neutral'])
+            story_villains = get_story_characters(story_id, ['villain'])
+            mission_givers = story_givers or mission_givers
+            villains = story_villains or villains
+
+        if not mission_givers or not villains:
+            logger.warning("Insufficient characters to generate mission.")
+            return None
+
+        mission_givers = filter_mission_givers(user_id, mission_givers)
+        mission_giver, target = random.choice(mission_givers), random.choice(villains)
+
+        while mission_giver.id == target.id:
+            target = random.choice(villains)
+
+        difficulty = random.choice(list(DIFFICULTY_LEVELS.keys()))
+        reward_currency = random.choice(list(BASE_REWARDS.keys()))
+        reward_amount = int(BASE_REWARDS[reward_currency] * DIFFICULTY_LEVELS[difficulty])
+
+        title = generate_mission_title(target.character_name)
+        objective = build_objective(target.character_name)
+        deadline = generate_deadline(target.character_name)
+        
+        description = f"{mission_giver.character_name} has assigned you the task: {objective}. {deadline}. Reward: {reward_amount} {reward_currency}."
+
+        mission = Mission(
+            user_id=user_id,
+            title=title,
+            description=description,
+            giver_id=mission_giver.id,
+            target_id=target.id,
+            objective=objective,
+            difficulty=difficulty,
+            reward_currency=reward_currency,
+            reward_amount=reward_amount,
+            deadline=deadline,
+            story_id=story_id
+        )
+        
+        db.session.add(mission)
+        db.session.commit()
+
+        logger.info(f"Mission '{title}' generated for user {user_id}")
+        return mission
+
+    except Exception as e:
+        logger.error(f"Failed to generate mission: {e}")
+        db.session.rollback()
+        return None
+
+# ---------- Utility Functions ---------- #
+
+def get_user_active_missions(user_id: str) -> List[Mission]:
+    return Mission.query.filter_by(user_id=user_id, status='active').all()
+
+def get_mission_by_id(mission_id: int) -> Optional[Mission]:
+    return Mission.query.get(mission_id)

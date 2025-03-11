@@ -1,0 +1,53 @@
+def create_mission_from_story(user_id: str, story_text: str, story_id: Optional[int] = None) -> Optional[Mission]:
+    """
+    Take story text, extract mission details, and create a mission.
+    """
+    details = extract_mission_details(story_text)
+    if not details:
+        logger.warning("No mission details extracted from story.")
+        return None
+
+    # Fetch giver/target from DB based on extracted names (example logic)
+    giver = ImageAnalysis.query.filter_by(character_name=details['giver']).first()
+    target = ImageAnalysis.query.filter_by(character_name=details['target']).first()
+
+    # Fall back to None if not found
+    giver_id = giver.id if giver else None
+    target_id = target.id if target else None
+
+    # Auto-assign difficulty based on reward amount
+    difficulty = 'easy' if details['reward_amount'] < 5000 else 'medium' if details['reward_amount'] < 20000 else 'hard'
+
+    # Set deadline logic if needed (optional)
+    deadline = f"Complete within {random.randint(2, 5)} days to claim the reward."
+
+    # Example mission title generation based on target or objective
+    title = f"Operation: {details['objective'].split(' ')[0].capitalize()}"
+
+    # Mission description based on parsed content
+    description = f"Your mission, assigned by {details['giver']}, is to {details['objective']}. {deadline} Reward: {details['reward_amount']} {details['reward_currency']}."
+
+    # Create Mission
+    mission = Mission(
+        user_id=user_id,
+        title=title,
+        description=description,
+        giver_id=giver_id,
+        target_id=target_id,
+        objective=details['objective'],
+        difficulty=difficulty,
+        reward_currency=details['reward_currency'],
+        reward_amount=details['reward_amount'],
+        deadline=deadline,
+        story_id=story_id
+    )
+
+    try:
+        db.session.add(mission)
+        db.session.commit()
+        logger.info(f"Created mission for user {user_id} from story.")
+        return mission
+    except Exception as e:
+        logger.error(f"Failed to save mission: {e}")
+        db.session.rollback()
+        return None
