@@ -412,23 +412,11 @@ def generate_story_route():
 
         db.session.commit()
 
-        # Prepare user progress data for return to client
-        user_progress_data = {
-            'level': user_progress.level,
-            'experience_points': user_progress.experience_points,
-            'currency_balances': user_progress.currency_balances,
-            'choice_history': user_progress.choice_history,
-            'encountered_characters': user_progress.encountered_characters,
-            'active_plot_arcs': user_progress.active_plot_arcs,
-            'active_missions': user_progress.active_missions
-        }
-        
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            # If AJAX request, return JSON with user progress data
+            # If AJAX request, return JSON
             return jsonify({
                 'success': True,
-                'redirect': url_for('main.storyboard', story_id=story.id),
-                'user_progress': user_progress_data
+                'redirect': url_for('main.storyboard', story_id=story.id)
             })
         else:
             # If regular form submit, redirect to storyboard
@@ -562,22 +550,13 @@ def make_choice():
                         db.session.add(char_evolution)
                         db.session.commit()
 
-            # Return complete user progress information
+            # Return updated user information
             return jsonify({
                 'success': True,
                 'new_balances': user_progress.currency_balances,
                 'level': user_progress.level,
                 'experience': user_progress.experience_points,
-                'message': 'Choice processed successfully',
-                'user_progress': {
-                    'level': user_progress.level,
-                    'experience_points': user_progress.experience_points,
-                    'currency_balances': user_progress.currency_balances,
-                    'choice_history': user_progress.choice_history,
-                    'encountered_characters': user_progress.encountered_characters,
-                    'active_plot_arcs': user_progress.active_plot_arcs,
-                    'active_missions': user_progress.active_missions
-                }
+                'message': 'Choice processed successfully'
             })
 
     except Exception as e:
