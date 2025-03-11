@@ -616,20 +616,23 @@ def reanalyze_image(image_id):
 @api_bp.route('/currency/trade', methods=['POST'])
 def trade_currency():
     """Trade between different currency types"""
+    from utils.currency_utils import process_transaction
+    from utils.validation_utils import validate_currency_amount
+    
     try:
         data = request.json
         from_currency = data.get('from_currency')
         to_currency = data.get('to_currency')
         amount = data.get('amount')
 
+        # Validate required fields
         if not all([from_currency, to_currency, amount]):
             return jsonify({'error': 'Missing required fields'}), 400
 
-        # Convert amount to int if it's a string
-        try:
-            amount = int(amount)
-        except ValueError:
-            return jsonify({'error': 'Amount must be a number'}), 400
+        # Validate and convert amount
+        is_valid, error, amount = validate_currency_amount(amount)
+        if not is_valid:
+            return jsonify({'error': error}), 400
 
         # Get user from session
         if 'user_id' not in session:
@@ -637,97 +640,29 @@ def trade_currency():
 
         logger.debug(f"Trade request: {from_currency} -> {to_currency}, amount: {amount}")
 
-        # Get exchange rates based on the new rules
-        rates = {
-            "💎": {  # Diamonds can only be converted to EUR and YEN
-                "💶": 1000,    # 1 diamond = 1000 EUR
-                "💴": 150000,  # 1 diamond = 150000 YEN
-            },
-            "💶": {  # EUR to other currencies (except diamonds)
-                "💴": 150,     # 1 EUR = 150 YEN
-                "💵": 1.1,     # 1 EUR = 1.1 USD
-                "💷": 0.85,    # 1 EUR = 0.85 GBP
-            },
-            "💴": {  # YEN to other currencies (except diamonds)
-                "💶": 0.0067,  # 1 YEN = 0.0067 EUR
-                "💵": 0.0073,  # 1 YEN = 0.0073 USD
-                "💷": 0.0057,  # 1 YEN = 0.0057 GBP
-            },
-            "💵": {  # USD to other currencies (except diamonds)
-                "💶": 0.91,    # 1 USD = 0.91 EUR
-                "💴": 136.5,   # 1 USD = 136.5 YEN
-                "💷": 0.77,    # 1 USD = 0.77 GBP
-            },
-            "💷": {  # GBP to other currencies (except diamonds)
-                "💶": 1.18,    # 1 GBP = 1.18 EUR
-                "💴": 177,     # 1 GBP = 177 YEN
-                "💵": 1.3,     # 1 GBP = 1.3 USD
-            }
-        }
-
-        # Check if the conversion is allowed
-        if from_currency == "💎" and to_currency not in ["💶", "💴"]:
-            return jsonify({
-                'error': 'Diamonds can only be converted to Euros (💶) or Yen (💴)'
-            }), 400
-
-        if to_currency == "💎":
-            return jsonify({
-                'error': 'Cannot convert other currencies to diamonds'
-            }), 400
-
-        if from_currency not in rates or to_currency not in rates[from_currency]:
-            return jsonify({
-                'error': 'Invalid currency conversion'
-            }), 400
-
-        # Get user progress using the helper function
+        # Get user progress
         user_progress = get_or_create_user_progress()
         if not user_progress:
             return jsonify({'error': 'User progress not found'}), 404
 
-        # Check if user has enough currency
-        current_balance = user_progress.currency_balances.get(from_currency, 0)
-        if current_balance < amount:
-            return jsonify({
-                'error': 'Insufficient funds',
-                'current_balance': current_balance,
-                'required_amount': amount
-            }), 400
-
-        # Calculate conversion
-        conversion_rate = rates[from_currency][to_currency]
-        converted_amount = int(amount * conversion_rate)  # Use integer for currency amounts
-
-        logger.debug(f"Conversion rate: {conversion_rate}, Converted amount: {converted_amount}")
-
-        # Record transaction
-        transaction = Transaction(
-            user_id=user_progress.user_id,
+        # Process the transaction
+        description = f"Traded {amount} {from_currency} for {to_currency}"
+        success, error_message, updated_balances = process_transaction(
+            user_progress=user_progress,
             transaction_type='trade',
+            description=description,
             from_currency=from_currency,
             to_currency=to_currency,
-            amount=amount,
-            description=f"Traded {amount} {from_currency} for {converted_amount} {to_currency}"
+            amount=amount
         )
-        db.session.add(transaction)
 
-        # Perform the exchange
-        user_progress.currency_balances[from_currency] = current_balance - amount
-        user_progress.currency_balances[to_currency] = user_progress.currency_balances.get(to_currency, 0) + converted_amount
-
-        try:
-            db.session.commit()
-            logger.info(f"Currency trade successful for user {user_progress.user_id}: {amount} {from_currency} -> {converted_amount} {to_currency}")
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"Database error during currency trade: {str(e)}")
-            return jsonify({'error': 'Failed to process trade'}), 500
+        if not success:
+            return jsonify({'error': error_message}), 400
 
         return jsonify({
             'success': True,
-            'message': f'Successfully traded {amount} {from_currency} for {converted_amount} {to_currency}',
-            'new_balances': user_progress.currency_balances
+            'message': description,
+            'new_balances': updated_balances
         })
 
     except Exception as e:

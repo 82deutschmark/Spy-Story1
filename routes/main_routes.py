@@ -180,6 +180,9 @@ def storyboard(story_id):
 @main_bp.route('/generate_story', methods=['POST'])
 def generate_story_route():
     """Generate a new story or continue an existing one"""
+    from utils.validation_utils import validate_story_parameters, validate_string_length
+    from utils.currency_utils import process_transaction
+    
     try:
         # Get form data
         data = request.form
@@ -195,26 +198,12 @@ def generate_story_route():
         # Get user progress
         user_progress = get_or_create_user_progress()
 
-        # Check if this is a custom choice and verify diamond balance
-        if custom_choice:
-            currency_requirements = {'💎': 100}
-            if not user_progress.can_afford(currency_requirements):
-                return jsonify({
-                    'error': 'Custom choices require 100 💎. You only have ' +
-                             f'{user_progress.currency_balances.get("💎",0)} 💎.'
-                }), 400
-
-            success = user_progress.spend_currency(
-                currency_requirements,
-                'choice',
-                f'Custom choice: {custom_choice[:50]}...' if len(custom_choice) > 50 else custom_choice
-            )
-            if not success:
-                return jsonify({'error': 'Failed to process currency transaction'}), 500
-
-        logger.debug(f"Form data received: {data}")
-        logger.debug(f"Selected image IDs: {selected_image_ids}")
-
+        # Validate input parameters
+        is_valid, errors = validate_story_parameters(data)
+        if not is_valid:
+            return jsonify({'error': 'Invalid story parameters', 'details': errors}), 400
+            
+        # Validate character selection
         if not selected_image_ids:
             logger.error("No character selected - missing selected_images[] in form data")
             return jsonify({'error': 'Please select a character for your story'}), 400
@@ -222,6 +211,34 @@ def generate_story_route():
         if len(selected_image_ids) < 1:
             logger.error(f"No characters selected, got {len(selected_image_ids)}")
             return jsonify({'error': 'Please select at least one character for your story'}), 400
+            
+        # Check if this is a custom choice and process currency requirement
+        if custom_choice:
+            # Validate custom choice text length
+            is_valid, error = validate_string_length(
+                custom_choice, 
+                min_length=10, 
+                max_length=500,
+                field_name="Custom choice"
+            )
+            if not is_valid:
+                return jsonify({'error': error}), 400
+                
+            # Process currency transaction
+            currency_requirements = {'💎': 100}
+            description = f'Custom choice: {custom_choice[:50]}...' if len(custom_choice) > 50 else custom_choice
+            success, error_message, _ = process_transaction(
+                user_progress=user_progress,
+                transaction_type='choice',
+                description=description,
+                currency_requirements=currency_requirements
+            )
+            
+            if not success:
+                return jsonify({'error': error_message}), 400
+
+        logger.debug(f"Form data received: {data}")
+        logger.debug(f"Selected image IDs: {selected_image_ids}")
 
         # Get the story parameters
         story_params = {
