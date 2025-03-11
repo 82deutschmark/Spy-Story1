@@ -198,7 +198,7 @@ class UserProgress(db.Model):
             
             # Award level-up bonus
             level_bonus = 50 * new_level
-            self.add_currency("💎", level_bonus, "level_up", f"Level up bonus for reaching level {new_level}")
+            self.add_currency("💶", level_bonus, "level_up", f"Level up bonus for reaching level {new_level}")
             
         db.session.commit()
         return level_up
