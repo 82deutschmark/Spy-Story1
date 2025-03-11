@@ -651,12 +651,16 @@ def reanalyze_image(image_id):
                     backstory = backstory_data
                 else:
                     backstory = [backstory_data] if backstory_data else []
+                # Convert list to JSON-compatible format
+                backstory = json.dumps(backstory)
             elif 'character' in analysis and 'backstory' in character_data:
                 backstory_data = character_data.get('backstory')
                 if isinstance(backstory_data, list):
                     backstory = backstory_data
                 else:
                     backstory = [backstory_data] if backstory_data else []
+                # Convert list to JSON-compatible format
+                backstory = json.dumps(backstory)
 
         # Get description if available
         description_text = None

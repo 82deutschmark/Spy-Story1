@@ -137,57 +137,86 @@ export default {
      * @param {number} imageId - The ID of the image
      */
     populateModalWithAnalysis(analysis, imageId) {
-        // Set current image ID
-        this.currentImageId = imageId;
-
-        // Get image type
-        const isCharacter = analysis.type === 'CHARACTER' || 
-                           analysis.image_type === 'character';
-
-        // Show the appropriate form sections
-        this.toggleFormSections(isCharacter);
-
-        // Populate common fields
-        document.getElementById('modalImageId').value = imageId;
-        document.getElementById('modalDescription').value = analysis.description || '';
-
-        if (isCharacter) {
-            // Populate character fields
-            document.getElementById('modalCharacterName').value = analysis.name || analysis.character_name || '';
-
-            // Handle traits
-            const traits = analysis.personality_traits || analysis.character_traits || [];
-            document.getElementById('modalCharacterTraits').value = Array.isArray(traits) ? 
-                traits.join('\n') : traits;
-
-            // Handle role
-            document.getElementById('modalCharacterRole').value = analysis.role || analysis.character_role || 'undetermined';
-
-            // Handle plot lines
-            const plotLines = analysis.potential_plot_lines || analysis.plot_lines || [];
-            document.getElementById('modalPlotLines').value = Array.isArray(plotLines) ? 
-                plotLines.join('\n') : plotLines;
-
-            // Handle backstory if it exists
-            if (analysis.backstory) {
-                const backstory = Array.isArray(analysis.backstory) ? 
-                    analysis.backstory.join('\n') : analysis.backstory;
-                document.getElementById('modalBackstory').value = backstory;
-            }
-        } else {
-            // Populate scene fields
-            document.getElementById('modalSceneType').value = analysis.scene_type || '';
-            document.getElementById('modalSceneSetting').value = analysis.setting || '';
-
-            // Handle dramatic moments
-            const dramaticMoments = analysis.dramatic_moments || [];
-            document.getElementById('modalDramaticMoments').value = Array.isArray(dramaticMoments) ? 
-                dramaticMoments.join('\n') : dramaticMoments;
+        if (!analysis || !imageId) {
+            console.error('Missing analysis or image ID');
+            return;
         }
 
-        // Show the save button
-        const saveButton = document.getElementById('saveAnalysisBtn');
-        if (saveButton) saveButton.style.display = 'inline-block';
+        // Store the current image ID
+        this.currentImageId = imageId;
+
+        // Get JSON editor
+        const analysisJsonEditor = document.getElementById('analysisJson');
+        const prettyJson = JSON.stringify(analysis, null, 2);
+        analysisJsonEditor.value = prettyJson;
+
+        // Update form fields with new analysis data
+        this.updateFormFields(analysis);
+
+        // Show edit/save buttons
+        document.getElementById('editAnalysisBtn').style.display = 'inline-block';
+        document.getElementById('saveAnalysisBtn').style.display = 'none';
+    },
+    toggleEditMode() {
+        const isEditing = document.getElementById('analysisJson').getAttribute('contenteditable') === 'true';
+
+        if (isEditing) {
+            // Turn off editing
+            document.getElementById('analysisJson').setAttribute('contenteditable', 'false');
+            document.getElementById('editAnalysisBtn').textContent = 'Edit JSON';
+            document.getElementById('saveAnalysisBtn').style.display = 'none';
+        } else {
+            // Turn on editing
+            document.getElementById('analysisJson').setAttribute('contenteditable', 'true');
+            document.getElementById('editAnalysisBtn').textContent = 'Cancel Edit';
+            document.getElementById('saveAnalysisBtn').style.display = 'inline-block';
+        }
+    },
+
+    updateFormFields(analysis) {
+        // This method updates the form fields with new analysis data after reanalysis
+        if (!analysis) return;
+
+        try {
+            // Update basic fields that might be in the modal form
+            if (analysis.name) {
+                const nameField = document.getElementById('character_name');
+                if (nameField) nameField.value = analysis.name;
+            }
+
+            if (analysis.character_name) {
+                const nameField = document.getElementById('character_name');
+                if (nameField) nameField.value = analysis.character_name;
+            }
+
+            if (analysis.role) {
+                const roleField = document.getElementById('character_role');
+                if (roleField) roleField.value = analysis.role;
+            }
+
+            if (analysis.character_traits && Array.isArray(analysis.character_traits)) {
+                const traitsField = document.getElementById('character_traits');
+                if (traitsField) traitsField.value = analysis.character_traits.join(', ');
+            }
+
+            if (analysis.description) {
+                const descField = document.getElementById('description');
+                if (descField) descField.value = analysis.description;
+            }
+
+            // If it's a scene, populate scene fields
+            if (analysis.setting) {
+                const settingField = document.getElementById('setting');
+                if (settingField) settingField.value = analysis.setting;
+            }
+
+            if (analysis.scene_type) {
+                const sceneTypeField = document.getElementById('scene_type');
+                if (sceneTypeField) sceneTypeField.value = analysis.scene_type;
+            }
+        } catch (error) {
+            console.error('Error updating form fields:', error);
+        }
     },
     //Helper functions (assume these are defined elsewhere or added as needed)
     toggleModalFieldsByType: function(type){},
