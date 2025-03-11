@@ -19,7 +19,7 @@ client = OpenAI(api_key=api_key)
 # Default story options
 STORY_OPTIONS = {
     "conflicts": [
-        ("💣", "Double agent exposed"),
+        ("🤵", "Double agent exposed"),
         ("💼", "Corporate espionage"),
         ("🧪", "Bioweapon heist"),
         ("💰", "Trillion-dollar ransom"),
@@ -29,7 +29,7 @@ STORY_OPTIONS = {
         ("🧠", "Mind control experiment")
     ],
     "settings": [
-        ("🗼", "DC Offices"),
+        ("🗼", "Paris Office"),
         ("🏝️", "Private Luxury Island"),
         ("🏙️", "Dubai Mega-Skyscraper"),
         ("🚢", "Orbital Cruise Liner"),
@@ -245,7 +245,7 @@ def generate_story(
         "   - Lead to different potential outcomes (each one should sound sexy and dangerous)\n"
         "   - Stay true to the characters' established traits\n"
         "   - Relate to at least one of the plot lines or missions \n"
-        "   - IMPORTANT: Include one new character from the database in one choice\n"
+        "   - IMPORTANT: One choice must allude to maybe needing outside help and introduce a new character from the database \n"
         "   - REQUIRED: Each choice must have a dollar (💵) cost starting at $500, with increased costs for choices that: involve powerful characters, have higher risk/reward, include exotic locations, or advanced technology\n"
         "   - Avoid dead ends but escalate the ridiculousness with each choice\n"
         "10. Include clear consequences for each choice that involve romantic encounters, betrayal, or absurd action scenarios\n"
