@@ -137,7 +137,11 @@ def save_analysis():
     except Exception as e:
         logger.error(f"Error saving analysis: {str(e)}")
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500ame = analysis.get('character_name')
+        return jsonify({'error': str(e)}), 500
+        
+    # Update character name if present
+    if 'character_name' in analysis:
+        image.character_name = analysis.get('character_name')
 
             # Update character role with validation
             if 'role' in analysis:
