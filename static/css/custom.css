@@ -1185,3 +1185,66 @@ body[data-bs-theme="dark"] .character-select-card {
     transform: translateY(-3px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
+/* Progress button container */
+.progress-button-container {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 100;
+}
+
+/* Currency dashboard in progress modal */
+.currency-dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.currency-dashboard-item {
+    display: flex;
+    align-items: center;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.currency-icon {
+    font-size: 24px;
+    margin-right: 10px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e9ecef;
+    border-radius: 50%;
+}
+
+.currency-details {
+    flex: 1;
+}
+
+.currency-name {
+    font-weight: 500;
+    color: #495057;
+    font-size: 14px;
+}
+
+.currency-value {
+    font-weight: 700;
+    font-size: 18px;
+    color: #212529;
+}
+
+/* Light theme for modals */
+.modal-content {
+    background-color: #fff;
+    color: #212529;
+}
+
+.modal .card {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
