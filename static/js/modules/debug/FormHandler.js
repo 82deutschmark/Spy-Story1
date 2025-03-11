@@ -1,4 +1,3 @@
-
 /**
  * FormHandler.js - Form handling for the debug interface
  */
@@ -11,7 +10,7 @@ export default class FormHandler {
         this.dataHandler = dataHandler;
         console.log('Form handler initialized');
     }
-    
+
     async handleImageAnalysis() {
         const imageUrl = this.debugUI.elements.imageUrl.value.trim();
         if (!imageUrl) {
@@ -21,7 +20,7 @@ export default class FormHandler {
 
         try {
             DebugUtils.showToast('Processing', 'Analyzing image...');
-            const response = await DebugAPI.post('/debug/analyze-image', { image_url: imageUrl });
+            const response = await DebugAPI.analyzeImage(imageUrl); // Use the new analyzeImage method
 
             if (response.success) {
                 this.debugUI.displayGeneratedContent(JSON.stringify(response.analysis, null, 2));
@@ -42,7 +41,7 @@ export default class FormHandler {
             DebugUtils.showToast('Error', 'Failed to analyze image: ' + error.message, true);
         }
     }
-    
+
     applyChanges() {
         const content = this.debugUI.elements.generatedContent.textContent;
         let contentObj;
@@ -77,7 +76,7 @@ export default class FormHandler {
         console.log('Edited form data:', contentObj);
         DebugUtils.showToast('Success', 'Changes applied');
     }
-    
+
     async saveAnalysisToDb(analysis, imageUrl) {
         try {
             const currentContent = this.debugUI.elements.generatedContent.textContent;

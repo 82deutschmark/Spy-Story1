@@ -16,6 +16,25 @@ export default {
         }
     },
 
+    async analyzeImage(imageUrl) {
+        try {
+            const formData = new FormData();
+            formData.append('image_url', imageUrl);
+            
+            const response = await fetch('/debug/generate', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return await response.json();
+        } catch (error) {
+            console.error('Image analysis error:', error);
+            DebugUtils.showToast('Analysis Error', error.message, true);
+            throw error;
+        }
+    },
+
     async post(url, data) {
         try {
             const response = await fetch(url, {
