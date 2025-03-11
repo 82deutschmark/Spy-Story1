@@ -1,9 +1,9 @@
+
 import os
 import json
 import logging
 from typing import Dict, List, Tuple, Optional, Any
 from openai import OpenAI
-import random
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -58,38 +58,47 @@ STORY_OPTIONS = {
     ]
 }
 
+
+# --- Helper functions ---
+
 def get_story_options() -> Dict[str, List[Tuple[str, str]]]:
     """Return available story options for UI display"""
     return STORY_OPTIONS
 
+
+def extract_field(data: Dict[str, Any], field: str, alt_field: Optional[str] = None, default: Any = None):
+    """Extract a field from data with fallback to alternative field name and default value"""
+    if not data:
+        return default
+    return data.get(field) or data.get(alt_field) or default
+
+
 def extract_character_traits(character_data: Dict[str, Any]) -> List[str]:
     """Extract character traits from different data structures"""
-    traits = character_data.get('character_traits', [])
-    if not traits and 'traits' in character_data:
-        traits = character_data['traits']
-    return traits
+    return extract_field(character_data, 'character_traits', 'traits', [])
+
 
 def extract_plot_lines(character_data: Dict[str, Any]) -> List[str]:
     """Extract plot lines from different data structures"""
-    plot_lines = character_data.get('plot_lines', [])
-    if not plot_lines and 'plot_lines' in character_data:
-        plot_lines = character_data['plot_lines']
-    return plot_lines
+    return extract_field(character_data, 'plot_lines', 'potential_plot_lines', [])
+
 
 def extract_character_style(character_data: Dict[str, Any]) -> str:
     """Extract character visual style/description from different data structures"""
-    style = character_data.get('style', '')
-    if not style and character_data.get('visual_description'):
-        style = character_data.get('visual_description')
-    return style
+    return extract_field(character_data, 'style', 'visual_description', '')
+
 
 def extract_character_name(character_data: Dict[str, Any]) -> str:
     """Extract character name from different data structures"""
-    return character_data.get('name', character_data.get('character_name', 'Unnamed Character'))
+    return extract_field(character_data, 'name', 'character_name', 'Unnamed Character')
+
 
 def extract_character_role(character_data: Dict[str, Any]) -> str:
     """Extract character role from different data structures"""
-    return character_data.get('role', character_data.get('character_role', 'neutral'))
+    return extract_field(character_data, 'role', 'character_role', 'neutral')
+
+
+# --- Main story generation ---
 
 def generate_story(
     conflict: str,
@@ -113,7 +122,7 @@ def generate_story(
         raise ValueError("OpenAI API key not found. Please add it to your environment variables.")
 
     # Log the story generation request to help debug
-    logger.debug(f"Generating story with conflict: {conflict}, setting: {setting}, using character: {character_info.get('name') if character_info else 'None'}")
+    logger.debug(f"Generating story with conflict: {conflict}, setting: {setting}, using character: {extract_character_name(character_info) if character_info else 'None'}")
     
     # Use custom values if provided, otherwise use selected options
     final_conflict = custom_conflict or conflict
@@ -121,9 +130,16 @@ def generate_story(
     final_narrative = custom_narrative or narrative_style
     final_mood = custom_mood or mood
 
+    # Handle protagonist information
+    protagonist_info = ""
+    if protagonist_name and protagonist_gender:
+        protagonist_info = f"You are {protagonist_name}, a {protagonist_gender} agent who is very charismatic, arrogant, and constantly receives romantic advances from practically everybody you meet. "
+    else:
+        protagonist_info = "You are a charismatic but reckless agent who constantly receives romantic advances from practically everybody you meet. "
+
     # Build character information for the prompt
     selected_character_prompt = ""
-    if character_info and character_info.get('name'):
+    if character_info and extract_character_name(character_info):
         # Extract character data using helper functions
         traits = extract_character_traits(character_info)
         plot_lines = extract_plot_lines(character_info)
@@ -132,8 +148,8 @@ def generate_story(
         # Build the character prompt section with all available data
         selected_character_prompt = (
             f"\nSelected Character to Feature:\n"
-            f"Name: {character_info['name']}\n"
-            f"Role: {character_info.get('role', 'neutral')}\n"
+            f"Name: {extract_character_name(character_info)}\n"
+            f"Role: {extract_character_role(character_info)}\n"
             f"Traits: {', '.join(traits)}\n"
             f"Visual Description: {style}\n"
         )
@@ -183,14 +199,6 @@ def generate_story(
                 f"Player chose: {previous_choice}\n"
                 "Continue the story based on this choice, maintaining consistency with previous events."
             )
-
-    # Core story universe description
-    # Handle protagonist information
-    protagonist_info = ""
-    if protagonist_name and protagonist_gender:
-        protagonist_info = f"You are {protagonist_name}, a {protagonist_gender} agent who is very charismatic, arrogant, and constantly receives romantic advances from practically everybody you meet. "
-    else:
-        protagonist_info = "You are a charismatic but reckless agent who constantly receives romantic advances from practically everybody you meet. "
 
     # Create a more mission-focused story universe
     universe_prompt = (
@@ -255,12 +263,6 @@ def generate_story(
         "      'currency_requirements': {'💵': 500 + random.randint(0, min(1000, 200 * (protagonist_level or 1)))}\n"
         "    }\n"
         "  ],\n"
-        # "  'currency_trade_offer': {\n"
-        # "    'text': 'Optional currency trade offer from a character',\n"
-        # "    'from_currency': '💎',\n"
-        # "    'to_currency': '💵 or 💷',\n"
-        # "    'rate': 'Proposed exchange rate'\n"
-        "  },\n"
         "  'mission': {\n"
         "    'title': 'Mission title (if this episode contains a mission)',\n"
         "    'description': 'Detailed mission description',\n"
@@ -278,6 +280,9 @@ def generate_story(
         "}"
     )
 
+    # Make the OpenAI API call
+    try:
+        messages = [{"role": "user", "content": prompt}]
 
         # If story_context exists, it means we're continuing a story, so we should include previous context
         if story_context:
@@ -294,12 +299,6 @@ def generate_story(
             max_tokens=5000,
             response_format={"type": "json_object"}
         )
-
-        # Add the response to the message history for potential future continuations
-        messages.append({
-            "role": "assistant",
-            "content": response.choices[0].message.content
-        })
 
         # Parse and return the generated story
         result = json.loads(response.choices[0].message.content)
