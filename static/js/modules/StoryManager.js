@@ -41,6 +41,19 @@ export default {
             .then(response => response.json())
             .then(data => {
                 clearInterval(progressInterval);
+                
+                // Update user progress if data contains relevant fields
+                if (data.success && data.user_progress) {
+                    UserProgress.updateUserProgress(
+                        data.user_progress.level,
+                        data.user_progress.experience_points,
+                        data.user_progress.currency_balances,
+                        data.user_progress.choice_history,
+                        data.user_progress.encountered_characters,
+                        data.user_progress.active_plot_arcs,
+                        data.user_progress.active_missions
+                    );
+                }
 
                 if (data.success && data.redirect) {
                     UIUtils.updateLoadingPercent(loadingPercent, 100);
