@@ -21,48 +21,51 @@ This application allows users to generate interactive stories featuring images f
 - **Virtual Currency**: Earn and spend various currencies (💎, 💵, 💷, 💶, 💴) on story choices
 - **Plot Arcs**: Track active and completed story arcs across multiple sessions
 - **Mission System**: Characters assign missions targeting villain characters
+- **Dynamic Currency System**: Choice costs now scale based on player level and story progression
+- **Mission Tracking**: Improved system for tracking missions across story segments
+- **Character Evolution**: Enhanced character development through story interactions
 
 ## Recent Improvements
 
-- **Backend Route Refactoring**:
-  - Restructured routes.py into modular components for better organization and maintainability
-  - Created separate route modules for main, debug, and API functionality
-  - Implemented proper blueprint registration for all route modules
-  - Fixed endpoint naming conflicts and URL building errors
-  - Enhanced route organization with clearer separation of concerns
+- **Currency System Enhancements**:
+  - Implemented dynamic pricing for story choices based on player level
+  - Adjusted choice costs to start at $500 with additional costs based on complexity
+  - Created a more balanced economy with choice costs capped at player level + $1000
+  - Removed restrictions on currency exchanges for better gameplay fluidity
+  - Simplified currency display by showing balances only in the Progress UI
 
-- **JavaScript Modularization**: 
-  - Restructured frontend code with ES6 modules for better maintainability and organization
-  - Separated main.js into UIUtils, CurrencyManager, UserProgressManager, CharacterManager, StoryManager, MissionManager, and PaymentManager modules
-  - Refactored debug.js into multiple modules (DebugUI, DebugAPI, FormHandler, DataHandler, ModalHandler, ImageHandler, EventHandler, DebugUtils)
-  - Implemented proper dependency injection pattern to resolve circular references
+- **Mission System Improvements**:
+  - Enhanced mission tracking and database integration
+  - Fixed mission generation to include different mission givers for variety
+  - Ensured missions are properly recognized and extracted from stories
+  - Added proper tracking of mission parameters in the database
+  - Fixed relationships between missions and story nodes
 
-- **Debug Interface Improvements**:
-  - Fixed API endpoints for debug page functionality (/debug/images and /debug/stories)
-  - Enhanced debug interface with better image analysis workflow
-  - Improved form handling for character data editing and saving
-  - Added detailed statistics and health checks for database records
-  - Fixed template linking for debug dashboard routes
+- **Character Evolution Refinements**:
+  - Improved character evolution tracking across story sessions
+  - Enhanced relationship network development through story interactions
+  - Fixed plot contributions tracking for character development
+  - Ensured character roles are properly applied and tracked
 
-- **Character System Enhancements**:
-  - Standardized character roles (undetermined, villain, neutral, mission-giver)
-  - Improved character introduction logic (limited to 10% chance after 4 characters)
-  - Enhanced character evolution based on story interactions
-  - Added improved character editing capabilities in debug interface
+- **Database Management**:
+  - Added migrations to fix unused tables and missing data
+  - Implemented proper tracking of story nodes and connections
+  - Fixed issues with character and mission relationships
+  - Enhanced data persistence across story sessions
 
-- **Gameplay Features**:
-  - Added mission tracking and objectives to story generation
-  - Implemented virtual currencies with exchange features
-  - Created plot arc tracking across multiple story sessions
+- **Earlier Improvements**:
+  - Backend Route Refactoring with modular components and blueprint registration
+  - JavaScript Modularization with ES6 modules for better maintainability
+  - Debug Interface Improvements for better workflow and data editing
+  - Character System Enhancements with standardized roles
+  - Gameplay Features including mission tracking and virtual currencies
+  - Technical Improvements to resolve dependencies and timing issues
 
-- **Technical Improvements**:
-  - Resolved circular dependencies in JavaScript modules
-  - Fixed DOM manipulation timing issues
-  - Improved error handling in story continuation
-  - Updated backend story generation logic for multiple character selection
-  - Enhanced UI with better character highlighting and progress display
-  - Fixed form submission duplicates and storyboard rendering issues
-  - Resolved routing conflicts between refactored modules
+- **UI Improvements**:
+  - Streamlined currency display in the interface
+  - Improved progress tracking visualization
+  - Enhanced story choice presentation
+  - Light color theme for Progress UI for better readability
 
 ## Technology Stack
 
