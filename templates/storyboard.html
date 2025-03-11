@@ -242,7 +242,6 @@
     <!-- PayPal SDK with required parameters -->
     <script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id|urlencode }}&currency=USD&intent=capture"></script>
     <!-- Our main JS file is already loaded as a module at the top of the page -->
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <!-- Debug logging for PayPal integration -->
     <script>
         console.log('PayPal Client ID available:', {{ 'true' if paypal_client_id else 'false' }});
@@ -251,11 +250,10 @@
             console.log('PayPal button container exists:', !!document.getElementById('paypal-button-container'));
         });
     </script>
+<!-- User Progress Modal -->
+    <div class="modal fade" id="progressModal" tabindex="-1">
 </body>
 </html>
-
-    <!-- User Progress Modal -->
-    <div class="modal fade" id="progressModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-light">
