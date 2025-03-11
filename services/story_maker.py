@@ -224,6 +224,7 @@ def generate_story(
         "   - A reward in one of the game currencies (💵, 💷, 💶, 💴)\n"
         "   - A deadline or sense of urgency\n"
         "   - The mission should be central to the plot and referenced throughout the story\n"
+        "   - IMPORTANT: The mission giver should be different for different playthroughs. They reluctantly task you with missions targeting villains while reminding you not to screw up again.\n"
         "8. In many story segments, include characters offering to trade currencies with the player:\n"
         "   - Characters can offer to trade dollars (💵), pounds (💷), euros (💶), or yen (💴) for the player's diamonds (💎)\n"
         "   - Make offers sound enticing but slightly suspicious\n"
