@@ -199,7 +199,7 @@ The application uses two main AI prompts:
 
 ## Character Universe
 
-The story universe is set in a high-stakes, sexy dramatic international spy network in the year 2040. The world is in a state of emergency with charismatic but incompetent protagonists who are more interested in partying and romance than saving the world.
+The story universe is set in a high-stakes, sexy dramatic international world of espionage. The world is in a state of emergency with charismatic but incompetent protagonists who are more interested in partying and romance than saving the world.
 
 ## Future Improvements
 
