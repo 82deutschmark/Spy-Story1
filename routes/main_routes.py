@@ -258,17 +258,28 @@ def generate_story_route():
         if not selected_images:
             return jsonify({'error': 'Selected images not found'}), 404
 
-        # Get information for all selected characters
+        # Get information for all selected characters - DIRECTLY from the database
+        # This avoids any unnecessary API calls for image analysis
         selected_characters = []
         for img in selected_images:
-            analysis = img.analysis_result or {}
+            # Use only the data already in the database
             char_data = {
-                'name': img.character_name or analysis.get('name', 'Unknown Character'),
+                'name': img.character_name or 'Unknown Character',
                 'role': img.character_role or 'protagonist',
                 'character_traits': img.character_traits or [],
-                'style': analysis.get('style', 'A mysterious character'),
+                'style': 'A mysterious character',  # Default description if none exists
                 'plot_lines': img.plot_lines or []
             }
+            
+            # Only if we already have analysis_result stored, get additional info from it
+            if img.analysis_result:
+                try:
+                    analysis = img.analysis_result
+                    if 'style' in analysis:
+                        char_data['style'] = analysis.get('style', char_data['style'])
+                except Exception as e:
+                    logger.error(f"Error parsing stored analysis result: {str(e)}")
+                    
             selected_characters.append(char_data)
 
         # Use the first character as the main character for backward compatibility
@@ -280,16 +291,18 @@ def generate_story_route():
         selected_ids = [img.id for img in selected_images]
         additional_chars_query = ImageAnalysis.query.filter_by(image_type='character') \
             .filter(~ImageAnalysis.id.in_(selected_ids)) \
+            .filter(ImageAnalysis.character_name.isnot(None)) \  # Only get characters with names
             .order_by(db.func.random()) \
             .limit(3) \
             .all()
 
         for char in additional_chars_query:
+            # Use only data already in the database, no analysis needed
             char_data = {
-                'name': char.character_name,
-                'character_traits': char.character_traits,
-                'role': char.character_role,
-                'plot_lines': char.plot_lines
+                'name': char.character_name or 'Unknown Character',
+                'character_traits': char.character_traits or [],
+                'role': char.character_role or 'neutral',
+                'plot_lines': char.plot_lines or []
             }
             additional_characters.append(char_data)
 

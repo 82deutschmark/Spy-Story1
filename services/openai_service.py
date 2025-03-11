@@ -49,6 +49,11 @@ def analyze_artwork(image_url):
     Returns:
         dict: Analysis results
     """
+    logger.info(f"Image analysis API call requested for: {image_url[:30]}...")
+    # Log the call stack to help identify where this is being called from
+    import traceback
+    logger.debug(f"Image analysis call stack: {traceback.format_stack()}")
+    
     try:
         # First, validate the image URL is accessible
         try:
