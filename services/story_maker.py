@@ -105,7 +105,8 @@ def generate_story(
     story_context: Optional[str] = None,
     additional_characters: Optional[List[Dict[str, Any]]] = None,
     protagonist_name: Optional[str] = None,
-    protagonist_gender: Optional[str] = None
+    protagonist_gender: Optional[str] = None,
+    protagonist_level: Optional[int] = 1
 ) -> Dict[str, Any]:
     """Generate a story based on selected or custom parameters and character info"""
     if not api_key:
@@ -248,12 +249,12 @@ def generate_story(
         "    {\n"
         "      'text': 'First choice',\n"
         "      'consequence': 'Brief outcome hint',\n"
-        "      'currency_requirements': {'💵': 500 + random.randint(0, 19500)}\n"
+        "      'currency_requirements': {'💵': 500 + random.randint(0, min(1000, 200 * (protagonist_level or 1)))}\n"
         "    },\n"
         "    {\n"
         "      'text': 'Second choice',\n"
         "      'consequence': 'Brief outcome hint',\n"
-        "      'currency_requirements': {'💵': 500 + random.randint(0, 19500)}\n"
+        "      'currency_requirements': {'💵': 500 + random.randint(0, min(1000, 200 * (protagonist_level or 1)))}\n"
         "    }\n"
         "  ],\n"
         "  'currency_trade_offer': {\n"
