@@ -18,8 +18,7 @@ class ImageAnalysis(db.Model):
     analysis_result = db.Column(JSONB)  # Full analysis from OpenAI
     
     # Character-specific fields
-    name = db.Column(db.String(255))  # Primary name field used by the form
-    character_name = db.Column(db.String(255))  # Legacy/secondary name field
+    character_name = db.Column(db.String(255))  # Character name field
     character_traits = db.Column(JSONB)  # Array of character traits
     personality_traits = db.Column(JSONB)  # Duplicate of character_traits for compatibility
     character_role = db.Column(db.String(32))  # 'mission-giver', 'villain', or 'neutral'
