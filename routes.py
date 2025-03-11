@@ -327,6 +327,7 @@ def generate_story_route():
         story_params['additional_characters'] = additional_characters
         story_params['protagonist_name'] = protagonist_name
         story_params['protagonist_gender'] = protagonist_gender
+        story_params['protagonist_level'] = user_progress.level
         result = generate_story(**story_params)
 
         # Store the generated story
