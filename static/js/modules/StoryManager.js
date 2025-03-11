@@ -108,7 +108,9 @@ export default {
                 choice_id: formData.get('choice_id'),
                 custom_choice: isCustom ? formData.get('custom_choice') : null,
                 currency_requirements: currencyReq,
-                story_id: document.querySelector('input[name="story_id"]')?.value || null
+                story_id: document.querySelector('input[name="story_id"]')?.value || null,
+                node_id: document.querySelector('input[name="node_id"]')?.value || null,
+                characters: Array.from(document.querySelectorAll('input[name="characters[]"]')).map(el => el.value)
             })
         })
             .then(response => {

@@ -346,6 +346,40 @@ def generate_story_route():
 
         # Update user progress with this new story
         user_progress.current_story_id = story.id
+        
+        # Create a story node for this narrative segment
+        story_json = json.loads(result['story'])
+        narrative_text = story_json.get('narrative', 'New story beginning')
+        
+        story_node = StoryNode(
+            narrative_text=narrative_text,
+            image_id=main_character_img.id if main_character_img else None,
+            is_endpoint=False,
+            generated_by_ai=True,
+            branch_metadata={
+                'setting': result['setting'],
+                'mood': result['mood'],
+                'conflict': result['conflict']
+            }
+        )
+        db.session.add(story_node)
+        db.session.flush()  # Get ID without committing
+        
+        # Update user progress with the current node
+        user_progress.current_node_id = story_node.id
+        
+        # Update game state with relevant info
+        if not user_progress.game_state:
+            user_progress.game_state = {}
+            
+        user_progress.game_state.update({
+            'current_setting': result['setting'],
+            'current_mood': result['mood'],
+            'current_conflict': result['conflict'],
+            'protagonist_name': protagonist_name,
+            'protagonist_gender': protagonist_gender,
+            'last_story_update': datetime.utcnow().isoformat()
+        })
 
         # Create a default plot arc for this story
         plot_arc = PlotArc(
@@ -354,7 +388,8 @@ def generate_story_route():
             arc_type="main",
             story_id=story.id,
             status="active",
-            primary_characters=selected_ids
+            primary_characters=selected_ids,
+            key_nodes=[story_node.id]  # Track this node as part of the plot arc
         )
         db.session.add(plot_arc)
 
@@ -362,6 +397,20 @@ def generate_story_route():
         if not user_progress.active_plot_arcs:
             user_progress.active_plot_arcs = []
         user_progress.active_plot_arcs.append(plot_arc.id)
+        
+        # Create choices for this node based on the story options
+        if 'choices' in story_json and isinstance(story_json['choices'], list):
+            for i, choice in enumerate(story_json['choices']):
+                choice_text = choice.get('text', f'Option {i+1}')
+                story_choice = StoryChoice(
+                    node_id=story_node.id,
+                    choice_text=choice_text,
+                    choice_metadata={
+                        'sequence': i,
+                        'currency_requirements': choice.get('currency_requirements', {})
+                    }
+                )
+                db.session.add(story_choice)
 
         # Process character evolutions for all characters
         for img in selected_images:
@@ -519,6 +568,16 @@ def make_choice():
 
             # Track character evolution for each character in the story
             if story_id and characters:
+                # Get the story to access its data
+                story = StoryGeneration.query.get(story_id)
+                if not story or not story.generated_story:
+                    logger.warning(f"Story {story_id} not found or has no generated story")
+                else:
+                    # Parse story data for plot points
+                    story_data = json.loads(story.generated_story)
+                    current_plot_point = story_data.get('narrative', '')[:100]  # Use first 100 chars as summary
+                    
+                # Process each character in the story
                 for char_id in characters:
                     # Get character details
                     character = ImageAnalysis.query.get(char_id)
@@ -526,9 +585,17 @@ def make_choice():
                         continue
 
                     # Update user's character relationship
+                    relationship_change = 1  # Default small positive change for each encounter
                     user_progress.encounter_character(
                         character_id=char_id, 
                         character_name=character.character_name or "Unknown Character"
+                    )
+                    
+                    # Also update relationship level
+                    user_progress.change_character_relationship(
+                        character_id=char_id,
+                        change_amount=relationship_change,
+                        reason=f"Interaction during story choice: {choice_text[:50]}..."
                     )
 
                     # Check if this character already has an evolution record
@@ -548,7 +615,30 @@ def make_choice():
                             evolved_traits=character.character_traits or []  # Start with original traits
                         )
                         db.session.add(char_evolution)
-                        db.session.commit()
+                    
+                    # Add plot contribution for this character
+                    if story:
+                        char_evolution.add_plot_contribution(
+                            plot_point=current_plot_point,
+                            importance=2  # Medium importance
+                        )
+                        
+                        # Update character relationships with other characters in the story
+                        for other_char_id in characters:
+                            if other_char_id != char_id:
+                                # Determine relationship type based on roles
+                                relationship_type = "ally"  # Default
+                                other_char = ImageAnalysis.query.get(other_char_id)
+                                if other_char and other_char.character_role == "villain":
+                                    relationship_type = "enemy"
+                                
+                                char_evolution.add_relationship(
+                                    target_character_id=other_char_id,
+                                    relationship_type=relationship_type,
+                                    strength=3  # Medium positive relationship by default
+                                )
+                    
+                    db.session.commit()
 
             # Return updated user information
             return jsonify({
