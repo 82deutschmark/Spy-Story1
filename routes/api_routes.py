@@ -67,8 +67,77 @@ def save_analysis():
             # Update character name if present
             if 'name' in analysis:
                 image.character_name = analysis.get('name')
+                image.name = analysis.get('name')  # Update both name fields
             elif 'character_name' in analysis:
                 image.character_name = analysis.get('character_name')
+                image.name = analysis.get('character_name')
+            
+            # Update character traits
+            if 'character_traits' in analysis:
+                image.character_traits = analysis.get('character_traits')
+                image.personality_traits = analysis.get('character_traits')
+            elif 'personality_traits' in analysis:
+                image.personality_traits = analysis.get('personality_traits')
+                image.character_traits = analysis.get('personality_traits')
+            
+            # Update role
+            if 'role' in analysis:
+                image.role = analysis.get('role')
+                image.character_role = analysis.get('role')
+            elif 'character_role' in analysis:
+                image.character_role = analysis.get('character_role')
+                image.role = analysis.get('character_role')
+            
+            # Update plot lines
+            if 'plot_lines' in analysis:
+                image.plot_lines = analysis.get('plot_lines')
+                image.potential_plot_lines = analysis.get('plot_lines')
+            elif 'potential_plot_lines' in analysis:
+                image.potential_plot_lines = analysis.get('potential_plot_lines')
+                image.plot_lines = analysis.get('potential_plot_lines')
+            
+            # Update backstory if present
+            if 'backstory' in analysis:
+                image.backstory = analysis.get('backstory')
+            
+            # Update description if present
+            if 'description' in analysis:
+                image.description = analysis.get('description')
+                
+        else:  # This is a scene image
+            # Update scene name/setting
+            if 'setting' in analysis:
+                image.setting = analysis.get('setting')
+                image.name = analysis.get('setting')
+                
+            # Update scene type
+            if 'scene_type' in analysis:
+                image.scene_type = analysis.get('scene_type')
+                
+            # Update scene description
+            if 'description' in analysis:
+                image.setting_description = analysis.get('description')
+                image.description = analysis.get('description')
+                
+            # Update dramatic moments
+            if 'dramatic_moments' in analysis:
+                image.dramatic_moments = analysis.get('dramatic_moments')
+                
+            # Update story fit
+            if 'story_fit' in analysis:
+                image.story_fit = analysis.get('story_fit')
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Analysis updated for image {image_id}'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error saving analysis: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500ame = analysis.get('character_name')
 
             # Update character role with validation
             if 'role' in analysis:

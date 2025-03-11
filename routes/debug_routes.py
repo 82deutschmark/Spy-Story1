@@ -218,19 +218,27 @@ def save_analysis():
         # Extract image metadata
         metadata = analysis.get('image_metadata', {})
 
-        # Determine if it's a character or scene based on character indicators
+        # Determine if it's a character or scene based on image_type or standard indicators
         is_character = False
-
+        
+        # Check explicit image_type field first
+        if 'image_type' in analysis and analysis['image_type'].lower() == 'character':
+            is_character = True
+            logger.debug("Detected character from image_type field")
+        # Or check type field (from OpenAI response)
+        elif 'type' in analysis and analysis['type'].upper() == 'CHARACTER':
+            is_character = True
+            logger.debug("Detected character from type field")
         # Check for nested character object
-        if 'character' in analysis and isinstance(analysis['character'], dict):
+        elif 'character' in analysis and isinstance(analysis['character'], dict):
             is_character = True
             logger.debug("Detected character from nested 'character' object")
         # Or check for character-specific fields at the top level
-        elif any(key in analysis for key in ['character_name', 'character_traits', 'plot_lines']):
+        elif any(key in analysis for key in ['character_name', 'character_traits', 'plot_lines', 'personality_traits']):
             is_character = True
             logger.debug("Detected character from top-level character fields")
         # Or check for character-specific role field
-        elif 'role' in analysis and analysis['role'] in ['hero', 'villain', 'neutral']:
+        elif 'role' in analysis and analysis['role'] in ['hero', 'villain', 'neutral', 'mission-giver', 'antagonist', 'protagonist']:
             is_character = True
             logger.debug("Detected character from role field")
 
@@ -262,13 +270,24 @@ def save_analysis():
                 logger.warning(f"Could not find a name in the API response. Using default name.")
                 character_name = "Unnamed Character"
 
+        # Handle the 'name' field (for compatibility with all DB schemas)
+        name = character_name if is_character else analysis.get('setting', 'Unnamed Scene')
+
         # Extract traits and plot lines either from character object or top level
         character_traits = None
         if is_character:
-            if 'character' in analysis and 'character_traits' in character_data:
-                character_traits = character_data.get('character_traits')
-            else:
+            # Check all possible trait field names
+            if 'character_traits' in analysis:
                 character_traits = analysis.get('character_traits')
+            elif 'personality_traits' in analysis:
+                character_traits = analysis.get('personality_traits')
+            elif 'character' in analysis and 'character_traits' in character_data:
+                character_traits = character_data.get('character_traits')
+            elif 'character' in analysis and 'personality_traits' in character_data:
+                character_traits = character_data.get('personality_traits')
+
+        # Sync personality_traits with character_traits for consistency
+        personality_traits = character_traits
 
         character_role = None
         if is_character:
@@ -297,10 +316,29 @@ def save_analysis():
 
         plot_lines = None
         if is_character:
-            if 'character' in analysis and 'plot_lines' in character_data:
-                plot_lines = character_data.get('plot_lines')
-            else:
+            if 'plot_lines' in analysis:
                 plot_lines = analysis.get('plot_lines')
+            elif 'potential_plot_lines' in analysis:
+                plot_lines = analysis.get('potential_plot_lines')
+            elif 'character' in analysis and 'plot_lines' in character_data:
+                plot_lines = character_data.get('plot_lines')
+            elif 'character' in analysis and 'potential_plot_lines' in character_data:
+                plot_lines = character_data.get('potential_plot_lines')
+
+        # Get backstory if available
+        backstory = None
+        if is_character:
+            if 'backstory' in analysis:
+                backstory = analysis.get('backstory')
+            elif 'character' in analysis and 'backstory' in character_data:
+                backstory = character_data.get('backstory')
+
+        # Get description if available
+        description = None
+        if 'description' in analysis:
+            description = analysis.get('description')
+        elif is_character and 'character' in analysis and 'description' in character_data:
+            description = character_data.get('description')
 
         # Create new ImageAnalysis record
         image_analysis = ImageAnalysis(
@@ -311,10 +349,16 @@ def save_analysis():
             image_size_bytes=metadata.get('size_bytes'),
             image_type='character' if is_character else 'scene',
             analysis_result=analysis,
-            character_name=character_name,  # Get name with our new logic
+            name=name,  # Set the name field for compatibility
+            character_name=character_name,  
             character_traits=character_traits,
+            personality_traits=personality_traits,  # Add personality_traits for consistency
             character_role=character_role,
+            role=character_role,  # Set role field for compatibility
             plot_lines=plot_lines,
+            potential_plot_lines=plot_lines,  # Set potential_plot_lines for compatibility
+            backstory=backstory,
+            description=description,
             scene_type=analysis.get('scene_type') if not is_character else None,
             setting=analysis.get('setting') if not is_character else None,
             setting_description=analysis.get('setting_description') if not is_character else None,
