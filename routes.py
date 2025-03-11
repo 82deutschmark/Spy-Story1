@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, request, jsonify, url_for, redirec
 import uuid
 import paypalrestsdk
 from decimal import Decimal
+from datetime import datetime
 
 from database import db
 from models import AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, StoryChoice, UserProgress, Transaction, PlotArc, CharacterEvolution, Mission
@@ -346,11 +347,11 @@ def generate_story_route():
 
         # Update user progress with this new story
         user_progress.current_story_id = story.id
-        
+
         # Create a story node for this narrative segment
         story_json = json.loads(result['story'])
         narrative_text = story_json.get('narrative', 'New story beginning')
-        
+
         story_node = StoryNode(
             narrative_text=narrative_text,
             image_id=main_character_img.id if main_character_img else None,
@@ -364,14 +365,14 @@ def generate_story_route():
         )
         db.session.add(story_node)
         db.session.flush()  # Get ID without committing
-        
+
         # Update user progress with the current node
         user_progress.current_node_id = story_node.id
-        
+
         # Update game state with relevant info
         if not user_progress.game_state:
             user_progress.game_state = {}
-            
+
         user_progress.game_state.update({
             'current_setting': result['setting'],
             'current_mood': result['mood'],
@@ -397,7 +398,7 @@ def generate_story_route():
         if not user_progress.active_plot_arcs:
             user_progress.active_plot_arcs = []
         user_progress.active_plot_arcs.append(plot_arc.id)
-        
+
         # Create choices for this node based on the story options
         if 'choices' in story_json and isinstance(story_json['choices'], list):
             for i, choice in enumerate(story_json['choices']):
@@ -576,7 +577,7 @@ def make_choice():
                     # Parse story data for plot points
                     story_data = json.loads(story.generated_story)
                     current_plot_point = story_data.get('narrative', '')[:100]  # Use first 100 chars as summary
-                    
+
                 # Process each character in the story
                 for char_id in characters:
                     # Get character details
@@ -590,7 +591,7 @@ def make_choice():
                         character_id=char_id, 
                         character_name=character.character_name or "Unknown Character"
                     )
-                    
+
                     # Also update relationship level
                     user_progress.change_character_relationship(
                         character_id=char_id,
@@ -615,14 +616,14 @@ def make_choice():
                             evolved_traits=character.character_traits or []  # Start with original traits
                         )
                         db.session.add(char_evolution)
-                    
+
                     # Add plot contribution for this character
                     if story:
                         char_evolution.add_plot_contribution(
                             plot_point=current_plot_point,
                             importance=2  # Medium importance
                         )
-                        
+
                         # Update character relationships with other characters in the story
                         for other_char_id in characters:
                             if other_char_id != char_id:
@@ -631,13 +632,13 @@ def make_choice():
                                 other_char = ImageAnalysis.query.get(other_char_id)
                                 if other_char and other_char.character_role == "villain":
                                     relationship_type = "enemy"
-                                
+
                                 char_evolution.add_relationship(
                                     target_character_id=other_char_id,
                                     relationship_type=relationship_type,
                                     strength=3  # Medium positive relationship by default
                                 )
-                    
+
                     db.session.commit()
 
             # Return updated user information

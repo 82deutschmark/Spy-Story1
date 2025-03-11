@@ -118,7 +118,7 @@ export default {
                     return response.json().then(data => {
                         if (response.status === 400 && data.error && data.error.includes('Insufficient')) {
                             let errorMessage = isCustomChoice ?
-                                `Insufficient diamonds. You need 100 💎 but only have ${data.current_balance} 💎.` :
+                                `Insufficient diamonds. Writing a custom choice costs 100 💎 but you only have ${data.current_balance} 💎.` :
                                 'Insufficient funds for this choice.';
                     
                             throw new Error(errorMessage);
