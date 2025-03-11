@@ -1,4 +1,3 @@
-
 import os
 import json
 import logging
@@ -123,7 +122,7 @@ def generate_story(
 
     # Log the story generation request to help debug
     logger.debug(f"Generating story with conflict: {conflict}, setting: {setting}, using character: {extract_character_name(character_info) if character_info else 'None'}")
-    
+
     # Use custom values if provided, otherwise use selected options
     final_conflict = custom_conflict or conflict
     final_setting = custom_setting or setting
@@ -202,8 +201,8 @@ def generate_story(
 
     # Create a more mission-focused story universe
     universe_prompt = (
-        f"This is set in the high stakes sexy dramatic international world of business, espinage, luxury, and parties. {protagonist_info}"
-        "The story is set in the year 2040, so the world is mostly the same, but there is some future tech and many of the villains have orbital properties. "
+        f"This is set in the high stakes sexy dramatic international world of business, espionage, luxury, and parties. {protagonist_info}"
+        "The world is mostly as we know it, but there is some future tech and many of the villains have powerful global properties. "
         "The world is in a state of emergency, and you believe the only way to save it is to party hard, seduce as many people as possible, and have James Bond style adventures with crazy action scenes and gunfights, "
         "involving more and more beautiful people and increasingly ridiculous scenarios and global settings.\n\n"
         "All the characters are constantly betraying each other and seducing each other. The narrative should be told directly to the reader (using 'you'), be over-the-top, "
@@ -237,7 +236,7 @@ def generate_story(
         "   - A deadline or sense of urgency\n"
         "   - The mission should be central to the plot and referenced throughout the story\n"
         "   - IMPORTANT: The mission giver should be different for different playthroughs. They reluctantly task you with missions targeting villains while reminding you not to screw up again.\n"
-        
+
         "9. Provides three meaningful choice options that MUST relate to the mission:\n"
         "   - One 'mission-advancing' choice: Clear progress on the primary objective\n" 
         "   - One 'risky' choice: High risk/reward or possible mission failure\n"
