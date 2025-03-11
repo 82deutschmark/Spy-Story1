@@ -386,11 +386,10 @@ export default {
             });
         }
         
-        // Initialize PayPal
-        console.log('DOM loaded, checking PayPal integration...');
-        // Give PayPal SDK a moment to load
+        // Initialize Payment System
+        console.log('DOM loaded, initializing payment system...');
         setTimeout(() => {
-            PaymentManager.initializePayPal();
+            PaymentManager.initialize();
         }, 1000);
     }
 };
