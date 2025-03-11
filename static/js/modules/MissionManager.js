@@ -136,7 +136,12 @@ export default {
                     if (response.new_balances) {
                         CurrencyManager.updateCurrencyDisplays(response.new_balances);
                     }
-
+                    
+                    // Update user progress data if provided
+                    if (response.experience_points && response.level) {
+                        UserProgress.updateUserProgress(response.level, response.experience_points);
+                    }
+                    
                     // Reload page to refresh mission list
                     setTimeout(function() {
                         location.reload();
