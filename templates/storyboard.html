@@ -240,6 +240,16 @@
                                         </div>
                                     </div>
                                     <p><strong>Choices Made:</strong> {{ user_progress.choice_history|length if user_progress.choice_history else 0 }}</p>
+                                    {% if story_progress and story_progress.choice_history and story_progress.choice_history|length > 0 %}
+                                    <div class="mt-3">
+                                        <p class="fw-bold">Recent Choices:</p>
+                                        <ul class="list-group list-group-flush">
+                                            {% for choice in story_progress.choice_history[-3:]|reverse %}
+                                            <li class="list-group-item small p-2">{{ choice.choice_text|truncate(40) }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -322,6 +332,14 @@
                                 </ul>
                             {% else %}
                                 <p class="text-muted">No active plot arcs.</p>
+                            {% endif %}
+                            {% if story_progress and story_progress.completed_plot_arcs %}
+                                <h6 class="mt-3">Completed Plot Arcs</h6>
+                                <ul class="list-group list-group-flush">
+                                    {% for arc_id in story_progress.completed_plot_arcs %}
+                                        <li class="list-group-item list-group-item-success">Plot Arc #{{ arc_id }} (Completed)</li>
+                                    {% endfor %}
+                                </ul>
                             {% endif %}
                         </div>
                     </div>
