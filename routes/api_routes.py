@@ -490,25 +490,34 @@ def update_mission(mission_id):
 
 @api_bp.route('/missions/<int:mission_id>/complete', methods=['POST'])
 def complete_mission_route(mission_id):
-    """API endpoint to complete a mission"""
+    """Mark a mission as completed"""
     try:
         # Get user progress
         user_progress = get_or_create_user_progress()
 
         # Complete the mission
-        success = complete_mission(mission_id, user_progress.user_id)
+        result = complete_mission(mission_id, user_progress.user_id)
 
-        if not success:
-            return jsonify({'error': 'Failed to complete mission'}), 500
-
-        return jsonify({
-            'success': True,
-            'message': 'Mission completed successfully',
-            'new_balances': user_progress.currency_balances
-        })
+        if result and result.get('success', False):
+            # Return all user progress data for UI updates
+            return jsonify({
+                'success': True,
+                'message': 'Mission completed successfully',
+                'new_balances': result.get('currency_balances', {}),
+                'level': result.get('level', 1),
+                'experience_points': result.get('experience_points', 0),
+                'active_missions': result.get('active_missions', []),
+                'completed_missions': result.get('completed_missions', [])
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to complete mission'
+            }), 400
     except Exception as e:
         logger.error(f"Error completing mission: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
 
 @api_bp.route('/missions/<int:mission_id>/fail', methods=['POST'])
 def fail_mission_route(mission_id):
@@ -541,7 +550,7 @@ def reanalyze_image(image_id):
         from utils.api_utils import api_success_response, api_error_response
         from utils.image_utils import update_image_from_analysis
         from services.openai_service import analyze_artwork
-        
+
         data = request.json or {}
         preserve_relations = data.get('preserve_relations', True)
 
