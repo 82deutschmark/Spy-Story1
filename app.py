@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 from database import db
 from flask_cors import CORS
 import logging
-#import paypalrestsdk #Removed import
 from decimal import Decimal
 import uuid
 
@@ -30,6 +29,8 @@ from services.openai_service import analyze_artwork, generate_image_description
 from services.story_maker import generate_story, get_story_options
 from models import AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, StoryChoice, UserProgress
 from api.unity_routes import unity_api
+from utils.currency import process_currency_transaction
+from utils.input_validation import validate_input
 
 # CORS configuration
 CORS(app, resources={
@@ -69,13 +70,7 @@ def get_or_create_user_progress():
 
 @app.before_request
 def check_paypal_config():
-    """Log PayPal configuration status before each request"""
-    #paypal_client_id = os.environ.get('PAYPAL_CLIENT_ID') #Removed
-    #logger.debug(f"PayPal Client ID available: {bool(paypal_client_id)}") #Removed
-    #if not paypal_client_id: #Removed
-    #    logger.warning("PayPal Client ID is missing from environment variables") #Removed
-    pass #Placeholder to avoid error
-
+    pass
 
 # Create database tables
 with app.app_context():
@@ -148,7 +143,6 @@ def index():
         images=image_data,
         background_image=background_image,
         user_progress=user_progress
-        #paypal_client_id=os.environ.get('PAYPAL_CLIENT_ID') #Removed
     )
 
 
@@ -232,7 +226,6 @@ def storyboard(story_id):
         character_images=character_images,
         background_image=background_image,
         user_progress=user_progress
-        #paypal_client_id=os.environ.get('PAYPAL_CLIENT_ID') #Removed
     )
 
 @app.route('/generate_story', methods=['POST'])
@@ -243,8 +236,9 @@ def generate_story_route():
         data = request.form
         selected_image_ids = request.form.getlist('selected_images[]')
         protagonist_gender = request.form.get('protagonist_gender')
-        protagonist_name = request.form.get('protagonist_name')
-        custom_choice = data.get('custom_choice', '')
+        protagonist_name = validate_input(request.form.get('protagonist_name'), max_length=50)
+        custom_choice = validate_input(data.get('custom_choice', ''), max_length=200)
+
 
         # Check if this is a custom choice and verify diamond balance
         if custom_choice:
@@ -256,11 +250,8 @@ def generate_story_route():
                              f'{user_progress.currency_balances.get("💎",0)} 💎.'
                 }), 400
 
-            success = user_progress.spend_currency(
-                currency_requirements,
-                'choice',
-                f'Custom choice: {custom_choice[:50]}...' if len(custom_choice) > 50 else custom_choice
-            )
+            success = process_currency_transaction(user_progress, currency_requirements, 'choice',
+                                                   f'Custom choice: {custom_choice[:50]}...' if len(custom_choice) > 50 else custom_choice)
             if not success:
                 return jsonify({'error': 'Failed to process currency transaction'}), 500
 
@@ -277,15 +268,15 @@ def generate_story_route():
 
         # Get the story parameters
         story_params = {
-            'conflict': data.get('conflict', 'Mysterious adventure'),
-            'setting': data.get('setting', 'Enchanted world'),
-            'narrative_style': data.get('narrative_style', 'Engaging modern style'),
-            'mood': data.get('mood', 'Exciting and adventurous'),
-            'custom_conflict': data.get('custom_conflict', ''),
-            'custom_setting': data.get('custom_setting', ''),
-            'custom_narrative': data.get('custom_narrative', ''),
-            'custom_mood': data.get('custom_mood', ''),
-            'story_context': data.get('story_context', '')
+            'conflict': validate_input(data.get('conflict', 'Mysterious adventure'), max_length=100),
+            'setting': validate_input(data.get('setting', 'Enchanted world'), max_length=100),
+            'narrative_style': validate_input(data.get('narrative_style', 'Engaging modern style'), max_length=100),
+            'mood': validate_input(data.get('mood', 'Exciting and adventurous'), max_length=100),
+            'custom_conflict': validate_input(data.get('custom_conflict', ''), max_length=200),
+            'custom_setting': validate_input(data.get('custom_setting', ''), max_length=200),
+            'custom_narrative': validate_input(data.get('custom_narrative', ''), max_length=200),
+            'custom_mood': validate_input(data.get('custom_mood', ''), max_length=200),
+            'story_context': validate_input(data.get('story_context', ''), max_length=200)
         }
 
         # Handle choice selection - either predefined or custom
@@ -306,10 +297,10 @@ def generate_story_route():
         for img in selected_images:
             analysis = img.analysis_result or {}
             char_data = {
-                'name': img.character_name or analysis.get('name', 'Unknown Character'),
-                'role': img.character_role or 'protagonist',
+                'name': validate_input(img.character_name or analysis.get('name', 'Unknown Character'), max_length=50),
+                'role': validate_input(img.character_role or 'protagonist', max_length=50),
                 'character_traits': img.character_traits or [],
-                'style': analysis.get('style', 'A mysterious character'),
+                'style': validate_input(analysis.get('style', 'A mysterious character'), max_length=100),
                 'plot_lines': img.plot_lines or []
             }
             selected_characters.append(char_data)
@@ -329,9 +320,9 @@ def generate_story_route():
 
         for char in additional_chars_query:
             char_data = {
-                'name': char.character_name,
+                'name': validate_input(char.character_name, max_length=50),
                 'character_traits': char.character_traits,
-                'role': char.character_role,
+                'role': validate_input(char.character_role, max_length=50),
                 'plot_lines': char.plot_lines
             }
             additional_characters.append(char_data)
@@ -813,7 +804,7 @@ def db_health_check():
         # Check for characters without roles
         characters_without_roles = ImageAnalysis.query.filter(
             (ImageAnalysis.image_type == 'character') & 
-            ((ImageAnalysis.character_role.is_(None)) | (ImageAnalysis.character_role == ''))
+            ((ImageAnalysis.character_role.is_(None)) | (ImageAnalysis.characterrole == ''))
         ).count()
 
         if characters_without_roles > 0:
@@ -968,12 +959,28 @@ def get_all_stories():
 
 @app.route('/api/story_nodes/all')
 def get_all_story_nodes():
-    """API endpoint to get all story nodes"""
+    """API endpoint to get all story nodes with pagination"""
     try:
-        nodes = StoryNode.query.all()
-        results = []
+        # Get pagination parameters from request
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
 
-        for node in nodes:
+        # Apply limit to per_page to prevent excessive queries
+        if per_page > 100:
+            per_page = 100
+
+        # Create paginated query
+        nodes_query = StoryNode.query.order_by(StoryNode.id.desc())
+
+        # Get total count for pagination metadata
+        total_count = nodes_query.count()
+
+        # Execute paginated query
+        paginated_nodes = nodes_query.paginate(page=page, per_page=per_page)
+
+        # Format results
+        results = []
+        for node in paginated_nodes.items:
             choice_count = len(node.choices) if hasattr(node, 'choices') else 0
 
             results.append({
@@ -985,9 +992,16 @@ def get_all_story_nodes():
                 'image_id': node.image_id
             })
 
+        # Return paginated response
         return jsonify({
             'success': True,
-            'nodes': results
+            'nodes': results,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': total_count,
+                'pages': (total_count + per_page - 1) // per_page
+            }
         })
     except Exception as e:
         logger.error(f"Error getting all story nodes: {str(e)}")
@@ -1086,105 +1100,6 @@ def reanalyze_image(image_id):
         logger.error(f"Error reanalyzing image: {str(e)}")
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-
-#@app.route('/api/purchase/diamonds', methods=['POST']) #Removed route
-#def create_diamond_purchase():
-#    """Create a PayPal payment for diamond purchase"""
-#    try:
-#        # Configure PayPal SDK
-#        paypalrestsdk.configure({
-#            "mode": "sandbox",  # or "live" for production
-#            "client_id": os.environ.get("PAYPAL_CLIENT_ID"),
-#            "client_secret": os.environ.get("PAYPAL_SECRET")
-#        })
-
-#        # Get purchase amount from request
-#        data = request.json
-#        diamond_amount = data.get('amount', 100)  # Default to 100 diamonds
-#        price_per_diamond = Decimal('0.01')  # $0.01 per diamond
-#        total_price = diamond_amount * price_per_diamond
-
-#        # Create PayPal payment
-#        payment = paypalrestsdk.Payment({
-#            "intent": "sale",
-#            "payer": {
-#                "payment_method": "paypal"
-#            },
-#            "transactions": [{
-#                "amount": {
-#                    "total": str(total_price),
-#                    "currency": "USD"
-#                },
-#                "description": f"Purchase {diamond_amount} diamonds 💎"
-#            }],
-#            "redirect_urls": {
-#                "return_url": f"https://{os.environ.get('REPLIT_DOMAINS').split(',')[0]}/api/purchase/diamonds/success",
-#                "cancel_url": f"https://{os.environ.get('REPLIT_DOMAINS').split(',')[0]}/api/purchase/diamonds/cancel"
-#            }
-#        })
-
-#        if payment.create():
-#            # Get approval URL
-#            for link in payment.links:
-#                if link.method == "REDIRECT":
-#                    redirect_url = link.href
-#                    return jsonify({
-#                        'success': True,
-#                        'redirect_url': redirect_url,
-#                        'payment_id': payment.id
-#                    })
-#        else:
-#            return jsonify({'error': payment.error}), 400
-
-#    except Exception as e:
-#        logger.error(f"Error creating PayPal payment: {str(e)}")
-#        return jsonify({'error': str(e)}), 500
-
-#@app.route('/api/purchase/diamonds/success') #Removed route
-#def diamond_purchase_success():
-#    """Handle successful PayPal payment and credit diamonds"""
-#    try:
-#        payment_id = request.args.get('paymentId')
-#        payer_id = request.args.get('PayerID')
-
-#        payment = paypalrestsdk.Payment.find(payment_id)
-
-#        if payment.execute({"payer_id": payer_id}):
-#            # Get diamond amount from transaction description
-#            description = payment.transactions[0].description
-#            diamond_amount = int(''.join(filter(str.isdigit, description)))
-
-#            # Get user progress
-#            user_id = request.args.get('user_id')  # Or get from session
-#            user_progress = UserProgress.query.filter_by(user_id=user_id).first()
-
-#            if user_progress:
-#                # Update diamond balance
-#                current_balance = user_progress.currency_balances.get("💎", 0)
-#                user_progress.currency_balances["💎"] = current_balance + diamond_amount
-#                db.session.commit()
-
-#                return jsonify({
-#                    'success': True,
-#                    'message': f'Successfully purchased {diamond_amount} diamonds',
-#                    'new_balance': user_progress.currency_balances["💎"]
-#                })
-#            else:
-#                return jsonify({'error': 'User progress not found'}), 404
-#        else:
-#            return jsonify({'error': payment.error}), 400
-
-#    except Exception as e:
-#        logger.error(f"Error processing PayPal payment: {str(e)}")
-#        return jsonify({'error': str(e)}), 500
-
-#@app.route('/api/purchase/diamonds/cancel') #Removed route
-#def diamond_purchase_cancel():
-#    """Handle cancelled PayPal payment"""
-#    return jsonify({
-#        'success': False,
-#        'message': 'Diamond purchase cancelled'
-#    })
 
 @app.route('/api/currency/trade', methods=['POST'])
 def trade_currency():
@@ -1309,11 +1224,8 @@ def make_choice():
                 }), 400
 
             # Spend diamonds and record transaction
-            success = user_progress.spend_currency(
-                currency_requirements,
-                'choice',
-                f'Custom choice: {custom_choice[:50]}...' if len(custom_choice) > 50 else custom_choice
-            )
+            success = process_currency_transaction(user_progress, currency_requirements, 'choice',
+                                                   f'Custom choice: {custom_choice[:50]}...' if len(custom_choice) > 50 else custom_choice)
             if not success:
                 return jsonify({'error': 'Failed to process currency transaction'}), 500
 
@@ -1332,12 +1244,9 @@ def make_choice():
                 }), 400
 
             # Spend currency and record transaction
-            success = user_progress.spend_currency(
-                choice.currency_requirements,
-                'choice',
-                f'Story choice: {choice.choice_text[:50]}...' if len(choice.choice_text) > 50 else choice.choice_text,
-                choice.node_id
-            )
+            success = process_currency_transaction(user_progress, choice.currency_requirements, 'choice',
+                                                   f'Story choice: {choice.choice_text[:50]}...' if len(choice.choice_text) > 50 else choice.choice_text,
+                                                   choice.node_id)
             if not success:
                 return jsonify({'error': 'Failed to process currency transaction'}), 500
 
