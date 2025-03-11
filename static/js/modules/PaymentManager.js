@@ -1,12 +1,12 @@
-/**
- * Payment Manager Module - PAYPAL INTEGRATION REMOVED
- */
-import UIUtils from './UIUtils.js';
-import CurrencyManager from './CurrencyManager.js';
 
+/**
+ * Payment Manager Module
+ */
 export default {
-    // Empty implementation since PayPal was removed
+    /**
+     * Initialize payment integrations
+     */
     initializePayPal() {
-        console.log('PayPal integration disabled');
+        console.log('Payment integration disabled');
     }
 };
