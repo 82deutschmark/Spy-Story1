@@ -536,184 +536,112 @@ def fail_mission_route(mission_id):
 
 @api_bp.route('/reanalyze/<int:image_id>', methods=['POST'])
 def reanalyze_image(image_id):
-    """API endpoint to reanalyze an existing image"""
+    """Reanalyze an existing image using OpenAI"""
     try:
-        # Get the image from the database
-        image = ImageAnalysis.query.get_or_404(image_id)
-
-        # Get the preserve_relations option
         data = request.json or {}
         preserve_relations = data.get('preserve_relations', True)
 
-        # Check for OpenAI API key
-        if not os.environ.get("OPENAI_API_KEY"):
-            return jsonify({'error': 'OpenAI API key not configured. Please add it to your Replit Secrets.'}), 500
+        # Get the image from the database
+        image = ImageAnalysis.query.get_or_404(image_id)
 
-        # Get the original image URL
-        image_url = image.image_url
-
-        # Analyze the artwork using OpenAI
-        from services.openai_service import analyze_artwork, generate_image_description
-        analysis = analyze_artwork(image_url)
-
-        # Generate a description of the analyzed image
-        description = generate_image_description(analysis)
-
+        # Store related stories if we need to preserve relations
+        related_stories = []
         if preserve_relations:
-            # Keep existing story relationships
-            stories = image.stories.all()
+            related_stories = [story.id for story in image.stories]
 
-        # Extract image metadata
-        metadata = analysis.get('image_metadata', {})
+        # Reanalyze the image
+        logger.info(f"Reanalyzing image: {image_id}")
+        # Assuming openai_service is defined elsewhere and analyze_image is a function within it.
+        from services.openai_service import analyze_image # Added import statement
+        analysis = analyze_image(image.image_url)
 
-        # Determine if it's a character or scene
-        is_character = image.image_type == 'character'
+        if not analysis:
+            return jsonify({'error': 'Failed to reanalyze image'}), 500
 
-        # Extract character details if this is a character image
-        character_data = analysis.get('character', {})
-
-        # Get character name from various possible fields
-        character_name = None
-        if is_character:
-            if 'character' in analysis and isinstance(analysis['character'], dict):
-                if 'name' in analysis['character']:
-                    character_name = analysis['character'].get('name')
-
-            if not character_name:
-                if 'character_name' in analysis:
-                    character_name = analysis.get('character_name')
-                elif 'name' in analysis:
-                    character_name = analysis.get('name')
-
-            if not character_name:
-                # Preserve existing name if no new name is found
-                character_name = image.character_name
-
-        # Handle the 'name' field
-        name = character_name if is_character else analysis.get('setting', 'Unnamed Scene')
-
-        # Extract traits and plot lines
-        character_traits = None
-        if is_character:
-            if 'character_traits' in analysis:
-                character_traits = analysis.get('character_traits')
-            elif 'personality_traits' in analysis:
-                character_traits = analysis.get('personality_traits')
-            elif 'character' in analysis and 'character_traits' in character_data:
-                character_traits = character_data.get('character_traits')
-            elif 'character' in analysis and 'personality_traits' in character_data:
-                character_traits = character_data.get('personality_traits')
-
-        # Personality traits for consistency
-        personality_traits = character_traits
-
-        character_role = None
-        if is_character:
-            if 'character' in analysis and 'role' in character_data:
-                character_role = character_data.get('role')
-            else:
-                character_role = analysis.get('role')
-
-            # Standardize character role
-            valid_roles = ['undetermined', 'villain', 'neutral', 'mission-giver']
-
-            if character_role is None or character_role == '':
-                character_role = 'undetermined'
-            elif character_role.lower() == 'antagonist' or character_role.lower() == 'villain':
-                character_role = 'villain'
-            elif character_role.lower() == 'protagonist' or character_role.lower() == 'hero':
-                character_role = 'neutral'
-            elif character_role.lower() == 'mission giver':
-                character_role = 'mission-giver'
-            elif character_role.lower() not in valid_roles:
-                character_role = 'undetermined'
-            else:
-                character_role = character_role.lower()
-
-        plot_lines = None
-        if is_character:
-            if 'plot_lines' in analysis:
-                plot_lines = analysis.get('plot_lines')
-            elif 'potential_plot_lines' in analysis:
-                plot_lines = analysis.get('potential_plot_lines')
-            elif 'character' in analysis and 'plot_lines' in character_data:
-                plot_lines = character_data.get('plot_lines')
-            elif 'character' in analysis and 'potential_plot_lines' in character_data:
-                plot_lines = character_data.get('potential_plot_lines')
-
-        # Get backstory if available
-        backstory = None
-        if is_character:
-            if 'backstory' in analysis:
-                # Handle both string and array formats
-                backstory_data = analysis.get('backstory')
-                if isinstance(backstory_data, list):
-                    backstory = backstory_data
-                else:
-                    backstory = [backstory_data] if backstory_data else []
-                # Convert list to JSON-compatible format
-                backstory = json.dumps(backstory)
-            elif 'character' in analysis and 'backstory' in character_data:
-                backstory_data = character_data.get('backstory')
-                if isinstance(backstory_data, list):
-                    backstory = backstory_data
-                else:
-                    backstory = [backstory_data] if backstory_data else []
-                # Convert list to JSON-compatible format
-                backstory = json.dumps(backstory)
-
-        # Get description if available
-        description_text = None
-        if 'description' in analysis:
-            description_text = analysis.get('description')
-        elif is_character and 'character' in analysis and 'description' in character_data:
-            description_text = character_data.get('description')
-
-        # Update the existing image with new analysis
-        image.image_width = metadata.get('width', image.image_width)
-        image.image_height = metadata.get('height', image.image_height)
-        image.image_format = metadata.get('format', image.image_format)
-        image.image_size_bytes = metadata.get('size_bytes', image.image_size_bytes)
+        # Update analysis result in the database
         image.analysis_result = analysis
-        image.name = name
 
-        if is_character:
-            image.character_name = character_name
-            image.character_traits = character_traits
-            image.personality_traits = personality_traits
-            image.character_role = character_role
-            image.role = character_role
-            image.plot_lines = plot_lines
-            image.potential_plot_lines = plot_lines
-            image.backstory = backstory
-            image.description = description_text
-        else:
-            image.scene_type = analysis.get('scene_type', image.scene_type)
-            image.setting = analysis.get('setting', image.setting)
-            image.setting_description = analysis.get('setting_description', image.setting_description)
-            image.story_fit = analysis.get('story_fit', image.story_fit)
-            image.dramatic_moments = analysis.get('dramatic_moments', image.dramatic_moments)
-            image.description = description_text
+        # Update image fields based on the analysis
+        if 'image_type' in analysis:
+            image.image_type = analysis['image_type'].lower()
 
-        # Commit changes
+        if 'name' in analysis:
+            image.name = analysis['name']
+            image.character_name = analysis['name']
+        elif 'character_name' in analysis:
+            image.name = analysis['character_name']
+            image.character_name = analysis['character_name']
+
+        # Update character role with validation
+        if 'role' in analysis:
+            role = analysis['role'].lower()
+            valid_roles = ['protagonist', 'antagonist', 'neutral', 'villain', 'hero', 'mission giver']
+            if role in valid_roles:
+                image.role = role
+
+        # Update description
+        if 'description' in analysis:
+            image.description = analysis['description']
+
+        # Handle character traits
+        if 'character_traits' in analysis and isinstance(analysis['character_traits'], list):
+            image.character_traits = analysis['character_traits']
+            image.personality_traits = analysis['character_traits']
+        elif 'personality_traits' in analysis and isinstance(analysis['personality_traits'], list):
+            image.personality_traits = analysis['personality_traits']
+            image.character_traits = analysis['personality_traits']
+
+        # Handle plot lines
+        if 'plot_lines' in analysis and isinstance(analysis['plot_lines'], list):
+            image.plot_lines = analysis['plot_lines']
+        elif 'potential_plot_lines' in analysis and isinstance(analysis['potential_plot_lines'], list):
+            image.plot_lines = analysis['potential_plot_lines']
+
+        # Handle scene specific fields
+        if image.image_type == 'scene':
+            if 'scene_type' in analysis:
+                image.scene_type = analysis['scene_type']
+            if 'setting' in analysis:
+                image.setting = analysis['setting']
+            if 'dramatic_moments' in analysis and isinstance(analysis['dramatic_moments'], list):
+                image.dramatic_moments = analysis['dramatic_moments']
+
+        # Save changes to the database
         db.session.commit()
-        logger.info(f"Reanalyzed image: {image.id}")
+        logger.info(f"Reanalyzed image: {image_id}")
 
-        if preserve_relations and 'stories' in locals():
-            # Restore story relationships if needed
-            for story in stories:
-                if story not in image.stories:
-                    image.stories.append(story)
+        # Restore relations if needed
+        if preserve_relations and related_stories:
+            from models import Story # Added import statement
+            for story_id in related_stories:
+                story = Story.query.get(story_id)
+                if story and image not in story.images:
+                    story.images.append(image)
             db.session.commit()
+
+        # Prepare a complete analysis object for the frontend that includes all fields
+        complete_analysis = {
+            'id': image.id,
+            'name': image.name,
+            'character_name': image.character_name,
+            'image_type': image.image_type,
+            'description': image.description,
+            'image_url': image.image_url,
+            'role': image.role,
+            'character_traits': image.character_traits or [],
+            'personality_traits': image.personality_traits or [],
+            'plot_lines': image.plot_lines or [],
+            'scene_type': image.scene_type,
+            'setting': image.setting,
+            'dramatic_moments': image.dramatic_moments or [],
+            'created_at': str(image.created_at)
+        }
 
         return jsonify({
             'success': True,
             'message': 'Image reanalyzed successfully',
-            'image_id': image.id,
-            'analysis': analysis,
-            'description': description
+            'analysis': complete_analysis
         })
-
     except Exception as e:
         logger.error(f"Error reanalyzing image: {str(e)}")
         db.session.rollback()

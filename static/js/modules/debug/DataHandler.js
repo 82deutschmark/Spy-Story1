@@ -210,15 +210,7 @@ export default class DataHandler {
         const reanalyzeBtn = document.getElementById('reanalyzeImageBtn');
         if (reanalyzeBtn) {
             reanalyzeBtn.onclick = () => {
-                const reanalyzeModalEl = document.getElementById('reanalyzeConfirmModal');
-                if (reanalyzeModalEl) {
-                    const reanalyzeModal = new bootstrap.Modal(reanalyzeModalEl);
-                    document.getElementById('confirmReanalyzeBtn').onclick = () => {
-                        this.reanalyzeImage(image.id, document.getElementById('preserveRelationsCheck').checked);
-                        reanalyzeModal.hide();
-                    };
-                    reanalyzeModal.show();
-                }
+                this.reanalyzeImage(image.id, true); // Just reanalyze directly with preserveRelations=true
             };
         }
 
@@ -347,13 +339,30 @@ export default class DataHandler {
                 
                 // Update the detail view with new analysis data
                 if (response.analysis) {
-                    // Find the modal handler to update the form
-                    const modalHandler = window.debugApp?.modalHandler;
-                    if (modalHandler) {
-                        modalHandler.populateModalWithAnalysis(response.analysis, imageId);
+                    // Update modal content display
+                    const modalContent = document.getElementById('modalContent');
+                    if (modalContent) {
+                        modalContent.textContent = JSON.stringify(response.analysis, null, 2);
                     }
                     
-                    // Update JSON display if it exists
+                    // Update edit form with new analysis data
+                    this.populateModalEditForm(response.analysis);
+                    
+                    // Enable edit mode to show the updated data
+                    const editSwitch = document.getElementById('modalEditModeSwitch');
+                    if (editSwitch) {
+                        editSwitch.checked = true;
+                        const editContainer = document.getElementById('modalEditContainer');
+                        if (editContainer) {
+                            editContainer.style.display = 'block';
+                        }
+                        const saveBtn = document.getElementById('saveAnalysisBtn');
+                        if (saveBtn) {
+                            saveBtn.style.display = 'inline-block';
+                        }
+                    }
+                    
+                    // Update JSON display if it exists (for debug)
                     const jsonDisplay = document.getElementById('analysisJson');
                     if (jsonDisplay) {
                         jsonDisplay.textContent = JSON.stringify(response.analysis, null, 2);
