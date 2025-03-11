@@ -173,11 +173,12 @@ def storyboard(story_id):
                 'traits': character_img.character_traits
             })
 
-    # Prepare story progress data for the template
+    # Prepare story progress data for the template with proper field names
     story_progress = {
         'current_story_id': user_progress.current_story_id,
         'completed_plot_arcs': user_progress.completed_plot_arcs or [],
-        'choice_history': user_progress.choice_history or []
+        'choice_history': user_progress.choice_history or [],
+        'active_missions': user_progress.active_missions or []
     }
 
     return render_template(
