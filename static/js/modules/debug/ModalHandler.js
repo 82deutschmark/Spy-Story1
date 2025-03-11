@@ -129,11 +129,69 @@ export default {
         //     // Handle errors
         //     console.error('Error updating analysis:', error);
         // });
+    },
 
+    /**
+     * Populates the modal with analysis data
+     * @param {Object} analysis - The analysis data
+     * @param {number} imageId - The ID of the image
+     */
+    populateModalWithAnalysis(analysis, imageId) {
+        // Set current image ID
+        this.currentImageId = imageId;
 
+        // Get image type
+        const isCharacter = analysis.type === 'CHARACTER' || 
+                           analysis.image_type === 'character';
+
+        // Show the appropriate form sections
+        this.toggleFormSections(isCharacter);
+
+        // Populate common fields
+        document.getElementById('modalImageId').value = imageId;
+        document.getElementById('modalDescription').value = analysis.description || '';
+
+        if (isCharacter) {
+            // Populate character fields
+            document.getElementById('modalCharacterName').value = analysis.name || analysis.character_name || '';
+
+            // Handle traits
+            const traits = analysis.personality_traits || analysis.character_traits || [];
+            document.getElementById('modalCharacterTraits').value = Array.isArray(traits) ? 
+                traits.join('\n') : traits;
+
+            // Handle role
+            document.getElementById('modalCharacterRole').value = analysis.role || analysis.character_role || 'undetermined';
+
+            // Handle plot lines
+            const plotLines = analysis.potential_plot_lines || analysis.plot_lines || [];
+            document.getElementById('modalPlotLines').value = Array.isArray(plotLines) ? 
+                plotLines.join('\n') : plotLines;
+
+            // Handle backstory if it exists
+            if (analysis.backstory) {
+                const backstory = Array.isArray(analysis.backstory) ? 
+                    analysis.backstory.join('\n') : analysis.backstory;
+                document.getElementById('modalBackstory').value = backstory;
+            }
+        } else {
+            // Populate scene fields
+            document.getElementById('modalSceneType').value = analysis.scene_type || '';
+            document.getElementById('modalSceneSetting').value = analysis.setting || '';
+
+            // Handle dramatic moments
+            const dramaticMoments = analysis.dramatic_moments || [];
+            document.getElementById('modalDramaticMoments').value = Array.isArray(dramaticMoments) ? 
+                dramaticMoments.join('\n') : dramaticMoments;
+        }
+
+        // Show the save button
+        const saveButton = document.getElementById('saveAnalysisBtn');
+        if (saveButton) saveButton.style.display = 'inline-block';
     },
     //Helper functions (assume these are defined elsewhere or added as needed)
     toggleModalFieldsByType: function(type){},
     formatArrayField: function(arr){},
-    parseArrayField: function(str){}
+    parseArrayField: function(str){},
+    toggleFormSections: function(isCharacter) {}
 };
