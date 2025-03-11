@@ -21,26 +21,60 @@ This application allows users to generate interactive stories featuring images f
 - **Virtual Currency**: Earn and spend various currencies (💎, 💵, 💷, 💶, 💴) on story choices
 - **Plot Arcs**: Track active and completed story arcs across multiple sessions
 - **Mission System**: Characters assign missions targeting villain characters
-- **Dynamic Currency System**: Choice costs now scale based on player level and story progression
+- **Dynamic Currency System**: Choice costs scale based on player level and story progression
 - **Mission Tracking**: Improved system for tracking missions across story segments
 - **Character Evolution**: Enhanced character development through story interactions
 
 ## Recent Improvements
 
+- **User Interface Enhancements**:
+  - Implemented improved CSS styling for better visual experience
+  - Enhanced story flow with better typography and spacing
+  - Added visual indicators for relationships between characters
+  - Improved character portrait displays and interactions
+  - Added character highlighting in story text with tooltips
+
+- **Character Evolution System**:
+  - Implemented robust character evolution tracking with `CharacterEvolution` model
+  - Added support for tracking character traits as they evolve through the story
+  - Enhanced relationship networks between characters
+  - Implemented plot contribution tracking for better story continuity
+  - Added character role updates based on story decisions
+
+- **Mission System Improvements**:
+  - Enhanced mission generation from story context
+  - Improved mission rewards with experience points and currency
+  - Added relationship impacts when completing missions
+  - Better integration between missions and story progression
+  - Enhanced mission UI for showing progress and status
+
+- **User Progress Integration**:
+  - Improved coordination between story generation and user progress tracking
+  - Better experience point awards for mission completion
+  - Enhanced currency transaction handling
+  - Smoother level progression with appropriate rewards
+  - Improved relationship tracking with mission givers and targets
+
+- **Story Generation Improvements**:
+  - Fixed duplicate OpenAI API calls during story generation
+  - Enhanced prompt structure for more consistent mission generation
+  - Improved character integration in generated stories
+  - Better continuity between story segments
+  - Enhanced choice generation with appropriate currency costs
+
+- **UI and UX Improvements**:
+  - Updated to a cleaner, more modern UI style
+  - Enhanced loading indicators and transitions
+  - Improved mobile responsiveness
+  - Better character information display
+  - Enhanced mission and progress tracking displays
+
 - **Database Schema Fixes**:
   - Fixed critical database column issues in the image_analysis table
   - Added missing columns: role, potential_plot_lines, backstory, description
   - Created database migration scripts to handle schema updates
-  - Implemented data synchronization between duplicate fields (role and character_role)
-  - Added comprehensive database column checking and validation
-  - Fixed SQL errors related to undefined columns
-  - Fixed syntax errors in database queries for improved stability
-
-- **Story Generation Improvements**:
-  - Fixed duplicate OpenAI API calls during story generation
-  - Optimized API usage by removing redundant image analysis during story creation
-  - Ensured custom options provided by users are properly saved to the database
-  - Enhanced the story generation process to be more efficient
+  - Implemented data synchronization between duplicate fields
+  - Enhanced database column checking and validation
 
 - **Currency System Enhancements**:
   - Implemented dynamic pricing for story choices based on player level
@@ -49,38 +83,12 @@ This application allows users to generate interactive stories featuring images f
   - Removed restrictions on currency exchanges for better gameplay fluidity
   - Simplified currency display by showing balances only in the Progress UI
 
-- **Mission System Improvements**:
-  - Enhanced mission tracking and database integration
-  - Fixed mission generation to include different mission givers for variety
-  - Ensured missions are properly recognized and extracted from stories
-  - Added proper tracking of mission parameters in the database
-  - Fixed relationships between missions and story nodes
-
-- **Character Evolution Refinements**:
-  - Improved character evolution tracking across story sessions
-  - Enhanced relationship network development through story interactions
-  - Fixed plot contributions tracking for character development
-  - Ensured character roles are properly applied and tracked
-
-- **Database Management**:
-  - Added migrations to fix unused tables and missing data
-  - Implemented proper tracking of story nodes and connections
-  - Fixed issues with character and mission relationships
-  - Enhanced data persistence across story sessions
-
-- **Earlier Improvements**:
-  - Backend Route Refactoring with modular components and blueprint registration
-  - JavaScript Modularization with ES6 modules for better maintainability
-  - Debug Interface Improvements for better workflow and data editing
-  - Character System Enhancements with standardized roles
-  - Gameplay Features including mission tracking and virtual currencies
-  - Technical Improvements to resolve dependencies and timing issues
-
-- **UI Improvements**:
-  - Streamlined currency display in the interface
-  - Improved progress tracking visualization
-  - Enhanced story choice presentation
-  - Light color theme for Progress UI for better readability
+- **Technical Debt Reduction**:
+  - Modularized JavaScript codebase using ES6 modules
+  - Refactored backend routes with blueprint registration
+  - Enhanced debug interfaces for better workflow
+  - Fixed timing issues between services
+  - Improved error handling across the application
 
 ## Technology Stack
 
@@ -141,6 +149,20 @@ PAYPAL_SECRET=your_paypal_secret
 3. Purchase premium options using diamonds (💎)
 4. View your progress and character relationships in the progress panel
 
+### Missions
+
+1. Receive missions from character mission-givers in the story
+2. Complete missions to earn rewards (currency and XP)
+3. Build relationships with characters through mission success/failure
+4. Track your mission progress in the mission panel
+
+### Character Relationships
+
+1. Build relationships with characters through story choices
+2. Improve relations with mission givers by completing missions
+3. View relationship status in the character panel
+4. Unlock new storylines based on relationship status
+
 ### Using Debug Tools
 
 1. Navigate to `/debug` endpoint
@@ -150,16 +172,21 @@ PAYPAL_SECRET=your_paypal_secret
 
 ## Project Structure
 
-- `app.py`: Main application file with Flask routes
-- `routes.py`: Modularized route handlers
-- `models.py`: Database models (SQLAlchemy)
+- `app.py`: Main application file
+- `routes/`: Modularized route handlers
+- `models/`: Database models (SQLAlchemy)
+  - `user.py`: User progress and gamification
+  - `character.py`: Character evolution system
+  - `missions.py`: Mission tracking system
 - `migrations/`: Database migration scripts
-  - `add_mission_system.py`: Database migration for mission tracking features
 - `services/`: 
-  - `openai_service.py`: OpenAI API integration (contains artwork analysis prompts)
-  - `story_maker.py`: Story generation logic (contains the core story generation prompts)
-  - `mission_generator.py`: Mission creation and tracking system
+  - `openai_service.py`: OpenAI API integration
+  - `story_maker.py`: Story generation logic
+  - `mission_generator.py`: Mission creation and tracking
+  - `character_evolution_service.py`: Character development tracking
 - `static/`: CSS and JavaScript files
+  - `js/modules/`: Modularized JavaScript components
+  - `css/custom.css`: Custom styling for the application
 - `templates/`: HTML templates
 - `api/`: API endpoints for potential Unity integration
 
@@ -167,26 +194,14 @@ PAYPAL_SECRET=your_paypal_secret
 
 The application uses two main AI prompts:
 
-1. **Story Generation Prompt** - Located in `services/story_maker.py` in the `generate_story()` function (around lines 90-140):
-  
-   - Includes character details, narrative style guidelines, and formatting requirements
-
-2. **Artwork Analysis Prompt** - Located in `services/openai_service.py` in the `analyze_artwork()` function (around lines 90-130):
-   - Instructs ChatGPT how to analyze uploaded character images for the adventure story
-   - Specifies the format for character trait extraction and response formatting
-
-## API Endpoints
-
-- `/generate`: Analyze an image with AI
-- `/generate_story`: Generate a story segment
-- `/api/db/health-check`: Check database health
-- `/api/unity/*`: Endpoints for Unity game integration
+1. **Story Generation Prompt** - Located in `services/story_maker.py` in the `generate_story()` function
+2. **Artwork Analysis Prompt** - Located in `services/openai_service.py` in the `analyze_artwork()` function
 
 ## Character Universe
 
-The story universe is set in a high-stakes, sexy dramatic international spy network in the year 2070. The world is in a state of emergency with charismatic but incompetent protagonists who are more interested in partying and romance than saving the world.
+The story universe is set in a high-stakes, sexy dramatic international spy network in the year 2040. The world is in a state of emergency with charismatic but incompetent protagonists who are more interested in partying and romance than saving the world.
 
-## Known Issues and Future Improvements
+## Future Improvements
 
 - **PayPal Integration**: Complete payment processing for diamond purchases
 - **UI/UX Refinements**: Further improve the user interface for character selection
@@ -194,6 +209,9 @@ The story universe is set in a high-stakes, sexy dramatic international spy netw
 - **Mobile Responsiveness**: Improve the mobile experience
 - **Achievement System**: Implement unlockable achievements for players
 - **Interactive Map**: Add a visual map showing story locations and mission objectives
+- **Character Customization**: Allow users to customize protagonist appearance and traits
+- **Social Sharing**: Enable sharing of story moments on social media
+- **Audio Elements**: Add background music and sound effects for enhanced immersion
 
 ## Credits
 
