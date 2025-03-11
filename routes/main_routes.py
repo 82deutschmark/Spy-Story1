@@ -126,6 +126,11 @@ def storyboard(story_id):
     story = StoryGeneration.query.get_or_404(story_id)
     story_data = json.loads(story.generated_story)
     user_progress = get_or_create_user_progress()
+    
+    # Update user progress to reflect current story
+    user_progress.current_story_id = story_id
+    db.session.commit()
+    logger.debug(f"Updated user progress with current_story_id: {story_id}")
 
     # Get random scene for background
     background_image = get_random_scene_background()
@@ -168,13 +173,21 @@ def storyboard(story_id):
                 'traits': character_img.character_traits
             })
 
+    # Prepare story progress data for the template
+    story_progress = {
+        'current_story_id': user_progress.current_story_id,
+        'completed_stories': user_progress.completed_stories or [],
+        'choices_made': user_progress.choices_made or []
+    }
+
     return render_template(
         'storyboard.html',
         story=story_data,
         story_id=story_id,
         character_images=character_images,
         background_image=background_image,
-        user_progress=user_progress
+        user_progress=user_progress,
+        story_progress=story_progress
     )
 
 @main_bp.route('/generate_story', methods=['POST'])
