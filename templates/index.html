@@ -2,10 +2,9 @@
 <html data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
-
-<script type="module" src="/static/js/main.js"></script>
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="paypal-client-id" content="{{ paypal_client_id }}">
+    <script type="module" src="/static/js/main.js"></script>
     <title>Choose Your Own Adventure</title>
     <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -227,16 +226,16 @@
                                     <h5 class="mb-0">Player Stats</h5>
                                 </div>
                                 <div class="card-body">
-                                    <p><strong>Level:</strong> {{ user_progress.level }}</p>
-                                    <p><strong>XP:</strong> {{ user_progress.experience_points }}</p>
-                                    <p><strong>Next Level:</strong> {{ user_progress.experience_points // 100 + 1 }}</p>
+                                    <p><strong>Level:</strong> <span data-progress="level">{{ user_progress.level }}</span></p>
+                                    <p><strong>XP:</strong> <span data-progress="experience_points">{{ user_progress.experience_points }}</span></p>
+                                    <p><strong>Next Level:</strong> <span data-progress="next_level">{{ user_progress.experience_points // 100 + 1 }}</span></p>
                                     <div class="progress mb-3">
                                         <div class="progress-bar bg-success" role="progressbar" style="width: {{ (user_progress.experience_points % 100) }}%" 
                                             aria-valuenow="{{ user_progress.experience_points % 100 }}" aria-valuemin="0" aria-valuemax="100">
                                             {{ user_progress.experience_points % 100 }}%
                                         </div>
                                     </div>
-                                    <p><strong>Choices Made:</strong> {{ user_progress.choice_history|length if user_progress.choice_history else 0 }}</p>
+                                    <p><strong>Choices Made:</strong> <span data-progress="choices_made">{{ user_progress.choice_history|length if user_progress.choice_history else 0 }}</span></p>
                                 </div>
                             </div>
                         </div>

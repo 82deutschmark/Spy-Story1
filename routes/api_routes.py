@@ -733,3 +733,119 @@ def trade_currency():
     except Exception as e:
         logger.error(f"Error trading currency: {str(e)}")
         return jsonify({'error': str(e)}), 500
+import os
+import json
+import logging
+from flask import Blueprint, jsonify, request, session
+from models import UserProgress, Mission
+from utils.db_utils import get_or_create_user_progress
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+# Create Blueprint
+api_bp = Blueprint('api', __name__, url_prefix='/api')
+
+@api_bp.route('/user-progress')
+def get_user_progress():
+    """Get current user progress data"""
+    if 'user_id' not in session:
+        return jsonify({
+            'success': False,
+            'error': 'No user session'
+        }), 401
+    
+    try:
+        user_progress = get_or_create_user_progress(session['user_id'])
+        
+        # Convert to dictionary for JSON serialization
+        progress_data = {
+            'user_id': user_progress.user_id,
+            'level': user_progress.level,
+            'experience_points': user_progress.experience_points,
+            'choice_history': user_progress.choice_history or [],
+            'achievements_earned': user_progress.achievements_earned or [],
+            'active_plot_arcs': user_progress.active_plot_arcs or [],
+            'completed_plot_arcs': user_progress.completed_plot_arcs or [],
+            'active_missions': user_progress.active_missions or [],
+            'completed_missions': user_progress.completed_missions or [],
+            'failed_missions': user_progress.failed_missions or [],
+            'encountered_characters': user_progress.encountered_characters or {},
+            'currency_balances': user_progress.currency_balances or {}
+        }
+        
+        return jsonify({
+            'success': True,
+            'user_progress': progress_data
+        })
+    except Exception as e:
+        logger.error(f"Error getting user progress: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@api_bp.route('/mission/<int:mission_id>')
+def get_mission_details(mission_id):
+    """Get details for a specific mission"""
+    if 'user_id' not in session:
+        return jsonify({
+            'success': False,
+            'error': 'No user session'
+        }), 401
+    
+    try:
+        # Get the mission from database
+        mission = Mission.query.get(mission_id)
+        if not mission:
+            return jsonify({
+                'success': False,
+                'error': f'Mission {mission_id} not found'
+            }), 404
+        
+        # Check if this mission belongs to the current user
+        user_progress = get_or_create_user_progress(session['user_id'])
+        if mission_id not in (user_progress.active_missions or []) and \
+           mission_id not in (user_progress.completed_missions or []) and \
+           mission_id not in (user_progress.failed_missions or []):
+            return jsonify({
+                'success': False,
+                'error': 'Access denied to this mission'
+            }), 403
+        
+        # Convert mission data to dictionary
+        mission_data = {
+            'id': mission.id,
+            'title': mission.title,
+            'description': mission.description,
+            'objective': mission.objective,
+            'difficulty': mission.difficulty,
+            'status': mission.status,
+            'deadline': mission.deadline,
+            'reward': mission.reward_description,
+            'giver': mission.mission_giver,
+            'target': mission.target_character,
+            'progress': mission.completion_percentage,
+            'created_at': mission.created_at.isoformat() if mission.created_at else None,
+            'updates': []
+        }
+        
+        # Add mission progress updates if they exist
+        if mission.progress_updates:
+            for update in mission.progress_updates:
+                mission_data['updates'].append({
+                    'title': update.get('title', 'Update'),
+                    'description': update.get('description', ''),
+                    'date': update.get('timestamp', '')
+                })
+        
+        return jsonify({
+            'success': True,
+            'mission': mission_data
+        })
+    except Exception as e:
+        logger.error(f"Error getting mission details: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
