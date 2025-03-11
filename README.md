@@ -27,12 +27,16 @@ This application allows users to generate interactive stories featuring images f
 ## Recent Improvements
 
 - **Technical Fixes and Optimizations**:
-  - Completed removal of PayPal integration and related code to simplify codebase
-  - Fixed JavaScript loading issues in storyboard template
+  - Completely removed PayPal integration and related code to simplify codebase
+  - Fixed JavaScript loading issues in storyboard and debug templates
   - Resolved modal positioning problems in HTML structure
   - Fixed user progress display in the adventure interface
   - Eliminated JavaScript errors related to duplicate script loading
   - Implemented modular payment system for future payment methods
+  - Corrected `UserProgress` attribute references from `completed_stories` to `completed_plot_arcs`
+  - Fixed incorrect references to `choices_made` to use `choice_history` instead
+  - Updated utility functions to use correct attribute names for user progress
+  - Ensured consistent terminology in templates and server code
 
 - **User Interface Enhancements**:
   - Implemented improved CSS styling for better visual experience
