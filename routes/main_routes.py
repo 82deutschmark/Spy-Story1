@@ -53,18 +53,25 @@ def check_paypal_config():
 
 def get_random_scene_background():
     """Get a random scene image suitable for background"""
-    scene = ImageAnalysis.query.filter(
-        ImageAnalysis.image_type == 'scene',
-        ImageAnalysis.image_width > ImageAnalysis.image_height
-    ).order_by(db.func.random()).first()
-
-    # Fallback if no scene images with right dimensions exist
-    if not scene:
+    try:
+        # Try filtering by dimension first
         scene = ImageAnalysis.query.filter(
-            ImageAnalysis.image_type == 'scene'
+            ImageAnalysis.image_type == 'scene',
+            ImageAnalysis.image_width > ImageAnalysis.image_height
         ).order_by(db.func.random()).first()
-
-    return scene.image_url if scene else None
+        
+        # Fallback if no scene images with right dimensions exist
+        if not scene:
+            scene = ImageAnalysis.query.filter(
+                ImageAnalysis.image_type == 'scene'
+            ).order_by(db.func.random()).first()
+        
+        return scene.image_url if scene else None
+        
+    except Exception as e:
+        logger.error(f"Error getting random scene background: {str(e)}")
+        # Return None on any error to ensure the application doesn't crash
+        return None
 
 @main_bp.route('/')
 def index():
