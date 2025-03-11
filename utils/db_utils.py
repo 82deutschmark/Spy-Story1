@@ -44,7 +44,10 @@ def get_or_create_user_progress(session_user_id: str) -> UserProgress:
                 "💶": 5000,  # Euros
                 "💴": 5000,  # Yen
                 "💵": 5000,  # Dollars
-            }
+            },
+            choice_history=[],           # Use choice_history instead of choices_made
+            completed_plot_arcs=[],      # Use completed_plot_arcs instead of completed_stories
+            active_plot_arcs=[]          # Initialize active_plot_arcs
         )
         db.session.add(user_progress)
         safe_commit()
