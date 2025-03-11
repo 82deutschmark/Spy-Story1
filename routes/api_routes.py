@@ -618,7 +618,7 @@ def trade_currency():
     """Trade between different currency types"""
     from utils.currency_utils import process_transaction
     from utils.validation_utils import validate_currency_amount
-    
+
     try:
         data = request.json
         from_currency = data.get('from_currency')
@@ -668,3 +668,27 @@ def trade_currency():
     except Exception as e:
         logger.error(f"Error trading currency: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/user-progress', methods=['GET'])
+def get_user_progress():
+    """API endpoint to get user progress"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'error': 'User not logged in'}), 401
+
+    user_progress = UserProgress.query.filter_by(user_id=user_id).first()
+    if not user_progress:
+        return jsonify({'success': False, 'error': 'User progress not found'}), 404
+
+    return jsonify({
+        'success': True,
+        'data': {
+            'level': user_progress.level,
+            'experience_points': user_progress.experience_points,
+            'completed_plot_arcs': user_progress.completed_plot_arcs if user_progress.completed_plot_arcs else [],
+            'choice_history': user_progress.choice_history if user_progress.choice_history else [],
+            'active_missions': user_progress.active_missions if user_progress.active_missions else [],
+            'completed_missions': user_progress.completed_missions if user_progress.completed_missions else [],
+            'currency_balances': user_progress.currency_balances if user_progress.currency_balances else {}
+        }
+    })
