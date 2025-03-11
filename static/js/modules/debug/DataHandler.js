@@ -335,10 +335,10 @@ export default class DataHandler {
         }
     }
 
-    async reanalyzeImage(imageId, preserveRelations) {
+    async reanalyzeImage(imageId, preserveRelations = true) {
         try {
             DebugUtils.showToast('Processing', 'Reanalyzing image...');
-            const response = await DebugAPI.post(`/debug/reanalyze-image/${imageId}`, {
+            const response = await DebugAPI.post(`/api/reanalyze/${imageId}`, {
                 preserve_relations: preserveRelations
             });
 
