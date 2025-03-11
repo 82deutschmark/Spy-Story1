@@ -1332,3 +1332,18 @@ h1, h2, h3, .story-title, .character-name {
     overflow: hidden;
     box-shadow: var(--box-shadow);
 }
+
+/* Ensure progress modal text is black and visible */
+#progressModal .card-body p,
+#progressModal .card-body strong {
+    color: #000000 !important;
+    font-weight: 500;
+}
+
+#progressModal .modal-body {
+    color: #000000;
+}
+
+#progressModal .card-body {
+    color: #000000;
+}
