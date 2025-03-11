@@ -1335,7 +1335,9 @@ h1, h2, h3, .story-title, .character-name {
 
 /* Ensure progress modal text is black and visible */
 #progressModal .card-body p,
-#progressModal .card-body strong {
+#progressModal .card-body strong,
+#progressModal .text-muted,
+#progressModal .card-text .text-muted {
     color: #000000 !important;
     font-weight: 500;
 }
