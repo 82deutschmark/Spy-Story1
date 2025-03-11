@@ -291,10 +291,10 @@ def generate_story_route():
         selected_ids = [img.id for img in selected_images]
         additional_chars_query = ImageAnalysis.query.filter_by(image_type='character') \
             .filter(~ImageAnalysis.id.in_(selected_ids)) \
-            .filter(ImageAnalysis.character_name.isnot(None)) \  # Only get characters with names
+            .filter(ImageAnalysis.character_name.isnot(None)) \
             .order_by(db.func.random()) \
             .limit(3) \
-            .all()
+            .all()  # Only get characters with names
 
         for char in additional_chars_query:
             # Use only data already in the database, no analysis needed
