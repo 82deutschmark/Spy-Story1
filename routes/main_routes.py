@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 # Create Blueprint
 main_bp = Blueprint('main', __name__)
 
-def get_or_create_user_progress():
-    """Get or create user progress record for the current session"""
+def get_or_create_user_progress(protagonist_name=None):
+    """Get or create user progress record for the current session.  Now optionally takes protagonist_name."""
     if 'user_id' not in session:
         session['user_id'] = str(uuid.uuid4())
         logger.debug(f"Created new user session with ID: {session['user_id']}")
@@ -32,7 +32,8 @@ def get_or_create_user_progress():
                 "💶": 5000,  # Euros
                 "💴": 5000,  # Yen
                 "💵": 5000,  # Dollars
-            }
+            },
+            protagonist_name=protagonist_name # Added protagonist name
         )
         db.session.add(user_progress)
         db.session.commit()
@@ -126,7 +127,7 @@ def storyboard(story_id):
     story = StoryGeneration.query.get_or_404(story_id)
     story_data = json.loads(story.generated_story)
     user_progress = get_or_create_user_progress()
-    
+
     # Update user progress to reflect current story
     user_progress.current_story_id = story_id
     db.session.commit()
@@ -196,7 +197,7 @@ def generate_story_route():
     """Generate a new story or continue an existing one"""
     from utils.validation_utils import validate_story_parameters, validate_string_length
     from utils.currency_utils import process_transaction
-    
+
     try:
         # Get form data
         data = request.form
@@ -209,14 +210,14 @@ def generate_story_route():
         previous_story_id = data.get('story_id')
         story_context = data.get('story_context', '')
 
-        # Get user progress
-        user_progress = get_or_create_user_progress()
+        # Get user progress with protagonist name for identification
+        user_progress = get_or_create_user_progress(protagonist_name)
 
         # Validate input parameters
         is_valid, errors = validate_story_parameters(data)
         if not is_valid:
             return jsonify({'error': 'Invalid story parameters', 'details': errors}), 400
-            
+
         # Validate character selection
         if not selected_image_ids:
             logger.error("No character selected - missing selected_images[] in form data")
@@ -225,7 +226,7 @@ def generate_story_route():
         if len(selected_image_ids) < 1:
             logger.error(f"No characters selected, got {len(selected_image_ids)}")
             return jsonify({'error': 'Please select at least one character for your story'}), 400
-            
+
         # Check if this is a custom choice and process currency requirement
         if custom_choice:
             # Validate custom choice text length
@@ -237,7 +238,7 @@ def generate_story_route():
             )
             if not is_valid:
                 return jsonify({'error': error}), 400
-                
+
             # Process currency transaction
             currency_requirements = {'💎': 100}
             description = f'Custom choice: {custom_choice[:50]}...' if len(custom_choice) > 50 else custom_choice
@@ -247,7 +248,7 @@ def generate_story_route():
                 description=description,
                 currency_requirements=currency_requirements
             )
-            
+
             if not success:
                 return jsonify({'error': error_message}), 400
 

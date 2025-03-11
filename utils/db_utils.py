@@ -22,20 +22,46 @@ def safe_commit() -> bool:
         logger.error(f"Database commit error: {str(e)}")
         return False
 
-def get_or_create_user_progress(session_user_id: str) -> UserProgress:
+def get_or_create_user_progress(session_user_id: str, protagonist_name: str = None) -> UserProgress:
     """
     Get an existing user progress record or create a new one.
+    Can look up by both session ID and protagonist name.
     
     Args:
         session_user_id: User ID from session
+        protagonist_name: Optional protagonist name to lookup existing users
         
     Returns:
         UserProgress object
     """
+    user_progress = None
+    
+    # First try to find by session ID
     user_progress = UserProgress.query.filter_by(user_id=session_user_id).first()
     
+    # If protagonist name provided and no user found by session ID, try finding by name
+    if not user_progress and protagonist_name:
+        # Look in the game_state JSONB field for protagonist_name
+        user_progress = UserProgress.query.filter(
+            UserProgress.game_state.contains({"protagonist_name": protagonist_name})
+        ).first()
+        
+        if user_progress:
+            logger.info(f"Found existing user by protagonist name: {protagonist_name}")
+            # Update the user_id to match the current session
+            # This allows the user to continue their story on a different device/browser
+            user_progress.user_id = session_user_id
+            safe_commit()
+    
+    # If still no user progress found, create a new one
     if not user_progress:
         logger.debug(f"Creating new user progress for ID: {session_user_id}")
+        
+        # Initialize game_state with protagonist name if provided
+        game_state = {}
+        if protagonist_name:
+            game_state["protagonist_name"] = protagonist_name
+        
         user_progress = UserProgress(
             user_id=session_user_id,
             currency_balances={
@@ -47,7 +73,8 @@ def get_or_create_user_progress(session_user_id: str) -> UserProgress:
             },
             choice_history=[],           # Use choice_history instead of choices_made
             completed_plot_arcs=[],      # Use completed_plot_arcs instead of completed_stories
-            active_plot_arcs=[]          # Initialize active_plot_arcs
+            active_plot_arcs=[],         # Initialize active_plot_arcs
+            game_state=game_state        # Set game_state with protagonist name if available
         )
         db.session.add(user_progress)
         safe_commit()
@@ -55,7 +82,15 @@ def get_or_create_user_progress(session_user_id: str) -> UserProgress:
     else:
         logger.debug(f"Found existing user progress for ID: {session_user_id}")
         
-    return user_progress
+        # Update protagonist name in game_state if provided and different from current
+        if protagonist_name and (not user_progress.game_state or 
+                               user_progress.game_state.get("protagonist_name") != protagonist_name):
+            if not user_progress.game_state:
+                user_progress.game_state = {}
+            user_progress.game_state["protagonist_name"] = protagonist_name
+            safe_commit()
+        
+    returnn user_progress
 
 def record_currency_transaction(
     user_id: str,
