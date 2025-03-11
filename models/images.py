@@ -1,44 +1,54 @@
-from datetime import datetime
-from .base import db
-from sqlalchemy.dialects.postgresql import JSONB
-import logging
 
-logger = logging.getLogger(__name__)
+from models.base import db
+import json
+from sqlalchemy.dialects.postgresql import JSONB
+
+# Association table for many-to-many relationship between stories and images
+story_images = db.Table('story_images',
+    db.Column('story_id', db.Integer, db.ForeignKey('story_generation.id'), primary_key=True),
+    db.Column('image_id', db.Integer, db.ForeignKey('image_analysis.id'), primary_key=True)
+)
 
 class ImageAnalysis(db.Model):
-    """Model for storing analyzed character or scene images"""
+    """Model for storing image analysis results"""
+    __tablename__ = 'image_analysis'
+    
     id = db.Column(db.Integer, primary_key=True)
     image_url = db.Column(db.String(1024), nullable=False)
     image_width = db.Column(db.Integer)
     image_height = db.Column(db.Integer)
-    image_format = db.Column(db.String(16))
+    image_format = db.Column(db.String(50))
     image_size_bytes = db.Column(db.Integer)
-    image_type = db.Column(db.String(32))  # 'character' or 'scene'
-    analysis_result = db.Column(JSONB)  # Full analysis from OpenAI
-
-    # Character-specific fields
-    character_name = db.Column(db.String(255))  # Character name field
-    character_traits = db.Column(JSONB)  # Array of character traits
-    character_role = db.Column(db.String(32))  # 'mission-giver', 'villain', or 'neutral'
-    # Note: role column may not exist in some database instances
-    # Instead of removing it, we'll add a synchronization mechanism in the setter method
-
-    # Plot lines
-    plot_lines = db.Column(JSONB)  # Array of plot line suggestions
-    potential_plot_lines = db.Column(JSONB)  # Duplicate of plot_lines for compatibility
-
-    # Character background
-    backstory = db.Column(JSONB)  # Array of backstory elements
-
-    # Description
-    description = db.Column(db.Text)  # Character or scene description
-
-    # Scene-specific fields
-    scene_type = db.Column(db.String(64))  # E.g., 'narrative', 'choice', 'action'
-    setting = db.Column(db.String(255))  # Setting of the scene
-    setting_description = db.Column(db.Text)  # Detailed description of the setting
-    story_fit = db.Column(db.String(255))  # How well the scene fits in the story
-    dramatic_moments = db.Column(JSONB)  # Array of dramatic moments in the scene
-
+    image_type = db.Column(db.String(50), index=True)  # 'character', 'scene', etc.
+    analysis_result = db.Column(JSONB)
+    
+    # Add the missing 'name' column
+    name = db.Column(db.String(255))
+    
+    # Character specific fields
+    character_name = db.Column(db.String(255))
+    character_traits = db.Column(JSONB)
+    personality_traits = db.Column(JSONB)
+    character_role = db.Column(db.String(100))
+    role = db.Column(db.String(100))  # Duplicate of character_role for compatibility
+    plot_lines = db.Column(JSONB)
+    potential_plot_lines = db.Column(JSONB)
+    backstory = db.Column(db.Text)
+    description = db.Column(db.Text)
+    
+    # Scene specific fields
+    scene_type = db.Column(db.String(100))
+    setting = db.Column(db.String(255))
+    setting_description = db.Column(db.Text)
+    story_fit = db.Column(JSONB)
+    dramatic_moments = db.Column(JSONB)
+    
     # Timestamps
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=db.func.now())
+    
+    # Relationships
+    stories = db.relationship('StoryGeneration', secondary=story_images, 
+                              backref=db.backref('images', lazy='dynamic'))
+    
+    def __repr__(self):
+        return f'<ImageAnalysis {self.id}: {self.image_type}>'
