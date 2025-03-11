@@ -1528,11 +1528,13 @@ def trade_currency():
 
         logger.debug(f"Trade request: {from_currency} -> {to_currency}, amount: {amount}")
 
-        # Get exchange rates based on the new rules
+        # Get exchange rates based on the new rules (diamonds can be converted to any currency)
         rates = {
-            "💎": {  # Diamonds can only be converted to EUR and YEN
+            "💎": {  # Diamonds can be converted to any currency
                 "💶": 1000,    # 1 diamond = 1000 EUR
                 "💴": 150000,  # 1 diamond = 150000 YEN
+                "💵": 1100,    # 1 diamond = 1100 USD
+                "💷": 850,     # 1 diamond = 850 GBP
             },
             "💶": {  # EUR to other currencies (except diamonds)
                 "💴": 150,     # 1 EUR = 150 YEN
@@ -1556,12 +1558,7 @@ def trade_currency():
             }
         }
 
-        # Check if the conversion is allowed
-        if from_currency == "💎" and to_currency not in ["💶", "💴"]:
-            return jsonify({
-                'error': 'Diamonds can only be converted to Euros (💶) or Yen (💴)'
-            }), 400
-
+        # Check if converting to diamonds (only restriction we'll keep)
         if to_currency == "💎":
             return jsonify({
                 'error': 'Cannot convert other currencies to diamonds'
