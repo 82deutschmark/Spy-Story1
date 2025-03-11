@@ -42,13 +42,7 @@ def get_or_create_user_progress():
 
     return user_progress
 
-@main_bp.before_request
-def check_paypal_config():
-    """Log PayPal configuration status before each request"""
-    paypal_client_id = os.environ.get('PAYPAL_CLIENT_ID')
-    logger.debug(f"PayPal Client ID available: {bool(paypal_client_id)}")
-    if not paypal_client_id:
-        logger.warning("PayPal Client ID is missing from environment variables")
+# PayPal check removed
 
 def get_random_scene_background():
     """Get a random scene image suitable for background"""
@@ -123,8 +117,7 @@ def index():
         story_options=story_options,
         images=image_data,
         background_image=background_image,
-        user_progress=user_progress,
-        paypal_client_id=os.environ.get('PAYPAL_CLIENT_ID')
+        user_progress=user_progress
     )
 
 @main_bp.route('/storyboard/<int:story_id>')
@@ -181,8 +174,7 @@ def storyboard(story_id):
         story_id=story_id,
         character_images=character_images,
         background_image=background_image,
-        user_progress=user_progress,
-        paypal_client_id=os.environ.get('PAYPAL_CLIENT_ID')
+        user_progress=user_progress
     )
 
 @main_bp.route('/generate_story', methods=['POST'])

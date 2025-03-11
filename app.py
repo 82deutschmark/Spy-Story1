@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from database import db
 from flask_cors import CORS
 import logging
-import paypalrestsdk
+#import paypalrestsdk #Removed import
 from decimal import Decimal
 import uuid
 
@@ -70,10 +70,12 @@ def get_or_create_user_progress():
 @app.before_request
 def check_paypal_config():
     """Log PayPal configuration status before each request"""
-    paypal_client_id = os.environ.get('PAYPAL_CLIENT_ID')
-    logger.debug(f"PayPal Client ID available: {bool(paypal_client_id)}")
-    if not paypal_client_id:
-        logger.warning("PayPal Client ID is missing from environment variables")
+    #paypal_client_id = os.environ.get('PAYPAL_CLIENT_ID') #Removed
+    #logger.debug(f"PayPal Client ID available: {bool(paypal_client_id)}") #Removed
+    #if not paypal_client_id: #Removed
+    #    logger.warning("PayPal Client ID is missing from environment variables") #Removed
+    pass #Placeholder to avoid error
+
 
 # Create database tables
 with app.app_context():
@@ -145,8 +147,8 @@ def index():
         story_options=story_options,
         images=image_data,
         background_image=background_image,
-        user_progress=user_progress,
-        paypal_client_id=os.environ.get('PAYPAL_CLIENT_ID')
+        user_progress=user_progress
+        #paypal_client_id=os.environ.get('PAYPAL_CLIENT_ID') #Removed
     )
 
 
@@ -229,8 +231,8 @@ def storyboard(story_id):
         story=story_data,
         character_images=character_images,
         background_image=background_image,
-        user_progress=user_progress,
-        paypal_client_id=os.environ.get('PAYPAL_CLIENT_ID')
+        user_progress=user_progress
+        #paypal_client_id=os.environ.get('PAYPAL_CLIENT_ID') #Removed
     )
 
 @app.route('/generate_story', methods=['POST'])
@@ -781,39 +783,39 @@ def db_health_check():
 
         # Check for potential issues
         issues = []
-        
+
         # Check for orphaned images
         if orphaned_images > 0:
             issues.append({
                 'severity': 'warning',
                 'message': f'Found {orphaned_images} images not associated with any story.'
             })
-        
+
         # Check for empty stories
         if empty_stories > 0:
             issues.append({
                 'severity': 'error',
                 'message': f'Found {empty_stories} stories with no content.'
             })
-        
+
         # Check for characters without names
         unnamed_characters = ImageAnalysis.query.filter(
             (ImageAnalysis.image_type == 'character') & 
             ((ImageAnalysis.character_name.is_(None)) | (ImageAnalysis.character_name == ''))
         ).count()
-        
+
         if unnamed_characters > 0:
             issues.append({
                 'severity': 'warning',
                 'message': f'Found {unnamed_characters} character images without names.'
             })
-        
+
         # Check for characters without roles
         characters_without_roles = ImageAnalysis.query.filter(
             (ImageAnalysis.image_type == 'character') & 
             ((ImageAnalysis.character_role.is_(None)) | (ImageAnalysis.character_role == ''))
         ).count()
-        
+
         if characters_without_roles > 0:
             issues.append({
                 'severity': 'warning',
@@ -1085,104 +1087,104 @@ def reanalyze_image(image_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/purchase/diamonds', methods=['POST'])
-def create_diamond_purchase():
-    """Create a PayPal payment for diamond purchase"""
-    try:
-        # Configure PayPal SDK
-        paypalrestsdk.configure({
-            "mode": "sandbox",  # or "live" for production
-            "client_id": os.environ.get("PAYPAL_CLIENT_ID"),
-            "client_secret": os.environ.get("PAYPAL_SECRET")
-        })
+#@app.route('/api/purchase/diamonds', methods=['POST']) #Removed route
+#def create_diamond_purchase():
+#    """Create a PayPal payment for diamond purchase"""
+#    try:
+#        # Configure PayPal SDK
+#        paypalrestsdk.configure({
+#            "mode": "sandbox",  # or "live" for production
+#            "client_id": os.environ.get("PAYPAL_CLIENT_ID"),
+#            "client_secret": os.environ.get("PAYPAL_SECRET")
+#        })
 
-        # Get purchase amount from request
-        data = request.json
-        diamond_amount = data.get('amount', 100)  # Default to 100 diamonds
-        price_per_diamond = Decimal('0.01')  # $0.01 per diamond
-        total_price = diamond_amount * price_per_diamond
+#        # Get purchase amount from request
+#        data = request.json
+#        diamond_amount = data.get('amount', 100)  # Default to 100 diamonds
+#        price_per_diamond = Decimal('0.01')  # $0.01 per diamond
+#        total_price = diamond_amount * price_per_diamond
 
-        # Create PayPal payment
-        payment = paypalrestsdk.Payment({
-            "intent": "sale",
-            "payer": {
-                "payment_method": "paypal"
-            },
-            "transactions": [{
-                "amount": {
-                    "total": str(total_price),
-                    "currency": "USD"
-                },
-                "description": f"Purchase {diamond_amount} diamonds 💎"
-            }],
-            "redirect_urls": {
-                "return_url": f"https://{os.environ.get('REPLIT_DOMAINS').split(',')[0]}/api/purchase/diamonds/success",
-                "cancel_url": f"https://{os.environ.get('REPLIT_DOMAINS').split(',')[0]}/api/purchase/diamonds/cancel"
-            }
-        })
+#        # Create PayPal payment
+#        payment = paypalrestsdk.Payment({
+#            "intent": "sale",
+#            "payer": {
+#                "payment_method": "paypal"
+#            },
+#            "transactions": [{
+#                "amount": {
+#                    "total": str(total_price),
+#                    "currency": "USD"
+#                },
+#                "description": f"Purchase {diamond_amount} diamonds 💎"
+#            }],
+#            "redirect_urls": {
+#                "return_url": f"https://{os.environ.get('REPLIT_DOMAINS').split(',')[0]}/api/purchase/diamonds/success",
+#                "cancel_url": f"https://{os.environ.get('REPLIT_DOMAINS').split(',')[0]}/api/purchase/diamonds/cancel"
+#            }
+#        })
 
-        if payment.create():
-            # Get approval URL
-            for link in payment.links:
-                if link.method == "REDIRECT":
-                    redirect_url = link.href
-                    return jsonify({
-                        'success': True,
-                        'redirect_url': redirect_url,
-                        'payment_id': payment.id
-                    })
-        else:
-            return jsonify({'error': payment.error}), 400
+#        if payment.create():
+#            # Get approval URL
+#            for link in payment.links:
+#                if link.method == "REDIRECT":
+#                    redirect_url = link.href
+#                    return jsonify({
+#                        'success': True,
+#                        'redirect_url': redirect_url,
+#                        'payment_id': payment.id
+#                    })
+#        else:
+#            return jsonify({'error': payment.error}), 400
 
-    except Exception as e:
-        logger.error(f"Error creating PayPal payment: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+#    except Exception as e:
+#        logger.error(f"Error creating PayPal payment: {str(e)}")
+#        return jsonify({'error': str(e)}), 500
 
-@app.route('/api/purchase/diamonds/success')
-def diamond_purchase_success():
-    """Handle successful PayPal payment and credit diamonds"""
-    try:
-        payment_id = request.args.get('paymentId')
-        payer_id = request.args.get('PayerID')
+#@app.route('/api/purchase/diamonds/success') #Removed route
+#def diamond_purchase_success():
+#    """Handle successful PayPal payment and credit diamonds"""
+#    try:
+#        payment_id = request.args.get('paymentId')
+#        payer_id = request.args.get('PayerID')
 
-        payment = paypalrestsdk.Payment.find(payment_id)
+#        payment = paypalrestsdk.Payment.find(payment_id)
 
-        if payment.execute({"payer_id": payer_id}):
-            # Get diamond amount from transaction description
-            description = payment.transactions[0].description
-            diamond_amount = int(''.join(filter(str.isdigit, description)))
+#        if payment.execute({"payer_id": payer_id}):
+#            # Get diamond amount from transaction description
+#            description = payment.transactions[0].description
+#            diamond_amount = int(''.join(filter(str.isdigit, description)))
 
-            # Get user progress
-            user_id = request.args.get('user_id')  # Or get from session
-            user_progress = UserProgress.query.filter_by(user_id=user_id).first()
+#            # Get user progress
+#            user_id = request.args.get('user_id')  # Or get from session
+#            user_progress = UserProgress.query.filter_by(user_id=user_id).first()
 
-            if user_progress:
-                # Update diamond balance
-                current_balance = user_progress.currency_balances.get("💎", 0)
-                user_progress.currency_balances["💎"] = current_balance + diamond_amount
-                db.session.commit()
+#            if user_progress:
+#                # Update diamond balance
+#                current_balance = user_progress.currency_balances.get("💎", 0)
+#                user_progress.currency_balances["💎"] = current_balance + diamond_amount
+#                db.session.commit()
 
-                return jsonify({
-                    'success': True,
-                    'message': f'Successfully purchased {diamond_amount} diamonds',
-                    'new_balance': user_progress.currency_balances["💎"]
-                })
-            else:
-                return jsonify({'error': 'User progress not found'}), 404
-        else:
-            return jsonify({'error': payment.error}), 400
+#                return jsonify({
+#                    'success': True,
+#                    'message': f'Successfully purchased {diamond_amount} diamonds',
+#                    'new_balance': user_progress.currency_balances["💎"]
+#                })
+#            else:
+#                return jsonify({'error': 'User progress not found'}), 404
+#        else:
+#            return jsonify({'error': payment.error}), 400
 
-    except Exception as e:
-        logger.error(f"Error processing PayPal payment: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+#    except Exception as e:
+#        logger.error(f"Error processing PayPal payment: {str(e)}")
+#        return jsonify({'error': str(e)}), 500
 
-@app.route('/api/purchase/diamonds/cancel')
-def diamond_purchase_cancel():
-    """Handle cancelled PayPal payment"""
-    return jsonify({
-        'success': False,
-        'message': 'Diamond purchase cancelled'
-    })
+#@app.route('/api/purchase/diamonds/cancel') #Removed route
+#def diamond_purchase_cancel():
+#    """Handle cancelled PayPal payment"""
+#    return jsonify({
+#        'success': False,
+#        'message': 'Diamond purchase cancelled'
+#    })
 
 @app.route('/api/currency/trade', methods=['POST'])
 def trade_currency():
