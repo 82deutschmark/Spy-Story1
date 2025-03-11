@@ -112,6 +112,9 @@ def generate_story(
     if not api_key:
         raise ValueError("OpenAI API key not found. Please add it to your environment variables.")
 
+    # Log the story generation request to help debug
+    logger.debug(f"Generating story with conflict: {conflict}, setting: {setting}, using character: {character_info.get('name') if character_info else 'None'}")
+    
     # Use custom values if provided, otherwise use selected options
     final_conflict = custom_conflict or conflict
     final_setting = custom_setting or setting
