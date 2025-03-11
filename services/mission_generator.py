@@ -18,11 +18,11 @@ DIFFICULTY_LEVELS = {
 
 # Base reward amounts for different currencies
 BASE_REWARDS = {
-    '💎': 25,  # Diamonds are valuable
-    '💵': 500,  # Dollars
-    '💷': 400,  # Pounds
-    '💶': 450,  # Euros
-    '💴': 5000  # Yen
+    '💎': 1,  # Diamonds are valuable
+    '💵': 1500,  # Dollars
+    '💷': 1400,  # Pounds
+    '💶': 1450,  # Euros
+    '💴': 150000  # Yen
 }
 
 # Mission objective templates
