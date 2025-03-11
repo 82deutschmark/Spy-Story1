@@ -34,6 +34,13 @@ This application allows users to generate interactive stories featuring images f
   - Implemented data synchronization between duplicate fields (role and character_role)
   - Added comprehensive database column checking and validation
   - Fixed SQL errors related to undefined columns
+  - Fixed syntax errors in database queries for improved stability
+
+- **Story Generation Improvements**:
+  - Fixed duplicate OpenAI API calls during story generation
+  - Optimized API usage by removing redundant image analysis during story creation
+  - Ensured custom options provided by users are properly saved to the database
+  - Enhanced the story generation process to be more efficient
 
 - **Currency System Enhancements**:
   - Implemented dynamic pricing for story choices based on player level
