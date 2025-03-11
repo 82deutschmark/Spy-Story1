@@ -27,6 +27,14 @@ This application allows users to generate interactive stories featuring images f
 
 ## Recent Improvements
 
+- **Database Schema Fixes**:
+  - Fixed critical database column issues in the image_analysis table
+  - Added missing columns: role, potential_plot_lines, backstory, description
+  - Created database migration scripts to handle schema updates
+  - Implemented data synchronization between duplicate fields (role and character_role)
+  - Added comprehensive database column checking and validation
+  - Fixed SQL errors related to undefined columns
+
 - **Currency System Enhancements**:
   - Implemented dynamic pricing for story choices based on player level
   - Adjusted choice costs to start at $500 with additional costs based on complexity
