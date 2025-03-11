@@ -21,7 +21,7 @@ class ImageAnalysis(db.Model):
     character_name = db.Column(db.String(255))  # Character name field
     character_traits = db.Column(JSONB)  # Array of character traits
     character_role = db.Column(db.String(32))  # 'mission-giver', 'villain', or 'neutral'
-    role = db.Column(db.String(32))  # Alias for character_role used by the form
+    # No separate 'role' column - we'll use character_role instead
     
     # Plot lines
     plot_lines = db.Column(JSONB)  # Array of plot line suggestions
