@@ -645,9 +645,18 @@ def reanalyze_image(image_id):
         backstory = None
         if is_character:
             if 'backstory' in analysis:
-                backstory = analysis.get('backstory')
+                # Handle both string and array formats
+                backstory_data = analysis.get('backstory')
+                if isinstance(backstory_data, list):
+                    backstory = backstory_data
+                else:
+                    backstory = [backstory_data] if backstory_data else []
             elif 'character' in analysis and 'backstory' in character_data:
-                backstory = character_data.get('backstory')
+                backstory_data = character_data.get('backstory')
+                if isinstance(backstory_data, list):
+                    backstory = backstory_data
+                else:
+                    backstory = [backstory_data] if backstory_data else []
 
         # Get description if available
         description_text = None
@@ -697,7 +706,8 @@ def reanalyze_image(image_id):
             'success': True,
             'message': 'Image reanalyzed successfully',
             'image_id': image.id,
-            'analysis': analysis
+            'analysis': analysis,
+            'description': description
         })
 
     except Exception as e:

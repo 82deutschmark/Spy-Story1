@@ -344,12 +344,24 @@ export default class DataHandler {
 
             if (response.success) {
                 DebugUtils.showToast('Success', 'Image reanalyzed successfully');
-                this.loadImages();
-                const detailsModal = document.getElementById('detailsModal');
-                if (detailsModal) {
-                    const modal = bootstrap.Modal.getInstance(detailsModal);
-                    if (modal) modal.hide();
+                
+                // Update the detail view with new analysis data
+                if (response.analysis) {
+                    // Find the modal handler to update the form
+                    const modalHandler = window.debugApp?.modalHandler;
+                    if (modalHandler) {
+                        modalHandler.populateModalWithAnalysis(response.analysis, imageId);
+                    }
+                    
+                    // Update JSON display if it exists
+                    const jsonDisplay = document.getElementById('analysisJson');
+                    if (jsonDisplay) {
+                        jsonDisplay.textContent = JSON.stringify(response.analysis, null, 2);
+                    }
                 }
+                
+                // Refresh the image list
+                this.loadImages();
             } else {
                 DebugUtils.showToast('Error', response.message || 'Failed to reanalyze image', true);
             }
