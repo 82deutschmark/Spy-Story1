@@ -342,6 +342,53 @@ def save_analysis():
 
         # Create new ImageAnalysis record
         image_analysis = ImageAnalysis(
+            image_url=image_url,
+            image_width=metadata.get('width'),
+            image_height=metadata.get('height'),
+            image_format=metadata.get('format'),
+            image_size_bytes=metadata.get('size_bytes'),
+            image_type='character' if is_character else 'scene',
+            analysis_result=analysis,
+            name=name,  # Set the name field for compatibility
+            character_name=character_name,  
+            character_traits=character_traits,
+            personality_traits=personality_traits,  # Add personality_traits for consistency
+            character_role=character_role,
+            role=character_role,  # Set role field for compatibility
+            plot_lines=plot_lines,
+            potential_plot_lines=plot_lines,  # Set potential_plot_lines for compatibility
+            backstory=backstory,
+            description=description,
+            scene_type=analysis.get('scene_type') if not is_character else None,
+            setting=analysis.get('setting') if not is_character else None,
+            setting_description=analysis.get('setting_description') if not is_character else None,
+            story_fit=analysis.get('story_fit') if not is_character else None,
+            dramatic_moments=analysis.get('dramatic_moments') if not is_character else None
+        )
+
+        db.session.add(image_analysis)
+        db.session.commit()
+        logger.info(f"Saved image analysis: {image_analysis.id}")
+
+        return jsonify({
+            'success': True,
+            'message': 'Analysis saved to database',
+            'image_id': image_analysis.id
+        })
+
+    except Exception as e:
+        logger.error(f"Error saving analysis: {str(e)}")
+        # Rollback and close the session to release any locks
+        try:
+            db.session.rollback()
+        except:
+            pass
+
+        # Make sure we return a valid JSON response
+        return jsonify({
+            'success': False,
+            'error': f"Database error: {str(e)}"
+        }), 500
 
 @debug_bp.route('/images/<int:image_id>', methods=['DELETE'])
 def delete_image(image_id):
@@ -450,51 +497,3 @@ def delete_all_stories():
         logger.error(f"Error deleting all stories: {str(e)}")
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-
-            image_url=image_url,
-            image_width=metadata.get('width'),
-            image_height=metadata.get('height'),
-            image_format=metadata.get('format'),
-            image_size_bytes=metadata.get('size_bytes'),
-            image_type='character' if is_character else 'scene',
-            analysis_result=analysis,
-            name=name,  # Set the name field for compatibility
-            character_name=character_name,  
-            character_traits=character_traits,
-            personality_traits=personality_traits,  # Add personality_traits for consistency
-            character_role=character_role,
-            role=character_role,  # Set role field for compatibility
-            plot_lines=plot_lines,
-            potential_plot_lines=plot_lines,  # Set potential_plot_lines for compatibility
-            backstory=backstory,
-            description=description,
-            scene_type=analysis.get('scene_type') if not is_character else None,
-            setting=analysis.get('setting') if not is_character else None,
-            setting_description=analysis.get('setting_description') if not is_character else None,
-            story_fit=analysis.get('story_fit') if not is_character else None,
-            dramatic_moments=analysis.get('dramatic_moments') if not is_character else None
-        )
-
-        db.session.add(image_analysis)
-        db.session.commit()
-        logger.info(f"Saved image analysis: {image_analysis.id}")
-
-        return jsonify({
-            'success': True,
-            'message': 'Analysis saved to database',
-            'image_id': image_analysis.id
-        })
-
-    except Exception as e:
-        logger.error(f"Error saving analysis: {str(e)}")
-        # Rollback and close the session to release any locks
-        try:
-            db.session.rollback()
-        except:
-            pass
-
-        # Make sure we return a valid JSON response
-        return jsonify({
-            'success': False,
-            'error': f"Database error: {str(e)}"
-        }), 500
