@@ -1,4 +1,3 @@
-
 # Choose Your Own Adventure
 
 An interactive storytelling application that lets users create custom adventures.
