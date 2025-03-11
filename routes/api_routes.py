@@ -526,6 +526,13 @@ def fail_mission_route(mission_id):
         if not success:
             return jsonify({'error': 'Failed to mark mission as failed'}), 500
 
+        return jsonify({
+            'success': True,
+            'message': 'Mission marked as failed'
+        })
+    except Exception as e:
+        logger.error(f"Error failing mission: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/reanalyze/<int:image_id>', methods=['POST'])
 def reanalyze_image(image_id):
@@ -533,58 +540,58 @@ def reanalyze_image(image_id):
     try:
         # Get the image from the database
         image = ImageAnalysis.query.get_or_404(image_id)
-        
+
         # Get the preserve_relations option
         data = request.json or {}
         preserve_relations = data.get('preserve_relations', True)
-        
+
         # Check for OpenAI API key
         if not os.environ.get("OPENAI_API_KEY"):
             return jsonify({'error': 'OpenAI API key not configured. Please add it to your Replit Secrets.'}), 500
-            
+
         # Get the original image URL
         image_url = image.image_url
-        
+
         # Analyze the artwork using OpenAI
         from services.openai_service import analyze_artwork, generate_image_description
         analysis = analyze_artwork(image_url)
-        
+
         # Generate a description of the analyzed image
         description = generate_image_description(analysis)
-        
+
         if preserve_relations:
             # Keep existing story relationships
             stories = image.stories.all()
-        
+
         # Extract image metadata
         metadata = analysis.get('image_metadata', {})
-        
+
         # Determine if it's a character or scene
         is_character = image.image_type == 'character'
-        
+
         # Extract character details if this is a character image
         character_data = analysis.get('character', {})
-        
+
         # Get character name from various possible fields
         character_name = None
         if is_character:
             if 'character' in analysis and isinstance(analysis['character'], dict):
                 if 'name' in analysis['character']:
                     character_name = analysis['character'].get('name')
-                    
+
             if not character_name:
                 if 'character_name' in analysis:
                     character_name = analysis.get('character_name')
                 elif 'name' in analysis:
                     character_name = analysis.get('name')
-                    
+
             if not character_name:
                 # Preserve existing name if no new name is found
                 character_name = image.character_name
-                
+
         # Handle the 'name' field
         name = character_name if is_character else analysis.get('setting', 'Unnamed Scene')
-        
+
         # Extract traits and plot lines
         character_traits = None
         if is_character:
@@ -596,20 +603,20 @@ def reanalyze_image(image_id):
                 character_traits = character_data.get('character_traits')
             elif 'character' in analysis and 'personality_traits' in character_data:
                 character_traits = character_data.get('personality_traits')
-                
+
         # Personality traits for consistency
         personality_traits = character_traits
-        
+
         character_role = None
         if is_character:
             if 'character' in analysis and 'role' in character_data:
                 character_role = character_data.get('role')
             else:
                 character_role = analysis.get('role')
-                
+
             # Standardize character role
             valid_roles = ['undetermined', 'villain', 'neutral', 'mission-giver']
-            
+
             if character_role is None or character_role == '':
                 character_role = 'undetermined'
             elif character_role.lower() == 'antagonist' or character_role.lower() == 'villain':
@@ -622,7 +629,7 @@ def reanalyze_image(image_id):
                 character_role = 'undetermined'
             else:
                 character_role = character_role.lower()
-                
+
         plot_lines = None
         if is_character:
             if 'plot_lines' in analysis:
@@ -633,7 +640,7 @@ def reanalyze_image(image_id):
                 plot_lines = character_data.get('plot_lines')
             elif 'character' in analysis and 'potential_plot_lines' in character_data:
                 plot_lines = character_data.get('potential_plot_lines')
-                
+
         # Get backstory if available
         backstory = None
         if is_character:
@@ -641,14 +648,14 @@ def reanalyze_image(image_id):
                 backstory = analysis.get('backstory')
             elif 'character' in analysis and 'backstory' in character_data:
                 backstory = character_data.get('backstory')
-                
+
         # Get description if available
         description_text = None
         if 'description' in analysis:
             description_text = analysis.get('description')
         elif is_character and 'character' in analysis and 'description' in character_data:
             description_text = character_data.get('description')
-            
+
         # Update the existing image with new analysis
         image.image_width = metadata.get('width', image.image_width)
         image.image_height = metadata.get('height', image.image_height)
@@ -656,7 +663,7 @@ def reanalyze_image(image_id):
         image.image_size_bytes = metadata.get('size_bytes', image.image_size_bytes)
         image.analysis_result = analysis
         image.name = name
-        
+
         if is_character:
             image.character_name = character_name
             image.character_traits = character_traits
@@ -674,36 +681,28 @@ def reanalyze_image(image_id):
             image.story_fit = analysis.get('story_fit', image.story_fit)
             image.dramatic_moments = analysis.get('dramatic_moments', image.dramatic_moments)
             image.description = description_text
-            
+
         # Commit changes
         db.session.commit()
         logger.info(f"Reanalyzed image: {image.id}")
-        
+
         if preserve_relations and 'stories' in locals():
             # Restore story relationships if needed
             for story in stories:
                 if story not in image.stories:
                     image.stories.append(story)
             db.session.commit()
-            
+
         return jsonify({
             'success': True,
             'message': 'Image reanalyzed successfully',
             'image_id': image.id,
             'analysis': analysis
         })
-        
+
     except Exception as e:
         logger.error(f"Error reanalyzing image: {str(e)}")
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-        return jsonify({
-            'success': True,
-            'message': 'Mission marked as failed'
-        })
-    except Exception as e:
-        logger.error(f"Error failing mission: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/currency/trade', methods=['POST'])
