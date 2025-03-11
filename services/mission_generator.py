@@ -1,10 +1,10 @@
 
-import random
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple, Any
 import logging
+import re
+from datetime import datetime
+from typing import Dict, List, Optional, Any, Tuple
 
-from models import ImageAnalysis, Mission, UserProgress
+from models import ImageAnalysis, Mission, UserProgress, StoryGeneration
 from database import db
 
 logger = logging.getLogger(__name__)
@@ -18,227 +18,125 @@ DIFFICULTY_LEVELS = {
 
 # Base reward amounts for different currencies
 BASE_REWARDS = {
-    '💎': 1,  # Diamonds are valuable
-    '💵': 1500,  # Dollars
-    '💷': 1400,  # Pounds
-    '💶': 1450,  # Euros
+    '💎': 1,      # Diamonds are valuable
+    '💵': 1500,   # Dollars
+    '💷': 1400,   # Pounds
+    '💶': 1450,   # Euros
     '💴': 150000  # Yen
 }
 
-# Mission objective templates
-MISSION_OBJECTIVES = [
-    "Steal {item} from {target}",
-    "Infiltrate {target}'s {location} and gather intelligence",
-    "Sabotage {target}'s {plot} before it's too late",
-    "Seduce {target} to extract crucial information",
-    "Plant evidence to frame {target} for {crime}",
-    "Protect {innocent} from {target}'s assassination attempt",
-    "Intercept a secret delivery to {target}",
-    "Hack into {target}'s security system",
-    "Rescue {hostage} from {target}'s compound",
-    "Gather evidence of {target}'s involvement in {scandal}"
-]
-
-# Location templates
-LOCATIONS = [
-    "secret lair", "penthouse", "private island", "underground bunker", 
-    "luxury yacht", "mountain hideout", "skyscraper office", "private jet",
-    "research facility", "mansion"
-]
-
-# Item templates
-ITEMS = [
-    "experimental weapon", "encryption key", "secret formula", "confidential files",
-    "prototype device", "valuable artwork", "incriminating evidence", "rare artifact",
-    "security codes", "cryptocurrency wallet"
-]
-
-# Plot templates
-PLOTS = [
-    "world domination scheme", "heist plan", "blackmail operation", "terrorist plot",
-    "money laundering scheme", "cryptocurrency fraud", "election rigging plan",
-    "corporate espionage operation", "kidnapping scheme", "assassination plot"
-]
-
-# Crime templates
-CRIMES = [
-    "corporate espionage", "art theft", "illegal weapons dealing", "money laundering",
-    "data breach", "insider trading", "blackmail", "counterfeiting", "smuggling",
-    "identity theft"
-]
-
-# Scandal templates
-SCANDALS = [
-    "corruption scandal", "embezzlement scheme", "offshore account fraud",
-    "political bribery", "illegal surveillance operation", "data manipulation plot",
-    "human experimentation", "environmental disaster cover-up", "tax evasion scheme",
-    "illegal drug manufacturing"
-]
-
-def get_mission_giver_characters() -> List[ImageAnalysis]:
-    """Get characters who can give missions (neutral or mission giver role)"""
-    return ImageAnalysis.query.filter(
-        (ImageAnalysis.image_type == 'character') &
-        ((ImageAnalysis.character_role == 'neutral') | 
-         (ImageAnalysis.character_role == 'mission giver') |
-         (ImageAnalysis.character_role.is_(None)))
-    ).all()
-
-def get_villain_characters() -> List[ImageAnalysis]:
-    """Get characters with villain role"""
-    return ImageAnalysis.query.filter(
-        (ImageAnalysis.image_type == 'character') &
-        (ImageAnalysis.character_role == 'villain')
-    ).all()
-
-def generate_mission(user_id: str, story_id: Optional[int] = None) -> Optional[Mission]:
-    """Generate a new mission for the user"""
+def extract_mission_details(story_text: str) -> Optional[Dict[str, Any]]:
+    """
+    Extract mission giver, target, objective, and reward from a story.
+    
+    Args:
+        story_text (str): The story text to parse
+        
+    Returns:
+        Optional[Dict[str, Any]]: Dictionary with extracted mission details or None if extraction failed
+    """
     try:
-        # Get mission givers and villains
-        mission_givers = get_mission_giver_characters()
-        villains = get_villain_characters()
+        # Example regex patterns (can be expanded/adjusted based on story format)
+        giver_match = re.search(r'figure of (\w+ Corp|[A-Z][a-z]+)', story_text) 
+        target_match = re.search(r'on (\w+\'s) plans|against (\w+)', story_text)
+        objective_match = re.search(r'mission—(.+?)[\.\']', story_text)
+        reward_match = re.search(r'reward\?\s*(\d{1,3}(?:,\d{3})*|\d+)\s*([💎💵💷💶💴])', story_text)
+
+        giver = giver_match.group(1) if giver_match else None
+        target = target_match.group(1) if target_match and target_match.group(1) else \
+                target_match.group(2) if target_match else None
+        objective = objective_match.group(1).strip() if objective_match else "Objective not clearly specified."
         
-        if not mission_givers or not villains:
-            logger.warning(f"Cannot generate mission: no mission givers or villains available")
-            return None
+        # Clean target (if 'Ekaterina's', remove "'s")
+        if target and "'s" in target:
+            target = target.replace("'s", "")
+
+        # Parse reward
+        reward_amount = int(reward_match.group(1).replace(",", "")) if reward_match else 1500
+        reward_currency = reward_match.group(2) if reward_match else '💵'
+
+        logger.debug(f"Extracted Giver: {giver}, Target: {target}, Objective: {objective}, Reward: {reward_amount} {reward_currency}")
+
+        return {
+            "giver": giver,
+            "target": target,
+            "objective": objective,
+            "reward_amount": reward_amount,
+            "reward_currency": reward_currency
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to extract mission details: {e}")
+        return None
+
+
+def create_mission_from_story(user_id: str, story_text: str, story_id: Optional[int] = None) -> Optional[Mission]:
+    """
+    Take story text, extract mission details, and create a mission.
+    
+    Args:
+        user_id (str): ID of the user
+        story_text (str): Text of the story containing mission details
+        story_id (Optional[int]): ID of the related story
         
-        # Check if we should use characters from the current story
-        if story_id:
-            story = StoryGeneration.query.get(story_id)
-            if story and story.images:
-                # Look for mission givers in the story
-                story_mission_givers = [
-                    img for img in story.images 
-                    if img.character_role in ['mission-giver', 'neutral']
-                ]
-                
-                # Look for villains in the story
-                story_villains = [
-                    img for img in story.images 
-                    if img.character_role == 'villain'
-                ]
-                
-                # Use story characters if available
-                if story_mission_givers:
-                    mission_givers = story_mission_givers
-                    
-                if story_villains:
-                    villains = story_villains
+    Returns:
+        Optional[Mission]: Created Mission object or None if creation failed
+    """
+    details = extract_mission_details(story_text)
+    if not details:
+        logger.warning("No mission details extracted from story.")
+        return None
+
+    try:
+        # Fetch giver/target from DB based on extracted names (example logic)
+        giver = None
+        target = None
         
-        # Check if user has previous missions
-        user_progress = UserProgress.query.filter_by(user_id=user_id).first()
-        previous_mission_givers = []
-        
-        if user_progress and (user_progress.active_missions or user_progress.completed_missions):
-            # Get all missions for this user
-            all_mission_ids = []
-            if user_progress.active_missions:
-                all_mission_ids.extend(user_progress.active_missions)
-            if user_progress.completed_missions:
-                all_mission_ids.extend(user_progress.completed_missions)
-                
-            # Get all previous mission givers
-            if all_mission_ids:
-                previous_missions = Mission.query.filter(Mission.id.in_(all_mission_ids)).all()
-                previous_mission_givers = [m.giver_id for m in previous_missions if m.giver_id]
-        
-        # Filter out previously used mission givers if possible
-        filtered_givers = []
-        if previous_mission_givers and len(mission_givers) > 1:
-            filtered_givers = [g for g in mission_givers if g.id not in previous_mission_givers]
+        if details['giver']:
+            giver = ImageAnalysis.query.filter(
+                ImageAnalysis.image_type == 'character',
+                ImageAnalysis.character_name.ilike(f"%{details['giver']}%")
+            ).first()
             
-            # Only use filtered list if we have at least one option
-            if filtered_givers:
-                mission_givers = filtered_givers
-        
-        # Randomly select a mission giver and target villain
-        mission_giver = random.choice(mission_givers)
-        target = random.choice(villains)
-        
-        # Ensure mission giver and target are different characters
-        while mission_giver.id == target.id and len(mission_givers) > 1:
-            mission_giver = random.choice(mission_givers)
+        if details['target']:
+            target = ImageAnalysis.query.filter(
+                ImageAnalysis.image_type == 'character', 
+                ImageAnalysis.character_name.ilike(f"%{details['target']}%")
+            ).first()
+
+        # Fall back to None if not found
+        giver_id = giver.id if giver else None
+        target_id = target.id if target else None
+
+        # Auto-assign difficulty based on reward amount
+        difficulty = "easy"
+        if details['reward_amount'] > BASE_REWARDS[details['reward_currency']] * 1.5:
+            difficulty = "medium"
+        if details['reward_amount'] > BASE_REWARDS[details['reward_currency']] * 2.5:
+            difficulty = "hard"
             
-        # Log selected characters
-        logger.info(f"Selected mission giver: {mission_giver.character_name} (ID: {mission_giver.id})")
-        logger.info(f"Selected target villain: {target.character_name} (ID: {target.id})")
-        
-        # Select random mission parameters
-        difficulty = random.choice(list(DIFFICULTY_LEVELS.keys()))
-        reward_currency = random.choice(list(BASE_REWARDS.keys()))
-        
-        # Calculate reward based on difficulty
-        reward_amount = int(BASE_REWARDS[reward_currency] * DIFFICULTY_LEVELS[difficulty])
-        
-        # Generate random elements for mission objective
-        location = random.choice(LOCATIONS)
-        item = random.choice(ITEMS)
-        plot = random.choice(PLOTS)
-        crime = random.choice(CRIMES)
-        scandal = random.choice(SCANDALS)
-        hostage = f"Agent {chr(random.randint(65, 90))}"  # Random letter A-Z
-        innocent = f"Diplomat {chr(random.randint(65, 90))}"  # Random letter A-Z
-        
-        # Generate mission objective
-        objective_template = random.choice(MISSION_OBJECTIVES)
-        objective = objective_template.format(
-            target=target.character_name,
-            location=location,
-            item=item,
-            plot=plot,
-            crime=crime,
-            scandal=scandal,
-            hostage=hostage,
-            innocent=innocent
-        )
-        
-        # Generate mission title
-        title_templates = [
-            f"Operation: {random.choice(['Midnight', 'Shadow', 'Phoenix', 'Viper', 'Diamond', 'Cobra'])} {random.choice(['Strike', 'Protocol', 'Gambit', 'Directive'])}",
-            f"The {random.choice(['Secret', 'Hidden', 'Lost', 'Stolen', 'Forbidden'])} {random.choice(['File', 'Key', 'Code', 'Dossier', 'Identity'])}",
-            f"{target.character_name}'s {random.choice(['Downfall', 'Nemesis', 'Weakness', 'Undoing'])}",
-            f"Mission: {random.choice(['Critical', 'Impossible', 'Urgent', 'Classified', 'Top Secret'])}"
-        ]
-        title = random.choice(title_templates)
-        
-        # Generate deadline
-        deadline_days = random.randint(1, 5)
-        deadline_templates = [
-            f"You have {deadline_days} days before disaster strikes",
-            f"Complete within {deadline_days} days or face serious consequences",
-            f"The clock is ticking - {deadline_days} days until {target.character_name}'s plan succeeds",
-            f"Time sensitive: {deadline_days}-day window of opportunity"
-        ]
-        deadline = random.choice(deadline_templates)
-        
-        # Create detailed mission description
-        description_templates = [
-            "Intelligence reports indicate that {target} is planning something big. Your mission is to {objective} before it's too late. {deadline}. Success will be rewarded with {reward_amount} {reward_currency}.",
-            "We've received word that {target} is up to no good. You need to {objective} as soon as possible. {deadline}. Complete this mission successfully to earn {reward_amount} {reward_currency}.",
-            "{giver} has critical information about {target}. You must {objective} to prevent a catastrophe. {deadline}. Your reward: {reward_amount} {reward_currency}.",
-            "Attention agent: {target} poses a significant threat. Your assignment is to {objective} with utmost discretion. {deadline}. Expect {reward_amount} {reward_currency} upon completion."
-        ]
-        
-        description = random.choice(description_templates).format(
-            target=target.character_name,
-            giver=mission_giver.character_name,
-            objective=objective,
-            deadline=deadline,
-            reward_amount=reward_amount,
-            reward_currency=reward_currency
-        )
-        
-        # Create the mission
+        # Generate a title if none provided
+        title = f"Mission: {details['objective'][:30]}..." if len(details['objective']) > 30 else f"Mission: {details['objective']}"
+
+        # Create description from extracted details
+        description = f"Mission from {details['giver'] if details['giver'] else 'Unknown'} to {details['objective']}. "
+        description += f"Target: {details['target'] if details['target'] else 'Unknown'}. "
+        description += f"Reward: {details['reward_amount']} {details['reward_currency']}."
+
+        # Create deadline text
+        deadline = f"Complete within {3 if difficulty == 'hard' else 5} days"
+
+        # Create mission
         mission = Mission(
             user_id=user_id,
             title=title,
             description=description,
-            giver_id=mission_giver.id,
-            target_id=target.id,
-            objective=objective,
+            giver_id=giver_id,
+            target_id=target_id,
+            objective=details['objective'],
             difficulty=difficulty,
-            reward_currency=reward_currency,
-            reward_amount=reward_amount,
+            reward_currency=details['reward_currency'],
+            reward_amount=details['reward_amount'],
             deadline=deadline,
             story_id=story_id
         )
@@ -251,24 +149,137 @@ def generate_mission(user_id: str, story_id: Optional[int] = None) -> Optional[M
         if user_progress:
             if not user_progress.active_missions:
                 user_progress.active_missions = []
-            user_progress.active_missions.append(mission.id)
-            db.session.commit()
+            
+            if mission.id not in user_progress.active_missions:
+                user_progress.active_missions.append(mission.id)
+                db.session.commit()
         
-        logger.info(f"Generated new mission for user {user_id}: {mission.title}")
+        logger.info(f"Created mission from story for user {user_id}: {mission.title}")
         return mission
+        
+    except Exception as e:
+        logger.error(f"Error creating mission from story: {str(e)}")
+        db.session.rollback()
+        return None
+
+
+def generate_mission(user_id: str, story_id: Optional[int] = None) -> Optional[Mission]:
+    """
+    Generate a new mission for the user based on story content if available
+    
+    Args:
+        user_id (str): ID of the user
+        story_id (Optional[int]): ID of a specific story to use
+        
+    Returns:
+        Optional[Mission]: Created Mission object or None if creation failed
+    """
+    try:
+        # If story_id is provided, try to extract mission from that story
+        if story_id:
+            story = StoryGeneration.query.get(story_id)
+            if story and story.generated_story:
+                # Try to parse the JSON story content
+                try:
+                    import json
+                    story_data = json.loads(story.generated_story)
+                    
+                    # If the story has a mission field, use that directly
+                    if 'mission' in story_data and story_data['mission'] and story_data['mission'].get('title'):
+                        mission_data = story_data['mission']
+                        
+                        # Try to find target and giver characters
+                        giver_id = None
+                        target_id = None
+                        
+                        # If giver_id is provided directly
+                        if mission_data.get('giver_id') and mission_data.get('giver_id').isdigit():
+                            giver_id = int(mission_data['giver_id'])
+                        # Otherwise try to find by name
+                        elif mission_data.get('giver'):
+                            giver = ImageAnalysis.query.filter(
+                                ImageAnalysis.image_type == 'character',
+                                ImageAnalysis.character_name.ilike(f"%{mission_data['giver']}%")
+                            ).first()
+                            if giver:
+                                giver_id = giver.id
+                        
+                        # If target_id is provided directly  
+                        if mission_data.get('target_id') and mission_data.get('target_id').isdigit():
+                            target_id = int(mission_data['target_id'])
+                        # Otherwise try to find by name
+                        elif mission_data.get('target'):
+                            target = ImageAnalysis.query.filter(
+                                ImageAnalysis.image_type == 'character',
+                                ImageAnalysis.character_name.ilike(f"%{mission_data['target']}%")
+                            ).first()
+                            if target:
+                                target_id = target.id
+                                
+                        # Create the mission
+                        mission = Mission(
+                            user_id=user_id,
+                            title=mission_data.get('title', 'Untitled Mission'),
+                            description=mission_data.get('description', ''),
+                            giver_id=giver_id,
+                            target_id=target_id,
+                            objective=mission_data.get('objective', ''),
+                            difficulty=mission_data.get('difficulty', 'medium').lower(),
+                            reward_currency=mission_data.get('reward_currency', '💵'),
+                            reward_amount=int(mission_data.get('reward_amount', 1500)) if mission_data.get('reward_amount') else 1500,
+                            deadline=mission_data.get('deadline', ''),
+                            story_id=story_id
+                        )
+                        
+                        db.session.add(mission)
+                        db.session.commit()
+                        
+                        # Add to user's active missions
+                        user_progress = UserProgress.query.filter_by(user_id=user_id).first()
+                        if user_progress:
+                            if not user_progress.active_missions:
+                                user_progress.active_missions = []
+                                
+                            if mission.id not in user_progress.active_missions:
+                                user_progress.active_missions.append(mission.id)
+                                db.session.commit()
+                        
+                        logger.info(f"Created mission from story JSON for user {user_id}: {mission.title}")
+                        return mission
+                    
+                    # If no mission in the JSON, try to extract from story text
+                    if 'story' in story_data and story_data['story']:
+                        return create_mission_from_story(user_id, story_data['story'], story_id)
+                    
+                except Exception as e:
+                    logger.error(f"Error parsing story data: {str(e)}")
+                    # If JSON parsing fails, try to use the raw story text
+                    return create_mission_from_story(user_id, story.generated_story, story_id)
+            
+        # If we didn't create a mission from story, fall back to getting a recent story
+        recent_story = StoryGeneration.query.filter_by(user_id=user_id).order_by(StoryGeneration.created_at.desc()).first()
+        if recent_story and recent_story.generated_story:
+            return create_mission_from_story(user_id, recent_story.generated_story, recent_story.id)
+            
+        # If we still don't have a mission, log that we couldn't generate one
+        logger.warning(f"Could not generate mission for user {user_id}")
+        return None
         
     except Exception as e:
         logger.error(f"Error generating mission: {str(e)}")
         db.session.rollback()
         return None
 
+
 def get_user_active_missions(user_id: str) -> List[Mission]:
     """Get all active missions for a user"""
     return Mission.query.filter_by(user_id=user_id, status='active').all()
 
+
 def get_mission_by_id(mission_id: int) -> Optional[Mission]:
     """Get a mission by ID"""
     return Mission.query.get(mission_id)
+
 
 def update_mission_progress(mission_id: int, progress: int, description: Optional[str] = None) -> bool:
     """Update progress on a mission"""
@@ -277,6 +288,7 @@ def update_mission_progress(mission_id: int, progress: int, description: Optiona
         return False
     
     return mission.update_progress(progress, description)
+
 
 def complete_mission(mission_id: int, user_id: str) -> bool:
     """Mark a mission as completed and award the reward"""
@@ -347,6 +359,7 @@ def complete_mission(mission_id: int, user_id: str) -> bool:
     
     db.session.commit()
     return True
+
 
 def fail_mission(mission_id: int, user_id: str, reason: Optional[str] = None) -> bool:
     """Mark a mission as failed"""
