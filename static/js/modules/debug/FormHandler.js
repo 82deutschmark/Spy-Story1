@@ -109,4 +109,56 @@ export default class FormHandler {
             DebugUtils.showToast('Error', 'Failed to save image: ' + error.message, true);
         }
     }
+    _parseArrayField(value) {
+        return value.split(',').map(item => item.trim()).filter(item => item);
+    }
+
+    handleApplyChanges() {
+        const isCharacter = document.getElementById('imageType').value === 'character';
+
+        // Build the analysis data from form fields
+        const data = {
+            name: document.getElementById('imageName').value,
+            type: document.getElementById('imageType').value.toUpperCase(),
+            image_type: document.getElementById('imageType').value,
+            description: document.getElementById('descriptionField').value
+        };
+
+        // Add character-specific fields
+        if (isCharacter) {
+            // Add all variations of field names for maximum compatibility
+            data.role = document.getElementById('characterRole').value;
+            data.character_role = document.getElementById('characterRole').value;
+
+            const traits = this._parseArrayField(document.getElementById('characterTraits').value);
+            data.character_traits = traits;
+            data.personality_traits = traits;
+
+            const plotLines = this._parseArrayField(document.getElementById('plotLines').value);
+            data.plot_lines = plotLines;
+            data.potential_plot_lines = plotLines;
+
+            // Keep character_name consistent with name
+            data.character_name = data.name;
+        } else {
+            // Add scene-specific fields
+            data.scene_type = document.getElementById('sceneType').value;
+            data.setting = document.getElementById('sceneSetting').value;
+            data.dramatic_moments = this._parseArrayField(document.getElementById('dramaticMoments').value);
+        }
+
+        console.log("Edited form data:", data);
+
+        // Update the analysis viewer
+        this.uiModule.updateAnalysisView(data);
+
+        // Close edit form
+        document.getElementById('editModeSwitch').checked = false;
+        document.getElementById('editContainer').style.display = 'none';
+
+        // Show save button
+        this.uiModule.showSaveButton();
+
+        return false; // Prevent form submission
+    }
 }

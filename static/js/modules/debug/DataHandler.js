@@ -1,4 +1,3 @@
-
 /**
  * DataHandler.js - Data management for the debug interface
  */
@@ -15,25 +14,25 @@ export default class DataHandler {
         this.storySearchTerm = '';
         this.storyCurrentPage = 1;
     }
-    
+
     initialize() {
         this.setupEvents();
         this.loadImages();
         this.loadStories();
         console.log('Data handler initialized');
     }
-    
+
     setupEvents() {
         const refreshImagesBtn = document.getElementById('refreshImagesBtn');
         if (refreshImagesBtn) {
             refreshImagesBtn.addEventListener('click', () => this.loadImages());
         }
-        
+
         const refreshStoriesBtn = document.getElementById('refreshStoriesBtn');
         if (refreshStoriesBtn) {
             refreshStoriesBtn.addEventListener('click', () => this.loadStories());
         }
-        
+
         const imageSearchBtn = document.getElementById('imageSearchBtn');
         if (imageSearchBtn) {
             imageSearchBtn.addEventListener('click', () => {
@@ -41,7 +40,7 @@ export default class DataHandler {
                 this.searchImages(searchTerm);
             });
         }
-        
+
         const storySearchBtn = document.getElementById('storySearchBtn');
         if (storySearchBtn) {
             storySearchBtn.addEventListener('click', () => {
@@ -49,7 +48,7 @@ export default class DataHandler {
                 this.searchStories(searchTerm);
             });
         }
-        
+
         const deleteAllImagesBtn = document.getElementById('deleteAllImagesBtn');
         if (deleteAllImagesBtn) {
             deleteAllImagesBtn.addEventListener('click', () => {
@@ -58,7 +57,7 @@ export default class DataHandler {
                 }
             });
         }
-        
+
         const deleteAllStoriesBtn = document.getElementById('deleteAllStoriesBtn');
         if (deleteAllStoriesBtn) {
             deleteAllStoriesBtn.addEventListener('click', () => {
@@ -67,13 +66,13 @@ export default class DataHandler {
                 }
             });
         }
-        
+
         const runHealthCheckBtn = document.getElementById('runHealthCheckBtn');
         if (runHealthCheckBtn) {
             runHealthCheckBtn.addEventListener('click', () => this.runHealthCheck());
         }
     }
-    
+
     filterImages(filter) {
         this.currentFilter = filter;
         this.currentPage = 1;
@@ -82,26 +81,26 @@ export default class DataHandler {
             btn.classList.toggle('active', btn.getAttribute('data-filter') === filter);
         });
     }
-    
+
     searchImages(term) {
         this.searchTerm = term;
         this.currentPage = 1;
         this.loadImages();
     }
-    
+
     searchStories(term) {
         this.storySearchTerm = term;
         this.storyCurrentPage = 1;
         this.loadStories();
     }
-    
+
     async loadImages() {
         try {
             if (!this.debugUI.elements.imagesTableBody) {
                 console.error('Images table body element not found');
                 return;
             }
-            
+
             this.debugUI.elements.imagesTableBody.innerHTML = `
                 <tr>
                     <td colspan="6" class="text-center">
@@ -143,13 +142,13 @@ export default class DataHandler {
             }
         }
     }
-    
+
     renderImagesTable(images) {
         if (!this.debugUI.elements.imagesTableBody) {
             console.error('Images table body element not found');
             return;
         }
-        
+
         if (!images || images.length === 0) {
             this.debugUI.elements.imagesTableBody.innerHTML = `
                 <tr>
@@ -194,11 +193,11 @@ export default class DataHandler {
             row.querySelector('.delete-btn').addEventListener('click', () => this.deleteImage(image.id));
         });
     }
-    
+
     openImageDetails(image) {
         const modalEl = document.getElementById('detailsModal');
         if (!modalEl) return;
-        
+
         const modal = new bootstrap.Modal(modalEl);
         document.getElementById('modalImage').src = image.image_url;
         document.getElementById('modalContent').textContent = JSON.stringify(image, null, 2);
@@ -207,7 +206,7 @@ export default class DataHandler {
         editSwitch.checked = false;
         editContainer.style.display = 'none';
         this.populateModalEditForm(image);
-        
+
         const reanalyzeBtn = document.getElementById('reanalyzeImageBtn');
         if (reanalyzeBtn) {
             reanalyzeBtn.onclick = () => {
@@ -222,20 +221,20 @@ export default class DataHandler {
                 }
             };
         }
-        
+
         const saveBtn = document.getElementById('saveAnalysisBtn');
         if (saveBtn) {
             saveBtn.style.display = 'none';
             saveBtn.onclick = () => this.saveModalChanges(image.id);
         }
-        
+
         if (editSwitch) {
             editSwitch.onchange = () => {
                 editContainer.style.display = editSwitch.checked ? 'block' : 'none';
                 if (saveBtn) saveBtn.style.display = editSwitch.checked ? 'inline-block' : 'none';
             };
         }
-        
+
         const modalImageType = document.getElementById('modalImageType');
         if (modalImageType) {
             modalImageType.onchange = () => {
@@ -244,43 +243,43 @@ export default class DataHandler {
                 document.getElementById('modalSceneFields').style.display = type === 'scene' ? 'block' : 'none';
             };
         }
-        
+
         modal.show();
     }
-    
+
     populateModalEditForm(image) {
         const modalImageName = document.getElementById('modalImageName');
         const modalImageType = document.getElementById('modalImageType');
         const modalDescriptionField = document.getElementById('modalDescriptionField');
-        
+
         if (modalImageName) modalImageName.value = image.name || '';
         if (modalImageType) modalImageType.value = image.image_type || 'character';
         if (modalDescriptionField) modalDescriptionField.value = image.description || '';
-        
+
         const type = image.image_type || 'character';
         const modalCharacterFields = document.getElementById('modalCharacterFields');
         const modalSceneFields = document.getElementById('modalSceneFields');
-        
+
         if (modalCharacterFields) {
             modalCharacterFields.style.display = type === 'character' ? 'block' : 'none';
         }
-        
+
         if (modalSceneFields) {
             modalSceneFields.style.display = type === 'scene' ? 'block' : 'none';
         }
-        
+
         if (type === 'character') {
             const modalCharacterRole = document.getElementById('modalCharacterRole');
             const modalCharacterTraits = document.getElementById('modalCharacterTraits');
             const modalPlotLines = document.getElementById('modalPlotLines');
-            
+
             if (modalCharacterRole) modalCharacterRole.value = image.role || 'neutral';
-            
+
             if (modalCharacterTraits) {
                 const traits = image.personality_traits || image.character_traits || image.traits || [];
                 modalCharacterTraits.value = Array.isArray(traits) ? traits.join(', ') : '';
             }
-            
+
             if (modalPlotLines) {
                 const plotLines = image.plot_lines || image.potential_plot_lines || [];
                 modalPlotLines.value = Array.isArray(plotLines) ? plotLines.join('\n') : '';
@@ -289,17 +288,17 @@ export default class DataHandler {
             const modalSceneType = document.getElementById('modalSceneType');
             const modalSceneSetting = document.getElementById('modalSceneSetting');
             const modalDramaticMoments = document.getElementById('modalDramaticMoments');
-            
+
             if (modalSceneType) modalSceneType.value = image.scene_type || 'action';
             if (modalSceneSetting) modalSceneSetting.value = image.setting || '';
-            
+
             if (modalDramaticMoments) {
                 const dramaticMoments = image.dramatic_moments || [];
                 modalDramaticMoments.value = Array.isArray(dramaticMoments) ? dramaticMoments.join('\n') : '';
             }
         }
     }
-    
+
     async saveModalChanges(imageId) {
         try {
             const formData = {
@@ -335,7 +334,7 @@ export default class DataHandler {
             DebugUtils.showToast('Error', 'Failed to update image: ' + error.message, true);
         }
     }
-    
+
     async reanalyzeImage(imageId, preserveRelations) {
         try {
             DebugUtils.showToast('Processing', 'Reanalyzing image...');
@@ -358,7 +357,7 @@ export default class DataHandler {
             DebugUtils.showToast('Error', 'Failed to reanalyze image: ' + error.message, true);
         }
     }
-    
+
     async deleteImage(imageId) {
         if (!confirm('Are you sure you want to delete this image?')) {
             return;
@@ -377,7 +376,7 @@ export default class DataHandler {
             DebugUtils.showToast('Error', 'Failed to delete image: ' + error.message, true);
         }
     }
-    
+
     async deleteAllImages() {
         try {
             const response = await DebugAPI.delete('/debug/images');
@@ -392,14 +391,14 @@ export default class DataHandler {
             DebugUtils.showToast('Error', 'Failed to delete images: ' + error.message, true);
         }
     }
-    
+
     async loadStories() {
         try {
             if (!this.debugUI.elements.storiesTableBody) {
                 console.error('Stories table body element not found');
                 return;
             }
-            
+
             this.debugUI.elements.storiesTableBody.innerHTML = `
                 <tr>
                     <td colspan="7" class="text-center">
@@ -438,13 +437,13 @@ export default class DataHandler {
             }
         }
     }
-    
+
     renderStoriesTable(stories) {
         if (!this.debugUI.elements.storiesTableBody) {
             console.error('Stories table body element not found');
             return;
         }
-        
+
         if (!stories || stories.length === 0) {
             this.debugUI.elements.storiesTableBody.innerHTML = `
                 <tr>
@@ -487,7 +486,7 @@ export default class DataHandler {
             row.querySelector('.delete-story-btn').addEventListener('click', () => this.deleteStory(story.id));
         });
     }
-    
+
     async viewStory(storyId) {
         try {
             const response = await DebugAPI.get(`/debug/stories/${storyId}`);
@@ -495,33 +494,33 @@ export default class DataHandler {
             if (response.success) {
                 const detailsModalEl = document.getElementById('detailsModal');
                 if (!detailsModalEl) return;
-                
+
                 const modal = new bootstrap.Modal(detailsModalEl);
                 const modalLabelEl = document.getElementById('detailsModalLabel');
                 if (modalLabelEl) {
                     modalLabelEl.innerHTML = `<i class="fas fa-book me-2"></i>Story Details`;
                 }
-                
+
                 const modalImageEl = document.getElementById('modalImage');
                 if (modalImageEl) modalImageEl.style.display = 'none';
-                
+
                 const modalContentEl = document.getElementById('modalContent');
                 if (modalContentEl) {
                     modalContentEl.textContent = JSON.stringify(response.story, null, 2);
                 }
-                
+
                 const modalEditModeSwitchEl = document.getElementById('modalEditModeSwitch');
                 if (modalEditModeSwitchEl) modalEditModeSwitchEl.style.display = 'none';
-                
+
                 const modalEditContainerEl = document.getElementById('modalEditContainer');
                 if (modalEditContainerEl) modalEditContainerEl.style.display = 'none';
-                
+
                 const reanalyzeImageBtnEl = document.getElementById('reanalyzeImageBtn');
                 if (reanalyzeImageBtnEl) reanalyzeImageBtnEl.style.display = 'none';
-                
+
                 const saveAnalysisBtnEl = document.getElementById('saveAnalysisBtn');
                 if (saveAnalysisBtnEl) saveAnalysisBtnEl.style.display = 'none';
-                
+
                 modal.show();
             } else {
                 DebugUtils.showToast('Error', response.message || 'Failed to load story', true);
@@ -530,7 +529,7 @@ export default class DataHandler {
             DebugUtils.showToast('Error', 'Failed to load story: ' + error.message, true);
         }
     }
-    
+
     async deleteStory(storyId) {
         if (!confirm('Are you sure you want to delete this story?')) {
             return;
@@ -549,7 +548,7 @@ export default class DataHandler {
             DebugUtils.showToast('Error', 'Failed to delete story: ' + error.message, true);
         }
     }
-    
+
     async deleteAllStories() {
         try {
             const response = await DebugAPI.delete('/debug/stories');
@@ -564,7 +563,7 @@ export default class DataHandler {
             DebugUtils.showToast('Error', 'Failed to delete stories: ' + error.message, true);
         }
     }
-    
+
     async runHealthCheck() {
         try {
             DebugUtils.showToast('Processing', 'Running health check...');
@@ -573,22 +572,22 @@ export default class DataHandler {
             if (response.success) {
                 const totalImagesEl = document.getElementById('totalImages');
                 if (totalImagesEl) totalImagesEl.textContent = response.stats.image_count;
-                
+
                 const characterImagesEl = document.getElementById('characterImages');
                 if (characterImagesEl) characterImagesEl.textContent = response.stats.character_count;
-                
+
                 const sceneImagesEl = document.getElementById('sceneImages');
                 if (sceneImagesEl) sceneImagesEl.textContent = response.stats.scene_count;
-                
+
                 const totalStoriesEl = document.getElementById('totalStories');
                 if (totalStoriesEl) totalStoriesEl.textContent = response.stats.story_count;
-                
+
                 const orphanedImagesEl = document.getElementById('orphanedImages');
                 if (orphanedImagesEl) orphanedImagesEl.textContent = response.stats.orphaned_images;
-                
+
                 const emptyStoriesEl = document.getElementById('emptyStories');
                 if (emptyStoriesEl) emptyStoriesEl.textContent = response.stats.empty_stories;
-                
+
                 const issuesListEl = document.getElementById('issuesList');
                 const noIssuesAlertEl = document.getElementById('noIssuesAlert');
 
@@ -634,7 +633,7 @@ export default class DataHandler {
             DebugUtils.showToast('Error', 'Failed to run health check: ' + error.message, true);
         }
     }
-    
+
     async fixIssue(issueType, issueId) {
         try {
             DebugUtils.showToast('Processing', 'Fixing issue...');
@@ -655,4 +654,57 @@ export default class DataHandler {
             DebugUtils.showToast('Error', 'Failed to fix issue: ' + error.message, true);
         }
     }
+
+    // Map the analysis result to form fields
+    populateEditForm(data) {
+        console.log("Populated edit form with data:", data);
+
+        // Set name and image type
+        document.getElementById('imageName').value = data.character_name || data.name || '';
+        document.getElementById('imageType').value = data.image_type || data.type?.toLowerCase() || 'character';
+
+        // Set description
+        document.getElementById('descriptionField').value = data.description || '';
+
+        // Toggle character/scene specific fields
+        this._toggleFieldsBasedOnType(data.image_type || data.type?.toLowerCase());
+
+        // If it's a character, populate character fields
+        if ((data.image_type === 'character') || (data.type?.toUpperCase() === 'CHARACTER')) {
+            // Handle character role with fallbacks
+            const role = data.character_role || data.role || 'undetermined';
+            document.getElementById('characterRole').value = role;
+
+            // Handle character traits with fallbacks
+            const traits = data.character_traits || data.personality_traits || [];
+            document.getElementById('characterTraits').value = this._formatArrayField(traits);
+
+            // Handle plot lines with fallbacks
+            const plotLines = data.plot_lines || data.potential_plot_lines || [];
+            document.getElementById('plotLines').value = this._formatArrayField(plotLines);
+        } else {
+            // Populate scene fields
+            document.getElementById('sceneType').value = data.scene_type || 'action';
+            document.getElementById('sceneSetting').value = data.setting || '';
+            document.getElementById('dramaticMoments').value = this._formatArrayField(data.dramatic_moments);
+        }
+
+        // Return the UI module for chaining
+        return this;
+    }
+
+
+    _formatArrayField(arr) {
+        return Array.isArray(arr) ? arr.join(', ') : '';
+    }
+
+    _toggleFieldsBasedOnType(type) {
+        const characterFields = document.getElementById('modalCharacterFields');
+        const sceneFields = document.getElementById('modalSceneFields');
+        if (characterFields && sceneFields) {
+            characterFields.style.display = type === 'character' ? 'block' : 'none';
+            sceneFields.style.display = type === 'scene' ? 'block' : 'none';
+        }
+    }
+
 }
