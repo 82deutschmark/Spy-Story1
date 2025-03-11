@@ -27,11 +27,12 @@ This application allows users to generate interactive stories featuring images f
 ## Recent Improvements
 
 - **Technical Fixes and Optimizations**:
-  - Removed PayPal integration and related code to simplify codebase
+  - Completed removal of PayPal integration and related code to simplify codebase
   - Fixed JavaScript loading issues in storyboard template
   - Resolved modal positioning problems in HTML structure
   - Fixed user progress display in the adventure interface
   - Eliminated JavaScript errors related to duplicate script loading
+  - Implemented modular payment system for future payment methods
 
 - **User Interface Enhancements**:
   - Implemented improved CSS styling for better visual experience
@@ -74,6 +75,8 @@ This application allows users to generate interactive stories featuring images f
   - Improved mobile responsiveness
   - Better character information display
   - Enhanced mission and progress tracking displays
+  - Fixed text visibility issues in progress modal panels
+  - Improved CSS modularity with better organized component styles
 
 - **Database Schema Fixes**:
   - Fixed critical database column issues in the image_analysis table
