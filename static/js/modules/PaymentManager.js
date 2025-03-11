@@ -1,4 +1,3 @@
-
 /**
  * Payment Manager Module
  * Handles PayPal integration and diamond purchases
@@ -23,14 +22,25 @@ export default {
             return;
         }
 
-        if (typeof paypal === 'undefined') {
-            console.error('PayPal SDK not loaded');
-            UIUtils.showToast('Error', 'Payment system not available. Please try again later.');
-            return;
-        }
+        // Dynamically load PayPal SDK
+        const script = document.createElement('script');
+        script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=USD`;
+        script.async = true;
 
-        console.log('PayPal SDK loaded, configuring buttons...');
-        
+        script.onload = () => {
+            console.log("PayPal SDK loaded successfully");
+            this.renderPayPalButtons();
+        };
+
+        script.onerror = () => {
+            console.error("Failed to load PayPal SDK");
+            UIUtils.showToast('Error', 'Payment system not available. Please try again later.');
+        };
+
+        document.body.appendChild(script);
+        return;
+
+
         // Handle diamond package selection
         document.querySelectorAll('.diamond-package').forEach(button => {
             button.addEventListener('click', () => {
@@ -59,7 +69,7 @@ export default {
         console.log('Rendering PayPal buttons...');
         const container = document.getElementById('paypal-button-container');
         if (!container) return;
-        
+
         container.innerHTML = ''; // Clear existing buttons
 
         try {

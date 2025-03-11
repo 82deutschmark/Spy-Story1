@@ -1,4 +1,3 @@
-
 import os
 import logging
 import json
@@ -59,15 +58,15 @@ def get_random_scene_background():
             ImageAnalysis.image_type == 'scene',
             ImageAnalysis.image_width > ImageAnalysis.image_height
         ).order_by(db.func.random()).first()
-        
+
         # Fallback if no scene images with right dimensions exist
         if not scene:
             scene = ImageAnalysis.query.filter(
                 ImageAnalysis.image_type == 'scene'
             ).order_by(db.func.random()).first()
-        
+
         return scene.image_url if scene else None
-        
+
     except Exception as e:
         logger.error(f"Error getting random scene background: {str(e)}")
         # Return None on any error to ensure the application doesn't crash
@@ -143,11 +142,11 @@ def storyboard(story_id):
 
     # Add direct story images first
     for image in story.images:
-        analysis = image.analysis_result
+        analysis = image.analysis_result or {}
         character_images.append({
             'id': image.id,
             'image_url': image.image_url,
-            'name': image.character_name or analysis.get('name', ''),
+            'name': image.character_name or analysis.get('character_name', ''),
             'traits': image.character_traits
         })
 
@@ -270,7 +269,7 @@ def generate_story_route():
                 'style': 'A mysterious character',  # Default description if none exists
                 'plot_lines': img.plot_lines or []
             }
-            
+
             # Only if we already have analysis_result stored, get additional info from it
             if img.analysis_result:
                 try:
@@ -279,7 +278,7 @@ def generate_story_route():
                         char_data['style'] = analysis.get('style', char_data['style'])
                 except Exception as e:
                     logger.error(f"Error parsing stored analysis result: {str(e)}")
-                    
+
             selected_characters.append(char_data)
 
         # Use the first character as the main character for backward compatibility
