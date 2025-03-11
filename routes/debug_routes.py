@@ -342,6 +342,115 @@ def save_analysis():
 
         # Create new ImageAnalysis record
         image_analysis = ImageAnalysis(
+
+@debug_bp.route('/images/<int:image_id>', methods=['DELETE'])
+def delete_image(image_id):
+    """Delete a specific image from the database"""
+    try:
+        image = ImageAnalysis.query.get_or_404(image_id)
+        
+        # Store image details for logging
+        image_info = {
+            'id': image.id,
+            'type': image.image_type,
+            'name': image.name or image.character_name or 'Unnamed'
+        }
+        
+        # Delete the image
+        db.session.delete(image)
+        db.session.commit()
+        
+        logger.info(f"Deleted image: {image_info}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Image {image_id} deleted successfully'
+        })
+    except Exception as e:
+        logger.error(f"Error deleting image {image_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@debug_bp.route('/images', methods=['DELETE'])
+def delete_all_images():
+    """Delete all images from the database"""
+    try:
+        # Get count for logging
+        count = ImageAnalysis.query.count()
+        
+        # Delete all images
+        ImageAnalysis.query.delete()
+        db.session.commit()
+        
+        logger.info(f"Deleted all images: {count} total")
+        
+        return jsonify({
+            'success': True,
+            'message': f'All {count} images deleted successfully'
+        })
+    except Exception as e:
+        logger.error(f"Error deleting all images: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@debug_bp.route('/stories/<int:story_id>', methods=['DELETE'])
+def delete_story(story_id):
+    """Delete a specific story from the database"""
+    try:
+        story = StoryGeneration.query.get_or_404(story_id)
+        
+        # Store story details for logging
+        title = "Untitled Story"
+        if story.generated_story:
+            try:
+                story_data = json.loads(story.generated_story)
+                if isinstance(story_data, dict) and 'title' in story_data:
+                    title = story_data['title']
+            except:
+                pass
+                
+        story_info = {
+            'id': story.id,
+            'title': title
+        }
+        
+        # Delete the story
+        db.session.delete(story)
+        db.session.commit()
+        
+        logger.info(f"Deleted story: {story_info}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Story {story_id} deleted successfully'
+        })
+    except Exception as e:
+        logger.error(f"Error deleting story {story_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@debug_bp.route('/stories', methods=['DELETE'])
+def delete_all_stories():
+    """Delete all stories from the database"""
+    try:
+        # Get count for logging
+        count = StoryGeneration.query.count()
+        
+        # Delete all stories
+        StoryGeneration.query.delete()
+        db.session.commit()
+        
+        logger.info(f"Deleted all stories: {count} total")
+        
+        return jsonify({
+            'success': True,
+            'message': f'All {count} stories deleted successfully'
+        })
+    except Exception as e:
+        logger.error(f"Error deleting all stories: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
             image_url=image_url,
             image_width=metadata.get('width'),
             image_height=metadata.get('height'),
