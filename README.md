@@ -37,6 +37,10 @@ This application allows users to generate interactive stories featuring images f
   - Fixed incorrect references to `choices_made` to use `choice_history` instead
   - Updated utility functions to use correct attribute names for user progress
   - Ensured consistent terminology in templates and server code
+  - Fixed attribute references in JavaScript modules to use correct field names
+  - Updated API routes to return correct field names in JSON responses
+  - Corrected migration scripts to use updated attribute names
+  - Fixed debug template to display user progress with correct attribute names
 
 - **User Interface Enhancements**:
   - Implemented improved CSS styling for better visual experience

@@ -1,4 +1,3 @@
-
 /**
  * User Progress Module
  * Manages user level and experience data
@@ -73,5 +72,39 @@ export default {
                 progressBar.textContent = `${xpPercent}%`;
             }
         }
-    }
+    },
+    /**
+     * Get the user's completed plot arcs
+     * @returns {Array} - Array of completed plot arc IDs
+     */
+    getCompletedPlotArcs() {
+        return this.progressData.completed_plot_arcs || [];
+    },
+
+    /**
+     * Check if a plot arc is completed
+     * @param {number} plotArcId - The plot arc ID to check
+     * @returns {boolean} - True if completed, false otherwise
+     */
+    isPlotArcCompleted(plotArcId) {
+        const completedPlotArcs = this.getCompletedPlotArcs();
+        return completedPlotArcs.includes(plotArcId);
+    },
+    /**
+     * Get the user's choice history
+     * @returns {Array} - Array of choice data objects
+     */
+    getChoiceHistory() {
+        return this.progressData.choice_history || [];
+    },
+
+    /**
+     * Check if a specific choice was made
+     * @param {number} choiceId - The choice ID to check
+     * @returns {boolean} - True if the choice was made, false otherwise
+     */
+    wasChoiceMade(choiceId) {
+        const choices = this.getChoiceHistory();
+        return choices.some(choice => choice.choice_id === choiceId);
+    },
 };
