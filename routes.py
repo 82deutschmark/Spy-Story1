@@ -347,63 +347,10 @@ def generate_story_route():
 
         # Update user progress with this new story
         user_progress.current_story_id = story.id
-        
-        # Check if the generated story contains a mission
-        story_data = json.loads(result['story'])
-        if 'mission' in story_data and story_data['mission'] and story_data['mission'].get('title'):
-            mission_data = story_data['mission']
-            logger.info(f"Story contains a mission: {mission_data.get('title')}")
-            
-            # Find mission giver and target in database by name if IDs not provided
-            giver_id = None
-            target_id = None
-            
-            if mission_data.get('giver'):
-                giver = ImageAnalysis.query.filter(
-                    ImageAnalysis.character_name.ilike(f"%{mission_data['giver']}%")
-                ).first()
-                if giver:
-                    giver_id = giver.id
-                    
-            if mission_data.get('target'):
-                target = ImageAnalysis.query.filter(
-                    ImageAnalysis.character_name.ilike(f"%{mission_data['target']}%")
-                ).first()
-                if target:
-                    target_id = target.id
-            
-            # Create mission record
-            try:
-                mission = Mission(
-                    user_id=user_progress.user_id,
-                    title=mission_data.get('title', 'Untitled Mission'),
-                    description=mission_data.get('description', ''),
-                    giver_id=giver_id,
-                    target_id=target_id,
-                    objective=mission_data.get('objective', ''),
-                    difficulty=mission_data.get('difficulty', 'medium').lower(),
-                    reward_currency=mission_data.get('reward_currency', '💵'),
-                    reward_amount=int(mission_data.get('reward_amount', 1000)),
-                    deadline=mission_data.get('deadline', ''),
-                    story_id=story.id
-                )
-                db.session.add(mission)
-                db.session.commit()
-                
-                # Add to user's active missions
-                if not user_progress.active_missions:
-                    user_progress.active_missions = []
-                    
-                user_progress.active_missions.append(mission.id)
-                db.session.commit()
-                
-                logger.info(f"Created mission ID {mission.id} for user {user_progress.user_id}")
-            except Exception as e:
-                logger.error(f"Failed to create mission from story: {str(e)}")
 
         # Create a story node for this narrative segment
         story_json = json.loads(result['story'])
-        narrative_text = story_json.get('narrative', 'New story beginning')
+        narrative_text = story_json.get('story', 'New story beginning')
 
         story_node = StoryNode(
             narrative_text=narrative_text,
@@ -413,7 +360,9 @@ def generate_story_route():
             branch_metadata={
                 'setting': result['setting'],
                 'mood': result['mood'],
-                'conflict': result['conflict']
+                'conflict': result['conflict'],
+                'story_id': story.id,  # Link to the story
+                'narrative_style': result['narrative_style']
             }
         )
         db.session.add(story_node)
@@ -421,6 +370,66 @@ def generate_story_route():
 
         # Update user progress with the current node
         user_progress.current_node_id = story_node.id
+        
+        # Check if there's a mission in the story
+        if 'mission' in story_json and story_json['mission'].get('title'):
+            mission_data = story_json['mission']
+            
+            # Try to find target and giver characters
+            giver_id = None
+            target_id = None
+            
+            # If giver_id is provided directly
+            if mission_data.get('giver_id') and mission_data.get('giver_id').isdigit():
+                giver_id = int(mission_data['giver_id'])
+            # Otherwise try to find by name
+            elif mission_data.get('giver'):
+                giver = ImageAnalysis.query.filter(
+                    ImageAnalysis.image_type == 'character',
+                    ImageAnalysis.character_name.ilike(f"%{mission_data['giver']}%")
+                ).first()
+                if giver:
+                    giver_id = giver.id
+            
+            # If target_id is provided directly  
+            if mission_data.get('target_id') and mission_data.get('target_id').isdigit():
+                target_id = int(mission_data['target_id'])
+            # Otherwise try to find by name
+            elif mission_data.get('target'):
+                target = ImageAnalysis.query.filter(
+                    ImageAnalysis.image_type == 'character',
+                    ImageAnalysis.character_name.ilike(f"%{mission_data['target']}%")
+                ).first()
+                if target:
+                    target_id = target.id
+            
+            # Create the mission
+            mission = Mission(
+                user_id=user_progress.user_id,
+                title=mission_data.get('title', 'Untitled Mission'),
+                description=mission_data.get('description', ''),
+                giver_id=giver_id,
+                target_id=target_id,
+                objective=mission_data.get('objective', ''),
+                status='active',
+                difficulty=mission_data.get('difficulty', 'medium'),
+                reward_currency=mission_data.get('reward_currency', '💵'),
+                reward_amount=int(mission_data.get('reward_amount', 1000)),
+                deadline=mission_data.get('deadline', ''),
+                story_id=story.id,
+                progress=0
+            )
+            
+            db.session.add(mission)
+            db.session.flush()
+            
+            # Add to user's active missions
+            if not user_progress.active_missions:
+                user_progress.active_missions = []
+            user_progress.active_missions.append(mission.id)
+            
+            # Update story node to reference this mission
+            story_node.branch_metadata['mission_id'] = mission.id
 
         # Update game state with relevant info
         if not user_progress.game_state:
@@ -619,6 +628,28 @@ def make_choice():
 
                 # Award experience for making a choice
                 user_progress.add_experience_points(10, "Made story choice")
+                
+                # Create a StoryChoice entry to link the nodes properly
+                from_node = StoryNode.query.get(node_id)
+                if from_node:
+                    # We'll create the actual connection to the next node when it's generated
+                    story_choice = StoryChoice.query.filter_by(
+                        node_id=node_id,
+                        choice_text=choice_text
+                    ).first()
+                    
+                    # If choice doesn't exist, create it
+                    if not story_choice:
+                        story_choice = StoryChoice(
+                            node_id=node_id,
+                            choice_text=choice_text,
+                            choice_metadata={
+                                'currency_requirements': currency_requirements,
+                                'selected_at': datetime.utcnow().isoformat()
+                            }
+                        )
+                        db.session.add(story_choice)
+                        db.session.commit()
 
             # Track character evolution for each character in the story
             if story_id and characters:
@@ -693,32 +724,6 @@ def make_choice():
                                 )
 
                     db.session.commit()
-
-            # Check if there are active missions that might be progressed
-            if user_progress.active_missions:
-                # Get story data for potential mission progression
-                story = StoryGeneration.query.get(story_id)
-                if story and story.generated_story:
-                    try:
-                        story_data = json.loads(story.generated_story)
-                        
-                        # Check each active mission
-                        for mission_id in user_progress.active_missions:
-                            mission = Mission.query.get(mission_id)
-                            if not mission or mission.status != 'active':
-                                continue
-                                
-                            # Update mission progress based on story choices
-                            # Simple heuristic: increment progress by 25% for key choices
-                            if mission.progress < 100:
-                                current_progress = mission.progress
-                                mission.update_progress(
-                                    min(100, current_progress + 25),
-                                    f"Progress made through story choice: {choice_text[:50]}..."
-                                )
-                                logger.info(f"Updated mission {mission_id} progress to {mission.progress}%")
-                    except Exception as e:
-                        logger.error(f"Error updating mission progress: {str(e)}")
 
             # Return updated user information
             return jsonify({

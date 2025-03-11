@@ -215,7 +215,7 @@ def generate_story(
         "2. Introduces the selected character (if provided) into a complex international spy scenario\n"
         "3. IMPORTANT: If plot lines are provided for the character, you MUST incorporate at least one into the story\n"
         "4. " + (f"Since there are already {len(additional_characters) + (1 if character_info else 0)} characters in this story, only include a new character in choices if absolutely necessary for the plot" if len(additional_characters) + (1 if character_info else 0) >= 4 else
-        "IMPORTANT: Include one new character from the database in the choices when needed") + "\n"
+                "IMPORTANT: Include one new character from the database in the choices when needed") + "\n"
         "5. Includes betrayal, romantic flings, and over-the-top action sequences\n"
         "6. Uses the character's traits to guide their behavior and dialogue\n"
         "7. CRITICAL: The story MUST begin with a mission-giver character assigning a mission to the player with these components:\n"
@@ -262,7 +262,7 @@ def generate_story(
         "    'rate': 'Proposed exchange rate'\n"
         "  },\n"
         "  'mission': {\n"
-        "    'title': 'Mission title',\n"
+        "    'title': 'Mission title (if this episode contains a mission)',\n"
         "    'description': 'Detailed mission description',\n"
         "    'giver': 'Name of character who gave the mission',\n"
         "    'giver_id': 'ID of the character who gave the mission',\n"
@@ -274,7 +274,6 @@ def generate_story(
         "    'deadline': 'Narrative deadline description',\n"
         "    'difficulty': 'Easy, Medium, or Hard'\n"
         "  },\n"
-        "  'narrative_style': '" + final_narrative + "',\n"
         "  'characters': ['List of character names featured, including new characters']\n"
         "}"
     )
