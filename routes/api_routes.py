@@ -490,33 +490,34 @@ def update_mission(mission_id):
 
 @api_bp.route('/missions/<int:mission_id>/complete', methods=['POST'])
 def complete_mission_route(mission_id):
-    """Mark a mission as completed"""
+    """API route to mark a mission as completed"""
     try:
-        # Get user progress
-        user_progress = get_or_create_user_progress()
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'success': False, 'error': 'User session not found'}), 401
 
-        # Complete the mission
-        result = complete_mission(mission_id, user_progress.user_id)
+        success = complete_mission(mission_id, user_id)
+        if success:
+            # Get updated user progress with fresh data
+            user_progress = UserProgress.query.filter_by(user_id=user_id).first()
 
-        if result and result.get('success', False):
-            # Return all user progress data for UI updates
+            # Ensure user progress data is refreshed from database
+            db.session.refresh(user_progress)
+
             return jsonify({
-                'success': True,
+                'success': True, 
                 'message': 'Mission completed successfully',
-                'new_balances': result.get('currency_balances', {}),
-                'level': result.get('level', 1),
-                'experience_points': result.get('experience_points', 0),
-                'active_missions': result.get('active_missions', []),
-                'completed_missions': result.get('completed_missions', [])
+                'new_balances': user_progress.currency_balances if user_progress else None,
+                'experience_points': user_progress.experience_points,
+                'level': user_progress.level,
+                'active_missions': user_progress.active_missions,
+                'completed_missions': user_progress.completed_missions
             })
         else:
-            return jsonify({
-                'success': False,
-                'error': 'Failed to complete mission'
-            }), 400
+            return jsonify({'success': False, 'error': 'Failed to complete mission'}), 400
     except Exception as e:
         logger.error(f"Error completing mission: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @api_bp.route('/missions/<int:mission_id>/fail', methods=['POST'])
