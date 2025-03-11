@@ -46,6 +46,8 @@ def debug_dashboard():
 def debug_images():
     """API endpoint for debug page to get images with pagination"""
     try:
+        from utils.api_utils import api_success_response, api_error_response, paginate_query_results
+        
         page = request.args.get('page', 1, type=int)
         limit = request.args.get('limit', 10, type=int)
         image_type = request.args.get('type')
@@ -89,19 +91,15 @@ def debug_images():
                 'stories_count': img.stories.count()
             })
 
-        return jsonify({
-            'success': True,
-            'images': results,
-            'pagination': {
-                'page': page,
-                'per_page': limit,
-                'total': total,
-                'pages': (total + limit - 1) // limit
-            }
-        })
+        # Use the pagination utility
+        paginated_data = paginate_query_results(results, page, limit, total)
+        
+        return api_success_response(
+            data={'images': paginated_data['results'], 'pagination': paginated_data['pagination']}
+        )
     except Exception as e:
         logger.error(f"Error getting debug images: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return api_error_response(e, 500)
 
 @debug_bp.route('/stories')
 def debug_stories():
@@ -422,6 +420,19 @@ def delete_image(image_id):
 def delete_all_images():
     """Delete all images from the database"""
     try:
+        from utils.api_utils import api_success_response, api_error_response, validate_action
+        
+        # Validate this dangerous action with confirmation
+        confirmation = request.json.get('confirmation') if request.is_json else request.form.get('confirmation')
+        is_valid, error_message = validate_action(
+            action_type="delete_all", 
+            confirmation=confirmation,
+            required_confirmation="DELETE ALL IMAGES"
+        )
+        
+        if not is_valid:
+            return api_error_response(error_message, 400, error_type="validation_error")
+            
         # Get count for logging
         count = ImageAnalysis.query.count()
         
@@ -431,14 +442,13 @@ def delete_all_images():
         
         logger.info(f"Deleted all images: {count} total")
         
-        return jsonify({
-            'success': True,
-            'message': f'All {count} images deleted successfully'
-        })
+        return api_success_response(
+            message=f'All {count} images deleted successfully'
+        )
     except Exception as e:
         logger.error(f"Error deleting all images: {str(e)}")
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return api_error_response(e, 500)
 
 @debug_bp.route('/stories/<int:story_id>', methods=['DELETE'])
 def delete_story(story_id):

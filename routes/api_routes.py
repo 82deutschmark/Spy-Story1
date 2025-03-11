@@ -538,6 +538,10 @@ def fail_mission_route(mission_id):
 def reanalyze_image(image_id):
     """Reanalyze an existing image using OpenAI"""
     try:
+        from utils.api_utils import api_success_response, api_error_response
+        from utils.image_utils import update_image_from_analysis
+        from services.openai_service import analyze_artwork
+        
         data = request.json or {}
         preserve_relations = data.get('preserve_relations', True)
 
@@ -551,60 +555,13 @@ def reanalyze_image(image_id):
 
         # Reanalyze the image
         logger.info(f"Reanalyzing image: {image_id}")
-        # Import the correct function name from openai_service
-        from services.openai_service import analyze_artwork
         analysis = analyze_artwork(image.image_url)
 
         if not analysis:
-            return jsonify({'error': 'Failed to reanalyze image'}), 500
+            return api_error_response("Failed to reanalyze image", 500)
 
-        # Update analysis result in the database
-        image.analysis_result = analysis
-
-        # Update image fields based on the analysis
-        if 'image_type' in analysis:
-            image.image_type = analysis['image_type'].lower()
-
-        if 'name' in analysis:
-            image.name = analysis['name']
-            image.character_name = analysis['name']
-        elif 'character_name' in analysis:
-            image.name = analysis['character_name']
-            image.character_name = analysis['character_name']
-
-        # Update character role with validation
-        if 'role' in analysis:
-            role = analysis['role'].lower()
-            valid_roles = ['protagonist', 'antagonist', 'neutral', 'villain', 'hero', 'mission giver']
-            if role in valid_roles:
-                image.role = role
-
-        # Update description
-        if 'description' in analysis:
-            image.description = analysis['description']
-
-        # Handle character traits
-        if 'character_traits' in analysis and isinstance(analysis['character_traits'], list):
-            image.character_traits = analysis['character_traits']
-            image.personality_traits = analysis['character_traits']
-        elif 'personality_traits' in analysis and isinstance(analysis['personality_traits'], list):
-            image.personality_traits = analysis['personality_traits']
-            image.character_traits = analysis['personality_traits']
-
-        # Handle plot lines
-        if 'plot_lines' in analysis and isinstance(analysis['plot_lines'], list):
-            image.plot_lines = analysis['plot_lines']
-        elif 'potential_plot_lines' in analysis and isinstance(analysis['potential_plot_lines'], list):
-            image.plot_lines = analysis['potential_plot_lines']
-
-        # Handle scene specific fields
-        if image.image_type == 'scene':
-            if 'scene_type' in analysis:
-                image.scene_type = analysis['scene_type']
-            if 'setting' in analysis:
-                image.setting = analysis['setting']
-            if 'dramatic_moments' in analysis and isinstance(analysis['dramatic_moments'], list):
-                image.dramatic_moments = analysis['dramatic_moments']
+        # Update image fields based on the analysis using our utility function
+        update_image_from_analysis(image, analysis, preserve_relations)
 
         # Save changes to the database
         db.session.commit()
@@ -612,7 +569,7 @@ def reanalyze_image(image_id):
 
         # Restore relations if needed
         if preserve_relations and related_stories:
-            from models import Story # Added import statement
+            from models import Story 
             for story_id in related_stories:
                 story = Story.query.get(story_id)
                 if story and image not in story.images:
@@ -637,15 +594,14 @@ def reanalyze_image(image_id):
             'created_at': str(image.created_at)
         }
 
-        return jsonify({
-            'success': True,
-            'message': 'Image reanalyzed successfully',
-            'analysis': complete_analysis
-        })
+        return api_success_response(
+            message="Image reanalyzed successfully",
+            data={"analysis": complete_analysis}
+        )
     except Exception as e:
         logger.error(f"Error reanalyzing image: {str(e)}")
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return api_error_response(e, 500)
 
 @api_bp.route('/currency/trade', methods=['POST'])
 def trade_currency():
