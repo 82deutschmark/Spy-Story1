@@ -26,6 +26,14 @@ This application allows users to generate interactive stories featuring images f
 
 ## Recent Improvements
 
+- **Architecture and Code Organization**:
+  - Implemented modular game engine architecture with clear separation of concerns
+  - Created distinct service layers for game state management and story generation
+  - Added middleware for request logging and error handling
+  - Integrated app signals for better event management
+  - Established a structured API communication layer for future Unity integration
+  - Enhanced error handling with standardized utilities
+
 - **Technical Fixes and Optimizations**:
   - Completely removed PayPal integration and related code to simplify codebase
   - Fixed JavaScript loading issues in storyboard and debug templates
@@ -188,22 +196,38 @@ SESSION_SECRET=your_session_secret
 ## Project Structure
 
 - `app.py`: Main application file
+- `main.py`: Application entry point with configuration
 - `routes/`: Modularized route handlers
+  - `main_routes.py`: Core application routes
+  - `debug_routes.py`: Development and debugging tools
+  - `api_routes.py`: API endpoints
 - `models/`: Database models (SQLAlchemy)
   - `user.py`: User progress and gamification
   - `character.py`: Character evolution system
   - `missions.py`: Mission tracking system
+  - `stories.py`: Story generation and branching narratives
+  - `plot.py`: Plot arcs and narrative progression
 - `migrations/`: Database migration scripts
 - `services/`: 
   - `openai_service.py`: OpenAI API integration
   - `story_maker.py`: Story generation logic
   - `mission_generator.py`: Mission creation and tracking
   - `character_evolution_service.py`: Character development tracking
+  - `game_engine.py`: Core game logic and decision handling
+  - `state_manager.py`: State machine for game progression
+- `api/`: API endpoints for potential Unity integration
+  - `game_api.py`: Game state and progression API 
+  - `unity_routes.py`: Unity-specific integration endpoints
+- `middleware/`: Application middleware
+  - `request_logger.py`: HTTP request logging
+- `utils/`: Utility functions and helpers
+  - `error_handlers.py`: Standardized error handling
+  - `app_signals.py`: Application event signaling
+  - `context_manager.py`: Context management utilities
 - `static/`: CSS and JavaScript files
   - `js/modules/`: Modularized JavaScript components
   - `css/custom.css`: Custom styling for the application
 - `templates/`: HTML templates
-- `api/`: API endpoints for potential Unity integration
 
 ### AI Prompts Location
 
@@ -228,6 +252,10 @@ The story universe is set in a high-stakes, sexy dramatic international world of
 - **Social Sharing**: Enable sharing of story moments on social media
 - **Audio Elements**: Add background music and sound effects for enhanced immersion
 - **Modular JavaScript Architecture**: Continue refining the ES6 module structure to prevent loading conflicts
+- **Unity Integration**: Complete the UI-agnostic game engine to enable smooth porting to Unity
+- **API Enhancements**: Expand the game API for better interoperability between platforms
+- **State Management**: Refine the state machine for more complex branching narratives
+- **Error Recovery**: Improve error handling and recovery mechanisms in the game engine
 
 ## Credits
 
