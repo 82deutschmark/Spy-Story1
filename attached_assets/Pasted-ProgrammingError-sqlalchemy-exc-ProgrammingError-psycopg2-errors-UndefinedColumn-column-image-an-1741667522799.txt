@@ -1,0 +1,25 @@
+ProgrammingError
+sqlalchemy.exc.ProgrammingError: (psycopg2.errors.UndefinedColumn) column image_analysis.name does not exist
+LINE 1: ...nalysis_result AS image_analysis_analysis_result, image_anal...
+                                                             ^
+
+[SQL: SELECT image_analysis.id AS image_analysis_id, image_analysis.image_url AS image_analysis_image_url, image_analysis.image_width AS image_analysis_image_width, image_analysis.image_height AS image_analysis_image_height, image_analysis.image_format AS image_analysis_image_format, image_analysis.image_size_bytes AS image_analysis_image_size_bytes, image_analysis.image_type AS image_analysis_image_type, image_analysis.analysis_result AS image_analysis_analysis_result, image_analysis.name AS image_analysis_name, image_analysis.character_name AS image_analysis_character_name, image_analysis.character_traits AS image_analysis_character_traits, image_analysis.personality_traits AS image_analysis_personality_traits, image_analysis.character_role AS image_analysis_character_role, image_analysis.role AS image_analysis_role, image_analysis.plot_lines AS image_analysis_plot_lines, image_analysis.potential_plot_lines AS image_analysis_potential_plot_lines, image_analysis.backstory AS image_analysis_backstory, image_analysis.description AS image_analysis_description, image_analysis.scene_type AS image_analysis_scene_type, image_analysis.setting AS image_analysis_setting, image_analysis.setting_description AS image_analysis_setting_description, image_analysis.story_fit AS image_analysis_story_fit, image_analysis.dramatic_moments AS image_analysis_dramatic_moments, image_analysis.created_at AS image_analysis_created_at 
+FROM image_analysis 
+WHERE image_analysis.image_type = %(image_type_1)s AND image_analysis.image_width > image_analysis.image_height ORDER BY random() 
+ LIMIT %(param_1)s]
+[parameters: {'image_type_1': 'scene', 'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+Traceback (most recent call last)
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1964, in _exec_single_context
+self.dialect.do_execute(
+^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 942, in do_execute
+cursor.execute(statement, parameters)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The above exception was the direct cause of the following exception:
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 1536, in __call__
+return self.wsgi_app(environ, start_response)
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 1514, in wsgi_app
+response = self.handle_exception(e)
