@@ -68,9 +68,7 @@ def get_or_create_user_progress():
 
     return user_progress
 
-@app.before_request
-def check_paypal_config():
-    pass
+
 
 # Create database tables
 with app.app_context():
