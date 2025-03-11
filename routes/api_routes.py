@@ -551,9 +551,9 @@ def reanalyze_image(image_id):
 
         # Reanalyze the image
         logger.info(f"Reanalyzing image: {image_id}")
-        # Assuming openai_service is defined elsewhere and analyze_image is a function within it.
-        from services.openai_service import analyze_image # Added import statement
-        analysis = analyze_image(image.image_url)
+        # Import the correct function name from openai_service
+        from services.openai_service import analyze_artwork
+        analysis = analyze_artwork(image.image_url)
 
         if not analysis:
             return jsonify({'error': 'Failed to reanalyze image'}), 500
