@@ -41,9 +41,8 @@ class ImageAnalysis(db.Model):
     # Timestamps
     created_at = db.Column(db.DateTime, default=db.func.now())
     
-    # Relationships
-    stories = db.relationship('StoryGeneration', secondary=story_images, 
-                              backref=db.backref('images', lazy='dynamic'))
+    # The relationship is already defined in StoryGeneration via backref
+    # No need to redeclare it here
     
     def __repr__(self):
         return f'<ImageAnalysis {self.id}: {self.image_type}>'
