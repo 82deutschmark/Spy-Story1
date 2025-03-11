@@ -1,0 +1,63 @@
+IMPORTANT: 
+1. The story must include a mission given to the player by a mission-giver (a character with the 'mission-giver' role). The mission must be integrated naturally into the story but also returned as a structured JSON block.
+
+2. After the story, return a JSON object formatted as:
+
+{
+  "title": "Episode title",
+  "story": "Narrative story text that includes mission assignment and action.",
+  "choices": [
+    {
+      "text": "First choice option related to the mission.",
+      "consequence": "What could happen if the player picks this choice.",
+      "currency_requirements": { "💵": 500 },
+      "mission_impact": "Describe how this choice affects the mission, such as advancing it, risking failure, or creating an alternate path.",
+      "type": "mission-advancing"  // Other valid types: "risky", "alternative"
+    },
+    {
+      "text": "Second choice option related to the mission.",
+      "consequence": "Possible danger or unexpected outcome.",
+      "currency_requirements": { "💵": 1000 },
+      "mission_impact": "Describe impact on mission.",
+      "type": "risky"
+    },
+    {
+      "text": "Third choice, an alternative approach or side path that could help indirectly.",
+      "consequence": "Outcome hint, like gaining allies or resources but taking more time.",
+      "currency_requirements": { "💵": 750 },
+      "mission_impact": "Alternative path that may help or delay the mission.",
+      "type": "alternative"
+    }
+  ],
+  "mission": {
+    "title": "Mission title",
+    "description": "Detailed mission description embedded in story.",
+    "giver": "Name of mission-giver character",
+    "giver_id": "ID of mission-giver character",
+    "target": "Name of target villain",
+    "target_id": "ID of target villain",
+    "objective": "Specific goal (e.g., steal, sabotage, seduce, retrieve).",
+    "reward_currency": "💵 or 💷 or 💴 or 💎",
+    "reward_amount": "Numeric value, e.g., 10000",
+    "deadline": "Narrative deadline, e.g., 'Complete within 3 days'",
+    "difficulty": "Easy, Medium, or Hard"
+  },
+  "characters": ["List of character names involved in the episode, including new characters if introduced."]
+}
+
+CHOICE RULES:
+- Always include 3 choices related to the mission.
+- Each choice must specify how it impacts the mission:
+  - One "mission-advancing" choice (clear progress).
+  - One "risky" choice (high risk, high reward or possible mission failure).
+  - One "alternative" choice (indirect help, intel, new allies, or delay).
+- Each choice MUST have a currency cost appropriate to its risk (e.g., $500 for low risk, $1000+ for high risk).
+- Each choice MUST have a clear "consequence" to help the player decide.
+- Each choice MUST include a "mission_impact" field explaining how it affects the mission.
+- Label choices with "type": "mission-advancing", "risky", "alternative".
+
+CUSTOM PLAYER CHOICE:
+- The player will have an option to write their own approach (custom input).
+- You DO NOT need to include this in the JSON. Just leave space in the narrative flow where it would make sense for a player to do something creative based on the situation.
+
+Remember: The mission must feel like the central plot driver of this episode. Characters should react to it, and the story should revolve around the player's engagement with this mission.
