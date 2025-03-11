@@ -27,6 +27,13 @@ This application allows users to generate interactive stories featuring images f
 
 ## Recent Improvements
 
+- **Technical Fixes and Optimizations**:
+  - Removed PayPal integration and related code to simplify codebase
+  - Fixed JavaScript loading issues in storyboard template
+  - Resolved modal positioning problems in HTML structure
+  - Fixed user progress display in the adventure interface
+  - Eliminated JavaScript errors related to duplicate script loading
+
 - **User Interface Enhancements**:
   - Implemented improved CSS styling for better visual experience
   - Enhanced story flow with better typography and spacing
@@ -112,8 +119,6 @@ Set up the following environment variables:
 DATABASE_URL=postgresql://username:password@localhost/dbname
 OPENAI_API_KEY=your_openai_api_key
 SESSION_SECRET=your_session_secret
-PAYPAL_CLIENT_ID=your_paypal_client_id
-PAYPAL_SECRET=your_paypal_secret
 ```
 
 ### Installation
@@ -203,7 +208,7 @@ The story universe is set in a high-stakes, sexy dramatic international world of
 
 ## Future Improvements
 
-- **PayPal Integration**: Complete payment processing for diamond purchases
+- **Alternative Payment Systems**: Consider implementing a simpler currency system without third-party dependencies
 - **UI/UX Refinements**: Further improve the user interface for character selection
 - **Performance Optimization**: Enhance loading times for story generation
 - **Mobile Responsiveness**: Improve the mobile experience
@@ -212,6 +217,7 @@ The story universe is set in a high-stakes, sexy dramatic international world of
 - **Character Customization**: Allow users to customize protagonist appearance and traits
 - **Social Sharing**: Enable sharing of story moments on social media
 - **Audio Elements**: Add background music and sound effects for enhanced immersion
+- **Modular JavaScript Architecture**: Continue refining the ES6 module structure to prevent loading conflicts
 
 ## Credits
 
