@@ -102,6 +102,29 @@ def generate_mission(user_id: str, story_id: Optional[int] = None) -> Optional[M
             logger.warning(f"Cannot generate mission: no mission givers or villains available")
             return None
         
+        # Check if we should use characters from the current story
+        if story_id:
+            story = StoryGeneration.query.get(story_id)
+            if story and story.images:
+                # Look for mission givers in the story
+                story_mission_givers = [
+                    img for img in story.images 
+                    if img.character_role in ['mission-giver', 'neutral']
+                ]
+                
+                # Look for villains in the story
+                story_villains = [
+                    img for img in story.images 
+                    if img.character_role == 'villain'
+                ]
+                
+                # Use story characters if available
+                if story_mission_givers:
+                    mission_givers = story_mission_givers
+                    
+                if story_villains:
+                    villains = story_villains
+        
         # Randomly select a mission giver and target villain
         mission_giver = random.choice(mission_givers)
         target = random.choice(villains)
@@ -109,6 +132,10 @@ def generate_mission(user_id: str, story_id: Optional[int] = None) -> Optional[M
         # Ensure mission giver and target are different characters
         while mission_giver.id == target.id and len(mission_givers) > 1:
             mission_giver = random.choice(mission_givers)
+            
+        # Log selected characters
+        logger.info(f"Selected mission giver: {mission_giver.character_name} (ID: {mission_giver.id})")
+        logger.info(f"Selected target villain: {target.character_name} (ID: {target.id})")
         
         # Select random mission parameters
         difficulty = random.choice(list(DIFFICULTY_LEVELS.keys()))
