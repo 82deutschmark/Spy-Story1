@@ -1,26 +1,23 @@
 import os
 import logging
 from flask import Flask
-from dotenv import load_dotenv
 from database import db
 from flask_cors import CORS
+from config import get_config
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+config = get_config()
+logging.basicConfig(level=getattr(logging, config.LOG_LEVEL))
 logger = logging.getLogger(__name__)
-
-# Load environment variables
-load_dotenv()
 
 def create_app():
     """Create and configure the Flask application"""
     app = Flask(__name__)
-    app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
-    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-        "pool_recycle": 300,
-        "pool_pre_ping": True,
-    }
+    
+    # Load configuration
+    app_config = get_config()
+    app.config.from_object(app_config)
+    app.secret_key = app_config.SESSION_SECRET
 
     # Initialize database
     db.init_app(app)
@@ -33,6 +30,14 @@ def create_app():
             "allow_headers": ["Content-Type", "Authorization"]
         }
     })
+    
+    # Register error handlers
+    from utils.error_handlers import register_error_handlers
+    register_error_handlers(app)
+    
+    # Add request logger middleware
+    from middleware.request_logger import RequestLoggerMiddleware
+    RequestLoggerMiddleware(app)
 
     # Register blueprints
     with app.app_context():
