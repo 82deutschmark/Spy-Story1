@@ -176,8 +176,8 @@ def storyboard(story_id):
     # Prepare story progress data for the template
     story_progress = {
         'current_story_id': user_progress.current_story_id,
-        'completed_stories': user_progress.completed_stories or [],
-        'choices_made': user_progress.choices_made or []
+        'completed_plot_arcs': user_progress.completed_plot_arcs or [],
+        'choice_history': user_progress.choice_history or []
     }
 
     return render_template(
