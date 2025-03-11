@@ -2,12 +2,7 @@
 from models.base import db
 import json
 from sqlalchemy.dialects.postgresql import JSONB
-
-# Association table for many-to-many relationship between stories and images
-story_images = db.Table('story_images',
-    db.Column('story_id', db.Integer, db.ForeignKey('story_generation.id'), primary_key=True),
-    db.Column('image_id', db.Integer, db.ForeignKey('image_analysis.id'), primary_key=True)
-)
+from .stories import story_images
 
 class ImageAnalysis(db.Model):
     """Model for storing image analysis results"""
