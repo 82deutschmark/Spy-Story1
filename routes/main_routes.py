@@ -197,30 +197,6 @@ def generate_story_route():
         custom_choice = data.get('custom_choice', '')
 
         # Get previous story context
-
-@main_bp.route('/user-progress/current')
-def get_current_user_progress():
-    """Get the current user's progress data for AJAX updates"""
-    try:
-        user_progress = get_or_create_user_progress()
-        
-        # Return user progress data in JSON format
-        return jsonify({
-            'success': True,
-            'progress': {
-                'level': user_progress.level,
-                'experience_points': user_progress.experience_points,
-                'active_missions': user_progress.active_missions,
-                'completed_missions': user_progress.completed_missions,
-                'active_plot_arcs': user_progress.active_plot_arcs,
-                'completed_plot_arcs': user_progress.completed_plot_arcs,
-                'encountered_characters': user_progress.encountered_characters
-            }
-        })
-    except Exception as e:
-        logger.error(f"Error getting user progress: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
         previous_story_id = data.get('story_id')
         story_context = data.get('story_context', '')
 
@@ -396,7 +372,7 @@ def get_current_user_progress():
                 evolved_traits=img.character_traits or []
             )
             db.session.add(char_evolution)
-            
+
         # Extract mission information from the story result
         if 'mission' in result:
             mission_data = result.get('mission', {})
@@ -417,7 +393,7 @@ def get_current_user_progress():
                 )
                 db.session.add(mission)
                 db.session.flush()  # Get the ID without committing
-                
+
                 # Add this mission to user's active missions
                 if not user_progress.active_missions:
                     user_progress.active_missions = []
@@ -603,3 +579,26 @@ def make_choice():
     except Exception as e:
         logger.error(f"Error processing choice: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/user-progress/current')
+def get_current_user_progress():
+    """Get the current user's progress data for AJAX updates"""
+    try:
+        user_progress = get_or_create_user_progress()
+
+        # Return user progress data in JSON format
+        return jsonify({
+            'success': True,
+            'progress': {
+                'level': user_progress.level,
+                'experience_points': user_progress.experience_points,
+                'active_missions': user_progress.active_missions,
+                'completed_missions': user_progress.completed_missions,
+                'active_plot_arcs': user_progress.active_plot_arcs,
+                'completed_plot_arcs': user_progress.completed_plot_arcs,
+                'encountered_characters': user_progress.encountered_characters
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error getting user progress: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
