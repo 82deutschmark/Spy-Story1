@@ -300,7 +300,7 @@
                                         </div>
                                         {% endfor %}
                                     </div>
-                                    
+
                                     <div class="mt-3 d-flex justify-content-between">
                                         <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#purchaseModal">
                                             <i class="fas fa-plus-circle me-1"></i> Buy Diamonds
@@ -376,24 +376,6 @@
                         <div class="card-body">
                             {% if user_progress.active_missions %}
                                 <div class="list-group">
-                                    {% for mission_id in user_progress.active_missions %}
-                                        <div class="list-group-item">
-                                            <h6 class="mb-1">Mission #{{ mission_id }}</h6>
-                                            <div class="progress mb-2" style="height: 10px;">
-                                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ mission_id % 100 }}%" 
-                                                    aria-valuenow="{{ mission_id % 100 }}" aria-valuemin="0" aria-valuemax="100">
-                                                </div>
-                                            </div>
-                                            <button class="btn btn-sm btn-outline-primary mission-details-btn" data-mission-id="{{ mission_id }}">
-                                                View Details
-                                            </button>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <p class="text-muted">No active missions.</p>
-                            {% endif %}
-                        </div>p">
                                     {% for mission_id in user_progress.active_missions %}
                                         <div class="list-group-item">
                                             <h6 class="mb-1">Mission #{{ mission_id }}</h6>
