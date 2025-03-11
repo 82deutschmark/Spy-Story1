@@ -125,6 +125,32 @@ def generate_mission(user_id: str, story_id: Optional[int] = None) -> Optional[M
                 if story_villains:
                     villains = story_villains
         
+        # Check if user has previous missions
+        user_progress = UserProgress.query.filter_by(user_id=user_id).first()
+        previous_mission_givers = []
+        
+        if user_progress and (user_progress.active_missions or user_progress.completed_missions):
+            # Get all missions for this user
+            all_mission_ids = []
+            if user_progress.active_missions:
+                all_mission_ids.extend(user_progress.active_missions)
+            if user_progress.completed_missions:
+                all_mission_ids.extend(user_progress.completed_missions)
+                
+            # Get all previous mission givers
+            if all_mission_ids:
+                previous_missions = Mission.query.filter(Mission.id.in_(all_mission_ids)).all()
+                previous_mission_givers = [m.giver_id for m in previous_missions if m.giver_id]
+        
+        # Filter out previously used mission givers if possible
+        filtered_givers = []
+        if previous_mission_givers and len(mission_givers) > 1:
+            filtered_givers = [g for g in mission_givers if g.id not in previous_mission_givers]
+            
+            # Only use filtered list if we have at least one option
+            if filtered_givers:
+                mission_givers = filtered_givers
+        
         # Randomly select a mission giver and target villain
         mission_giver = random.choice(mission_givers)
         target = random.choice(villains)
