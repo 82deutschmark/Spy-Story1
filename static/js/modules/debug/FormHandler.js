@@ -43,15 +43,14 @@ export default class FormHandler {
     }
 
     applyChanges() {
-        const content = this.debugUI.elements.generatedContent.textContent;
-        let contentObj;
-        try {
-            contentObj = JSON.parse(content);
-        } catch (e) {
-            DebugUtils.showToast('Error', 'Failed to parse current content', true);
-            return;
-        }
+        // Create a clean object with only the form values
+        const contentObj = {};
 
+        // Start with the image metadata from the existing content
+        const originalContent = JSON.parse(this.debugUI.elements.generatedContent.textContent);
+        contentObj.image_metadata = originalContent.image_metadata || {};
+
+        // Update content object with form values
         contentObj.name = document.getElementById('imageName').value;
         contentObj.type = document.getElementById('imageType').value.toUpperCase();
         contentObj.image_type = document.getElementById('imageType').value;
@@ -62,9 +61,15 @@ export default class FormHandler {
             contentObj.personality_traits = document.getElementById('characterTraits')
                 .value.split(',').map(trait => trait.trim()).filter(trait => trait);
             contentObj.character_traits = [...contentObj.personality_traits];
+            contentObj.character_name = contentObj.name; // Ensure character_name is set
             contentObj.potential_plot_lines = document.getElementById('plotLines')
                 .value.split('\n').map(line => line.trim()).filter(line => line);
             contentObj.plot_lines = [...contentObj.potential_plot_lines];
+
+            // Copy backstory if it exists in the original
+            if (originalContent.backstory) {
+                contentObj.backstory = originalContent.backstory;
+            }
         } else {
             contentObj.scene_type = document.getElementById('sceneType').value;
             contentObj.setting = document.getElementById('sceneSetting').value;
