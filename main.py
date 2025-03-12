@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 def create_app():
     """Create and configure the Flask application"""
     app = Flask(__name__)
-    
+
     # Load configuration
     app_config = get_config()
     app.config.from_object(app_config)
@@ -30,11 +30,11 @@ def create_app():
             "allow_headers": ["Content-Type", "Authorization"]
         }
     })
-    
+
     # Register error handlers
     from utils.error_handlers import register_error_handlers
     register_error_handlers(app)
-    
+
     # Add request logger middleware
     from middleware.request_logger import RequestLoggerMiddleware
     RequestLoggerMiddleware(app)

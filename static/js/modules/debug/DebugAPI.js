@@ -1,65 +1,96 @@
 /**
- * DebugAPI.js - API communication for the debug interface
+ * DebugAPI.js - API utilities for the debug interface
  */
-import DebugUtils from './DebugUtils.js';
 
-export default {
-    async get(url) {
+class DebugAPI {
+    static async get(url) {
         try {
             const response = await fetch(url);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`API Error (${response.status}): ${errorText}`);
+                throw new Error(`API Error: ${response.status}`);
+            }
             return await response.json();
         } catch (error) {
-            console.error('API GET error:', error);
-            DebugUtils.showToast('API Error', error.message, true);
+            console.error("API Request failed:", error);
             throw error;
         }
-    },
+    }
 
-    async analyzeImage(imageUrl) {
+    static async analyzeImage(imageUrl) {
         try {
             const formData = new FormData();
             formData.append('image_url', imageUrl);
-            
+
             const response = await fetch('/debug/generate', {
                 method: 'POST',
                 body: formData
             });
-            
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`API Error (${response.status}): ${errorText}`);
+                throw new Error(`API Error: ${response.status}`);
+            }
             return await response.json();
         } catch (error) {
             console.error('Image analysis error:', error);
-            DebugUtils.showToast('Analysis Error', error.message, true);
-            throw error;
-        }
-    },
-
-    async post(url, data) {
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return await response.json();
-        } catch (error) {
-            console.error('API POST error:', error);
-            DebugUtils.showToast('API Error', error.message, true);
-            throw error;
-        }
-    },
-
-    async delete(url) {
-        try {
-            const response = await fetch(url, { method: 'DELETE' });
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return await response.json();
-        } catch (error) {
-            console.error('API DELETE error:', error);
-            DebugUtils.showToast('API Error', error.message, true);
+            //DebugUtils.showToast('Analysis Error', error.message, true); //Preserving original toast, assuming DebugUtils exists.
             throw error;
         }
     }
-};
+
+    static async post(url, data) {
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`API Error (${response.status}): ${errorText}`);
+                throw new Error(`API Error: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error("API Request failed:", error);
+            throw error;
+        }
+    }
+
+    static async delete(url, data = null) {
+        try {
+            const options = {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            };
+
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+
+            const response = await fetch(url, options);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`API Error (${response.status}): ${errorText}`);
+                throw new Error(`API Error: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error("API Request failed:", error);
+            throw error;
+        }
+    }
+}
+
+export default DebugAPI;
