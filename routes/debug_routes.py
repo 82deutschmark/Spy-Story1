@@ -433,6 +433,40 @@ def image_actions(image_id):
             # Delete the image
             db.session.delete(image)
             db.session.commit()
+            
+@debug_bp.route('/images/<int:image_id>/update-json', methods=['PUT'])
+def update_image_json(image_id):
+    """Update an image's analysis_result JSON directly"""
+    try:
+        image = ImageAnalysis.query.get_or_404(image_id)
+        
+        # Get the updated JSON from request
+        data = request.json
+        if not data or not data.get('edited_json'):
+            return jsonify({'success': False, 'error': 'Missing edited JSON data'}), 400
+            
+        # Parse the edited JSON to validate it
+        try:
+            updated_analysis = json.loads(data.get('edited_json'))
+        except json.JSONDecodeError as e:
+            return jsonify({'success': False, 'error': f'Invalid JSON: {str(e)}'}), 400
+            
+        # Update image analysis
+        image.analysis_result = updated_analysis
+        
+        # Save to database
+        db.session.commit()
+        logger.info(f"Updated image JSON: {image.id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Image JSON updated successfully'
+        })
+            
+    except Exception as e:
+        logger.error(f"Error updating image JSON: {str(e)}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
             logger.info(f"Deleted image: {image_info}")
 
