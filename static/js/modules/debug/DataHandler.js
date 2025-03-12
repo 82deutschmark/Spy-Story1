@@ -432,24 +432,27 @@ export default class DataHandler {
 
             const data = await DebugAPI.getStories(this.storyCurrentPage || 1, this.pageSize, this.storySearchTerm);
 
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to load stories');
+            if (!data || !data.success) {
+                throw new Error((data && data.error) || 'Failed to load stories');
             }
 
             this.renderStories(data.stories, data.pagination);
 
-
         } catch (error) {
             console.error('Error loading stories:', error);
-            this.debugUI.elements.storiesTableBody.innerHTML = `
-                <tr>
-                    <td colspan="7" class="text-center text-danger">
-                        Error loading stories: ${error.message || "Unknown error occurred"}
-                    </td>
-                </tr>
-            `;
+            if (this.debugUI.elements.storiesTableBody) {
+                this.debugUI.elements.storiesTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center text-danger">
+                            Error loading stories: ${error.message || "Unknown error occurred"}
+                        </td>
+                    </tr>
+                `;
+            }
             // Reset pagination when there's an error
-            this.debugUI.elements.storyPagination.innerHTML = '';
+            if (this.debugUI.elements.storyPagination) {
+                this.debugUI.elements.storyPagination.innerHTML = '';
+            }
         }
     }
 
