@@ -1,17 +1,13 @@
 import os
 import logging
 import json
-import uuid
 from flask import Blueprint, render_template, request, jsonify, url_for, redirect, flash, session
-from datetime import datetime
+import uuid
 
 from database import db
 from models import (AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, 
                    StoryChoice, UserProgress, Transaction, PlotArc, CharacterEvolution, Mission)
 from services.story_maker import generate_story, get_story_options
-from services.openai_service import analyze_artwork, generate_image_description
-from utils.currency_utils import process_transaction
-from utils.input_validation import validate_input
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -447,86 +443,121 @@ def make_choice():
 
         # Get user progress
         user_progress = get_or_create_user_progress()
-        
-        # Set up variables for both standard and custom choices
-        is_custom = bool(custom_choice)
-        choice_text = custom_choice if is_custom else data.get('choice_text', 'Standard choice')
-        description = f"{'Custom choice' if is_custom else 'Story choice'}: {choice_text[:50]}..." if len(choice_text) > 50 else choice_text
-        
-        # Determine currency requirements
-        currency_requirements = {'💎': 100} if is_custom else data.get('currency_requirements')
-        
-        # Validate funds if there are currency requirements
-        if currency_requirements:
-            # Process the transaction
-            success, error_message, new_balances = process_transaction(
-                user_progress=user_progress,
-                transaction_type='choice',
-                description=description,
-                currency_requirements=currency_requirements,
-                story_node_id=node_id
+
+        if custom_choice:
+            # Validate diamond balance for custom choice
+            currency_requirements = {'💎': 100}
+            if not user_progress.can_afford(currency_requirements):
+                return jsonify({
+                    'error': 'Insufficient diamonds',
+                    'required': 100,
+                    'current_balance': user_progress.currency_balances.get('💎', 0)
+                }), 400
+
+            # Spend diamonds and record transaction
+            success = user_progress.spend_currency(
+                currency_requirements,
+                'choice',
+                f'Custom choice: {custom_choice[:50]}...' if len(custom_choice) > 50 else custom_choice
             )
-            
             if not success:
-                return jsonify({'error': error_message}), 400
+                return jsonify({'error': 'Failed to process currency transaction'}), 500
 
-        # Record the choice in user progress if we have story and node IDs
-        if story_id and node_id:
-            user_progress.record_choice(
-                choice_text=choice_text,
-                choice_id='custom' if is_custom else choice_id,
-                node_id=node_id,
-                story_id=story_id
-            )
-
-            # Award experience based on choice type
-            xp_amount = 25 if is_custom else 10
-            user_progress.add_experience_points(
-                xp_amount, 
-                f"Made {'custom' if is_custom else 'standard'} story choice"
-            )
-        
-        # For standard choices with characters, update character evolution
-        if not is_custom and story_id and characters:
-            for char_id in characters:
-                # Get character details
-                character = ImageAnalysis.query.get(char_id)
-                if not character:
-                    continue
-
-                # Update user's character relationship
-                user_progress.encounter_character(
-                    character_id=char_id, 
-                    character_name=character.character_name or "Unknown Character"
+            # Record the choice
+            if story_id and node_id:
+                user_progress.record_choice(
+                    choice_text=custom_choice,
+                    choice_id='custom',
+                    node_id=node_id,
+                    story_id=story_id
                 )
 
-                # Check if this character already has an evolution record
-                char_evolution = CharacterEvolution.query.filter_by(
-                    user_id=user_progress.user_id,
-                    character_id=char_id,
-                    story_id=story_id
-                ).first()
+                # Award experience for making a custom choice
+                user_progress.add_experience_points(25, "Made custom story choice")
 
-                # Create new evolution record if needed
-                if not char_evolution:
-                    char_evolution = CharacterEvolution(
+            # Return success for custom choice
+            return jsonify({
+                'success': True,
+                'new_balances': user_progress.currency_balances,
+                'message': 'Custom choice processed successfully'
+            })
+
+        else:
+            # For standard choices
+            choice_text = data.get('choice_text', 'Standard choice')
+
+            # Process currency requirements if any
+            currency_requirements = data.get('currency_requirements')
+            if currency_requirements and not user_progress.can_afford(currency_requirements):
+                return jsonify({
+                    'error': 'Insufficient funds',
+                    'requirements': currency_requirements,
+                    'current_balances': user_progress.currency_balances
+                }), 400
+
+            if currency_requirements:
+                success = user_progress.spend_currency(
+                    currency_requirements,
+                    'choice',
+                    f'Story choice: {choice_text[:50]}...' if len(choice_text) > 50 else choice_text,
+                    node_id
+                )
+                if not success:
+                    return jsonify({'error': 'Failed to process currency transaction'}), 500
+
+            # Record the choice in user progress
+            if story_id and node_id:
+                user_progress.record_choice(
+                    choice_text=choice_text,
+                    choice_id=choice_id,
+                    node_id=node_id,
+                    story_id=story_id
+                )
+
+                # Award experience for making a choice
+                user_progress.add_experience_points(10, "Made story choice")
+
+            # Track character evolution for each character in the story
+            if story_id and characters:
+                for char_id in characters:
+                    # Get character details
+                    character = ImageAnalysis.query.get(char_id)
+                    if not character:
+                        continue
+
+                    # Update user's character relationship
+                    user_progress.encounter_character(
+                        character_id=char_id, 
+                        character_name=character.character_name or "Unknown Character"
+                    )
+
+                    # Check if this character already has an evolution record
+                    char_evolution = CharacterEvolution.query.filter_by(
                         user_id=user_progress.user_id,
                         character_id=char_id,
-                        story_id=story_id,
-                        role='supporting',  # Default role
-                        evolved_traits=character.character_traits or []  # Start with original traits
-                    )
-                    db.session.add(char_evolution)
-                    db.session.commit()
+                        story_id=story_id
+                    ).first()
 
-        # Return updated user information
-        return jsonify({
-            'success': True,
-            'new_balances': user_progress.currency_balances,
-            'level': user_progress.level,
-            'experience': user_progress.experience_points,
-            'message': f"{('Custom' if is_custom else 'Standard')} choice processed successfully"
-        })
+                    # Create new evolution record if needed
+                    if not char_evolution:
+                        char_evolution = CharacterEvolution(
+                            user_id=user_progress.user_id,
+                            character_id=char_id,
+                            story_id=story_id,
+                            role='supporting',  # Default role
+                            evolved_traits=character.character_traits or []  # Start with original traits
+                        )
+                        db.session.add(char_evolution)
+                        db.session.commit()
+
+            # Return updated user information
+            return jsonify({
+                'success': True,
+                'new_balances': user_progress.currency_balances,
+                'level': user_progress.level,
+                'experience': user_progress.experience_points,
+                'message': 'Choice processed successfully'
+            })
 
     except Exception as e:
         logger.error(f"Error processing choice: {str(e)}")
