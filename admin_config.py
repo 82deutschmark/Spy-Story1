@@ -55,7 +55,7 @@ def init_admin(app):
         admin.init_app(app)
         
         # Add model views
-        admin.add_view(ImageAnalysisView(ImageAnalysis, name='Images', endpoint='admin_image_analysis'))
+        admin.add_view(ImageAnalysisView(ImageAnalysis, name='Images', endpoint='admin_images'))
         admin.add_view(StoryGenerationView(StoryGeneration, name='Stories'))
         admin.add_view(CharacterEvolutionView(CharacterEvolution, name='Characters'))
         admin.add_view(UserProgressView(UserProgress, name='Users'))

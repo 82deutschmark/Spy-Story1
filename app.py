@@ -66,7 +66,7 @@ def create_app(config_name=None):
         db.create_all()
 
         # Initialize Flask-Admin (only if not already initialized)
-        if not hasattr(app, '_admin_initialized'):
+        if not hasattr(app, '_admin_initialized') and not hasattr(app, 'admin'):
             init_admin(app)
             app._admin_initialized = True
 
