@@ -20,12 +20,12 @@ export default {
         try {
             const formData = new FormData();
             formData.append('image_url', imageUrl);
-            
+
             const response = await fetch('/debug/generate', {
                 method: 'POST',
                 body: formData
             });
-            
+
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             return await response.json();
         } catch (error) {
@@ -61,5 +61,27 @@ export default {
             DebugUtils.showToast('API Error', error.message, true);
             throw error;
         }
-    }
+    },
+    async getStoriesWithPagination(page = 1, limit = 10, search = '', filter = '') {
+        try {
+            const params = new URLSearchParams({
+                page,
+                limit,
+                ...(search && { search }),
+                ...(filter && { filter }),
+            });
+
+            const response = await fetch(`/debug/stories?${params.toString()}`);
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to fetch stories');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('API GET error:', error);
+            throw error;
+        }
+    },
 };
