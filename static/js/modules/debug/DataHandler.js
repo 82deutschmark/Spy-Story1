@@ -121,18 +121,27 @@ class DataHandler {
             if (this.searchTerm) {
                 url += `&search=${encodeURIComponent(this.searchTerm)}`;
             }
+            
+            console.log('Fetching images from:', url);
             const response = await DebugAPI.get(url);
-            // Handle both formats (data.images or just images)
-            const data = response.data && response.data.images ? response : { data: { images: response.images, pagination: response.pagination } };
-
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to load images');
+            console.log('Received image data:', response);
+            
+            // Simple direct access to the data without transformation
+            if (!response.success) {
+                throw new Error(response.error || 'Failed to load images');
             }
-
-            this.renderImages(data.data.images);
-
-            // Clear pagination since we're showing all records
-            if (this.debugUI.elements.imagesPagination) {
+            
+            // Use images directly from the response
+            this.renderImages(response.images);
+            
+            // Setup pagination if available
+            if (response.pagination && this.debugUI.elements.imagesPagination) {
+                console.log('Using DebugUI pagination for images: total=' + response.pagination.pages + ', current=' + this.currentPage);
+                this.debugUI.createPagination('imagesPagination', response.pagination.pages, this.currentPage, (page) => {
+                    this.currentPage = page;
+                    this.loadImages();
+                });
+            } else if (this.debugUI.elements.imagesPagination) {
                 this.debugUI.elements.imagesPagination.innerHTML = '';
             }
         } catch (error) {
