@@ -451,7 +451,7 @@ def image_actions(image_id):
             stories_count = image.stories.count()
             story_ids = [story.id for story in image.stories]
             
-            # Return image details
+            # Return image details with all database fields needed for edit form
             return jsonify({
                 'success': True,
                 'image': {
@@ -459,12 +459,21 @@ def image_actions(image_id):
                     'image_url': image.image_url,
                     'image_type': image.image_type,
                     'name': name,
+                    'character_name': image.character_name,
+                    'description': image.description,
                     'created_at': image.created_at.strftime('%Y-%m-%d %H:%M'),
                     'traits': image.character_traits or [],
                     'role': image.character_role or '',
+                    'personality_traits': image.personality_traits or [],
+                    'plot_lines': image.plot_lines or [],
+                    'backstory': image.backstory,
+                    'scene_type': image.scene_type,
+                    'setting': image.setting,
+                    'setting_description': image.setting_description,
+                    'dramatic_moments': image.dramatic_moments or [],
                     'stories_count': stories_count,
                     'story_ids': story_ids,
-                    'analysis': analysis
+                    'analysis_result': analysis
                 }
             })
             

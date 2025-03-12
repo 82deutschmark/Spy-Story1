@@ -132,30 +132,64 @@ export default {
     },
 
     /**
-     * Populates the modal with analysis data
-     * @param {Object} analysis - The analysis data
+     * Populates the modal with image data from database
+     * @param {Object} imageData - The full image data from the database
      * @param {number} imageId - The ID of the image
      */
-    populateModalWithAnalysis(analysis, imageId) {
-        if (!analysis || !imageId) {
-            console.error('Missing analysis or image ID');
+    populateModalWithAnalysis(imageData, imageId) {
+        if (!imageData || !imageId) {
+            console.error('Missing image data or image ID');
             return;
         }
 
         // Store the current image ID
         this.currentImageId = imageId;
 
-        // Get JSON editor
+        // Get JSON editor - only display the analysis JSON, don't use it for form fields
         const analysisJsonEditor = document.getElementById('analysisJson');
-        const prettyJson = JSON.stringify(analysis, null, 2);
-        analysisJsonEditor.value = prettyJson;
+        if (imageData.analysis) {
+            const prettyJson = JSON.stringify(imageData.analysis, null, 2);
+            analysisJsonEditor.value = prettyJson;
+        }
 
-        // Update form fields with new analysis data
-        this.updateFormFields(analysis);
+        // Update form fields with database record fields, not analysis data
+        this.populateFormFromDBRecord(imageData);
 
         // Show edit/save buttons
         document.getElementById('editAnalysisBtn').style.display = 'inline-block';
         document.getElementById('saveAnalysisBtn').style.display = 'none';
+    },
+    
+    /**
+     * Populates form fields from the actual database record
+     * @param {Object} dbRecord - The database record for this image
+     */
+    populateFormFromDBRecord(dbRecord) {
+        // Populate form fields with direct database columns, not from the analysis JSON
+        document.getElementById('modalImageName').value = dbRecord.name || '';
+        document.getElementById('modalImageType').value = dbRecord.image_type || 'character';
+        document.getElementById('modalDescriptionField').value = dbRecord.description || '';
+
+        // Show/hide appropriate fields
+        this.toggleModalFieldsByType(dbRecord.image_type);
+
+        if (dbRecord.image_type === 'character') {
+            // Populate character fields from actual DB columns
+            document.getElementById('modalCharacterRole').value = dbRecord.role || 'neutral';
+            
+            const traits = dbRecord.traits || [];
+            document.getElementById('modalCharacterTraits').value = this.formatArrayField(traits);
+            
+            const plotLines = dbRecord.plot_lines || [];
+            document.getElementById('modalPlotLines').value = this.formatArrayField(plotLines);
+        } else {
+            // Populate scene fields
+            document.getElementById('modalSceneType').value = dbRecord.scene_type || 'action';
+            document.getElementById('modalSceneSetting').value = dbRecord.setting || '';
+            
+            const dramaticMoments = dbRecord.dramatic_moments || [];
+            document.getElementById('modalDramaticMoments').value = this.formatArrayField(dramaticMoments);
+        }
     },
     toggleEditMode() {
         const isEditing = document.getElementById('analysisJson').getAttribute('contenteditable') === 'true';

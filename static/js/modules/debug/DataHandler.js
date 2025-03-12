@@ -333,6 +333,11 @@ class DataHandler {
 
                 const modalEditContainerEl = document.getElementById('modalEditContainer');
                 if (modalEditContainerEl) modalEditContainerEl.style.display = 'none';
+                
+                // Pass the full database record to modalHandler for form population
+                if (this.modalHandler) {
+                    this.modalHandler.populateModalWithAnalysis(response.image, response.image.id);
+                }
 
                 modal.show();
             } else {
