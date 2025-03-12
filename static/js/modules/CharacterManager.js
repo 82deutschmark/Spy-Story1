@@ -1,3 +1,4 @@
+
 /**
  * Character Management Module
  * Handles character selection and display
@@ -11,7 +12,7 @@ export default {
     clearAllSelections() {
         const characterCards = document.querySelectorAll('.character-select-card');
         const characterCheckboxes = document.querySelectorAll('.character-checkbox');
-
+        
         characterCards.forEach(card => {
             card.classList.remove('selected');
             const indicator = card.querySelector('.selection-indicator');
@@ -49,32 +50,15 @@ export default {
      * Fetches a random character from the server
      * @returns {Promise} - Promise resolving to character data
      */
-    async fetchRandomCharacter() {
-        try {
-            const response = await fetch('/api/random_character', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+    fetchRandomCharacter() {
+        return fetch('/api/random_character')
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to load character');
                 }
+                return data;
             });
-
-            if (!response.ok) {
-                throw new Error(`Failed to fetch random character: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            if (!data.success || !data.character) {
-                throw new Error('Invalid response from server');
-            }
-
-            return data.character;
-        } catch (error) {
-            console.error('Error fetching random character:', error);
-            // Return a more descriptive error to help with debugging
-            throw new Error(`Failed to fetch random character: ${error.message}`);
-        }
     },
 
     /**
@@ -166,11 +150,11 @@ const CharacterManager = {
         const selectedCharacters = document.querySelectorAll('.character-checkbox:checked');
         const selectedImagesContainer = document.querySelector('.selected-characters-container');
         const hiddenInputsContainer = document.querySelector('#hiddenSelectedImages');
-
+        
         if (hiddenInputsContainer) {
             // Clear previous hidden inputs
             hiddenInputsContainer.innerHTML = '';
-
+            
             // Create hidden inputs for each selected character
             selectedCharacters.forEach(checkbox => {
                 const hiddenInput = document.createElement('input');
@@ -180,7 +164,7 @@ const CharacterManager = {
                 hiddenInputsContainer.appendChild(hiddenInput);
             });
         }
-
+        
         // Show/hide selected characters container based on selection
         if (selectedImagesContainer) {
             if (selectedCharacters.length > 0) {
@@ -198,11 +182,11 @@ const CharacterManager = {
         document.querySelectorAll('.character-checkbox').forEach(checkbox => {
             checkbox.checked = false;
         });
-
+        
         document.querySelectorAll('.character-select-card').forEach(card => {
             card.classList.remove('selected');
         });
-
+        
         document.querySelectorAll('.selection-indicator').forEach(indicator => {
             indicator.style.display = 'none';
         });
@@ -220,22 +204,21 @@ const CharacterManager = {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             });
-
+            
             if (!response.ok) {
                 throw new Error(`Failed to fetch random character: ${response.status}`);
             }
-
+            
             const data = await response.json();
-
+            
             if (!data.success || !data.character) {
                 throw new Error('Invalid response from server');
             }
-
+            
             return data.character;
         } catch (error) {
             console.error('Error fetching random character:', error);
-            // Return a more descriptive error to help with debugging
-            throw new Error(`Failed to fetch random character: ${error.message}`);
+            throw error;
         }
     }
 };

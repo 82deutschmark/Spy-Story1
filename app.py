@@ -802,7 +802,8 @@ def db_health_check():
 
         # Check for characters without roles
         characters_without_roles = ImageAnalysis.query.filter(
-            (ImageAnalysis.image_type == 'character') & ((ImageAnalysis.character_role.is_(None)) | (ImageAnalysis.character_role == ''))
+            (ImageAnalysis.image_type == 'character') & 
+            ((ImageAnalysis.character_role.is_(None)) | (ImageAnalysis.character_role == ''))
         ).count()
 
         if characters_without_roles > 0:
@@ -1199,8 +1200,7 @@ def trade_currency():
         return jsonify({'error': str(e)}), 500
 
 app.register_blueprint(unity_api, url_prefix='/api/unity') # Blueprint registration
-app.register_blueprint(api_bp) # Register api_bp
-app.register_blueprint(debug_bp, url_prefix='/debug') # Register debug_bp
+app.register_blueprint(api_bp) #Register api_bp
 
 @app.route('/make_choice', methods=['POST'])
 def make_choice():
