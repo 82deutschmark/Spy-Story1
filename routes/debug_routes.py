@@ -43,6 +43,11 @@ def debug_dashboard():
         empty_stories=empty_stories
     )
 
+@debug_bp.route('/admin')
+def admin_redirect():
+    """Redirect to the admin interface"""
+    return redirect('/admin/')
+
 @debug_bp.route('/images')
 def debug_images():
     """API endpoint for debug page to get images with pagination"""

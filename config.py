@@ -1,4 +1,3 @@
-
 import os
 from dotenv import load_dotenv
 
@@ -18,6 +17,10 @@ class Config:
     }
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
     LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+    # PB Admin 4 configuration
+    PBADMIN4_SWATCH = 'darkly'
+    PBADMIN4_INDEX_VIEW_URL = '/admin'
+    PBADMIN4_BASE_TEMPLATE = 'admin/base.html'
 
 
 class DevelopmentConfig(Config):
