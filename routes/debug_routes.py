@@ -1,4 +1,3 @@
-
 import os
 import logging
 import json
@@ -54,73 +53,11 @@ def debug_dashboard():
     )
 
 @debug_bp.route('/images')
-def debug_images():
-    """Return paginated list of images for the debug dashboard"""
-    page = request.args.get('page', 1, type=int)
-    limit = request.args.get('limit', 10, type=int)
-    
-    # Get paginated images
-    images = ImageAnalysis.query.order_by(ImageAnalysis.id.desc()).paginate(page=page, per_page=limit)
-    
-    # Format results
-    results = []
-    for img in images.items:
-        results.append({
-            'id': img.id,
-            'image_url': img.image_url,
-            'image_type': img.image_type,
-            'name': img.character_name or '',
-            'created_at': img.created_at.strftime('%Y-%m-%d %H:%M'),
-            'traits': img.character_traits or [],
-            'role': img.character_role or ''
-        })
-    
-    return jsonify({
-        'success': True,
-        'images': results,
-        'total': images.total
-    })
-
-@debug_bp.route('/stories')
-def debug_stories():
-    """Return paginated list of stories for the debug dashboard"""
-    page = request.args.get('page', 1, type=int)
-    limit = request.args.get('limit', 10, type=int)
-    
-    # Get paginated stories
-    stories = StoryGeneration.query.order_by(StoryGeneration.id.desc()).paginate(page=page, per_page=limit)
-    
-    # Format results
-    results = []
-    for story in stories.items:
-        # Extract title from JSON if available
-        title = "Untitled Story"
-        if story.generated_story:
-            try:
-                story_data = json.loads(story.generated_story)
-                if isinstance(story_data, dict) and 'title' in story_data:
-                    title = story_data['title']
-            except:
-                pass
-                
-        results.append({
-            'id': story.id,
-            'title': title,
-            'conflict': story.primary_conflict,
-            'setting': story.setting,
-            'created_at': story.created_at.strftime('%Y-%m-%d %H:%M')
-        })
-    
-    return jsonify({
-        'success': True,
-        'stories': results,
-        'total': stories.total
-    })
-def debug_images():
-    """API endpoint for debug page to get images with pagination"""
+def debug_image_details():
+    """API endpoint for debug page to get images with pagination and additional details"""
     try:
         from utils.api_utils import api_success_response, api_error_response, paginate_query_results
-        
+
         page = request.args.get('page', 1, type=int)
         limit = request.args.get('limit', 10, type=int)
         image_type = request.args.get('type')
@@ -166,7 +103,7 @@ def debug_images():
 
         # Use the pagination utility
         paginated_data = paginate_query_results(results, page, limit, total)
-        
+
         return api_success_response(
             data={'images': paginated_data['results'], 'pagination': paginated_data['pagination']}
         )
@@ -174,9 +111,9 @@ def debug_images():
         logger.error(f"Error getting debug images: {str(e)}")
         return api_error_response(e, 500)
 
-@debug_bp.route('/stories')
-def debug_stories():
-    """API endpoint for debug page to get stories with pagination"""
+@debug_bp.route('/stories-detail')
+def debug_story_details():
+    """API endpoint for debug page to get stories with pagination and additional details"""
     try:
         page = request.args.get('page', 1, type=int)
         limit = request.args.get('limit', 10, type=int)
@@ -291,7 +228,7 @@ def save_analysis():
 
         # Determine if it's a character or scene based on image_type or standard indicators
         is_character = False
-        
+
         # Check explicit image_type field first
         if 'image_type' in analysis and analysis['image_type'].lower() == 'character':
             is_character = True
@@ -466,20 +403,20 @@ def delete_image(image_id):
     """Delete a specific image from the database"""
     try:
         image = ImageAnalysis.query.get_or_404(image_id)
-        
+
         # Store image details for logging
         image_info = {
             'id': image.id,
             'type': image.image_type,
             'name': image.name or image.character_name or 'Unnamed'
         }
-        
+
         # Delete the image
         db.session.delete(image)
         db.session.commit()
-        
+
         logger.info(f"Deleted image: {image_info}")
-        
+
         return jsonify({
             'success': True,
             'message': f'Image {image_id} deleted successfully'
@@ -494,7 +431,7 @@ def delete_all_images():
     """Delete all images from the database"""
     try:
         from utils.api_utils import api_success_response, api_error_response, validate_action
-        
+
         # Validate this dangerous action with confirmation
         confirmation = request.json.get('confirmation') if request.is_json else request.form.get('confirmation')
         is_valid, error_message = validate_action(
@@ -502,19 +439,19 @@ def delete_all_images():
             confirmation=confirmation,
             required_confirmation="DELETE ALL IMAGES"
         )
-        
+
         if not is_valid:
             return api_error_response(error_message, 400, error_type="validation_error")
-            
+
         # Get count for logging
         count = ImageAnalysis.query.count()
-        
+
         # Delete all images
         ImageAnalysis.query.delete()
         db.session.commit()
-        
+
         logger.info(f"Deleted all images: {count} total")
-        
+
         return api_success_response(
             message=f'All {count} images deleted successfully'
         )
@@ -528,7 +465,7 @@ def delete_story(story_id):
     """Delete a specific story from the database"""
     try:
         story = StoryGeneration.query.get_or_404(story_id)
-        
+
         # Store story details for logging
         title = "Untitled Story"
         if story.generated_story:
@@ -538,18 +475,18 @@ def delete_story(story_id):
                     title = story_data['title']
             except:
                 pass
-                
+
         story_info = {
             'id': story.id,
             'title': title
         }
-        
+
         # Delete the story
         db.session.delete(story)
         db.session.commit()
-        
+
         logger.info(f"Deleted story: {story_info}")
-        
+
         return jsonify({
             'success': True,
             'message': f'Story {story_id} deleted successfully'
@@ -565,13 +502,13 @@ def delete_all_stories():
     try:
         # Get count for logging
         count = StoryGeneration.query.count()
-        
+
         # Delete all stories
         StoryGeneration.query.delete()
         db.session.commit()
-        
+
         logger.info(f"Deleted all stories: {count} total")
-        
+
         return jsonify({
             'success': True,
             'message': f'All {count} stories deleted successfully'
