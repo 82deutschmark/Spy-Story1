@@ -1,20 +1,24 @@
 import os
 import logging
 import json
-from flask import Flask, render_template, request, jsonify, url_for, redirect, flash, session
-from dotenv import load_dotenv
-from database import db
-from flask_cors import CORS
-import logging
-from decimal import Decimal
 import uuid
+from datetime import datetime
+from flask import Flask, render_template, request, jsonify, url_for, redirect, flash, session
+from werkzeug.middleware.proxy_fix import ProxyFix
+from middleware.request_logger import RequestLoggerMiddleware
+from flask_bootstrap import Bootstrap4
+
+from database import db, init_db
+from models import AIInstruction, ImageAnalysis, StoryGeneration
+from routes import register_blueprints
+from utils.error_handlers import register_error_handlers
+from admin_config import init_admin
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-load_dotenv()
-
+# Create and configure the Flask app
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
@@ -1244,6 +1248,21 @@ def make_choice():
     except Exception as e:
         logger.error(f"Error processing choice: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+# Initialize database
+init_db(app)
+
+# Initialize Bootstrap
+bootstrap = Bootstrap4(app)
+
+# Initialize Flask-Admin
+init_admin(app)
+
+# Register error handlers
+register_error_handlers(app)
+
+# Register all blueprint routes
+register_blueprints(app)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

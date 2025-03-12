@@ -40,7 +40,8 @@ def debug_dashboard():
         scene_count=scene_count,
         story_count=story_count,
         orphaned_images=orphaned_images,
-        empty_stories=empty_stories
+        empty_stories=empty_stories,
+        admin_url=url_for('admin.index')
     )
 
 @debug_bp.route('/images')
