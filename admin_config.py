@@ -52,27 +52,16 @@ class TransactionView(BaseModelView):
 def init_admin(app):
     """Initialize Flask-Admin with models"""
     try:
-        # Check if the admin views are already registered
-        if not hasattr(app, '_admin_views_registered'):
-            admin.init_app(app)
-            
-            # Generate unique endpoint names with timestamp to avoid conflicts
-            import time
-            timestamp = int(time.time())
-            
-            # Add model views with unique endpoints
-            admin.add_view(ImageAnalysisView(ImageAnalysis, name='Images', endpoint=f'admin_images_{timestamp}'))
-            admin.add_view(StoryGenerationView(StoryGeneration, name='Stories', endpoint=f'admin_stories_{timestamp}'))
-            admin.add_view(CharacterEvolutionView(CharacterEvolution, name='Characters', endpoint=f'admin_characters_{timestamp}'))
-            admin.add_view(UserProgressView(UserProgress, name='Users', endpoint=f'admin_users_{timestamp}'))
-            admin.add_view(TransactionView(Transaction, name='Transactions', endpoint=f'admin_transactions_{timestamp}'))
-            
-            # Mark as registered
-            app._admin_views_registered = True
-            
-            logger.info("Flask-Admin initialized successfully")
-        else:
-            logger.info("Admin views already registered, skipping initialization")
+        admin.init_app(app)
+        
+        # Add model views
+        admin.add_view(ImageAnalysisView(ImageAnalysis, name='Images'))
+        admin.add_view(StoryGenerationView(StoryGeneration, name='Stories'))
+        admin.add_view(CharacterEvolutionView(CharacterEvolution, name='Characters'))
+        admin.add_view(UserProgressView(UserProgress, name='Users'))
+        admin.add_view(TransactionView(Transaction, name='Transactions'))
+        
+        logger.info("Flask-Admin initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize Flask-Admin: {str(e)}")
         raise
