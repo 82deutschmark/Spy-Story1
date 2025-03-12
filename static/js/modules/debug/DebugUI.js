@@ -138,8 +138,9 @@ const DebugUI = {
         prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
         const prevLink = document.createElement('a');
         prevLink.className = 'page-link';
-        prevLink.href = 'javascript:void(0);';
-        prevLink.textContent = 'Previous';
+        prevLink.href = '#';
+        prevLink.setAttribute('aria-label', 'Previous');
+        prevLink.innerHTML = '<span aria-hidden="true">&laquo;</span>';
         if (currentPage > 1) {
             prevLink.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -158,7 +159,7 @@ const DebugUI = {
             li.className = `page-item ${i === currentPage ? 'active' : ''}`;
             const link = document.createElement('a');
             link.className = 'page-link';
-            link.href = 'javascript:void(0);';
+            link.href = '#';
             link.textContent = i;
             link.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -173,7 +174,7 @@ const DebugUI = {
         nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
         const nextLink = document.createElement('a');
         nextLink.className = 'page-link';
-        nextLink.href = 'javascript:void(0);';
+        nextLink.href = '#';
         nextLink.textContent = 'Next';
         if (currentPage < totalPages) {
             nextLink.addEventListener('click', (e) => {
