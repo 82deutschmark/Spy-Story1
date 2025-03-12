@@ -306,46 +306,50 @@ class DataHandler {
         try {
             const response = await DebugAPI.get(`/debug/images/${imageId}`);
 
-            if (response.success) {
-                const detailsModalEl = document.getElementById('detailsModal');
-                if (!detailsModalEl) return;
-
-                const modal = new bootstrap.Modal(detailsModalEl);
-                const modalLabelEl = document.getElementById('detailsModalLabel');
-                if (modalLabelEl) {
-                    const type = response.image.image_type === 'character' ? 'Character' : 'Scene';
-                    modalLabelEl.innerHTML = `<i class="fas fa-image me-2"></i>${type} Image: ${response.image.name || response.image.character_name || 'Unnamed'}`;
-                }
-
-                const modalImageEl = document.getElementById('modalImage');
-                if (modalImageEl) {
-                    modalImageEl.src = response.image.image_url;
-                    modalImageEl.style.display = 'block';
-                }
-
-                const modalContentEl = document.getElementById('modalContent');
-                if (modalContentEl) {
-                    modalContentEl.textContent = JSON.stringify(response.image.analysis_result, null, 2);
-                }
-
-                const modalEditModeSwitchEl = document.getElementById('modalEditModeSwitch');
-                if (modalEditModeSwitchEl) modalEditModeSwitchEl.style.display = 'block';
-
-                const modalEditContainerEl = document.getElementById('modalEditContainer');
-                if (modalEditContainerEl) modalEditContainerEl.style.display = 'none';
-                
-                // Pass the full database record to modalHandler for form population
-                if (this.modalHandler) {
-                    this.modalHandler.populateModalWithAnalysis(response.image, response.image.id);
-                }
-
-                modal.show();
-            } else {
-                throw new Error(response.error || 'Failed to load image details');
+            if (!response.success) {
+                DebugUtils.showToast('Error', response.error || 'Failed to fetch image', true);
+                return;
             }
+
+            // Extract image data
+            const imageData = response.image;
+
+            // Set modal content
+            const modalContent = document.getElementById('modalContent');
+            document.getElementById('modalImage').src = imageData.image_url;
+            modalContent.textContent = JSON.stringify(imageData, null, 2);
+
+            // Store the image ID as an attribute for the edit mode
+            modalContent.setAttribute('data-image-id', imageId);
+
+            // Add edit switch listener if not already added
+            const modalEditModeSwitch = document.getElementById('modalEditModeSwitch');
+            if (modalEditModeSwitch && !modalEditModeSwitch._hasListener) {
+                modalEditModeSwitch.addEventListener('change', () => {
+                    this.modalHandler.enableEditMode();
+                });
+                modalEditModeSwitch._hasListener = true;
+            }
+
+            // Reset the edit mode switch to unchecked
+            if (modalEditModeSwitch) {
+                modalEditModeSwitch.checked = false;
+            }
+
+            // Make sure edit container is hidden
+            const modalEditContainer = document.getElementById('modalEditContainer');
+            if (modalEditContainer) {
+                modalEditContainer.style.display = 'none';
+            }
+            modalContent.style.display = 'block';
+
+            // Show the modal
+            const detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
+            detailsModal.show();
+
         } catch (error) {
-            console.error('Error viewing image:', error);
-            DebugUtils.showError(`Failed to load image: ${error.message}`);
+            console.error('Error loading image:', error);
+            DebugUtils.showToast('Error', 'Error loading image: ' + error.message, true);
         }
     }
 
