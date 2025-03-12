@@ -26,50 +26,16 @@ export default {
 
     // Enable editing mode in the modal
     enableEditMode() {
-        // Get elements
         const modalContent = document.getElementById('modalContent');
-        const modalImage = document.getElementById('modalImage');
-        const modalEditContainer = document.getElementById('modalEditContainer');
-        const modalEditModeSwitch = document.getElementById('modalEditModeSwitch');
-        
-        // Get the current image data from the modal attributes
-        const imageId = modalContent.getAttribute('data-image-id');
-        if (!imageId) {
-            console.error('No image ID found');
+        let data;
+
+        try {
+            // Parse the JSON data from the modal content
+            data = JSON.parse(modalContent.textContent);
+        } catch (error) {
+            console.error('Error parsing JSON data:', error);
             return;
         }
-        
-        const isEditingEnabled = modalEditModeSwitch.checked;
-        
-        if (isEditingEnabled) {
-            // Hide the JSON view and show the edit form
-            modalContent.style.display = 'none';
-            modalEditContainer.style.display = 'block';
-            
-            // Fetch the current image data to populate the form
-            this.fetchImageData(imageId);
-        } else {
-            // Show the JSON view and hide the edit form
-            modalContent.style.display = 'block';
-            modalEditContainer.style.display = 'none';
-        }
-    },
-    
-    // Fetch image data to populate the edit form
-    fetchImageData(imageId) {
-        fetch(`/debug/images/${imageId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.image) {
-                    this.populateFormFromDBRecord(data.image);
-                } else {
-                    console.error('Error fetching image data:', data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching image data:', error);
-            });
-    },
 
         // Populate form fields with fallbacks for different field naming
         document.getElementById('modalImageName').value = data.character_name || data.name || '';
@@ -199,14 +165,12 @@ export default {
      * @param {Object} dbRecord - The database record for this image
      */
     populateFormFromDBRecord(dbRecord) {
-        console.log('Populating form from DB record:', dbRecord);
-        
         // Populate form fields with direct database columns, not from the analysis JSON
         document.getElementById('modalImageName').value = dbRecord.name || '';
         document.getElementById('modalImageType').value = dbRecord.image_type || 'character';
         document.getElementById('modalDescriptionField').value = dbRecord.description || '';
 
-        // Show/hide appropriate fields based on image type
+        // Show/hide appropriate fields
         this.toggleModalFieldsByType(dbRecord.image_type);
 
         if (dbRecord.image_type === 'character') {
@@ -227,90 +191,6 @@ export default {
             document.getElementById('modalDramaticMoments').value = this.formatArrayField(dramaticMoments);
         }
     },
-    // Format array values for display in textarea
-    formatArrayField(array) {
-        if (!array) return '';
-        if (typeof array === 'string') return array;
-        return array.join('\n');
-    },
-    
-    // Toggle fields based on image type
-    toggleModalFieldsByType(imageType) {
-        const characterFields = document.getElementById('modalCharacterFields');
-        const sceneFields = document.getElementById('modalSceneFields');
-        
-        if (imageType === 'character') {
-            characterFields.style.display = 'block';
-            sceneFields.style.display = 'none';
-        } else {
-            characterFields.style.display = 'none';
-            sceneFields.style.display = 'block';
-        }
-    },
-    
-    // Save the edited image data
-    saveImageData() {
-        // Get image ID from the modal
-        const imageId = document.getElementById('modalContent').getAttribute('data-image-id');
-        if (!imageId) {
-            console.error('No image ID found for saving');
-            return;
-        }
-        
-        // Get values from form
-        const data = {
-            name: document.getElementById('modalImageName').value,
-            image_type: document.getElementById('modalImageType').value,
-            description: document.getElementById('modalDescriptionField').value
-        };
-        
-        // Add type-specific fields
-        if (data.image_type === 'character') {
-            data.role = document.getElementById('modalCharacterRole').value;
-            data.traits = document.getElementById('modalCharacterTraits').value;
-            data.plot_lines = document.getElementById('modalPlotLines').value;
-            data.backstory = document.getElementById('modalBackstory').value;
-        } else {
-            data.scene_type = document.getElementById('modalSceneType').value;
-            data.setting = document.getElementById('modalSceneSetting').value;
-            data.dramatic_moments = document.getElementById('modalDramaticMoments').value;
-        }
-        
-        // Send update request
-        fetch(`/debug/images/${imageId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => response.json())
-        .then(result => {
-            if (result.success) {
-                // Show success message
-                alert('Image updated successfully');
-                
-                // Refresh the image view
-                const modalEditModeSwitch = document.getElementById('modalEditModeSwitch');
-                if (modalEditModeSwitch) {
-                    modalEditModeSwitch.checked = false;
-                    this.enableEditMode();
-                }
-                
-                // Refresh the image data
-                const modalContent = document.getElementById('modalContent');
-                modalContent.style.display = 'block';
-                document.getElementById('modalEditContainer').style.display = 'none';
-            } else {
-                alert('Error updating image: ' + (result.error || 'Unknown error'));
-            }
-        })
-        .catch(error => {
-            console.error('Error saving image:', error);
-            alert('Error saving changes');
-        });
-    },
-    
     toggleEditMode() {
         const isEditing = document.getElementById('analysisJson').getAttribute('contenteditable') === 'true';
 

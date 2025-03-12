@@ -416,9 +416,9 @@ def save_analysis():
             'error': f"Database error: {str(e)}"
         }), 500
 
-@debug_bp.route('/images/<int:image_id>', methods=['GET', 'DELETE', 'POST'])
+@debug_bp.route('/images/<int:image_id>', methods=['GET', 'DELETE'])
 def image_actions(image_id):
-    """Handle actions for a specific image (view, update, or delete)"""
+    """Handle actions for a specific image (view or delete)"""
     try:
         image = ImageAnalysis.query.get_or_404(image_id)
         
@@ -439,65 +439,6 @@ def image_actions(image_id):
             return jsonify({
                 'success': True,
                 'message': f'Image {image_id} deleted successfully'
-            })
-        elif request.method == 'POST':
-            # Update the image with edited data
-            data = request.json
-            
-            # Update basic fields
-            if 'name' in data:
-                image.name = data['name']
-                if image.image_type == 'character':
-                    image.character_name = data['name']
-                    
-            if 'image_type' in data:
-                image.image_type = data['image_type']
-                
-            if 'description' in data:
-                image.description = data['description']
-                
-            # Update character-specific fields
-            if image.image_type == 'character':
-                if 'role' in data:
-                    image.character_role = data['role']
-                    image.role = data['role']
-                    
-                if 'traits' in data:
-                    traits = data['traits'].split(',') if isinstance(data['traits'], str) else data['traits']
-                    image.character_traits = [t.strip() for t in traits if t.strip()]
-                    image.personality_traits = image.character_traits
-                    
-                if 'plot_lines' in data:
-                    plot_lines = data['plot_lines'].split('\n') if isinstance(data['plot_lines'], str) else data['plot_lines']
-                    image.plot_lines = [p.strip() for p in plot_lines if p.strip()]
-                    image.potential_plot_lines = image.plot_lines
-                    
-                if 'backstory' in data:
-                    image.backstory = data['backstory']
-            
-            # Update scene-specific fields
-            else:
-                if 'scene_type' in data:
-                    image.scene_type = data['scene_type']
-                    
-                if 'setting' in data:
-                    image.setting = data['setting']
-                    
-                if 'setting_description' in data:
-                    image.setting_description = data['setting_description']
-                    
-                if 'dramatic_moments' in data:
-                    moments = data['dramatic_moments'].split('\n') if isinstance(data['dramatic_moments'], str) else data['dramatic_moments']
-                    image.dramatic_moments = [m.strip() for m in moments if m.strip()]
-            
-            # Save changes
-            db.session.commit()
-            
-            logger.info(f"Updated image {image_id}")
-            
-            return jsonify({
-                'success': True,
-                'message': f'Image {image_id} updated successfully'
             })
         else:  # GET request
             # Format image analysis data for response
