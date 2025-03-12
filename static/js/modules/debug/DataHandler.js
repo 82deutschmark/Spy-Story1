@@ -121,7 +121,9 @@ class DataHandler {
             if (this.searchTerm) {
                 url += `&search=${encodeURIComponent(this.searchTerm)}`;
             }
-            const data = await DebugAPI.get(url);
+            const response = await DebugAPI.get(url);
+            // Handle both formats (data.images or just images)
+            const data = response.data && response.data.images ? response : { data: { images: response.images, pagination: response.pagination } };
 
             if (!data.success) {
                 throw new Error(data.error || 'Failed to load images');
