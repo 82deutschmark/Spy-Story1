@@ -65,18 +65,17 @@ export default {
 
     async getStories(page = 1, limit = 10, search = '') {
         try {
-            const url = `/debug/stories-detail?page=${page}&limit=${limit}${search ? `&search=${search}` : ''}`;
-            console.log('Fetching stories from:', url);
-            const response = await fetch(url);
+            console.log("Fetching stories from:", `/debug/stories-detail?page=${page}&limit=${limit}${search ? `&search=${search}` : ''}`);
+            const response = await fetch(`/debug/stories-detail?page=${page}&limit=${limit}${search ? `&search=${search}` : ''}`);
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
             const data = await response.json();
-            console.log('Received stories data:', data);
+            console.log("Received stories data:", data);
             return data;
         } catch (error) {
             console.error('API GET error:', error);
-            throw error;
+            return { success: false, error: error.message };
         }
     },
 };

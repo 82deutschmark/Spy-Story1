@@ -132,7 +132,7 @@ const DebugUI = {
         prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
         const prevLink = document.createElement('a');
         prevLink.className = 'page-link';
-        prevLink.href = '#';
+        prevLink.href = 'javascript:void(0);';
         prevLink.textContent = 'Previous';
         if (currentPage > 1) {
             prevLink.addEventListener('click', (e) => {
@@ -148,7 +148,7 @@ const DebugUI = {
             li.className = `page-item ${i === currentPage ? 'active' : ''}`;
             const link = document.createElement('a');
             link.className = 'page-link';
-            link.href = '#';
+            link.href = 'javascript:void(0);';
             link.textContent = i;
             link.addEventListener('click', (e) => {
                 e.preventDefault();
