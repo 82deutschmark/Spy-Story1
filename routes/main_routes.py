@@ -16,16 +16,31 @@ logger = logging.getLogger(__name__)
 main_bp = Blueprint('main', __name__)
 
 def get_or_create_user_progress(protagonist_name=None):
-    """Get or create user progress record for the current session. Uses protagonist_name for identification."""
-    from utils.db_utils import get_or_create_user_progress as db_get_or_create_user_progress
-    
+    """Get or create user progress record for the current session.  Now optionally takes protagonist_name."""
     if 'user_id' not in session:
         session['user_id'] = str(uuid.uuid4())
         logger.debug(f"Created new user session with ID: {session['user_id']}")
 
-    # Use the enhanced db_utils version that handles protagonist name lookup
-    user_progress = db_get_or_create_user_progress(session['user_id'], protagonist_name)
-    
+    user_progress = UserProgress.query.filter_by(user_id=session['user_id']).first()
+    if not user_progress:
+        logger.debug(f"Creating new user progress for ID: {session['user_id']}")
+        user_progress = UserProgress(
+            user_id=session['user_id'],
+            currency_balances={
+                "💎": 500,  # Diamonds
+                "💷": 5000,  # Pounds
+                "💶": 5000,  # Euros
+                "💴": 5000,  # Yen
+                "💵": 5000,  # Dollars
+            },
+            protagonist_name=protagonist_name # Added protagonist name
+        )
+        db.session.add(user_progress)
+        db.session.commit()
+        logger.debug(f"Created user progress with initial balances: {user_progress.currency_balances}")
+    else:
+        logger.debug(f"Found existing user progress for ID: {session['user_id']}")
+
     return user_progress
 
 # PayPal check removed

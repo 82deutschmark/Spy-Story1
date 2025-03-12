@@ -40,20 +40,18 @@ def get_or_create_user_progress(session_user_id: str, protagonist_name: str = No
     user_progress = UserProgress.query.filter_by(user_id=session_user_id).first()
     
     # If protagonist name provided and no user found by session ID, try finding by name
-    if protagonist_name and (not user_progress or not user_progress.game_state or 
-                          user_progress.game_state.get("protagonist_name") != protagonist_name):
+    if not user_progress and protagonist_name:
         # Look in the game_state JSONB field for protagonist_name
-        existing_user = UserProgress.query.filter(
+        user_progress = UserProgress.query.filter(
             UserProgress.game_state.contains({"protagonist_name": protagonist_name})
         ).first()
         
-        if existing_user and existing_user.id != (user_progress.id if user_progress else None):
+        if user_progress:
             logger.info(f"Found existing user by protagonist name: {protagonist_name}")
             # Update the user_id to match the current session
             # This allows the user to continue their story on a different device/browser
-            existing_user.user_id = session_user_id
-            if safe_commit():
-                return existing_user
+            user_progress.user_id = session_user_id
+            safe_commit()
     
     # If still no user progress found, create a new one
     if not user_progress:
@@ -85,13 +83,14 @@ def get_or_create_user_progress(session_user_id: str, protagonist_name: str = No
         logger.debug(f"Found existing user progress for ID: {session_user_id}")
         
         # Update protagonist name in game_state if provided and different from current
-        if protagonist_name:
+        if protagonist_name and (not user_progress.game_state or 
+                               user_progress.game_state.get("protagonist_name") != protagonist_name):
             if not user_progress.game_state:
                 user_progress.game_state = {}
             user_progress.game_state["protagonist_name"] = protagonist_name
             safe_commit()
         
-    return user_progress
+    returnn user_progress
 
 def record_currency_transaction(
     user_id: str,
