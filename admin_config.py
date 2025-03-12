@@ -54,12 +54,12 @@ def init_admin(app):
     try:
         admin.init_app(app)
         
-        # Add model views
-        admin.add_view(ImageAnalysisView(ImageAnalysis, name='Images'))
-        admin.add_view(StoryGenerationView(StoryGeneration, name='Stories'))
-        admin.add_view(CharacterEvolutionView(CharacterEvolution, name='Characters'))
-        admin.add_view(UserProgressView(UserProgress, name='Users'))
-        admin.add_view(TransactionView(Transaction, name='Transactions'))
+        # Add model views with explicit, unique endpoints to avoid conflicts
+        admin.add_view(ImageAnalysisView(ImageAnalysis, name='Images', endpoint='admin_image_analysis'))
+        admin.add_view(StoryGenerationView(StoryGeneration, name='Stories', endpoint='admin_story_generation'))
+        admin.add_view(CharacterEvolutionView(CharacterEvolution, name='Characters', endpoint='admin_character_evolution'))
+        admin.add_view(UserProgressView(UserProgress, name='Users', endpoint='admin_user_progress'))
+        admin.add_view(TransactionView(Transaction, name='Transactions', endpoint='admin_transactions'))
         
         logger.info("Flask-Admin initialized successfully")
     except Exception as e:
