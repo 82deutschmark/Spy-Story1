@@ -483,7 +483,10 @@ export default class DataHandler {
             let charactersText = 'None';
             if (story.characters && story.characters.length > 0) {
                 charactersText = story.characters.map(char => char.name || `ID: ${char.id}`).join(', ');
+            } else if (story.character_names && story.character_names.length > 0) {
+                charactersText = story.character_names.join(', ');
             }
+            
             row.innerHTML = `
                 <td>${story.id}</td>
                 <td>${story.title || 'Untitled'}</td>
@@ -503,19 +506,22 @@ export default class DataHandler {
                 </td>
             `;
             this.debugUI.elements.storiesTableBody.appendChild(row);
-            row.querySelector('.view-story-btn').addEventListener('click', () => this.viewStory(story.id));
-            row.querySelector('.delete-story-btn').addEventListener('click', () => this.deleteStory(story.id));
+            
+            // Add event listeners
+            const viewBtn = row.querySelector('.view-story-btn');
+            if (viewBtn) {
+                viewBtn.addEventListener('click', () => this.viewStory(story.id));
+            }
+            
+            const deleteBtn = row.querySelector('.delete-story-btn');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', () => this.deleteStory(story.id));
+            }
         });
 
-        // Create pagination for stories
+        // Handle pagination using renderStoryPagination for consistent implementation
         if (pagination && pagination.pages) {
-            console.log(`Creating stories pagination: total=${pagination.pages}, current=${this.storyCurrentPage}`);
-            this.debugUI.createPagination('storiesPagination', pagination.pages, this.storyCurrentPage,
-                (page) => {
-                    this.storyCurrentPage = page;
-                    this.loadStories();
-                }
-            );
+            this.renderStoryPagination(pagination);
         }
     }
 
@@ -739,66 +745,21 @@ export default class DataHandler {
         }
     }
 
+    // Using the DebugUI's createPagination method instead of custom implementation
     renderStoryPagination(pagination) {
-        const paginationEl = this.debugUI.elements.storyPagination;
-        paginationEl.innerHTML = '';
-
-        const totalPages = pagination.pages;
-        const currentPage = pagination.page;
-
-        if (totalPages <= 1) return;
-
-        // Previous button
-        const prevLi = document.createElement('li');
-        prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-        prevLi.innerHTML = `
-            <a class="page-link" href="javascript:void(0);" aria-label="Previous">
-                <span aria-hidden="true">&laquo;</span>
-            </a>
-        `;
-        if (currentPage > 1) {
-            prevLi.querySelector('a').addEventListener('click', (e) => {
-                e.preventDefault();
-                this.storyCurrentPage = currentPage - 1;
-                this.loadStories();
-            });
+        if (!pagination || !pagination.pages) {
+            console.error('Invalid pagination data:', pagination);
+            return;
         }
-        paginationEl.appendChild(prevLi);
-
-        // Page numbers (show max 5 pages)
-        const startPage = Math.max(1, currentPage - 2);
-        const endPage = Math.min(totalPages, startPage + 4);
-
-        for (let i = startPage; i <= endPage; i++) {
-            const pageLi = document.createElement('li');
-            pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
-            pageLi.innerHTML = `<a class="page-link" href="javascript:void(0);">${i}</a>`;
-
-            pageLi.querySelector('a').addEventListener('click', (e) => {
-                e.preventDefault();
-                this.storyCurrentPage = i;
+        
+        console.log(`Using DebugUI pagination for stories: total=${pagination.pages}, current=${pagination.page}`);
+        
+        this.debugUI.createPagination('storiesPagination', pagination.pages, pagination.page, 
+            (page) => {
+                this.storyCurrentPage = page;
                 this.loadStories();
-            });
-
-            paginationEl.appendChild(pageLi);
-        }
-
-        // Next button
-        const nextLi = document.createElement('li');
-        nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-        nextLi.innerHTML = `
-            <a class="page-link" href="javascript:void(0);" aria-label="Next">
-                <span aria-hidden="true">&raquo;</span>
-            </a>
-        `;
-        if (currentPage < totalPages) {
-            nextLi.querySelector('a').addEventListener('click', (e) => {
-                e.preventDefault();
-                this.storyCurrentPage = currentPage + 1;
-                this.loadStories();
-            });
-        }
-        paginationEl.appendChild(nextLi);
+            }
+        );
     }
 
 }
