@@ -20,6 +20,8 @@ debug_bp = Blueprint('debug', __name__)
 @debug_bp.route('/dashboard')
 def debug_dashboard():
     """Debug page with image analysis tool and database view"""
+    from datetime import datetime
+    now = datetime.now().timestamp()
     recent_images = ImageAnalysis.query.order_by(ImageAnalysis.created_at.desc()).limit(10).all()
     recent_stories = StoryGeneration.query.order_by(StoryGeneration.created_at.desc()).limit(10).all()
 
@@ -47,10 +49,73 @@ def debug_dashboard():
         story_count=story_count,
         orphaned_images=orphaned_images,
         empty_stories=empty_stories,
-        admin_url=admin_url
+        admin_url=admin_url,
+        now=now
     )
 
 @debug_bp.route('/images')
+def debug_images():
+    """Return paginated list of images for the debug dashboard"""
+    page = request.args.get('page', 1, type=int)
+    limit = request.args.get('limit', 10, type=int)
+    
+    # Get paginated images
+    images = ImageAnalysis.query.order_by(ImageAnalysis.id.desc()).paginate(page=page, per_page=limit)
+    
+    # Format results
+    results = []
+    for img in images.items:
+        results.append({
+            'id': img.id,
+            'image_url': img.image_url,
+            'image_type': img.image_type,
+            'name': img.character_name or '',
+            'created_at': img.created_at.strftime('%Y-%m-%d %H:%M'),
+            'traits': img.character_traits or [],
+            'role': img.character_role or ''
+        })
+    
+    return jsonify({
+        'success': True,
+        'images': results,
+        'total': images.total
+    })
+
+@debug_bp.route('/stories')
+def debug_stories():
+    """Return paginated list of stories for the debug dashboard"""
+    page = request.args.get('page', 1, type=int)
+    limit = request.args.get('limit', 10, type=int)
+    
+    # Get paginated stories
+    stories = StoryGeneration.query.order_by(StoryGeneration.id.desc()).paginate(page=page, per_page=limit)
+    
+    # Format results
+    results = []
+    for story in stories.items:
+        # Extract title from JSON if available
+        title = "Untitled Story"
+        if story.generated_story:
+            try:
+                story_data = json.loads(story.generated_story)
+                if isinstance(story_data, dict) and 'title' in story_data:
+                    title = story_data['title']
+            except:
+                pass
+                
+        results.append({
+            'id': story.id,
+            'title': title,
+            'conflict': story.primary_conflict,
+            'setting': story.setting,
+            'created_at': story.created_at.strftime('%Y-%m-%d %H:%M')
+        })
+    
+    return jsonify({
+        'success': True,
+        'stories': results,
+        'total': stories.total
+    })
 def debug_images():
     """API endpoint for debug page to get images with pagination"""
     try:
