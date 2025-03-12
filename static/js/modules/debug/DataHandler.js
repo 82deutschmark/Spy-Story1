@@ -114,34 +114,30 @@ class DataHandler {
                     </td>
                 </tr>
             `;
-            let url = `/debug/images?page=${this.currentPage}&limit=${this.pageSize}`;
+
+            // Load all images at once without pagination
+            let url = `/debug/images?limit=9999`;
             if (this.currentFilter) {
                 url += `&type=${this.currentFilter}`;
             }
             if (this.searchTerm) {
                 url += `&search=${encodeURIComponent(this.searchTerm)}`;
             }
-            
-            console.log('Fetching images from:', url);
+
+            console.log('Fetching all images from:', url);
             const response = await DebugAPI.get(url);
             console.log('Received image data:', response);
-            
+
             // Simple direct access to the data without transformation
             if (!response.success) {
                 throw new Error(response.error || 'Failed to load images');
             }
-            
+
             // Use images directly from the response
             this.renderImages(response.images);
-            
-            // Setup pagination if available
-            if (response.pagination && this.debugUI.elements.imagesPagination) {
-                console.log('Using DebugUI pagination for images: total=' + response.pagination.pages + ', current=' + this.currentPage);
-                this.debugUI.createPagination('imagesPagination', response.pagination.pages, this.currentPage, (page) => {
-                    this.currentPage = page;
-                    this.loadImages();
-                });
-            } else if (this.debugUI.elements.imagesPagination) {
+
+            // Clear pagination container
+            if (this.debugUI.elements.imagesPagination) {
                 this.debugUI.elements.imagesPagination.innerHTML = '';
             }
         } catch (error) {
@@ -216,7 +212,7 @@ class DataHandler {
 
             this.debugUI.elements.storiesTableBody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="text-center">
+                    <td colspan="6" class="text-center">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
@@ -224,20 +220,24 @@ class DataHandler {
                 </tr>
             `;
 
-            console.log(`Loading stories: page=${this.storyCurrentPage}, limit=${this.pageSize}, search=${this.storySearchTerm}`);
-            const data = await DebugAPI.getStories(this.storyCurrentPage || 1, this.pageSize, this.storySearchTerm);
-
-            if (!data) {
-                throw new Error('No data returned from API');
+            console.log(`Loading all stories: search=${this.storySearchTerm}`);
+            // Load all stories at once without pagination
+            let url = `/debug/stories-detail?limit=9999`;
+            if (this.storySearchTerm) {
+                url += `&search=${encodeURIComponent(this.storySearchTerm)}`;
             }
 
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to load stories');
+            console.log('Fetching all stories from:', url);
+            const data = await DebugAPI.get(url);
+            console.log('Received stories data:', data);
+
+            if (!data.stories) {
+                throw new Error('No stories data received');
             }
 
             this.renderStories(data.stories);
 
-            // Clear pagination since we're showing all records
+            // Clear pagination container
             if (this.debugUI.elements.storiesPagination) {
                 this.debugUI.elements.storiesPagination.innerHTML = '';
             }
