@@ -22,7 +22,7 @@ def create_app():
     app_config = get_config()
     app.config.from_object(app_config)
     app.secret_key = app_config.SESSION_SECRET
-    app.config['SQLALCHEMY_DATABASE_URI'] = app_config.DATABASE_URL
+    app.config['SQLALCHEMY_DATABASE_URI'] = app_config.SQLALCHEMY_DATABASE_URI
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         "pool_recycle": 300,
         "pool_pre_ping": True,
