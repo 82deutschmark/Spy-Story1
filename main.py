@@ -1,10 +1,7 @@
+
 import os
 import logging
-from flask import Flask
-from database import db
-from flask_cors import CORS
 from config import get_config
-from admin_config import init_admin
 from app import create_app
 
 # Configure logging
