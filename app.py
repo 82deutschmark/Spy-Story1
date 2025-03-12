@@ -802,8 +802,7 @@ def db_health_check():
 
         # Check for characters without roles
         characters_without_roles = ImageAnalysis.query.filter(
-            (ImageAnalysis.image_type == 'character') & 
-            ((ImageAnalysis.character_role.is_(None)) | (ImageAnalysis.character_role == ''))
+            (ImageAnalysis.image_type == 'character') & ((ImageAnalysis.character_role.is_(None)) | (ImageAnalysis.character_role == ''))
         ).count()
 
         if characters_without_roles > 0:
