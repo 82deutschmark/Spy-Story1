@@ -62,6 +62,8 @@ def debug_image_details():
         limit = request.args.get('limit', 10, type=int)
         image_type = request.args.get('type')
         search = request.args.get('search')
+        
+        logger.info(f"Getting images with pagination: page={page}, limit={limit}, type={image_type}, search={search}")
 
         query = ImageAnalysis.query
 
@@ -78,6 +80,7 @@ def debug_image_details():
 
         # Execute count query
         total = query.count()
+        logger.debug(f"Total images matching query: {total}")
 
         # Get paginated results
         images = query.order_by(ImageAnalysis.id.desc()).paginate(page=page, per_page=limit)
@@ -90,6 +93,10 @@ def debug_image_details():
             if not name and analysis:
                 name = analysis.get('name', '')
 
+            # Also add story information
+            stories_count = img.stories.count()
+            story_ids = [story.id for story in img.stories]
+
             results.append({
                 'id': img.id,
                 'image_url': img.image_url,
@@ -98,15 +105,18 @@ def debug_image_details():
                 'created_at': img.created_at.strftime('%Y-%m-%d %H:%M'),
                 'traits': img.character_traits or [],
                 'role': img.character_role or '',
-                'stories_count': img.stories.count()
+                'stories_count': stories_count,
+                'story_ids': story_ids
             })
 
         # Use the pagination utility
         paginated_data = paginate_query_results(results, page, limit, total)
+        
+        # Log structure of response before returning
+        response_data = {'images': paginated_data['results'], 'pagination': paginated_data['pagination']}
+        logger.debug(f"Response structure: {list(response_data.keys())}")
 
-        return api_success_response(
-            data={'images': paginated_data['results'], 'pagination': paginated_data['pagination']}
-        )
+        return api_success_response(data=response_data)
     except Exception as e:
         logger.error(f"Error getting debug images: {str(e)}")
         return api_error_response(e, 500)
