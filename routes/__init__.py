@@ -1,9 +1,10 @@
+
 from flask import Blueprint
 
 # Import all route modules
 from .main_routes import main_bp
+from .debug_routes import debug_bp 
 from .api_routes import api_bp
-from .debug_routes import debug_bp
 
 def register_blueprints(app):
     """Register all blueprints with the Flask app"""
