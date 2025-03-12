@@ -8,8 +8,6 @@ from flask_cors import CORS
 import logging
 from decimal import Decimal
 import uuid
-from pbadmin4 import Admin, ModelView # Added import for PB Admin
-from admin_config import init_admin # Added import for admin configuration
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -809,7 +807,7 @@ def db_health_check():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/images/all')
-def get_allimages():
+def get_all_images():
     """API endpoint to get all images with pagination"""
     try:
         page = request.args.get('page', 1, type=int)
@@ -1246,27 +1244,6 @@ def make_choice():
     except Exception as e:
         logger.error(f"Error processing choice: {str(e)}")
         return jsonify({'error': str(e)}), 500
-
-def create_app():
-    """Create and configure the Flask app"""
-    app = Flask(__name__)
-
-    # Configure app
-    app.config.from_object('config')
-
-    # Initialize database
-    init_db(app)
-
-    # Register blueprints
-    register_blueprints(app)
-
-    # Initialize Admin interface
-    admin = init_admin(app)
-
-    # Register middleware
-    app.wsgi_app = RequestLoggerMiddleware(app.wsgi_app)
-
-    return app
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
