@@ -86,21 +86,38 @@
                                     </h2>
                                     <div id="storyOptionsCollapse" class="accordion-collapse collapse" aria-labelledby="storyOptionsHeading">
                                         <div class="accordion-body">
-                                            <h4>Protagonist Information</h4>
+                                            <h4>Your Agent Profile</h4>
                                             <div class="row mb-3">
                                                 <div class="col-md-6">
-                                                    <label for="protagonistName" class="form-label">Protagonist Name</label>
-                                                    <input type="text" class="form-control" id="protagonistName" name="protagonist_name" placeholder="Enter protagonist name">
+                                                    <label for="protagonistName" class="form-label">Agent Codename</label>
+                                                    <input type="text" class="form-control" id="protagonistName" name="protagonist_name" placeholder="Enter agent codename">
                                                     <div class="form-text">Enter a name you've used before to continue that story</div>
                                                 </div>
                                                 <div class="col-md-6">
-                                                    <label for="protagonistGender" class="form-label">Protagonist Gender</label>
+                                                    <label for="protagonistGender" class="form-label">Agent Gender</label>
                                                     <select class="form-select" id="protagonistGender" name="protagonist_gender">
                                                         <option value="">Select gender</option>
                                                         <option value="male">Male</option>
                                                         <option value="female">Female</option>
                                                         <option value="non-binary">Non-binary</option>
                                                     </select>
+                                                </div>
+                                            </div>
+
+                                            <div class="notebook-preview mt-4 mb-3">
+                                                <div class="card">
+                                                    <div class="card-header bg-dark text-white">
+                                                        <h5 class="mb-0"><i class="fas fa-book me-2"></i>Agent's Notebook</h5>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <p class="text-muted">Your agent's notebook will track:</p>
+                                                        <ul class="notebook-features">
+                                                            <li><i class="fas fa-user-circle me-2"></i>Agent level and experience</li>
+                                                            <li><i class="fas fa-coins me-2"></i>Currency balances</li>
+                                                            <li><i class="fas fa-tasks me-2"></i>Active missions</li>
+                                                            <li><i class="fas fa-users me-2"></i>Character relationships</li>
+                                                        </ul>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <hr class="my-3">

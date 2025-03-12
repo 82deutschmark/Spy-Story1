@@ -996,22 +996,6 @@ h1, h2, h3, .story-title, .character-name {
 }
 
 .select-character-btn {
-
-/* Editable content styling */
-.editable-content {
-    border: 1px solid #007bff;
-    background-color: #f8f9fa;
-    padding: 10px;
-    border-radius: 5px;
-    white-space: pre-wrap;
-}
-
-.editable-content:focus {
-    outline: none;
-    border-color: #0056b3;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-}
-
     background-color: #38b44a;
     color: white;
     border: none;
@@ -1365,3 +1349,6 @@ h1, h2, h3, .story-title, .character-name {
 #progressModal .card-body {
     color: #000000;
 }
+
+/* Main CSS file */
+@import 'notebook.css';

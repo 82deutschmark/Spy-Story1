@@ -10,6 +10,9 @@ import StoryManager from './modules/StoryManager.js';
 import MissionManager from './modules/MissionManager.js';
 import PaymentManager from './modules/PaymentManager.js';
 import EventHandlers from './modules/EventHandlers.js';
+import NotebookManager from './modules/NotebookManager.js';
+import UserProgressManager from './modules/UserProgressManager.js';
+
 
 // Make core modules available globally for debugging
 window.App = {
