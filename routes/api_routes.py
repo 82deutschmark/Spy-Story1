@@ -29,20 +29,31 @@ def random_character():
         # Get all characters
         characters = ImageAnalysis.query.filter_by(image_type='character').all()
         
-        if not characters:
+        # Log character count and first few IDs for debugging
+        logger.info(f"Found {len(characters)} characters for random selection")
+        if characters:
+            logger.info(f"First few character IDs: {[c.id for c in characters[:3]]}")
+        else:
+            logger.info("No characters found in database")
             return jsonify({"error": "No characters found in database"}), 404
             
         # Select a random character
         random_char = random.choice(characters)
         
+        # Log the selected character
+        logger.info(f"Selected random character: id={random_char.id}, name={random_char.character_name}")
+        
         # Return character data
-        return jsonify({
+        response_data = {
             "id": random_char.id,
             "name": random_char.character_name or "Unknown Character",
             "image_url": random_char.image_url,
             "character_role": random_char.character_role or "neutral",
             "success": True
-        })
+        }
+        
+        logger.info(f"Returning character data: {response_data}")
+        return jsonify(response_data)
     except Exception as e:
-        logging.error(f"Error fetching random character: {str(e)}")
+        logger.error(f"Error fetching random character: {str(e)}")
         return jsonify({"error": str(e), "success": False}), 500
