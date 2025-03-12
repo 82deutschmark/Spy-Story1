@@ -112,9 +112,12 @@ def debug_image_details():
         return api_error_response(e, 500)
 
 @debug_bp.route('/stories-detail')
+@debug_bp.route('/stories')
 def debug_story_details():
     """API endpoint for debug page to get stories with pagination and additional details"""
     try:
+        from utils.api_utils import api_success_response, api_error_response, paginate_query_results
+        
         page = request.args.get('page', 1, type=int)
         limit = request.args.get('limit', 10, type=int)
         search = request.args.get('search')
@@ -146,11 +149,15 @@ def debug_story_details():
             title = "Untitled Story"
             if story.generated_story:
                 try:
-                    story_data = json.loads(story.generated_story)
+                    if isinstance(story.generated_story, str):
+                        story_data = json.loads(story.generated_story)
+                    else:
+                        story_data = story.generated_story
+                    
                     if isinstance(story_data, dict) and 'title' in story_data:
                         title = story_data['title']
-                except:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Error parsing story data: {e}")
 
             results.append({
                 'id': story.id,
@@ -162,19 +169,15 @@ def debug_story_details():
                 'created_at': story.created_at.strftime('%Y-%m-%d %H:%M')
             })
 
-        return jsonify({
-            'success': True,
-            'stories': results,
-            'pagination': {
-                'page': page,
-                'per_page': limit,
-                'total': total,
-                'pages': (total + limit - 1) // limit
-            }
-        })
+        # Use the pagination utility for consistent response format
+        paginated_data = paginate_query_results(results, page, limit, total)
+        
+        return api_success_response(
+            data={'stories': paginated_data['results'], 'pagination': paginated_data['pagination']}
+        )
     except Exception as e:
         logger.error(f"Error getting debug stories: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return api_error_response(e, 500)
 
 @debug_bp.route('/generate', methods=['POST'])
 def generate_post():
