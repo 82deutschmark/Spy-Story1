@@ -1,22 +1,31 @@
 /**
  * DebugUtils.js - Utility functions for the debug interface
  */
-export default {
+const DebugUtils = {
     showToast(title, message, isError = false) {
-        const toastEl = document.getElementById('notificationToast');
-        if (toastEl) {
-            const toast = new bootstrap.Toast(toastEl);
-            document.getElementById('toastTitle').textContent = title;
-            document.getElementById('toastMessage').textContent = message;
+        const toast = document.getElementById('notificationToast');
+        const toastTitle = document.getElementById('toastTitle');
+        const toastMessage = document.getElementById('toastMessage');
 
-            if (isError) {
-                toastEl.classList.add('bg-danger', 'text-white');
-            } else {
-                toastEl.classList.remove('bg-danger', 'text-white');
-            }
-
-            toast.show();
+        if (!toast || !toastTitle || !toastMessage) {
+            console.error('Toast elements not found');
+            return;
         }
+
+        // Set toast content
+        toastTitle.textContent = title;
+        toastMessage.textContent = message;
+
+        // Set toast type (error or success)
+        if (isError) {
+            toast.classList.add('bg-danger', 'text-white');
+        } else {
+            toast.classList.remove('bg-danger', 'text-white');
+        }
+
+        // Show the toast
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
     },
 
     deepClone(obj) {
@@ -40,5 +49,8 @@ export default {
             this.showToast('Error', 'Failed to parse JSON: ' + e.message, true);
             return null;
         }
+    },
+    formatTimestamp(date) {
+        return new Date(date).toLocaleString();
     }
 };
