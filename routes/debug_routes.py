@@ -112,11 +112,16 @@ def debug_image_details():
         # Use the pagination utility
         paginated_data = paginate_query_results(results, page, limit, total)
         
-        # Log structure of response before returning
-        response_data = {'images': paginated_data['results'], 'pagination': paginated_data['pagination']}
+        # Return direct JSON response with expected structure
+        logger.debug("Returning direct JSON response for debug images")
+        response_data = {
+            'success': True,
+            'images': paginated_data['results'], 
+            'pagination': paginated_data['pagination']
+        }
         logger.debug(f"Response structure: {list(response_data.keys())}")
 
-        return api_success_response(data=response_data)
+        return jsonify(response_data)
     except Exception as e:
         logger.error(f"Error getting debug images: {str(e)}")
         return api_error_response(e, 500)
