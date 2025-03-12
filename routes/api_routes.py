@@ -692,3 +692,55 @@ def get_user_progress():
             'currency_balances': user_progress.currency_balances if user_progress.currency_balances else {}
         }
     })
+from flask import Blueprint, jsonify, request
+from models import ImageAnalysis
+from database import db
+import logging
+
+logger = logging.getLogger(__name__)
+
+api_bp = Blueprint('api', __name__, url_prefix='/api')
+
+@api_bp.route('/random_character', methods=['GET'])
+def random_character():
+    """Get a random character for character selection"""
+    try:
+        # Get random character image
+        character = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).first()
+        
+        if not character:
+            return jsonify({
+                'success': False,
+                'error': 'No character images found'
+            }), 404
+        
+        # Prepare character data
+        character_data = {
+            'id': character.id,
+            'image_url': character.image_url,
+            'name': character.character_name or 'Mystery Character',
+        }
+        
+        # Add additional data if available
+        if character.character_traits:
+            character_data['traits'] = character.character_traits
+        
+        if character.analysis_result:
+            try:
+                analysis = character.analysis_result
+                if 'style' in analysis:
+                    character_data['style'] = analysis.get('style', 'A mysterious character')
+            except Exception as e:
+                logger.error(f"Error parsing analysis result: {str(e)}")
+        
+        return jsonify({
+            'success': True,
+            'character': character_data
+        })
+        
+    except Exception as e:
+        logger.error(f"Error fetching random character: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
