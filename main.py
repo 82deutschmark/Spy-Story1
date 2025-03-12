@@ -43,16 +43,18 @@ def create_app():
         }
     })
     
+    # Add request logger middleware first
+    from middleware.request_logger import RequestLoggerMiddleware
+    # We need to register the before_request and after_request hooks directly with Flask
+    # instead of trying to wrap the WSGI app
+    middleware = RequestLoggerMiddleware(app)
+    
     # Apply ProxyFix middleware
     app.wsgi_app = ProxyFix(app.wsgi_app)
 
     # Register error handlers
     from utils.error_handlers import register_error_handlers
     register_error_handlers(app)
-
-    # Add request logger middleware
-    from middleware.request_logger import RequestLoggerMiddleware
-    app.wsgi_app = RequestLoggerMiddleware(app.wsgi_app)
 
     # Register blueprints
     with app.app_context():
