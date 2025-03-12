@@ -744,7 +744,7 @@ export default class DataHandler {
         const prevLi = document.createElement('li');
         prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
         prevLi.innerHTML = `
-            <a class="page-link" href="#" aria-label="Previous">
+            <a class="page-link" href="javascript:void(0);" aria-label="Previous">
                 <span aria-hidden="true">&laquo;</span>
             </a>
         `;
@@ -764,7 +764,7 @@ export default class DataHandler {
         for (let i = startPage; i <= endPage; i++) {
             const pageLi = document.createElement('li');
             pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
-            pageLi.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+            pageLi.innerHTML = `<a class="page-link" href="javascript:void(0);">${i}</a>`;
 
             pageLi.querySelector('a').addEventListener('click', (e) => {
                 e.preventDefault();
@@ -779,7 +779,7 @@ export default class DataHandler {
         const nextLi = document.createElement('li');
         nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
         nextLi.innerHTML = `
-            <a class="page-link" href="#" aria-label="Next">
+            <a class="page-link" href="javascript:void(0);" aria-label="Next">
                 <span aria-hidden="true">&raquo;</span>
             </a>
         `;
