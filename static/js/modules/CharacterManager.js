@@ -83,10 +83,11 @@ const CharacterManager = {
                 return response.json();
             })
             .then(data => {
-                if (!data.success || !data.character) {
+                if (!data.success) {
                     throw new Error('Invalid response from server');
                 }
-                return data.character;
+                // The API is returning the character data directly at the top level
+                return data;
             });
     },
 
