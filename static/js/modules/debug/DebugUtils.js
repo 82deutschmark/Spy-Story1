@@ -1,7 +1,7 @@
 /**
  * DebugUtils.js - Utility functions for the debug interface
  */
-export default {
+const DebugUtils = {
     showToast(title, message, isError = false) {
         const toastEl = document.getElementById('notificationToast');
         if (toastEl) {
@@ -42,3 +42,5 @@ export default {
         }
     }
 };
+
+export default DebugUtils;
