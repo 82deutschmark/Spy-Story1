@@ -416,9 +416,9 @@ def save_analysis():
             'error': f"Database error: {str(e)}"
         }), 500
 
-@debug_bp.route('/images/<int:image_id>', methods=['GET', 'DELETE'])
+@debug_bp.route('/images/<int:image_id>', methods=['GET', 'DELETE', 'PUT'])
 def image_actions(image_id):
-    """Handle actions for a specific image (view or delete)"""
+    """Handle actions for a specific image (view, delete, or update)"""
     try:
         image = ImageAnalysis.query.get_or_404(image_id)
         
@@ -439,6 +439,50 @@ def image_actions(image_id):
             return jsonify({
                 'success': True,
                 'message': f'Image {image_id} deleted successfully'
+            })
+        elif request.method == 'PUT':
+            # Update the image with the edited data
+            data = request.json
+            
+            if not data or not data.get('analysis'):
+                return jsonify({'success': False, 'error': 'Missing analysis data'}), 400
+                
+            # Get the updated analysis
+            updated_analysis = data.get('analysis')
+            
+            # Update image analysis fields
+            image.analysis_result = updated_analysis
+            
+            # Update other fields based on the analysis
+            is_character = updated_analysis.get('image_type') == 'character' or updated_analysis.get('type', '').upper() == 'CHARACTER'
+            
+            # Update name fields
+            name = updated_analysis.get('name', '')
+            character_name = updated_analysis.get('character_name', name)
+            image.name = name
+            
+            if is_character:
+                image.character_name = character_name
+                image.character_role = updated_analysis.get('character_role', updated_analysis.get('role', ''))
+                image.role = updated_analysis.get('role', updated_analysis.get('character_role', ''))
+                image.character_traits = updated_analysis.get('character_traits', [])
+                image.personality_traits = updated_analysis.get('personality_traits', image.character_traits)
+                image.plot_lines = updated_analysis.get('plot_lines', [])
+                image.potential_plot_lines = updated_analysis.get('potential_plot_lines', image.plot_lines)
+                image.backstory = updated_analysis.get('backstory', '')
+            else:
+                image.scene_type = updated_analysis.get('scene_type', '')
+                image.setting = updated_analysis.get('setting', '')
+                image.setting_description = updated_analysis.get('setting_description', '')
+                image.dramatic_moments = updated_analysis.get('dramatic_moments', [])
+            
+            # Save to database
+            db.session.commit()
+            logger.info(f"Updated image analysis: {image.id}")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Image updated successfully'
             })
         else:  # GET request
             # Format image analysis data for response
