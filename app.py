@@ -2,7 +2,7 @@ import os
 import logging
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
-from flask_bootstrap import Bootstrap4
+from flask_bootstrap import Bootstrap
 from flask_cors import CORS
 
 from database import db
@@ -29,7 +29,7 @@ def create_app(config_name=None):
     db.init_app(app)
 
     # Initialize Bootstrap
-    bootstrap = Bootstrap4(app)
+    bootstrap = Bootstrap(app)
 
     # Apply ProxyFix middleware for proper handling of reverse proxies
     app.wsgi_app = ProxyFix(app.wsgi_app)
