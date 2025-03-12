@@ -1,9 +1,11 @@
 
 import os
 import logging
+import json
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_admin.contrib.sqla.filters import FilterEqual, FilterLike
+from flask_admin.form import JSONField
 from database import db
 from models import ImageAnalysis, StoryGeneration, CharacterEvolution, UserProgress, Transaction
 
@@ -21,17 +23,101 @@ class BaseModelView(ModelView):
         super(BaseModelView, self).__init__(model, db.session, **kwargs)
 
 class ImageAnalysisView(BaseModelView):
-    column_searchable_list = ['character_name', 'image_type']
-    column_filters = ['image_type', 'character_role']
-    column_exclude_list = ['analysis_result']
+    column_searchable_list = ['character_name', 'image_type', 'role', 'setting']
+    column_filters = [
+        'image_type', 
+        'character_role',
+        'role',
+        'scene_type',
+        FilterEqual(ImageAnalysis.image_type, 'Image Type'),
+        FilterEqual(ImageAnalysis.character_role, 'Character Role')
+    ]
+    column_exclude_list = ['analysis_result', 'plot_lines', 'potential_plot_lines', 'character_traits', 'personality_traits', 'story_fit', 'dramatic_moments']
     column_default_sort = ('created_at', True)
-    form_columns = ['image_url', 'character_name', 'image_type', 'character_role', 'character_traits', 'description']
+    
+    # Better column labels
+    column_labels = {
+        'character_name': 'Name',
+        'character_role': 'Role',
+        'image_type': 'Type',
+        'image_url': 'Image URL',
+        'created_at': 'Created'
+    }
+    
+    # Format datetime
+    column_formatters = {
+        'created_at': lambda v, c, m, p: m.created_at.strftime('%Y-%m-%d %H:%M')
+    }
+    
+    # Customize the displayed columns
+    column_list = ['id', 'image_type', 'character_name', 'character_role', 'image_url', 'created_at']
+    
+    # Columns to display in the edit form
+    form_columns = [
+        'image_url', 
+        'image_type',
+        'character_name', 
+        'character_role',
+        'character_traits', 
+        'description',
+        'backstory',
+        'setting',
+        'setting_description'
+    ]
+    
+    # Create template for displaying images
+    list_template = 'admin/image_analysis_list.html'
+    
+    # Add JSON viewer for complex fields
+    form_overrides = {
+        'character_traits': JSONField,
+        'personality_traits': JSONField,
+        'plot_lines': JSONField,
+        'potential_plot_lines': JSONField,
+        'story_fit': JSONField,
+        'dramatic_moments': JSONField
+    }
+    
+    # Format JSON fields for display
+    form_widget_args = {
+        'character_traits': {'rows': 5},
+        'personality_traits': {'rows': 5},
+        'plot_lines': {'rows': 5},
+        'description': {'rows': 5},
+        'backstory': {'rows': 5},
+        'setting_description': {'rows': 5}
+    }
 
 class StoryGenerationView(BaseModelView):
     column_searchable_list = ['primary_conflict', 'setting']
     column_filters = ['setting', 'primary_conflict']
     column_exclude_list = ['generated_story', 'session_data']
     column_default_sort = ('created_at', True)
+    
+    # Better column labels
+    column_labels = {
+        'primary_conflict': 'Conflict',
+        'created_at': 'Created'
+    }
+    
+    # Format datetime
+    column_formatters = {
+        'created_at': lambda v, c, m, p: m.created_at.strftime('%Y-%m-%d %H:%M')
+    }
+    
+    # Add JSON viewer for complex fields
+    form_overrides = {
+        'generated_story': JSONField,
+        'session_data': JSONField
+    }
+    
+    # Format JSON fields for display
+    form_widget_args = {
+        'generated_story': {'rows': 15},
+        'session_data': {'rows': 10},
+        'primary_conflict': {'rows': 3},
+        'setting': {'rows': 3}
+    }
 
 class CharacterEvolutionView(BaseModelView):
     column_searchable_list = ['user_id', 'status', 'role']
