@@ -692,14 +692,17 @@ def get_user_progress():
             'currency_balances': user_progress.currency_balances if user_progress.currency_balances else {}
         }
     })
+
 from flask import Blueprint, jsonify, request
 from models import ImageAnalysis
 from database import db
 import logging
+from sqlalchemy import func
 
 logger = logging.getLogger(__name__)
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
+
 
 @api_bp.route('/random_character', methods=['GET'])
 def random_character():
@@ -707,24 +710,24 @@ def random_character():
     try:
         # Get random character image
         character = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).first()
-        
+
         if not character:
             return jsonify({
                 'success': False,
                 'error': 'No character images found'
             }), 404
-        
+
         # Prepare character data
         character_data = {
             'id': character.id,
             'image_url': character.image_url,
             'name': character.character_name or 'Mystery Character',
         }
-        
+
         # Add additional data if available
         if character.character_traits:
             character_data['traits'] = character.character_traits
-        
+
         if character.analysis_result:
             try:
                 analysis = character.analysis_result
@@ -732,15 +735,49 @@ def random_character():
                     character_data['style'] = analysis.get('style', 'A mysterious character')
             except Exception as e:
                 logger.error(f"Error parsing analysis result: {str(e)}")
-        
+
         return jsonify({
             'success': True,
             'character': character_data
         })
-        
+
     except Exception as e:
         logger.error(f"Error fetching random character: {str(e)}")
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
+
+@api_bp.route('/character/random', methods=['GET'])
+def get_random_character():
+    """Get a random character from the database"""
+    try:
+        # Get a random character
+        character = ImageAnalysis.query.filter_by(image_type='character').order_by(func.random()).first()
+
+        if not character:
+            return api_error_response("No character images found", 404)
+
+        # Extract character details
+        character_data = {
+            'id': character.id,
+            'image_url': character.image_url,
+            'name': character.character_name or 'Unnamed Character',
+            'role': character.character_role or 'undetermined',
+            'traits': character.character_traits or [],
+            'backstory': character.backstory or ''
+        }
+
+        # Log successful character fetch
+        logging.info(f"Successfully fetched random character ID: {character.id}")
+
+        return api_success_response(character=character_data)
+    except Exception as e:
+        logging.error(f"Error in get_random_character: {str(e)}")
+        return api_error_response(str(e))
+
+def api_success_response(message="Success", data=None, code=200):
+    return jsonify({'success': True, 'message': message, 'data': data}), code
+
+def api_error_response(message="Error", code=500):
+    return jsonify({'success': False, 'message': message}), code
