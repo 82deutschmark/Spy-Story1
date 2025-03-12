@@ -26,6 +26,13 @@ This application allows users to generate interactive stories featuring images f
 
 ## Recent Improvements
 
+- **Recent Bug Fixes**:
+  - Fixed API blueprint import error in routes system
+  - Corrected middleware integration for request logging
+  - Fixed middleware ordering in Flask application initialization
+  - Properly implemented request logger middleware to work with Flask hooks
+  - Ensured correct blueprint registration in the application initialization
+
 - **Admin Interface Integration**:
   - Implemented Flask-Admin with Bootstrap 4 styling for database management
   - Created model views for all database entities
