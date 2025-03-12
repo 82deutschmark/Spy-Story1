@@ -1,3 +1,4 @@
+
 import os
 import logging
 import json
@@ -7,12 +8,16 @@ from flask import Flask, render_template, request, jsonify, url_for, redirect, f
 from werkzeug.middleware.proxy_fix import ProxyFix
 from middleware.request_logger import RequestLoggerMiddleware
 from flask_bootstrap import Bootstrap4
+from flask_cors import CORS
 
 from database import db, init_db
-from models import AIInstruction, ImageAnalysis, StoryGeneration
+from models import AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, StoryChoice, UserProgress
 from routes import register_blueprints
 from utils.error_handlers import register_error_handlers
 from admin_config import init_admin
+from utils.input_validation import validate_input
+from utils.currency import process_currency_transaction
+from api.unity_routes import unity_api
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -31,11 +36,6 @@ db.init_app(app)
 # Import these after db is initialized to avoid circular imports
 from services.openai_service import analyze_artwork, generate_image_description
 from services.story_maker import generate_story, get_story_options
-from models import AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, StoryChoice, UserProgress
-from api.unity_routes import unity_api
-from routes import register_blueprints
-from utils.currency import process_currency_transaction
-from utils.input_validation import validate_input
 
 # CORS configuration
 CORS(app, resources={
@@ -73,12 +73,6 @@ def get_or_create_user_progress():
 
     return user_progress
 
-
-
-# Create database tables
-with app.app_context():
-    db.create_all()
-
 def get_random_scene_background():
     """Get a random scene image suitable for background"""
     scene = ImageAnalysis.query.filter(
@@ -94,6 +88,7 @@ def get_random_scene_background():
 
     return scene.image_url if scene else None
 
+# Main routes
 @app.route('/')
 def index():
     """Main page showing character selection and story options"""
@@ -147,9 +142,6 @@ def index():
         background_image=background_image,
         user_progress=user_progress
     )
-
-
-# Debug route removed to prevent conflict with debug blueprint
 
 @app.route('/storyboard/<int:story_id>')
 def storyboard(story_id):
@@ -217,7 +209,6 @@ def generate_story_route():
         protagonist_gender = request.form.get('protagonist_gender')
         protagonist_name = validate_input(request.form.get('protagonist_name'), max_length=50)
         custom_choice = validate_input(data.get('custom_choice', ''), max_length=200)
-
 
         # Check if this is a custom choice and verify diamond balance
         if custom_choice:
@@ -354,6 +345,73 @@ def generate_story_route():
             flash('Error generating story: ' + str(e), 'error')
             return redirect(url_for('index'))
 
+@app.route('/make_choice', methods=['POST'])
+def make_choice():
+    """Process a story choice and handle currency requirements"""
+    try:
+        data = request.json
+        choice_id = data.get('choice_id')
+        custom_choice = data.get('custom_choice')
+
+        # Get user progress
+        user_progress = get_or_create_user_progress()
+
+        if custom_choice:
+            # Validate diamond balance for custom choice
+            currency_requirements = {'💎': 100}
+            if not user_progress.can_afford(currency_requirements):
+                return jsonify({
+                    'error': 'Insufficient diamonds',
+                    'required': 100,
+                    'current_balance': user_progress.currency_balances.get('💎', 0)
+                }), 400
+
+            # Spend diamonds and record transaction
+            success = process_currency_transaction(user_progress, currency_requirements, 'choice',
+                                                   f'Custom choice: {custom_choice[:50]}...' if len(custom_choice) > 50 else custom_choice)
+            if not success:
+                return jsonify({'error': 'Failed to process currency transaction'}), 500
+
+        else:
+            # Get the choice and validate currency requirements
+            choice = StoryChoice.query.get_or_404(choice_id)
+            if not choice.currency_requirements:
+                return jsonify({'error': 'Invalid choice: missing currency requirements'}), 400
+
+            # Check if user can afford the choice
+            if not user_progress.can_afford(choice.currency_requirements):
+                return jsonify({
+                    'error': 'Insufficient funds',
+                    'requirements': choice.currency_requirements,
+                    'current_balances': user_progress.currency_balances
+                }), 400
+
+            # Spend currency and record transaction
+            success = process_currency_transaction(user_progress, choice.currency_requirements, 'choice',
+                                                   f'Story choice: {choice.choice_text[:50]}...' if len(choice.choice_text) > 50 else choice.choice_text,
+                                                   choice.node_id)
+            if not success:
+                return jsonify({'error': 'Failed to process currency transaction'}), 500
+
+        # Generate next part of the story
+        story_params = {
+            'custom_choice': custom_choice if custom_choice else None,
+            'previous_choice': choice.choice_text if not custom_choice else custom_choice,
+            # Add other necessary story parameters here
+        }
+
+        # Return success response with updated balances
+        return jsonify({
+            'success': True,
+            'new_balances': user_progress.currency_balances,
+            'message': 'Choice processed successfully'
+        })
+
+    except Exception as e:
+        logger.error(f"Error processing choice: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# API Routes
 @app.route('/api/save_analysis', methods=['POST'])
 def save_analysis():
     """Save edited analysis from debug page"""
@@ -453,6 +511,7 @@ def validate_image_types():
 
 @app.route('/generate', methods=['POST'])
 def generate_post():
+    """Generate analysis for an image URL"""
     image_url = request.form.get('image_url')
 
     if not image_url:
@@ -485,7 +544,7 @@ def generate_post():
         logger.error(f"Error generating post: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/save_analysis', methods=['POST'])
+@app.route('/save_analysis_original', methods=['POST'])
 def save_analysis_original():
     """Save the analyzed image data to the database after user confirmation"""
     data = request.json
@@ -1179,90 +1238,27 @@ def trade_currency():
         logger.error(f"Error trading currency: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-# Register all blueprints properly
-register_blueprints(app)
-app.register_blueprint(unity_api, url_prefix='/api/unity')
+# Create database tables
+with app.app_context():
+    db.create_all()
 
-@app.route('/make_choice', methods=['POST'])
-def make_choice():
-    """Process a story choice and handle currency requirements"""
-    try:
-        data = request.json
-        choice_id = data.get('choice_id')
-        custom_choice = data.get('custom_choice')
+# Initialize database and other components
+def init_app():
+    # Initialize Bootstrap
+    bootstrap = Bootstrap4(app)
+    
+    # Initialize Flask-Admin
+    init_admin(app)
+    
+    # Register error handlers
+    register_error_handlers(app)
+    
+    # Register all blueprints
+    register_blueprints(app)
+    app.register_blueprint(unity_api, url_prefix='/api/unity')
 
-        # Get user progress
-        user_progress = get_or_create_user_progress()
-
-        if custom_choice:
-            # Validate diamond balance for custom choice
-            currency_requirements = {'💎': 100}
-            if not user_progress.can_afford(currency_requirements):
-                return jsonify({
-                    'error': 'Insufficient diamonds',
-                    'required': 100,
-                    'current_balance': user_progress.currency_balances.get('💎', 0)
-                }), 400
-
-            # Spend diamonds and record transaction
-            success = process_currency_transaction(user_progress, currency_requirements, 'choice',
-                                                   f'Custom choice: {custom_choice[:50]}...' if len(custom_choice) > 50 else custom_choice)
-            if not success:
-                return jsonify({'error': 'Failed to process currency transaction'}), 500
-
-        else:
-            # Get the choice and validate currency requirements
-            choice = StoryChoice.query.get_or_404(choice_id)
-            if not choice.currency_requirements:
-                return jsonify({'error': 'Invalid choice: missing currency requirements'}), 400
-
-            # Check if user can afford the choice
-            if not user_progress.can_afford(choice.currency_requirements):
-                return jsonify({
-                    'error': 'Insufficient funds',
-                    'requirements': choice.currency_requirements,
-                    'current_balances': user_progress.currency_balances
-                }), 400
-
-            # Spend currency and record transaction
-            success = process_currency_transaction(user_progress, choice.currency_requirements, 'choice',
-                                                   f'Story choice: {choice.choice_text[:50]}...' if len(choice.choice_text) > 50 else choice.choice_text,
-                                                   choice.node_id)
-            if not success:
-                return jsonify({'error': 'Failed to process currency transaction'}), 500
-
-        # Generate next part of the story
-        story_params = {
-            'custom_choice': custom_choice if custom_choice else None,
-            'previous_choice': choice.choice_text if not custom_choice else custom_choice,
-            # Add other necessary story parameters here
-        }
-
-        # Return success response with updated balances
-        return jsonify({
-            'success': True,
-            'new_balances': user_progress.currency_balances,
-            'message': 'Choice processed successfully'
-        })
-
-    except Exception as e:
-        logger.error(f"Error processing choice: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-# Initialize database
-init_db(app)
-
-# Initialize Bootstrap
-bootstrap = Bootstrap4(app)
-
-# Initialize Flask-Admin
-init_admin(app)
-
-# Register error handlers
-register_error_handlers(app)
-
-# Register all blueprint routes
-register_blueprints(app)
+# Initialize app components
+init_app()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
