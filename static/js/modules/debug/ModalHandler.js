@@ -20,6 +20,16 @@ export default {
                 const reanalyzeImageBtn = document.getElementById('reanalyzeImageBtn');
                 if (reanalyzeImageBtn) reanalyzeImageBtn.style.display = '';
             });
+            
+            // Ensure the modal is fully initialized before adding event listeners
+            detailsModal.addEventListener('shown.bs.modal', () => {
+                // Add event listener to the edit mode switch
+                const modalEditModeSwitch = document.getElementById('modalEditModeSwitch');
+                if (modalEditModeSwitch) {
+                    modalEditModeSwitch.addEventListener('change', this.enableEditMode.bind(this));
+                    console.log('Added event listener to edit mode switch');
+                }
+            });
         }
         console.log('Modal handler initialized');
     },
@@ -28,11 +38,14 @@ export default {
     enableEditMode() {
         const editSwitch = document.getElementById('modalEditModeSwitch');
         const modalContent = document.getElementById('modalContent');
-
+        
+        console.log('Enable edit mode triggered, checked:', editSwitch.checked);
+        
         if (editSwitch.checked) {
             // Make the text area editable
             modalContent.setAttribute('contenteditable', 'true');
             modalContent.classList.add('editable-content');
+            console.log('Made content editable');
 
             // Show save button
             document.getElementById('saveAnalysisBtn').style.display = 'block';

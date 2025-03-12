@@ -1,0 +1,27 @@
+
+/* Styles for editable content in modal */
+.editable-content {
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 8px;
+    border: 2px solid #007bff;
+    border-radius: 4px;
+    min-height: 100px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    cursor: text;
+    overflow: auto;
+    transition: all 0.3s ease;
+}
+
+.editable-content:focus {
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    background-color: #fff;
+}
+
+/* Ensure pre elements behave properly when editable */
+pre.editable-content {
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.5;
+}
