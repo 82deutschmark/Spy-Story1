@@ -111,7 +111,7 @@ def debug_image_details():
         logger.error(f"Error getting debug images: {str(e)}")
         return api_error_response(e, 500)
 
-@debug_bp.route('/stories-detail')
+@debug_bp.route('/stories-detail', methods=['GET'])
 def debug_story_details():
     """API endpoint for debug page to get stories with pagination and additional details"""
     try:

@@ -20,12 +20,12 @@ export default {
         try {
             const formData = new FormData();
             formData.append('image_url', imageUrl);
-            
+
             const response = await fetch('/debug/generate', {
                 method: 'POST',
                 body: formData
             });
-            
+
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             return await response.json();
         } catch (error) {
@@ -61,5 +61,18 @@ export default {
             DebugUtils.showToast('API Error', error.message, true);
             throw error;
         }
-    }
+    },
+
+    async getStories(page = 1, limit = 10, search = '') {
+        try {
+            const response = await fetch(`/debug/stories-detail?page=${page}&limit=${limit}${search ? `&search=${search}` : ''}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('API GET error:', error);
+            throw error;
+        }
+    },
 };
