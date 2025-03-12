@@ -1,10 +1,13 @@
+
 import os
 import logging
 from flask import Flask
+from flask_bootstrap import Bootstrap4
+from werkzeug.middleware.proxy_fix import ProxyFix
 from database import db
 from flask_cors import CORS
 from config import get_config
-from admin_config import init_admin # Added import for Flask-Admin initialization
+from admin_config import init_admin
 
 # Configure logging
 config = get_config()
@@ -19,9 +22,15 @@ def create_app():
     app_config = get_config()
     app.config.from_object(app_config)
     app.secret_key = app_config.SESSION_SECRET
+    
+    # Add ProxyFix middleware
+    app.wsgi_app = ProxyFix(app.wsgi_app)
 
     # Initialize database
     db.init_app(app)
+
+    # Initialize Bootstrap
+    bootstrap = Bootstrap4(app)
 
     # Initialize CORS
     CORS(app, resources={
@@ -32,25 +41,22 @@ def create_app():
         }
     })
 
+    # Add request logger middleware
+    from middleware.request_logger import RequestLoggerMiddleware
+    app.wsgi_app = RequestLoggerMiddleware(app.wsgi_app)
+
     # Register error handlers
     from utils.error_handlers import register_error_handlers
     register_error_handlers(app)
 
-    # Add request logger middleware
-    from middleware.request_logger import RequestLoggerMiddleware
-    RequestLoggerMiddleware(app)
-
     # Register blueprints
     with app.app_context():
-        # Import blueprint objects
-        from routes.main_routes import main_bp
-        from routes.debug_routes import debug_bp
-        from routes.api_routes import api_bp
+        from routes import register_blueprints
+        register_blueprints(app)
+        
+        # Import these after db is initialized to avoid circular imports
         from api.unity_routes import unity_api
         from api.game_api import game_api
-        app.register_blueprint(main_bp)
-        app.register_blueprint(debug_bp)
-        app.register_blueprint(api_bp)
         app.register_blueprint(unity_api)
         app.register_blueprint(game_api)
 
@@ -58,7 +64,7 @@ def create_app():
         db.create_all()
 
         # Initialize Flask-Admin
-        init_admin(app) # Initialize Flask-Admin after blueprint registration
+        init_admin(app)
 
     return app
 
