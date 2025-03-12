@@ -20,7 +20,7 @@ export default {
                 const reanalyzeImageBtn = document.getElementById('reanalyzeImageBtn');
                 if (reanalyzeImageBtn) reanalyzeImageBtn.style.display = '';
             });
-            
+
             // Ensure the modal is fully initialized before adding event listeners
             detailsModal.addEventListener('shown.bs.modal', () => {
                 // Add event listener to the edit mode switch
@@ -38,9 +38,9 @@ export default {
     enableEditMode() {
         const editSwitch = document.getElementById('modalEditModeSwitch');
         const modalContent = document.getElementById('modalContent');
-        
+
         console.log('Enable edit mode triggered, checked:', editSwitch.checked);
-        
+
         if (editSwitch.checked) {
             // Make the text area editable
             modalContent.setAttribute('contenteditable', 'true');
@@ -61,50 +61,50 @@ export default {
 
     // Save edited analysis from modal
     saveAnalysis() {
-        const imageId = this.currentImageId;
-        if (!imageId) {
-            console.error('No image ID found for saving');
-            return;
+        const modalContent = document.getElementById('modalContent');
+        const currentId = modalContent.getAttribute('data-id');
+
+        try {
+            // Get the content as text first
+            let contentText = modalContent.textContent.trim();
+
+            // Log for debugging purposes
+            console.log('Saving content:', contentText);
+
+            // Try to parse the JSON content
+            const jsonContent = JSON.parse(contentText);
+
+            console.log('Parsed JSON:', jsonContent);
+
+            // Send the updated content to the server
+            DebugAPI.put(`/debug/images/${currentId}`, {
+                analysis: jsonContent
+            })
+            .then(response => {
+                if (response.success) {
+                    // Show success message
+                    DebugUtils.showToast('Success', 'Analysis saved successfully');
+
+                    // Reset edit mode
+                    document.getElementById('modalEditModeSwitch').checked = false;
+                    this.enableEditMode();
+
+                    // Refresh the image list
+                    document.dispatchEvent(new CustomEvent('refreshImages'));
+                } else {
+                    // Show error message
+                    DebugUtils.showToast('Error', response.error || 'Failed to save analysis', true);
+                }
+            });
+        } catch (error) {
+            // Show error if JSON is invalid
+            DebugUtils.showToast('Error', 'Invalid JSON format. Please check your edits.', true);
+            console.error('JSON parse error:', error);
+
+            // Display more detailed error information for debugging
+            console.error('Error details:', error.message);
+            console.error('Error position:', error.stack);
         }
-
-        const isCharacter = document.getElementById('modalImageType').value === 'character';
-
-        // Build the analysis data from form fields
-        const updatedAnalysis = {
-            name: document.getElementById('modalImageName').value,
-            image_type: document.getElementById('modalImageType').value,
-            type: document.getElementById('modalImageType').value.toUpperCase(),
-            description: document.getElementById('modalDescriptionField').value
-        };
-
-        // Add character-specific fields
-        if (isCharacter) {
-            // Set role with both field names for compatibility
-            const role = document.getElementById('modalCharacterRole').value;
-            updatedAnalysis.character_role = role;
-            updatedAnalysis.role = role;
-
-            // Set traits with both field names for compatibility
-            const traits = this.parseArrayField(document.getElementById('modalCharacterTraits').value);
-            updatedAnalysis.character_traits = traits;
-            updatedAnalysis.personality_traits = traits;
-
-            // Set plot lines with both field names for compatibility
-            const plotLines = this.parseArrayField(document.getElementById('modalPlotLines').value);
-            updatedAnalysis.plot_lines = plotLines;
-            updatedAnalysis.potential_plot_lines = plotLines;
-
-            // Keep character_name consistent with name
-            updatedAnalysis.character_name = updatedAnalysis.name;
-        } else {
-            // Add scene-specific fields
-            updatedAnalysis.scene_type = document.getElementById('modalSceneType').value;
-            updatedAnalysis.setting = document.getElementById('modalSceneSetting').value;
-            updatedAnalysis.dramatic_moments = this.parseArrayField(document.getElementById('modalDramaticMoments').value);
-        }
-
-        // Make API call to update
-        this.saveImageData(imageId, updatedAnalysis);
     },
 
     /**
