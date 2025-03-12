@@ -118,9 +118,13 @@ const DebugUI = {
     
     createPagination(elementId, totalPages, currentPage, clickHandler) {
         const paginationEl = document.getElementById(elementId);
-        if (!paginationEl) return;
+        if (!paginationEl) {
+            console.error(`Pagination element with ID ${elementId} not found`);
+            return;
+        }
         
         paginationEl.innerHTML = '';
+        console.log(`Creating pagination for ${elementId}: pages=${totalPages}, current=${currentPage}`);
 
         if (totalPages <= 1) return;
 
@@ -160,7 +164,7 @@ const DebugUI = {
         nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
         const nextLink = document.createElement('a');
         nextLink.className = 'page-link';
-        nextLink.href = '#';
+        nextLink.href = 'javascript:void(0);';
         nextLink.textContent = 'Next';
         if (currentPage < totalPages) {
             nextLink.addEventListener('click', (e) => {
