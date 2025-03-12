@@ -13,6 +13,22 @@ The `database_fixes` directory contains scripts used to:
 
 These scripts are generally intended to be run once to address specific database issues.
 
+## Data Integrity
+
+The `data_integrity` directory contains scripts used to:
+- Check and validate data consistency
+- Clean up character data and metadata
+- Synchronize related fields across tables
+- Fix inconsistencies in analysis results
+
+## Schema Migration
+
+The `schema_migration` directory contains scripts used to:
+- Move data between tables
+- Update schema structures
+- Reorganize database architecture
+- Split or combine tables
+
 ## Debugging
 
 The `debugging` directory contains scripts used to:
@@ -27,6 +43,7 @@ Most scripts can be run with Python directly:
 
 ```
 python scripts/database_fixes/fix_db_columns.py
+python scripts/data_integrity/check_image_analysis.py
 ```
 
 Note: These scripts typically require the main application context and should be run from the project root directory.
