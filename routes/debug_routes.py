@@ -18,7 +18,7 @@ debug_bp = Blueprint('debug', __name__)
 
 @debug_bp.route('/')
 def debug_dashboard():
-    """Debug page with image analysis tool and database view"""
+    """Debug page with image analysis tool and pgAdmin database view"""
     recent_images = ImageAnalysis.query.order_by(ImageAnalysis.created_at.desc()).limit(10).all()
     recent_stories = StoryGeneration.query.order_by(StoryGeneration.created_at.desc()).limit(10).all()
 
@@ -30,6 +30,19 @@ def debug_dashboard():
     orphaned_images = ImageAnalysis.query.filter(~ImageAnalysis.stories.any()).count()
     empty_stories = StoryGeneration.query.filter(StoryGeneration.generated_story.is_(None)).count()
 
+    # Get database connection info
+    db_url = os.environ.get('DATABASE_URL', '')
+    db_info = {}
+    if db_url:
+        from urllib.parse import urlparse
+        result = urlparse(db_url)
+        db_info = {
+            "host": result.hostname,
+            "port": result.port or 5432,
+            "database": result.path.lstrip('/'),
+            "username": result.username,
+        }
+
     return render_template(
         'debug.html',
         recent_images=recent_images,
@@ -39,7 +52,8 @@ def debug_dashboard():
         scene_count=scene_count,
         story_count=story_count,
         orphaned_images=orphaned_images,
-        empty_stories=empty_stories
+        empty_stories=empty_stories,
+        db_info=db_info
     )
 
 @debug_bp.route('/images')
@@ -507,3 +521,21 @@ def delete_all_stories():
         logger.error(f"Error deleting all stories: {str(e)}")
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+@debug_bp.route('/pgadmin')
+def pgadmin_view():
+    """Show embedded pgAdmin in an iframe"""
+    # This simply provides instructions for connecting to pgAdmin
+    db_url = os.environ.get('DATABASE_URL', '')
+    db_info = {}
+    if db_url:
+        from urllib.parse import urlparse
+        result = urlparse(db_url)
+        db_info = {
+            "host": result.hostname,
+            "port": result.port or 5432,
+            "database": result.path.lstrip('/'),
+            "username": result.username,
+        }
+    
+    return render_template('pgadmin.html', db_info=db_info)
