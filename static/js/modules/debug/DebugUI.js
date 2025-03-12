@@ -1,4 +1,3 @@
-
 /**
  * DebugUI.js - UI manipulation for the debug interface
  */
@@ -22,14 +21,14 @@ const DebugUI = {
         storiesTableBody: document.getElementById('storiesTableBody'),
         storiesPagination: document.getElementById('storiesPagination')
     },
-    
+
     initialize(formHandler, dataHandler) {
         this.formHandler = formHandler;
         this.dataHandler = dataHandler;
         this.setupEventListeners();
         console.log('UI module initialized');
     },
-    
+
     setupEventListeners() {
         if (this.elements.imageForm) {
             this.elements.imageForm.addEventListener('submit', event => {
@@ -37,13 +36,13 @@ const DebugUI = {
                 this.formHandler.handleImageAnalysis();
             });
         }
-        
+
         if (this.elements.editModeSwitch) {
             this.elements.editModeSwitch.addEventListener('change', () => {
                 this.elements.editContainer.style.display = this.elements.editModeSwitch.checked ? 'block' : 'none';
             });
         }
-        
+
         if (this.elements.copyBtn) {
             this.elements.copyBtn.addEventListener('click', () => {
                 const content = this.elements.generatedContent.textContent;
@@ -52,19 +51,19 @@ const DebugUI = {
                     .catch(err => DebugUtils.showToast('Error', 'Failed to copy: ' + err, true));
             });
         }
-        
+
         if (this.elements.imageType) {
             this.elements.imageType.addEventListener('change', () => {
                 this.toggleFieldsByImageType();
             });
         }
-        
+
         if (this.elements.applyChangesBtn) {
             this.elements.applyChangesBtn.addEventListener('click', () => {
                 this.formHandler.applyChanges();
             });
         }
-        
+
         document.querySelectorAll('.filter-btn').forEach(button => {
             button.addEventListener('click', () => {
                 const filter = button.getAttribute('data-filter');
@@ -72,38 +71,38 @@ const DebugUI = {
             });
         });
     },
-    
+
     toggleFieldsByImageType() {
         const type = this.elements.imageType.value;
         this.elements.characterFields.style.display = type === 'character' ? 'block' : 'none';
         this.elements.sceneFields.style.display = type === 'scene' ? 'block' : 'none';
     },
-    
+
     showResult() {
         this.elements.resultContainer.style.display = 'block';
     },
-    
+
     hideResult() {
         this.elements.resultContainer.style.display = 'none';
     },
-    
+
     displayGeneratedContent(content) {
         this.elements.generatedContent.textContent = content;
         this.showResult();
     },
-    
+
     populateEditForm(data) {
         console.log('Populated edit form with data:', data);
         const imageName = document.getElementById('imageName');
         const descriptionField = document.getElementById('descriptionField');
         const imageType = document.getElementById('imageType');
-        
+
         if (imageName) imageName.value = data.name || '';
         if (descriptionField) descriptionField.value = data.description || '';
         if (imageType) {
             imageType.value = data.image_type || 'character';
             this.toggleFieldsByImageType();
-            
+
             if (data.image_type === 'character') {
                 document.getElementById('characterRole').value = data.role || 'undetermined';
                 document.getElementById('characterTraits').value = Array.isArray(data.traits) ? data.traits.join(', ') : '';
@@ -115,14 +114,14 @@ const DebugUI = {
             }
         }
     },
-    
-    createPagination(elementId, totalPages, currentPage, clickHandler) {
+
+    createPagination(elementId, totalPages, currentPage, onPageChange) {
         const paginationEl = document.getElementById(elementId);
         if (!paginationEl) {
             console.error(`Pagination element with ID ${elementId} not found`);
             return;
         }
-        
+
         paginationEl.innerHTML = '';
         console.log(`Creating pagination for ${elementId}: pages=${totalPages}, current=${currentPage}`);
 
@@ -137,7 +136,7 @@ const DebugUI = {
         if (currentPage > 1) {
             prevLink.addEventListener('click', (e) => {
                 e.preventDefault();
-                clickHandler(currentPage - 1);
+                onPageChange(currentPage - 1);
             });
         }
         prevLi.appendChild(prevLink);
@@ -153,7 +152,7 @@ const DebugUI = {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 if (i !== currentPage) {
-                    clickHandler(i);
+                    onPageChange(i);
                 }
             });
             li.appendChild(link);
@@ -169,7 +168,7 @@ const DebugUI = {
         if (currentPage < totalPages) {
             nextLink.addEventListener('click', (e) => {
                 e.preventDefault();
-                clickHandler(currentPage + 1);
+                onPageChange(currentPage + 1);
             });
         }
         nextLi.appendChild(nextLink);
