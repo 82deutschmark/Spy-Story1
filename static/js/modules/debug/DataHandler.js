@@ -4,22 +4,26 @@
 import DebugUtils from './DebugUtils.js';
 import DebugAPI from './DebugAPI.js';
 
-export default class DataHandler {
+class DataHandler {
     constructor(debugUI) {
         this.debugUI = debugUI;
         this.currentFilter = '';
-        this.currentPage = 1;
-        this.pageSize = 10;
         this.searchTerm = '';
         this.storySearchTerm = '';
+        // Set a higher limit to effectively get all records
+        this.pageSize = 1000; // Increased to fetch a large number of records
+        this.currentPage = 1;
         this.storyCurrentPage = 1;
+        console.log('Data handler initialized');
     }
 
-    initialize() {
-        this.setupEvents();
-        this.loadImages();
-        this.loadStories();
-        console.log('Data handler initialized');
+    async initialize() {
+        try {
+            await this.loadImages();
+            await this.loadStories();
+        } catch (error) {
+            console.error('Failed to initialize data handler:', error);
+        }
     }
 
     setupEvents() {
@@ -119,23 +123,23 @@ export default class DataHandler {
             }
             const data = await DebugAPI.get(url);
 
-            if (data.success) {
-                this.renderImagesTable(data.images);
-                this.debugUI.createPagination('imagesPagination', data.total_pages, this.currentPage,
-                    (page) => {
-                        this.currentPage = page;
-                        this.loadImages();
-                    }
-                );
-            } else {
-                DebugUtils.showToast('Error', data.message || 'Failed to load images', true);
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to load images');
+            }
+
+            this.renderImages(data.data.images);
+
+            // Clear pagination since we're showing all records
+            if (this.debugUI.elements.imagesPagination) {
+                this.debugUI.elements.imagesPagination.innerHTML = '';
             }
         } catch (error) {
+            console.error('Error loading images:', error);
             if (this.debugUI.elements.imagesTableBody) {
                 this.debugUI.elements.imagesTableBody.innerHTML = `
                     <tr>
                         <td colspan="6" class="text-center text-danger">
-                            Failed to load images: ${error.message}
+                            Error loading images: ${error.message || "Unknown error occurred"}
                         </td>
                     </tr>
                 `;
@@ -143,11 +147,13 @@ export default class DataHandler {
         }
     }
 
-    renderImagesTable(images) {
+    renderImages(images) {
         if (!this.debugUI.elements.imagesTableBody) {
             console.error('Images table body element not found');
             return;
         }
+
+        this.debugUI.elements.imagesTableBody.innerHTML = '';
 
         if (!images || images.length === 0) {
             this.debugUI.elements.imagesTableBody.innerHTML = `
@@ -158,42 +164,436 @@ export default class DataHandler {
             return;
         }
 
-        this.debugUI.elements.imagesTableBody.innerHTML = '';
-
         images.forEach(image => {
             const row = document.createElement('tr');
-            const thumbnailCell = document.createElement('td');
-            const thumbnail = document.createElement('img');
-            thumbnail.src = image.image_url;
-            thumbnail.alt = image.name || 'Image';
-            thumbnail.className = 'img-thumbnail';
-            thumbnail.style.maxWidth = '50px';
-            thumbnail.style.cursor = 'pointer';
-            thumbnail.addEventListener('click', () => this.openImageDetails(image));
-            thumbnailCell.appendChild(thumbnail);
             row.innerHTML = `
                 <td>${image.id}</td>
-                <td>${image.type || 'Unknown'}</td>
-                <td>${image.name || 'Unnamed'}</td>
-                <td>${new Date(image.created_at).toLocaleString()}</td>
                 <td>
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-info view-btn" data-id="${image.id}">
+                    <div class="d-flex align-items-center">
+                        <div class="img-thumb me-2">
+                            <img src="${image.image_url}" alt="Image" class="rounded" style="width: 50px; height: 50px; object-fit: cover;">
+                        </div>
+                        <span>${image.name || 'Unnamed'}</span>
+                    </div>
+                </td>
+                <td><span class="badge bg-${image.image_type === 'character' ? 'primary' : 'success'}">${image.image_type}</span></td>
+                <td>${this._formatArrayField(image.traits)}</td>
+                <td>${image.role || 'Undefined'}</td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-info view-image-btn" data-id="${image.id}">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <button class="btn btn-outline-danger delete-btn" data-id="${image.id}">
+                        <button type="button" class="btn btn-outline-danger delete-image-btn" data-id="${image.id}">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 </td>
             `;
-            row.insertBefore(thumbnailCell, row.firstChild);
             this.debugUI.elements.imagesTableBody.appendChild(row);
-            row.querySelector('.view-btn').addEventListener('click', () => this.openImageDetails(image));
-            row.querySelector('.delete-btn').addEventListener('click', () => this.deleteImage(image.id));
+            row.querySelector('.view-image-btn').addEventListener('click', () => this.viewImage(image.id));
+            row.querySelector('.delete-image-btn').addEventListener('click', () => this.deleteImage(image.id));
         });
     }
 
+    async loadStories() {
+        try {
+            if (!this.debugUI.elements.storiesTableBody) {
+                console.error('Stories table body element not found');
+                return;
+            }
+
+            this.debugUI.elements.storiesTableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+
+            console.log(`Loading stories: page=${this.storyCurrentPage}, limit=${this.pageSize}, search=${this.storySearchTerm}`);
+            const data = await DebugAPI.getStories(this.storyCurrentPage || 1, this.pageSize, this.storySearchTerm);
+
+            if (!data) {
+                throw new Error('No data returned from API');
+            }
+
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to load stories');
+            }
+
+            this.renderStories(data.stories);
+
+            // Clear pagination since we're showing all records
+            if (this.debugUI.elements.storiesPagination) {
+                this.debugUI.elements.storiesPagination.innerHTML = '';
+            }
+        } catch (error) {
+            console.error('Error loading stories:', error);
+            if (this.debugUI.elements.storiesTableBody) {
+                this.debugUI.elements.storiesTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center text-danger">
+                            Error loading stories: ${error.message || "Unknown error occurred"}
+                        </td>
+                    </tr>
+                `;
+            }
+            // Clear pagination when there's an error
+            if (this.debugUI.elements.storiesPagination) {
+                this.debugUI.elements.storiesPagination.innerHTML = '';
+            }
+        }
+    }
+
+    renderStories(stories) {
+        if (!this.debugUI.elements.storiesTableBody) {
+            console.error('Stories table body element not found');
+            return;
+        }
+
+        this.debugUI.elements.storiesTableBody.innerHTML = ''; // Clear existing rows
+
+        if (!stories || stories.length === 0) {
+            this.debugUI.elements.storiesTableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center">No stories found</td>
+                </tr>
+            `;
+            return;
+        }
+
+        stories.forEach(story => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${story.id}</td>
+                <td>${story.title || 'Untitled'}</td>
+                <td>${story.conflict || 'None'}</td>
+                <td>${story.setting || 'Unknown'}</td>
+                <td>${story.images_count}</td>
+                <td>${this._formatArrayField(story.character_names)}</td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-info view-story-btn" data-id="${story.id}">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger delete-story-btn" data-id="${story.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            this.debugUI.elements.storiesTableBody.appendChild(row);
+            row.querySelector('.view-story-btn').addEventListener('click', () => this.viewStory(story.id));
+            row.querySelector('.delete-story-btn').addEventListener('click', () => this.deleteStory(story.id));
+        });
+    }
+
+    async viewImage(imageId) {
+        try {
+            const response = await DebugAPI.get(`/debug/images/${imageId}`);
+
+            if (response.success) {
+                const detailsModalEl = document.getElementById('detailsModal');
+                if (!detailsModalEl) return;
+
+                const modal = new bootstrap.Modal(detailsModalEl);
+                const modalLabelEl = document.getElementById('detailsModalLabel');
+                if (modalLabelEl) {
+                    const type = response.image.image_type === 'character' ? 'Character' : 'Scene';
+                    modalLabelEl.innerHTML = `<i class="fas fa-image me-2"></i>${type} Image: ${response.image.name || response.image.character_name || 'Unnamed'}`;
+                }
+
+                const modalImageEl = document.getElementById('modalImage');
+                if (modalImageEl) {
+                    modalImageEl.src = response.image.image_url;
+                    modalImageEl.style.display = 'block';
+                }
+
+                const modalContentEl = document.getElementById('modalContent');
+                if (modalContentEl) {
+                    modalContentEl.textContent = JSON.stringify(response.image.analysis_result, null, 2);
+                }
+
+                const modalEditModeSwitchEl = document.getElementById('modalEditModeSwitch');
+                if (modalEditModeSwitchEl) modalEditModeSwitchEl.style.display = 'block';
+
+                const modalEditContainerEl = document.getElementById('modalEditContainer');
+                if (modalEditContainerEl) modalEditContainerEl.style.display = 'none';
+
+                modal.show();
+            } else {
+                throw new Error(response.error || 'Failed to load image details');
+            }
+        } catch (error) {
+            console.error('Error viewing image:', error);
+            DebugUtils.showError(`Failed to load image: ${error.message}`);
+        }
+    }
+
+    async viewStory(storyId) {
+        try {
+            const response = await DebugAPI.get(`/debug/stories/${storyId}`);
+
+            if (response.success) {
+                const detailsModalEl = document.getElementById('detailsModal');
+                if (!detailsModalEl) return;
+
+                const modal = new bootstrap.Modal(detailsModalEl);
+                const modalLabelEl = document.getElementById('detailsModalLabel');
+                if (modalLabelEl) {
+                    modalLabelEl.innerHTML = `<i class="fas fa-book me-2"></i>Story Details`;
+                }
+
+                const modalImageEl = document.getElementById('modalImage');
+                if (modalImageEl) modalImageEl.style.display = 'none';
+
+                const modalContentEl = document.getElementById('modalContent');
+                if (modalContentEl) {
+                    modalContentEl.textContent = JSON.stringify(response.story, null, 2);
+                }
+
+                const modalEditModeSwitchEl = document.getElementById('modalEditModeSwitch');
+                if (modalEditModeSwitchEl) modalEditModeSwitchEl.style.display = 'none';
+
+                const modalEditContainerEl = document.getElementById('modalEditContainer');
+                if (modalEditContainerEl) modalEditContainerEl.style.display = 'none';
+
+                modal.show();
+            } else {
+                throw new Error(response.error || 'Failed to load story details');
+            }
+        } catch (error) {
+            console.error('Error viewing story:', error);
+            DebugUtils.showError(`Failed to load story: ${error.message}`);
+        }
+    }
+
+    async deleteImage(imageId) {
+        try {
+            if (!confirm('Are you sure you want to delete this image?')) {
+                return;
+            }
+
+            const response = await DebugAPI.delete(`/debug/images/${imageId}`);
+            if (response.success) {
+                DebugUtils.showSuccess(response.message || 'Image deleted successfully');
+                this.loadImages();
+            } else {
+                throw new Error(response.error || 'Failed to delete image');
+            }
+        } catch (error) {
+            console.error('Error deleting image:', error);
+            DebugUtils.showError(`Failed to delete image: ${error.message}`);
+        }
+    }
+
+    async deleteStory(storyId) {
+        try {
+            if (!confirm('Are you sure you want to delete this story?')) {
+                return;
+            }
+
+            const response = await DebugAPI.delete(`/debug/stories/${storyId}`);
+            if (response.success) {
+                DebugUtils.showSuccess(response.message || 'Story deleted successfully');
+                this.loadStories();
+            } else {
+                throw new Error(response.error || 'Failed to delete story');
+            }
+        } catch (error) {
+            console.error('Error deleting story:', error);
+            DebugUtils.showError(`Failed to delete story: ${error.message}`);
+        }
+    }
+
+    async deleteAllImages() {
+        try {
+            const confirmation = prompt('⚠️ WARNING: This will delete ALL image records from the database. This action cannot be undone. Type DELETE ALL IMAGES to confirm:');
+            if (confirmation !== 'DELETE ALL IMAGES') {
+                DebugUtils.showInfo('Operation cancelled');
+                return;
+            }
+
+            const response = await DebugAPI.sendJson('/debug/images', { confirmation }, 'DELETE');
+            if (response.success) {
+                DebugUtils.showSuccess(response.message || 'All images deleted successfully');
+                this.loadImages();
+            } else {
+                throw new Error(response.error || 'Failed to delete images');
+            }
+        } catch (error) {
+            console.error('Error deleting all images:', error);
+            DebugUtils.showError(`Failed to delete images: ${error.message}`);
+        }
+    }
+
+    async deleteAllStories() {
+        try {
+            const confirmation = prompt('⚠️ WARNING: This will delete ALL story records from the database. This action cannot be undone. Type DELETE ALL STORIES to confirm:');
+            if (confirmation !== 'DELETE ALL STORIES') {
+                DebugUtils.showInfo('Operation cancelled');
+                return;
+            }
+
+            const response = await DebugAPI.delete('/debug/stories');
+            if (response.success) {
+                DebugUtils.showSuccess(response.message || 'All stories deleted successfully');
+                this.loadStories();
+            } else {
+                throw new Error(response.error || 'Failed to delete stories');
+            }
+        } catch (error) {
+            console.error('Error deleting all stories:', error);
+            DebugUtils.showError(`Failed to delete stories: ${error.message}`);
+        }
+    }
+
+    async runHealthCheck() {
+        try {
+            DebugUtils.showToast('Processing', 'Running health check...');
+            const response = await DebugAPI.get('/debug/health-check');
+
+            if (response.success) {
+                const totalImagesEl = document.getElementById('totalImages');
+                if (totalImagesEl) totalImagesEl.textContent = response.stats.image_count;
+
+                const characterImagesEl = document.getElementById('characterImages');
+                if (characterImagesEl) characterImagesEl.textContent = response.stats.character_count;
+
+                const sceneImagesEl = document.getElementById('sceneImages');
+                if (sceneImagesEl) sceneImagesEl.textContent = response.stats.scene_count;
+
+                const totalStoriesEl = document.getElementById('totalStories');
+                if (totalStoriesEl) totalStoriesEl.textContent = response.stats.story_count;
+
+                const orphanedImagesEl = document.getElementById('orphanedImages');
+                if (orphanedImagesEl) orphanedImagesEl.textContent = response.stats.orphaned_images;
+
+                const emptyStoriesEl = document.getElementById('emptyStories');
+                if (emptyStoriesEl) emptyStoriesEl.textContent = response.stats.empty_stories;
+
+                const issuesListEl = document.getElementById('issuesList');
+                const noIssuesAlertEl = document.getElementById('noIssuesAlert');
+
+                if (response.issues && response.issues.length > 0 && issuesListEl && noIssuesAlertEl) {
+                    issuesListEl.innerHTML = '';
+                    response.issues.forEach(issue => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item';
+                        li.innerHTML = `
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
+                                    ${issue.description}
+                                </div>
+                                ${issue.fixable ?
+                                    `<button class="btn btn-sm btn-outline-primary fix-issue-btn" 
+                                        data-issue-id="${issue.id}" data-issue-type="${issue.type}">
+                                        <i class="fas fa-wrench me-1"></i>Fix
+                                    </button>` :
+                                    ''
+                                }
+                            </div>
+                        `;
+                        issuesListEl.appendChild(li);
+                        if (issue.fixable) {
+                            li.querySelector('.fix-issue-btn').addEventListener('click', () => {
+                                this.fixIssue(issue.type, issue.id);
+                            });
+                        }
+                    });
+                    issuesListEl.style.display = 'block';
+                    noIssuesAlertEl.style.display = 'none';
+                } else if (issuesListEl && noIssuesAlertEl) {
+                    issuesListEl.style.display = 'none';
+                    noIssuesAlertEl.style.display = 'block';
+                }
+
+                DebugUtils.showToast('Success', 'Health check completed');
+            } else {
+                DebugUtils.showToast('Error', response.message || 'Failed to run health check', true);
+            }
+        } catch (error) {
+            DebugUtils.showToast('Error', 'Failed to run health check: ' + error.message, true);
+        }
+    }
+
+    async fixIssue(issueType, issueId) {
+        try {
+            DebugUtils.showToast('Processing', 'Fixing issue...');
+            const response = await DebugAPI.post('/debug/fix-issue', {
+                issue_type: issueType,
+                issue_id: issueId
+            });
+
+            if (response.success) {
+                DebugUtils.showToast('Success', 'Issue fixed successfully');
+                this.runHealthCheck();
+                this.loadImages();
+                this.loadStories();
+            } else {
+                DebugUtils.showToast('Error', response.message || 'Failed to fix issue', true);
+            }
+        } catch (error) {
+            DebugUtils.showToast('Error', 'Failed to fix issue: ' + error.message, true);
+        }
+    }
+
+    // Map the analysis result to form fields
+    populateEditForm(data) {
+        console.log("Populated edit form with data:", data);
+
+        // Set name and image type
+        document.getElementById('imageName').value = data.character_name || data.name || '';
+        document.getElementById('imageType').value = data.image_type || data.type?.toLowerCase() || 'character';
+
+        // Set description
+        document.getElementById('descriptionField').value = data.description || '';
+
+        // Toggle character/scene specific fields
+        this._toggleFieldsBasedOnType(data.image_type || data.type?.toLowerCase());
+
+        // If it's a character, populate character fields
+        if ((data.image_type === 'character') || (data.type?.toUpperCase() === 'CHARACTER')) {
+            // Handle character role with fallbacks
+            const role = data.character_role || data.role || 'undetermined';
+            document.getElementById('characterRole').value = role;
+
+            // Handle character traits with fallbacks
+            const traits = data.character_traits || data.personality_traits || [];
+            document.getElementById('characterTraits').value = this._formatArrayField(traits);
+
+            // Handle plot lines with fallbacks
+            const plotLines = data.plot_lines || data.potential_plot_lines || [];
+            document.getElementById('plotLines').value = this._formatArrayField(plotLines);
+        } else {
+            // Populate scene fields
+            document.getElementById('sceneType').value = data.scene_type || 'action';
+            document.getElementById('sceneSetting').value = data.setting || '';
+            document.getElementById('dramaticMoments').value = this._formatArrayField(data.dramatic_moments);
+        }
+
+        // Return the UI module for chaining
+        return this;
+    }
+
+
+
+    _formatArrayField(arr) {
+        return Array.isArray(arr) ? arr.join(', ') : '';
+    }
+
+    _toggleFieldsBasedOnType(type) {
+        const characterFields = document.getElementById('modalCharacterFields');
+        const sceneFields = document.getElementById('modalSceneFields');
+        if (characterFields && sceneFields) {
+            characterFields.style.display = type === 'character' ? 'block' : 'none';
+            sceneFields.style.display = type === 'scene' ? 'block' : 'none';
+        }
+    }
     openImageDetails(image) {
         const modalEl = document.getElementById('detailsModal');
         if (!modalEl) return;
@@ -413,161 +813,6 @@ export default class DataHandler {
         }
     }
 
-    async loadStories() {
-        try {
-            if (!this.debugUI.elements.storiesTableBody) {
-                console.error('Stories table body element not found');
-                return;
-            }
-
-            this.debugUI.elements.storiesTableBody.innerHTML = `
-                <tr>
-                    <td colspan="7" class="text-center">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </td>
-                </tr>
-            `;
-
-            console.log(`Loading stories: page=${this.storyCurrentPage}, limit=${this.pageSize}, search=${this.storySearchTerm}`);
-            const data = await DebugAPI.getStories(this.storyCurrentPage || 1, this.pageSize, this.storySearchTerm);
-            
-            if (!data) {
-                throw new Error('No data returned from API');
-            }
-            
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to load stories');
-            }
-
-            this.renderStories(data.stories, data.pagination);
-
-        } catch (error) {
-            console.error('Error loading stories:', error);
-            if (this.debugUI.elements.storiesTableBody) {
-                this.debugUI.elements.storiesTableBody.innerHTML = `
-                    <tr>
-                        <td colspan="7" class="text-center text-danger">
-                            Error loading stories: ${error.message || "Unknown error occurred"}
-                        </td>
-                    </tr>
-                `;
-            }
-            // Reset pagination when there's an error
-            if (this.debugUI.elements.storyPagination) {
-                this.debugUI.elements.storyPagination.innerHTML = '';
-            }
-        }
-    }
-
-    renderStories(stories, pagination) {
-        if (!this.debugUI.elements.storiesTableBody) {
-            console.error('Stories table body element not found');
-            return;
-        }
-
-        this.debugUI.elements.storiesTableBody.innerHTML = ''; // Clear existing rows
-
-        if (!stories || stories.length === 0) {
-            this.debugUI.elements.storiesTableBody.innerHTML = `
-                <tr>
-                    <td colspan="7" class="text-center">No stories found</td>
-                </tr>
-            `;
-            return;
-        }
-
-        stories.forEach(story => {
-            const row = document.createElement('tr');
-            let charactersText = 'None';
-            if (story.characters && story.characters.length > 0) {
-                charactersText = story.characters.map(char => char.name || `ID: ${char.id}`).join(', ');
-            } else if (story.character_names && story.character_names.length > 0) {
-                charactersText = story.character_names.join(', ');
-            }
-            
-            row.innerHTML = `
-                <td>${story.id}</td>
-                <td>${story.title || 'Untitled'}</td>
-                <td>${story.conflict || 'N/A'}</td>
-                <td>${story.setting || 'N/A'}</td>
-                <td>${charactersText}</td>
-                <td>${new Date(story.created_at).toLocaleString()}</td>
-                <td>
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-info view-story-btn" data-id="${story.id}">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-outline-danger delete-story-btn" data-id="${story.id}">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </td>
-            `;
-            this.debugUI.elements.storiesTableBody.appendChild(row);
-            
-            // Add event listeners
-            const viewBtn = row.querySelector('.view-story-btn');
-            if (viewBtn) {
-                viewBtn.addEventListener('click', () => this.viewStory(story.id));
-            }
-            
-            const deleteBtn = row.querySelector('.delete-story-btn');
-            if (deleteBtn) {
-                deleteBtn.addEventListener('click', () => this.deleteStory(story.id));
-            }
-        });
-
-        // Handle pagination using renderStoryPagination for consistent implementation
-        if (pagination && pagination.pages) {
-            this.renderStoryPagination(pagination);
-        }
-    }
-
-    async viewStory(storyId) {
-        try {
-            const response = await DebugAPI.get(`/debug/stories/${storyId}`);
-
-            if (response.success) {
-                const detailsModalEl = document.getElementById('detailsModal');
-                if (!detailsModalEl) return;
-
-                const modal = new bootstrap.Modal(detailsModalEl);
-                const modalLabelEl = document.getElementById('detailsModalLabel');
-                if (modalLabelEl) {
-                    modalLabelEl.innerHTML = `<i class="fas fa-book me-2"></i>Story Details`;
-                }
-
-                const modalImageEl = document.getElementById('modalImage');
-                if (modalImageEl) modalImageEl.style.display = 'none';
-
-                const modalContentEl = document.getElementById('modalContent');
-                if (modalContentEl) {
-                    modalContentEl.textContent = JSON.stringify(response.story, null, 2);
-                }
-
-                const modalEditModeSwitchEl = document.getElementById('modalEditModeSwitch');
-                if (modalEditModeSwitchEl) modalEditModeSwitchEl.style.display = 'none';
-
-                const modalEditContainerEl = document.getElementById('modalEditContainer');
-                if (modalEditContainerEl) modalEditContainerEl.style.display = 'none';
-
-                const reanalyzeImageBtnEl = document.getElementById('reanalyzeImageBtn');
-                if (reanalyzeImageBtnEl) reanalyzeImageBtnEl.style.display = 'none';
-
-                const saveAnalysisBtnEl = document.getElementById('saveAnalysisBtn');
-                if (saveAnalysisBtnEl) saveAnalysisBtnEl.style.display = 'none';
-
-                modal.show();
-            } else {
-                DebugUtils.showToast('Error', response.message || 'Failed to load story', true);
-            }
-        } catch (error) {
-            DebugUtils.showToast('Error', 'Failed to load story: ' + error.message, true);
-        }
-    }
-
     async deleteStory(storyId) {
         if (!confirm('Are you sure you want to delete this story?')) {
             return;
@@ -693,45 +938,6 @@ export default class DataHandler {
         }
     }
 
-    // Map the analysis result to form fields
-    populateEditForm(data) {
-        console.log("Populated edit form with data:", data);
-
-        // Set name and image type
-        document.getElementById('imageName').value = data.character_name || data.name || '';
-        document.getElementById('imageType').value = data.image_type || data.type?.toLowerCase() || 'character';
-
-        // Set description
-        document.getElementById('descriptionField').value = data.description || '';
-
-        // Toggle character/scene specific fields
-        this._toggleFieldsBasedOnType(data.image_type || data.type?.toLowerCase());
-
-        // If it's a character, populate character fields
-        if ((data.image_type === 'character') || (data.type?.toUpperCase() === 'CHARACTER')) {
-            // Handle character role with fallbacks
-            const role = data.character_role || data.role || 'undetermined';
-            document.getElementById('characterRole').value = role;
-
-            // Handle character traits with fallbacks
-            const traits = data.character_traits || data.personality_traits || [];
-            document.getElementById('characterTraits').value = this._formatArrayField(traits);
-
-            // Handle plot lines with fallbacks
-            const plotLines = data.plot_lines || data.potential_plot_lines || [];
-            document.getElementById('plotLines').value = this._formatArrayField(plotLines);
-        } else {
-            // Populate scene fields
-            document.getElementById('sceneType').value = data.scene_type || 'action';
-            document.getElementById('sceneSetting').value = data.setting || '';
-            document.getElementById('dramaticMoments').value = this._formatArrayField(data.dramatic_moments);
-        }
-
-        // Return the UI module for chaining
-        return this;
-    }
-
-
     _formatArrayField(arr) {
         return Array.isArray(arr) ? arr.join(', ') : '';
     }
@@ -744,22 +950,6 @@ export default class DataHandler {
             sceneFields.style.display = type === 'scene' ? 'block' : 'none';
         }
     }
-
-    // Using the DebugUI's createPagination method instead of custom implementation
-    renderStoryPagination(pagination) {
-        if (!pagination || !pagination.pages) {
-            console.error('Invalid pagination data:', pagination);
-            return;
-        }
-        
-        console.log(`Using DebugUI pagination for stories: total=${pagination.pages}, current=${pagination.page}`);
-        
-        this.debugUI.createPagination('storiesPagination', pagination.pages, pagination.page, 
-            (page) => {
-                this.storyCurrentPage = page;
-                this.loadStories();
-            }
-        );
-    }
-
 }
+
+export default DataHandler;

@@ -137,8 +137,10 @@ def debug_story_details():
         # Execute count query
         total = query.count()
 
-        # Get paginated results
-        stories = query.order_by(StoryGeneration.id.desc()).paginate(page=page, per_page=limit)
+        # Get paginated results with larger limit support
+        # Safety cap at 1000 to prevent excessive queries
+        actual_limit = min(limit, 1000) 
+        stories = query.order_by(StoryGeneration.id.desc()).paginate(page=page, per_page=actual_limit)
 
         # Format results
         results = []
