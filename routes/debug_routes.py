@@ -434,6 +434,17 @@ def image_actions(image_id):
             db.session.delete(image)
             db.session.commit()
             
+            logger.info(f"Deleted image: {image_info}")
+
+            return jsonify({
+                'success': True,
+                'message': f'Image {image_id} deleted successfully'
+            })
+    except Exception as e:
+        logger.error(f"Error handling image {image_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @debug_bp.route('/images/<int:image_id>/update-json', methods=['PUT'])
 def update_image_json(image_id):
     """Update an image's analysis_result JSON directly"""
@@ -467,13 +478,6 @@ def update_image_json(image_id):
         logger.error(f"Error updating image JSON: {str(e)}")
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
-
-            logger.info(f"Deleted image: {image_info}")
-
-            return jsonify({
-                'success': True,
-                'message': f'Image {image_id} deleted successfully'
-            })
         elif request.method == 'PUT':
             # Update the image with the edited data
             data = request.json
