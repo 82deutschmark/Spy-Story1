@@ -115,77 +115,15 @@ const DebugUI = {
         }
     },
 
-    createPagination(elementId, totalPages, currentPage, onPageChange) {
-        console.log(`Creating pagination for ${elementId}: pages=${totalPages}, current=${currentPage}`);
-        const paginationElement = document.getElementById(elementId);
-        if (!paginationElement) {
-            console.error(`Pagination element ${elementId} not found`);
+    // Simple helper method to display record counts instead of pagination
+    displayRecordCount(elementId, count) {
+        const element = document.getElementById(elementId);
+        if (!element) {
+            console.error(`Element ${elementId} not found`);
             return;
         }
 
-        paginationElement.innerHTML = '';
-
-        if (!totalPages || totalPages <= 1) {
-            return;
-        }
-
-        // Create pagination container
-        const paginationContainer = document.createElement('ul');
-        paginationContainer.className = 'pagination justify-content-center';
-
-        // Previous button
-        const prevLi = document.createElement('li');
-        prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-        const prevLink = document.createElement('a');
-        prevLink.className = 'page-link';
-        prevLink.href = '#';
-        prevLink.setAttribute('aria-label', 'Previous');
-        prevLink.innerHTML = '<span aria-hidden="true">&laquo;</span>';
-        if (currentPage > 1) {
-            prevLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                onPageChange(currentPage - 1);
-            });
-        }
-        prevLi.appendChild(prevLink);
-        paginationContainer.appendChild(prevLi);
-
-        // Page numbers
-        const startPage = Math.max(1, currentPage - 2);
-        const endPage = Math.min(totalPages, startPage + 4);
-
-        for (let i = startPage; i <= endPage; i++) {
-            const li = document.createElement('li');
-            li.className = `page-item ${i === currentPage ? 'active' : ''}`;
-            const link = document.createElement('a');
-            link.className = 'page-link';
-            link.href = '#';
-            link.textContent = i;
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                onPageChange(i);
-            });
-            li.appendChild(link);
-            paginationContainer.appendChild(li);
-        }
-
-        // Next button
-        const nextLi = document.createElement('li');
-        nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-        const nextLink = document.createElement('a');
-        nextLink.className = 'page-link';
-        nextLink.href = '#';
-        nextLink.textContent = 'Next';
-        if (currentPage < totalPages) {
-            nextLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                onPageChange(currentPage + 1);
-            });
-        }
-        nextLi.appendChild(nextLink);
-        paginationContainer.appendChild(nextLi);
-
-        paginationElement.appendChild(paginationContainer);
+        element.innerHTML = `<div class="text-muted text-center">Showing ${count} records</div>`;
     }
 };
 

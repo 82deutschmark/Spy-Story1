@@ -63,7 +63,7 @@ export default {
         }
     },
 
-    async getStories(page = 1, limit = 10, search = '') {
+    async getStories(page = 1, limit = 100, search = '') {
         try {
             const url = `/debug/stories-detail?page=${page}&limit=${limit}${search ? `&search=${search}` : ''}`;
             console.log("Fetching stories from:", url);
