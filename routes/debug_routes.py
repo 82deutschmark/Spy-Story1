@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 debug_bp = Blueprint('debug', __name__)
 
 @debug_bp.route('/')
+@debug_bp.route('/dashboard')
 def debug_dashboard():
     """Debug page with image analysis tool and database view"""
     recent_images = ImageAnalysis.query.order_by(ImageAnalysis.created_at.desc()).limit(10).all()

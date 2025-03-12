@@ -29,7 +29,7 @@ from services.openai_service import analyze_artwork, generate_image_description
 from services.story_maker import generate_story, get_story_options
 from models import AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, StoryChoice, UserProgress
 from api.unity_routes import unity_api
-from routes import main_bp, debug_bp, api_bp #Added api_bp import
+from routes import register_blueprints
 from utils.currency import process_currency_transaction
 from utils.input_validation import validate_input
 
@@ -145,31 +145,7 @@ def index():
     )
 
 
-@app.route('/debug')
-def debug():
-    """Debug page with image analysis tool and database view"""
-    recent_images = ImageAnalysis.query.order_by(ImageAnalysis.created_at.desc()).limit(10).all()
-    recent_stories = StoryGeneration.query.order_by(StoryGeneration.created_at.desc()).limit(10).all()
-
-    # Database statistics
-    image_count = ImageAnalysis.query.count()
-    character_count = ImageAnalysis.query.filter_by(image_type='character').count()
-    scene_count = ImageAnalysis.query.filter_by(image_type='scene').count()
-    story_count = StoryGeneration.query.count()
-    orphaned_images = ImageAnalysis.query.filter(~ImageAnalysis.stories.any()).count()
-    empty_stories = StoryGeneration.query.filter(StoryGeneration.generated_story.is_(None)).count()
-
-    return render_template(
-        'debug.html',
-        recent_images=recent_images,
-        recent_stories=recent_stories,
-        image_count=image_count,
-        character_count=character_count,
-        scene_count=scene_count,
-        story_count=story_count,
-        orphaned_images=orphaned_images,
-        empty_stories=empty_stories
-    )
+# Debug route removed to prevent conflict with debug blueprint
 
 @app.route('/storyboard/<int:story_id>')
 def storyboard(story_id):
@@ -1199,8 +1175,9 @@ def trade_currency():
         logger.error(f"Error trading currency: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-app.register_blueprint(unity_api, url_prefix='/api/unity') # Blueprint registration
-app.register_blueprint(api_bp) #Register api_bp
+# Register all blueprints properly
+register_blueprints(app)
+app.register_blueprint(unity_api, url_prefix='/api/unity')
 
 @app.route('/make_choice', methods=['POST'])
 def make_choice():
