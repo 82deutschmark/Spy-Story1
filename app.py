@@ -29,6 +29,7 @@ from services.openai_service import analyze_artwork, generate_image_description
 from services.story_maker import generate_story, get_story_options
 from models import AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, StoryChoice, UserProgress
 from api.unity_routes import unity_api
+from routes import main_bp, debug_bp, api_bp #Added api_bp import
 from utils.currency import process_currency_transaction
 from utils.input_validation import validate_input
 
@@ -802,7 +803,7 @@ def db_health_check():
         # Check for characters without roles
         characters_without_roles = ImageAnalysis.query.filter(
             (ImageAnalysis.image_type == 'character') & 
-            ((ImageAnalysis.character_role.is_(None)) | (ImageAnalysis.characterrole == ''))
+            ((ImageAnalysis.character_role.is_(None)) | (ImageAnalysis.character_role == ''))
         ).count()
 
         if characters_without_roles > 0:
@@ -1199,6 +1200,7 @@ def trade_currency():
         return jsonify({'error': str(e)}), 500
 
 app.register_blueprint(unity_api, url_prefix='/api/unity') # Blueprint registration
+app.register_blueprint(api_bp) #Register api_bp
 
 @app.route('/make_choice', methods=['POST'])
 def make_choice():

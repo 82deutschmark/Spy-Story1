@@ -123,3 +123,111 @@ export default {
         });
     }
 };
+/**
+ * Character Manager Module
+ * Handles character selection, fetching, and management
+ */
+const CharacterManager = {
+    /**
+     * Initialize character manager
+     */
+    initialize() {
+        console.log('Character manager initialized');
+        this.setupCharacterSelection();
+    },
+
+    /**
+     * Set up character selection
+     */
+    setupCharacterSelection() {
+        // Character selection functionality already handled in EventHandlers.js
+    },
+
+    /**
+     * Update selected images input
+     */
+    updateSelectedImagesInput() {
+        const selectedCharacters = document.querySelectorAll('.character-checkbox:checked');
+        const selectedImagesContainer = document.querySelector('.selected-characters-container');
+        const hiddenInputsContainer = document.querySelector('#hiddenSelectedImages');
+        
+        if (hiddenInputsContainer) {
+            // Clear previous hidden inputs
+            hiddenInputsContainer.innerHTML = '';
+            
+            // Create hidden inputs for each selected character
+            selectedCharacters.forEach(checkbox => {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'selected_images[]';
+                hiddenInput.value = checkbox.value;
+                hiddenInputsContainer.appendChild(hiddenInput);
+            });
+        }
+        
+        // Show/hide selected characters container based on selection
+        if (selectedImagesContainer) {
+            if (selectedCharacters.length > 0) {
+                selectedImagesContainer.style.display = 'block';
+            } else {
+                selectedImagesContainer.style.display = 'none';
+            }
+        }
+    },
+
+    /**
+     * Clear all character selections
+     */
+    clearAllSelections() {
+        document.querySelectorAll('.character-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        document.querySelectorAll('.character-select-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        
+        document.querySelectorAll('.selection-indicator').forEach(indicator => {
+            indicator.style.display = 'none';
+        });
+    },
+
+    /**
+     * Fetch a random character from the server
+     */
+    async fetchRandomCharacter() {
+        try {
+            const response = await fetch('/api/random_character', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to fetch random character: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (!data.success || !data.character) {
+                throw new Error('Invalid response from server');
+            }
+            
+            return data.character;
+        } catch (error) {
+            console.error('Error fetching random character:', error);
+            throw error;
+        }
+    }
+};
+
+// Initialize on page load if we're not in an ES module context
+if (typeof window !== 'undefined') {
+    window.CharacterManager = CharacterManager;
+    document.addEventListener('DOMContentLoaded', () => CharacterManager.initialize());
+}
+
+// Export for ES module use
+export default CharacterManager;
