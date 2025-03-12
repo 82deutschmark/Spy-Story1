@@ -32,6 +32,9 @@ This application allows users to generate interactive stories featuring images f
   - Fixed middleware ordering in Flask application initialization
   - Properly implemented request logger middleware to work with Flask hooks
   - Ensured correct blueprint registration in the application initialization
+  - Fixed JSON response handling in CharacterManager.js for reroll functionality
+    - Problem: The CharacterManager.fetchRandomCharacter() function was expecting the API response to have both 'success' and 'character' fields, but the API was actually returning character data directly at the top level with a 'success' field
+    - Solution: Updated the function to correctly process the API response structure
 
 - **Admin Interface Integration**:
   - Implemented Flask-Admin with Bootstrap 4 styling for database management
@@ -278,6 +281,13 @@ The story universe is set in a high-stakes, sexy dramatic international world of
 - **API Enhancements**: Expand the game API for better interoperability between platforms
 - **State Management**: Refine the state machine for more complex branching narratives
 - **Error Recovery**: Improve error handling and recovery mechanisms in the game engine
+
+## Lessons Learned
+
+- **API Response Structure Consistency**: 
+  - Always ensure the frontend expectations match the backend API response structure
+  - When debugging API interactions, check both the server-side response format and the client-side parsing logic
+  - The "reroll character" feature was breaking because the client code expected a nested structure (`data.character`) while the API returned a flat structure with character properties directly in the root object
 
 ## Credits
 
