@@ -31,6 +31,12 @@ def debug_dashboard():
     orphaned_images = ImageAnalysis.query.filter(~ImageAnalysis.stories.any()).count()
     empty_stories = StoryGeneration.query.filter(StoryGeneration.generated_story.is_(None)).count()
 
+    # Try to get admin URL, or use a fallback
+    try:
+        admin_url = url_for('admin.index')
+    except:
+        admin_url = '/admin'  # Fallback URL
+
     return render_template(
         'debug.html',
         recent_images=recent_images,
@@ -41,7 +47,7 @@ def debug_dashboard():
         story_count=story_count,
         orphaned_images=orphaned_images,
         empty_stories=empty_stories,
-        admin_url=url_for('admin.index')
+        admin_url=admin_url
     )
 
 @debug_bp.route('/images')

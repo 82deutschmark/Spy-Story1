@@ -4,6 +4,7 @@ from flask import Flask
 from database import db
 from flask_cors import CORS
 from config import get_config
+from admin_config import init_admin # Added import for Flask-Admin initialization
 
 # Configure logging
 config = get_config()
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 def create_app():
     """Create and configure the Flask application"""
     app = Flask(__name__)
-    
+
     # Load configuration
     app_config = get_config()
     app.config.from_object(app_config)
@@ -30,11 +31,11 @@ def create_app():
             "allow_headers": ["Content-Type", "Authorization"]
         }
     })
-    
+
     # Register error handlers
     from utils.error_handlers import register_error_handlers
     register_error_handlers(app)
-    
+
     # Add request logger middleware
     from middleware.request_logger import RequestLoggerMiddleware
     RequestLoggerMiddleware(app)
@@ -55,6 +56,9 @@ def create_app():
 
         # Create database tables
         db.create_all()
+
+        # Initialize Flask-Admin
+        init_admin(app) # Initialize Flask-Admin after blueprint registration
 
     return app
 
