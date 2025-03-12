@@ -26,6 +26,13 @@ This application allows users to generate interactive stories featuring images f
 
 ## Recent Improvements
 
+- **Admin Interface Integration**:
+  - Implemented Flask-Admin with Bootstrap 4 styling for database management
+  - Created model views for all database entities
+  - Fixed route conflicts between regular routes and admin routes
+  - Added proper navigation between debug and admin interfaces
+  - Enhanced admin views with filtering and sorting capabilities
+
 - **Architecture and Code Organization**:
   - Implemented modular game engine architecture with clear separation of concerns
   - Created distinct service layers for game state management and story generation
@@ -41,6 +48,9 @@ This application allows users to generate interactive stories featuring images f
   - Fixed user progress display in the adventure interface
   - Eliminated JavaScript errors related to duplicate script loading
   - Implemented modular payment system for future payment methods
+  - Resolved critical Flask-Admin integration errors 
+  - Fixed debugging interface API endpoints for data pagination
+  - Added timestamp parameters to prevent image caching issues
   - Corrected `UserProgress` attribute references from `completed_stories` to `completed_plot_arcs`
   - Fixed incorrect references to `choices_made` to use `choice_history` instead
   - Updated utility functions to use correct attribute names for user progress
@@ -188,15 +198,19 @@ SESSION_SECRET=your_session_secret
 
 ### Using Debug Tools
 
-1. Navigate to `/debug` endpoint
+1. Navigate to `/debug/dashboard` endpoint
 2. Upload images for AI analysis
-3. View and manage database records
+3. View and manage database records with pagination
 4. Run health checks on the database
+5. Use the admin interface for advanced database management by clicking the admin link
+6. Test image analysis functionality directly from the debug interface
+7. View characters and stories with proper filtering and pagination
 
 ## Project Structure
 
 - `app.py`: Main application file
 - `main.py`: Application entry point with configuration
+- `admin_config.py`: Flask-Admin configuration and model views
 - `routes/`: Modularized route handlers
   - `main_routes.py`: Core application routes
   - `debug_routes.py`: Development and debugging tools
@@ -242,6 +256,7 @@ The story universe is set in a high-stakes, sexy dramatic international world of
 
 ## Future Improvements
 
+- **Admin Authentication**: Add login protection for admin and debug interfaces
 - **Alternative Payment Systems**: Consider implementing a simpler currency system without third-party dependencies
 - **UI/UX Refinements**: Further improve the user interface for character selection
 - **Performance Optimization**: Enhance loading times for story generation
