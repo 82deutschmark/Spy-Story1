@@ -26,45 +26,24 @@ export default {
 
     // Enable editing mode in the modal
     enableEditMode() {
+        const editSwitch = document.getElementById('modalEditModeSwitch');
         const modalContent = document.getElementById('modalContent');
-        let data;
 
-        try {
-            // Parse the JSON data from the modal content
-            data = JSON.parse(modalContent.textContent);
-        } catch (error) {
-            console.error('Error parsing JSON data:', error);
-            return;
-        }
+        if (editSwitch.checked) {
+            // Make the text area editable
+            modalContent.setAttribute('contenteditable', 'true');
+            modalContent.classList.add('editable-content');
 
-        // Populate form fields with fallbacks for different field naming
-        document.getElementById('modalImageName').value = data.character_name || data.name || '';
-        document.getElementById('modalImageType').value = data.image_type || data.type?.toLowerCase() || 'character';
-        document.getElementById('modalDescriptionField').value = data.description || '';
-
-        // Show/hide appropriate fields
-        this.toggleModalFieldsByType(data.image_type || data.type?.toLowerCase());
-
-        if ((data.image_type === 'character') || (data.type?.toUpperCase() === 'CHARACTER')) {
-            // Populate character fields with multiple fallbacks
-            const role = data.character_role || data.role || 'neutral';
-            document.getElementById('modalCharacterRole').value = role;
-
-            const traits = data.character_traits || data.personality_traits || [];
-            document.getElementById('modalCharacterTraits').value = this.formatArrayField(traits);
-
-            const plotLines = data.plot_lines || data.potential_plot_lines || [];
-            document.getElementById('modalPlotLines').value = this.formatArrayField(plotLines);
+            // Show save button
+            document.getElementById('saveAnalysisBtn').style.display = 'block';
         } else {
-            // Populate scene fields
-            document.getElementById('modalSceneType').value = data.scene_type || 'action';
-            document.getElementById('modalSceneSetting').value = data.setting || '';
-            document.getElementById('modalDramaticMoments').value = this.formatArrayField(data.dramatic_moments || []);
-        }
+            // Turn off editing
+            modalContent.setAttribute('contenteditable', 'false');
+            modalContent.classList.remove('editable-content');
 
-        // Show edit container and save button
-        document.getElementById('modalEditContainer').style.display = 'block';
-        document.getElementById('saveAnalysisBtn').style.display = 'block';
+            // Hide save button
+            document.getElementById('saveAnalysisBtn').style.display = 'none';
+        }
     },
 
     // Save edited analysis from modal
@@ -111,24 +90,8 @@ export default {
             updatedAnalysis.dramatic_moments = this.parseArrayField(document.getElementById('modalDramaticMoments').value);
         }
 
-        //This section needs to be implemented to actually save the data
-        //Example using fetch
-        // fetch(`/api/images/${imageId}`, {
-        //     method: 'PUT',
-        //     headers: {
-        //         'Content-Type': 'application/json'
-        //     },
-        //     body: JSON.stringify(updatedAnalysis)
-        // })
-        // .then(response => response.json())
-        // .then(data => {
-        //     // Handle successful update
-        //     console.log('Analysis updated successfully:', data);
-        // })
-        // .catch(error => {
-        //     // Handle errors
-        //     console.error('Error updating analysis:', error);
-        // });
+        // Make API call to update
+        this.saveImageData(imageId, updatedAnalysis);
     },
 
     /**
@@ -159,7 +122,7 @@ export default {
         document.getElementById('editAnalysisBtn').style.display = 'inline-block';
         document.getElementById('saveAnalysisBtn').style.display = 'none';
     },
-    
+
     /**
      * Populates form fields from the actual database record
      * @param {Object} dbRecord - The database record for this image
@@ -176,17 +139,17 @@ export default {
         if (dbRecord.image_type === 'character') {
             // Populate character fields from actual DB columns
             document.getElementById('modalCharacterRole').value = dbRecord.role || 'neutral';
-            
+
             const traits = dbRecord.traits || [];
             document.getElementById('modalCharacterTraits').value = this.formatArrayField(traits);
-            
+
             const plotLines = dbRecord.plot_lines || [];
             document.getElementById('modalPlotLines').value = this.formatArrayField(plotLines);
         } else {
             // Populate scene fields
             document.getElementById('modalSceneType').value = dbRecord.scene_type || 'action';
             document.getElementById('modalSceneSetting').value = dbRecord.setting || '';
-            
+
             const dramaticMoments = dbRecord.dramatic_moments || [];
             document.getElementById('modalDramaticMoments').value = this.formatArrayField(dramaticMoments);
         }
@@ -251,6 +214,45 @@ export default {
         } catch (error) {
             console.error('Error updating form fields:', error);
         }
+    },
+    saveImageData(imageId, updatedAnalysis) {
+        const imageData = {
+            analysis: updatedAnalysis
+        };
+
+        console.log('Saving image data:', imageData);
+
+        // Call API to update image
+        fetch(`/debug/images/${imageId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(imageData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                DebugUtils.showToast('Success', 'Image updated successfully');
+
+                // Refresh the image list to show the updated data
+                document.getElementById('refreshImagesBtn').click();
+
+                // Close the modal
+                const modalElement = document.getElementById('detailsModal');
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                if (modal) {
+                    modal.hide();
+                }
+            } else {
+                DebugUtils.showToast('Error', data.error || 'Failed to update image', true);
+            }
+        })
+        .catch(error => {
+            console.error('Error saving image:', error);
+            DebugUtils.showToast('Error', 'Failed to update image: ' + error.message, true);
+        });
     },
     //Helper functions (assume these are defined elsewhere or added as needed)
     toggleModalFieldsByType: function(type){},
