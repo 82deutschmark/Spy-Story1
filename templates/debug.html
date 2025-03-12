@@ -32,9 +32,18 @@
                     <i class="fas fa-bug story-icon"></i>
                     <h1 class="display-4">Debug Tools</h1>
                     <p class="lead">Image Analysis & Database Management</p>
-                    <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-2"></i>Back to Story Creator
-                    </a>
+                    <div class="btn-group mb-3">
+                        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Story Creator
+                        </a>
+                        <a href="{{ admin_url }}" class="btn btn-primary">
+                            <i class="fas fa-database me-2"></i>Database Admin
+                        </a>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Use the Database Admin interface for comprehensive database management with PgAdmin-like features.
+                    </div>
                 </div>
 
                 <!-- Debug Section (Image Analysis Tool) -->
@@ -152,8 +161,11 @@
 
                 <!-- Database Management (Combined) -->
                 <div class="card shadow-lg">
-                    <div class="card-header bg-secondary text-white">
+                    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
                         <h3><i class="fas fa-database me-2"></i>Database Records</h3>
+                        <a href="{{ admin_url }}" class="btn btn-sm btn-light">
+                            <i class="fas fa-external-link-alt me-1"></i>Open Advanced Admin
+                        </a>
                     </div>
                     <div class="card-body">
                         <ul class="nav nav-tabs" id="dbTabs" role="tablist">
