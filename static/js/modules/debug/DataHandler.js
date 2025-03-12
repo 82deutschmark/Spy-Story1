@@ -430,10 +430,15 @@ export default class DataHandler {
                 </tr>
             `;
 
+            console.log(`Loading stories: page=${this.storyCurrentPage}, limit=${this.pageSize}, search=${this.storySearchTerm}`);
             const data = await DebugAPI.getStories(this.storyCurrentPage || 1, this.pageSize, this.storySearchTerm);
-
-            if (!data || !data.success) {
-                throw new Error((data && data.error) || 'Failed to load stories');
+            
+            if (!data) {
+                throw new Error('No data returned from API');
+            }
+            
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to load stories');
             }
 
             this.renderStories(data.stories, data.pagination);
