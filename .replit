@@ -34,14 +34,6 @@ task = "shell.exec"
 args = "python main.py"
 waitForPort = 5000
 
-[[workflows.workflow]]
-name = "Run pgAdmin"
-author = 38813642
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python run_pgadmin.py"
-
 [[ports]]
 localPort = 3000
 externalPort = 3000
@@ -49,7 +41,3 @@ externalPort = 3000
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 8080
-externalPort = 8080
