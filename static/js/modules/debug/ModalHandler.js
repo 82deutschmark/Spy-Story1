@@ -29,6 +29,13 @@ export default {
                     modalEditModeSwitch.addEventListener('change', this.enableEditMode.bind(this));
                     console.log('Added event listener to edit mode switch');
                 }
+                
+                // Add event listener to the save button
+                const saveAnalysisBtn = document.getElementById('saveAnalysisBtn');
+                if (saveAnalysisBtn) {
+                    saveAnalysisBtn.addEventListener('click', this.saveAnalysis.bind(this));
+                    console.log('Added event listener to save button');
+                }
             });
         }
         console.log('Modal handler initialized');
@@ -61,28 +68,74 @@ export default {
 
     // Save edited analysis from modal
     saveAnalysis() {
+        console.log('Save analysis function triggered');
         const imageId = this.currentImageId;
         if (!imageId) {
             console.error('No image ID found for saving');
+            DebugUtils.showToast('Error', 'No image ID found for saving', true);
             return;
         }
 
-        const isCharacter = document.getElementById('modalImageType').value === 'character';
+        try {
+            // Get content from the editable area
+            const modalContent = document.getElementById('modalContent');
+            if (!modalContent) {
+                console.error('Modal content element not found');
+                DebugUtils.showToast('Error', 'Modal content element not found', true);
+                return;
+            }
 
-        // Build the analysis data from form fields
-        const updatedAnalysis = {
-            name: document.getElementById('modalImageName').value,
-            image_type: document.getElementById('modalImageType').value,
-            type: document.getElementById('modalImageType').value.toUpperCase(),
-            description: document.getElementById('modalDescriptionField').value
-        };
+            // Parse the JSON content
+            let analysisData;
+            try {
+                analysisData = JSON.parse(modalContent.textContent);
+                console.log('Successfully parsed JSON from modal content', analysisData);
+            } catch (e) {
+                console.error('Failed to parse JSON from modal content', e);
+                DebugUtils.showToast('Error', 'Invalid JSON in editor. Please check formatting.', true);
+                return;
+            }
 
-        // Add character-specific fields
-        if (isCharacter) {
-            // Set role with both field names for compatibility
-            const role = document.getElementById('modalCharacterRole').value;
-            updatedAnalysis.character_role = role;
-            updatedAnalysis.role = role;
+            // Prepare data for API call
+            const data = {
+                analysis: analysisData
+            };
+
+            console.log('Saving analysis data:', data);
+            
+            // Make API call to update the image
+            fetch(`/debug/images/${imageId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    DebugUtils.showToast('Success', 'Analysis saved successfully');
+                    console.log('Analysis saved successfully');
+                    
+                    // Turn off edit mode
+                    const editSwitch = document.getElementById('modalEditModeSwitch');
+                    if (editSwitch && editSwitch.checked) {
+                        editSwitch.checked = false;
+                        this.enableEditMode();
+                    }
+                } else {
+                    DebugUtils.showToast('Error', data.error || 'Failed to save analysis', true);
+                }
+            })
+            .catch(error => {
+                console.error('Error saving analysis:', error);
+                DebugUtils.showToast('Error', 'Failed to save analysis: ' + error.message, true);
+            });
+        } catch (e) {
+            console.error('Error in saveAnalysis:', e);
+            DebugUtils.showToast('Error', 'Error processing save: ' + e.message, true);
+        }
+    },
 
             // Set traits with both field names for compatibility
             const traits = this.parseArrayField(document.getElementById('modalCharacterTraits').value);
