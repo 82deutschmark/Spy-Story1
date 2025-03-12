@@ -6,7 +6,7 @@ from database import db
 from flask_cors import CORS
 from config import get_config
 from admin_config import init_admin
-from flask_bootstrap import Bootstrap  # Changed from Bootstrap4 to Bootstrap
+from flask_bootstrap import Bootstrap
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Configure logging
@@ -22,6 +22,11 @@ def create_app():
     app_config = get_config()
     app.config.from_object(app_config)
     app.secret_key = app_config.SESSION_SECRET
+    app.config['SQLALCHEMY_DATABASE_URI'] = app_config.DATABASE_URL
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_recycle": 300,
+        "pool_pre_ping": True,
+    }
     
     # Initialize Bootstrap
     Bootstrap(app)
@@ -47,7 +52,7 @@ def create_app():
 
     # Add request logger middleware
     from middleware.request_logger import RequestLoggerMiddleware
-    RequestLoggerMiddleware(app)
+    app.wsgi_app = RequestLoggerMiddleware(app.wsgi_app)
 
     # Register blueprints
     with app.app_context():
@@ -57,11 +62,13 @@ def create_app():
         from routes.api_routes import api_bp
         from api.unity_routes import unity_api
         from api.game_api import game_api
+        
+        # Register blueprints
         app.register_blueprint(main_bp)
-        app.register_blueprint(debug_bp)
-        app.register_blueprint(api_bp)
-        app.register_blueprint(unity_api)
-        app.register_blueprint(game_api)
+        app.register_blueprint(debug_bp, url_prefix='/debug')
+        app.register_blueprint(api_bp, url_prefix='/api')
+        app.register_blueprint(unity_api, url_prefix='/api/unity')
+        app.register_blueprint(game_api, url_prefix='/api/game')
 
         # Create database tables
         db.create_all()
@@ -69,16 +76,13 @@ def create_app():
         # Initialize Flask-Admin
         init_admin(app)
 
+    # Ensure JS modules are served with correct MIME type
+    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+    import mimetypes
+    mimetypes.add_type('application/javascript', '.js')
+
     return app
 
 if __name__ == "__main__":
     app = create_app()
-
-    # Ensure JS modules are served with correct MIME type
-    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
-
-    # Register custom MIME types for ES modules
-    import mimetypes
-    mimetypes.add_type('application/javascript', '.js')
-
     app.run(host="0.0.0.0", port=5000, debug=True)
