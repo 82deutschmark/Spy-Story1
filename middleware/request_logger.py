@@ -9,9 +9,11 @@ class RequestLoggerMiddleware:
     """Middleware for logging requests and their processing time"""
     
     def __init__(self, app):
+        """Initialize the middleware by registering Flask hooks"""
         self.app = app
-        self.app.before_request(self.before_request)
-        self.app.after_request(self.after_request)
+        # Register the before_request and after_request functions with Flask
+        app.before_request(self.before_request)
+        app.after_request(self.after_request)
     
     def before_request(self):
         """Log the request and set the start time"""
