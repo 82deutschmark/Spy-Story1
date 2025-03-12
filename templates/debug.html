@@ -150,227 +150,97 @@
                     </div>
                 </div>
 
-                <!-- Database Management (Combined) -->
+                <!-- Database Management with pgAdmin 4 -->
                 <div class="card shadow-lg">
                     <div class="card-header bg-secondary text-white">
-                        <h3><i class="fas fa-database me-2"></i>Database Records</h3>
+                        <h3><i class="fas fa-database me-2"></i>Database Management</h3>
                     </div>
                     <div class="card-body">
-                        <ul class="nav nav-tabs" id="dbTabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="images-tab" data-bs-toggle="tab" data-bs-target="#images" type="button" role="tab" aria-controls="images" aria-selected="true">
-                                    <i class="fas fa-image me-2"></i>Images
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="stories-tab" data-bs-toggle="tab" data-bs-target="#stories" type="button" role="tab" aria-controls="stories" aria-selected="false">
-                                    <i class="fas fa-book me-2"></i>Stories
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="health-tab" data-bs-toggle="tab" data-bs-target="#health" type="button" role="tab" aria-controls="health" aria-selected="false">
-                                    <i class="fas fa-heartbeat me-2"></i>DB Health
-                                </button>
-                            </li>
-                        </ul>
-
-                        <div class="tab-content p-3 border border-top-0 rounded-bottom" id="dbTabsContent">
-                            <!-- Images Tab -->
-                            <div class="tab-pane fade show active" id="images" role="tabpanel" aria-labelledby="images-tab">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h4>Image Records</h4>
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-outline-danger" id="deleteAllImagesBtn">
-                                            <i class="fas fa-trash me-1"></i>Delete All
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-secondary" id="refreshImagesBtn">
-                                            <i class="fas fa-sync-alt me-1"></i>Refresh
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Search and filters -->
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <div class="input-group">
-                                            <input type="text" class="form-control" id="imageSearchInput" placeholder="Search images...">
-                                            <button class="btn btn-outline-secondary" type="button" id="imageSearchBtn">
-                                                <i class="fas fa-search"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="btn-group float-end">
-                                            <button class="btn btn-sm btn-outline-secondary filter-btn" data-filter="">
-                                                <i class="fas fa-filter me-1"></i>All Types
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-secondary filter-btn" data-filter="character">
-                                                <i class="fas fa-user me-1"></i>Characters
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-secondary filter-btn" data-filter="scene">
-                                                <i class="fas fa-image me-1"></i>Scenes
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>ID</th>
-                                                <th>Image</th>
-                                                <th>Type</th>
-                                                <th>Name</th>
-                                                <th>Created</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="imagesTableBody">
-                                            <tr>
-                                                <td colspan="6" class="text-center">
-                                                    <div class="spinner-border text-primary" role="status">
-                                                        <span class="visually-hidden">Loading...</span>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                    <nav aria-label="Image pagination" class="d-flex justify-content-center mt-3">
-                                        <ul class="pagination" id="imagesPagination">
-                                            <!-- Pagination controls will appear here -->
-                                        </ul>
-                                    </nav>
-                                </div>
-                            </div>
-
-                            <!-- Stories Tab -->
-                            <div class="tab-pane fade" id="stories" role="tabpanel" aria-labelledby="stories-tab">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h4>Story Records</h4>
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-outline-danger" id="deleteAllStoriesBtn">
-                                            <i class="fas fa-trash me-1"></i>Delete All
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-secondary" id="refreshStoriesBtn">
-                                            <i class="fas fa-sync-alt me-1"></i>Refresh
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Search for stories -->
-                                <div class="mb-3">
-                                    <div class="input-group" style="max-width: 500px;">
-                                        <input type="text" class="form-control" id="storySearchInput" placeholder="Search stories...">
-                                        <button class="btn btn-outline-secondary" type="button" id="storySearchBtn">
-                                            <i class="fas fa-search"></i>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>ID</th>
-                                                <th>Title</th>
-                                                <th>Conflict</th>
-                                                <th>Setting</th>
-                                                <th>Characters</th>
-                                                <th>Created</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="storiesTableBody">
-                                            <tr>
-                                                <td colspan="7" class="text-center">
-                                                    <div class="spinner-border text-primary" role="status">
-                                                        <span class="visually-hidden">Loading...</span>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                    <nav aria-label="Story pagination" class="d-flex justify-content-center mt-3">
-                                        <ul class="pagination" id="storiesPagination">
-                                            <!-- Pagination controls will appear here -->
-                                        </ul>
-                                    </nav>
-                                </div>
-                            </div>
-
-                            <!-- DB Health Tab -->
-                            <div class="tab-pane fade" id="health" role="tabpanel" aria-labelledby="health-tab">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h4>Database Health Check</h4>
-                                    <button class="btn btn-sm btn-outline-primary" id="runHealthCheckBtn">
-                                        <i class="fas fa-stethoscope me-1"></i>Run Health Check
-                                    </button>
-                                </div>
-
+                        <div class="row">
+                            <div class="col-md-6">
                                 <div class="card mb-3">
-                                    <div class="card-header bg-dark">
+                                    <div class="card-header bg-dark text-white">
                                         <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Database Statistics</h5>
                                     </div>
                                     <div class="card-body">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <ul class="list-group mb-3">
-                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                        Total Images
-                                                        <span class="badge bg-primary rounded-pill" id="totalImages">{{ image_count }}</span>
-                                                    </li>
-                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                        Character Images
-                                                        <span class="badge bg-success rounded-pill" id="characterImages">{{ character_count }}</span>
-                                                    </li>
-                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                        Scene Images
-                                                        <span class="badge bg-info rounded-pill" id="sceneImages">{{ scene_count }}</span>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <ul class="list-group">
-                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                        Total Stories
-                                                        <span class="badge bg-primary rounded-pill" id="totalStories">{{ story_count }}</span>
-                                                    </li>
-                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                        Orphaned Images
-                                                        <span class="badge bg-warning rounded-pill" id="orphanedImages">{{ orphaned_images }}</span>
-                                                    </li>
-                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                        Empty Stories
-                                                        <span class="badge bg-danger rounded-pill" id="emptyStories">{{ empty_stories }}</span>
-                                                    </li>
-                                                </ul>
-                                            </div>
+                                        <ul class="list-group mb-3">
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Total Images
+                                                <span class="badge bg-primary rounded-pill" id="totalImages">{{ image_count }}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Character Images
+                                                <span class="badge bg-success rounded-pill" id="characterImages">{{ character_count }}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Scene Images
+                                                <span class="badge bg-info rounded-pill" id="sceneImages">{{ scene_count }}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Total Stories
+                                                <span class="badge bg-primary rounded-pill" id="totalStories">{{ story_count }}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Orphaned Images
+                                                <span class="badge bg-warning rounded-pill" id="orphanedImages">{{ orphaned_images }}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Empty Stories
+                                                <span class="badge bg-danger rounded-pill" id="emptyStories">{{ empty_stories }}</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0"><i class="fas fa-database me-2"></i>pgAdmin 4 Integration</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <p>Use pgAdmin 4 for advanced database management:</p>
+                                        <ul class="mb-4">
+                                            <li>Full SQL query interface</li>
+                                            <li>Visual schema design</li>
+                                            <li>Database performance monitoring</li>
+                                            <li>Data import/export tools</li>
+                                        </ul>
+
+                                        {% if db_info %}
+                                        <div class="alert alert-info">
+                                            <h6><i class="fas fa-info-circle me-2"></i>Connection Details</h6>
+                                            <div><strong>Host:</strong> {{ db_info.host }}</div>
+                                            <div><strong>Port:</strong> {{ db_info.port }}</div>
+                                            <div><strong>Database:</strong> {{ db_info.database }}</div>
+                                        </div>
+                                        {% endif %}
+
+                                        <div class="text-center">
+                                            <a href="{{ url_for('debug.pgadmin_view') }}" class="btn btn-primary btn-lg mt-2">
+                                                <i class="fas fa-external-link-alt me-2"></i>Open pgAdmin 4
+                                            </a>
+                                        </div>
+
+                                        <div class="alert alert-warning mt-3">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                            <strong>Note:</strong> First run <code>python run_pgadmin.py</code> to start the pgAdmin server
                                         </div>
                                     </div>
                                 </div>
 
-                                <div class="card">
-                                    <div class="card-header bg-dark">
-                                        <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Potential Issues</h5>
+                                <div class="card mt-3">
+                                    <div class="card-header bg-danger text-white">
+                                        <h5 class="mb-0"><i class="fas fa-trash me-2"></i>Database Actions</h5>
                                     </div>
                                     <div class="card-body">
-                                        <div id="issuesContainer">
-                                            <div id="noIssuesAlert">
-                                                <i class="fas fa-check-circle me-2"></i>No database issues detected.
-                                            </div>
-                                            <ul class="list-group" id="issuesList" style="display: none;">
-                                            </ul>
-
-                                            <div class="mt-4">
-                                                <h5><i class="fas fa-table me-2"></i>Database Records Preview</h5>
-                                                <div class="border p-3 bg-dark mt-2">
-                                                    <p><strong>Images:</strong> {{ image_count }} records</p>
-                                                    <p><strong>Characters:</strong> {{ character_count }} records</p>
-                                                    <p><strong>Scenes:</strong> {{ scene_count }} records</p>
-                                                    <p><strong>Stories:</strong> {{ story_count }} records</p>
-                                                </div>
-                                            </div>
+                                        <div class="d-grid gap-2">
+                                            <button class="btn btn-outline-danger" id="deleteAllImagesBtn">
+                                                <i class="fas fa-trash me-1"></i>Delete All Images
+                                            </button>
+                                            <button class="btn btn-outline-danger" id="deleteAllStoriesBtn">
+                                                <i class="fas fa-trash me-1"></i>Delete All Stories
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
