@@ -336,7 +336,7 @@ export default class DataHandler {
 
             if (response.success) {
                 DebugUtils.showToast('Success', 'Image reanalyzed successfully');
-                
+
                 // Update the detail view with new analysis data
                 if (response.analysis) {
                     // Update modal content display
@@ -344,10 +344,10 @@ export default class DataHandler {
                     if (modalContent) {
                         modalContent.textContent = JSON.stringify(response.analysis, null, 2);
                     }
-                    
+
                     // Update edit form with new analysis data
                     this.populateModalEditForm(response.analysis);
-                    
+
                     // Enable edit mode to show the updated data
                     const editSwitch = document.getElementById('modalEditModeSwitch');
                     if (editSwitch) {
@@ -361,14 +361,14 @@ export default class DataHandler {
                             saveBtn.style.display = 'inline-block';
                         }
                     }
-                    
+
                     // Update JSON display if it exists (for debug)
                     const jsonDisplay = document.getElementById('analysisJson');
                     if (jsonDisplay) {
                         jsonDisplay.textContent = JSON.stringify(response.analysis, null, 2);
                     }
                 }
-                
+
                 // Refresh the image list
                 this.loadImages();
             } else {
@@ -429,33 +429,36 @@ export default class DataHandler {
                     </td>
                 </tr>
             `;
-            let url = `/debug/stories?page=${this.storyCurrentPage || 1}&limit=${this.pageSize}`;
-            if (this.storySearchTerm) {
-                url += `&search=${encodeURIComponent(this.storySearchTerm)}`;
-            }
-            const data = await DebugAPI.get(url);
 
-            if (data.success) {
-                this.renderStoriesTable(data.stories);
-                this.debugUI.createPagination('storiesPagination', data.total_pages,
-                    this.storyCurrentPage || 1, (page) => {
-                        this.storyCurrentPage = page;
-                        this.loadStories();
-                    }
-                );
-            } else {
-                DebugUtils.showToast('Error', data.message || 'Failed to load stories', true);
+            const data = await DebugAPI.getStories(this.storyCurrentPage || 1, this.pageSize, this.storySearchTerm);
+            this.debugUI.elements.storiesTableBody.innerHTML = '';
+
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to load stories');
             }
-        } catch (error) {
-            if (this.debugUI.elements.storiesTableBody) {
+
+            if (data.stories.length === 0) {
                 this.debugUI.elements.storiesTableBody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="text-center text-danger">
-                            Failed to load stories: ${error.message}
-                        </td>
+                        <td colspan="7" class="text-center">No stories found</td>
                     </tr>
                 `;
+                return;
             }
+
+            this.renderStories(data.stories);
+            this.renderStoryPagination(data.pagination);
+        } catch (error) {
+            console.error('Error loading stories:', error);
+            this.debugUI.elements.storiesTableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-danger">
+                        Error loading stories: ${error.message || "Unknown error occurred"}
+                    </td>
+                </tr>
+            `;
+            // Reset pagination when there's an error
+            this.debugUI.elements.storyPagination.innerHTML = '';
         }
     }
 
@@ -728,4 +731,112 @@ export default class DataHandler {
         }
     }
 
+    renderStoryPagination(pagination) {
+        const paginationEl = this.debugUI.elements.storyPagination;
+        paginationEl.innerHTML = '';
+
+        const totalPages = pagination.pages;
+        const currentPage = pagination.page;
+
+        if (totalPages <= 1) return;
+
+        // Previous button
+        const prevLi = document.createElement('li');
+        prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+        prevLi.innerHTML = `
+            <a class="page-link" href="#" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+            </a>
+        `;
+        if (currentPage > 1) {
+            prevLi.querySelector('a').addEventListener('click', (e) => {
+                e.preventDefault();
+                this.storyCurrentPage = currentPage - 1;
+                this.loadStories();
+            });
+        }
+        paginationEl.appendChild(prevLi);
+
+        // Page numbers (show max 5 pages)
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, startPage + 4);
+
+        for (let i = startPage; i <= endPage; i++) {
+            const pageLi = document.createElement('li');
+            pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+            pageLi.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+
+            pageLi.querySelector('a').addEventListener('click', (e) => {
+                e.preventDefault();
+                this.storyCurrentPage = i;
+                this.loadStories();
+            });
+
+            paginationEl.appendChild(pageLi);
+        }
+
+        // Next button
+        const nextLi = document.createElement('li');
+        nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+        nextLi.innerHTML = `
+            <a class="page-link" href="#" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+            </a>
+        `;
+        if (currentPage < totalPages) {
+            nextLi.querySelector('a').addEventListener('click', (e) => {
+                e.preventDefault();
+                this.storyCurrentPage = currentPage + 1;
+                this.loadStories();
+            });
+        }
+        paginationEl.appendChild(nextLi);
+    }
+
+    renderStories(stories) {
+        if (!this.debugUI.elements.storiesTableBody) {
+            console.error('Stories table body element not found');
+            return;
+        }
+
+        this.debugUI.elements.storiesTableBody.innerHTML = ''; // Clear existing rows
+
+        if (!stories || stories.length === 0) {
+            this.debugUI.elements.storiesTableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center">No stories found</td>
+                </tr>
+            `;
+            return;
+        }
+
+        stories.forEach(story => {
+            const row = document.createElement('tr');
+            let charactersText = 'None';
+            if (story.characters && story.characters.length > 0) {
+                charactersText = story.characters.map(char => char.name || `ID: ${char.id}`).join(', ');
+            }
+            row.innerHTML = `
+                <td>${story.id}</td>
+                <td>${story.title || 'Untitled'}</td>
+                <td>${story.conflict || 'N/A'}</td>
+                <td>${story.setting || 'N/A'}</td>
+                <td>${charactersText}</td>
+                <td>${new Date(story.created_at).toLocaleString()}</td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-info view-story-btn" data-id="${story.id}">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-danger delete-story-btn" data-id="${story.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            this.debugUI.elements.storiesTableBody.appendChild(row);
+            row.querySelector('.view-story-btn').addEventListener('click', () => this.viewStory(story.id));
+            row.querySelector('.delete-story-btn').addEventListener('click', () => this.deleteStory(story.id));
+        });
+    }
 }
