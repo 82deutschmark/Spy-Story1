@@ -1,10 +1,13 @@
+
 import os
 import logging
 from flask import Flask
 from database import db
 from flask_cors import CORS
 from config import get_config
-from admin_config import init_admin # Added import for Flask-Admin initialization
+from admin_config import init_admin
+from flask_bootstrap import Bootstrap  # Changed from Bootstrap4 to Bootstrap
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Configure logging
 config = get_config()
@@ -19,7 +22,10 @@ def create_app():
     app_config = get_config()
     app.config.from_object(app_config)
     app.secret_key = app_config.SESSION_SECRET
-
+    
+    # Initialize Bootstrap
+    Bootstrap(app)
+    
     # Initialize database
     db.init_app(app)
 
@@ -31,6 +37,9 @@ def create_app():
             "allow_headers": ["Content-Type", "Authorization"]
         }
     })
+    
+    # Apply ProxyFix middleware
+    app.wsgi_app = ProxyFix(app.wsgi_app)
 
     # Register error handlers
     from utils.error_handlers import register_error_handlers
@@ -58,7 +67,7 @@ def create_app():
         db.create_all()
 
         # Initialize Flask-Admin
-        init_admin(app) # Initialize Flask-Admin after blueprint registration
+        init_admin(app)
 
     return app
 
