@@ -65,12 +65,8 @@ def create_app(config_name=None):
         # Create database tables
         db.create_all()
 
-        # Initialize Flask-Admin (only once)
-        if not hasattr(app, '_admin_initialized'):
-            # Only initialize if admin extension is not already in app.extensions
-            if 'admin' not in app.extensions:
-                init_admin(app)
-            app._admin_initialized = True
+        # Initialize Flask-Admin
+        init_admin(app)
 
         # Ensure JS modules are served with correct MIME type
         import mimetypes

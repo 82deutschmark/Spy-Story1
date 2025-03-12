@@ -12,9 +12,8 @@ config = get_config()
 logging.basicConfig(level=getattr(logging, config.LOG_LEVEL))
 logger = logging.getLogger(__name__)
 
-# Create app once at module level
-app = create_app()
-
 if __name__ == "__main__":
+    app = create_app()
+
     # Run the app
     app.run(host="0.0.0.0", port=5000, debug=True)
