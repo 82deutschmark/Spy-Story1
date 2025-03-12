@@ -116,17 +116,24 @@ const DebugUI = {
     },
 
     createPagination(elementId, totalPages, currentPage, onPageChange) {
-        const paginationEl = document.getElementById(elementId);
-        if (!paginationEl) {
-            console.error(`Pagination element with ID ${elementId} not found`);
+        console.log(`Creating pagination for ${elementId}: pages=${totalPages}, current=${currentPage}`);
+        const paginationElement = document.getElementById(elementId);
+        if (!paginationElement) {
+            console.error(`Pagination element ${elementId} not found`);
             return;
         }
 
-        paginationEl.innerHTML = '';
-        console.log(`Creating pagination for ${elementId}: pages=${totalPages}, current=${currentPage}`);
+        paginationElement.innerHTML = '';
 
-        if (totalPages <= 1) return;
+        if (!totalPages || totalPages <= 1) {
+            return;
+        }
 
+        // Create pagination container
+        const paginationContainer = document.createElement('ul');
+        paginationContainer.className = 'pagination justify-content-center';
+
+        // Previous button
         const prevLi = document.createElement('li');
         prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
         const prevLink = document.createElement('a');
@@ -140,9 +147,13 @@ const DebugUI = {
             });
         }
         prevLi.appendChild(prevLink);
-        paginationEl.appendChild(prevLi);
+        paginationContainer.appendChild(prevLi);
 
-        for (let i = 1; i <= totalPages; i++) {
+        // Page numbers
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, startPage + 4);
+
+        for (let i = startPage; i <= endPage; i++) {
             const li = document.createElement('li');
             li.className = `page-item ${i === currentPage ? 'active' : ''}`;
             const link = document.createElement('a');
@@ -151,14 +162,13 @@ const DebugUI = {
             link.textContent = i;
             link.addEventListener('click', (e) => {
                 e.preventDefault();
-                if (i !== currentPage) {
-                    onPageChange(i);
-                }
+                onPageChange(i);
             });
             li.appendChild(link);
-            paginationEl.appendChild(li);
+            paginationContainer.appendChild(li);
         }
 
+        // Next button
         const nextLi = document.createElement('li');
         nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
         const nextLink = document.createElement('a');
@@ -172,7 +182,9 @@ const DebugUI = {
             });
         }
         nextLi.appendChild(nextLink);
-        paginationEl.appendChild(nextLi);
+        paginationContainer.appendChild(nextLi);
+
+        paginationElement.appendChild(paginationContainer);
     }
 };
 
