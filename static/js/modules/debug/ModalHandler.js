@@ -28,15 +28,11 @@ export default {
     enableEditMode() {
         const editSwitch = document.getElementById('modalEditModeSwitch');
         const modalContent = document.getElementById('modalContent');
-        
-        console.log("Toggling edit mode:", editSwitch.checked);
-        
+
         if (editSwitch.checked) {
             // Make the text area editable
             modalContent.setAttribute('contenteditable', 'true');
             modalContent.classList.add('editable-content');
-            // Force focus to help user see it's editable
-            modalContent.focus();
 
             // Show save button
             document.getElementById('saveAnalysisBtn').style.display = 'block';
@@ -48,55 +44,6 @@ export default {
             // Hide save button
             document.getElementById('saveAnalysisBtn').style.display = 'none';
         }
-    },
-    
-    // Save edited JSON content directly
-    saveEditedContent() {
-        const modalContent = document.getElementById('modalContent');
-        const editedJson = modalContent.textContent;
-        
-        // Validate JSON before saving
-        try {
-            JSON.parse(editedJson);
-        } catch (e) {
-            alert('Invalid JSON: ' + e.message);
-            return;
-        }
-        
-        // Get current image ID
-        const imageId = this.currentImageId;
-        if (!imageId) {
-            console.error('No image ID found for saving');
-            return;
-        }
-        
-        console.log("Saving edited JSON for image:", imageId);
-        
-        // Send to server
-        fetch(`/debug/images/${imageId}/update-json`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                edited_json: editedJson
-            }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Changes saved successfully!');
-                // Turn off edit mode
-                document.getElementById('modalEditModeSwitch').checked = false;
-                this.enableEditMode();
-            } else {
-                alert('Error saving changes: ' + (data.error || 'Unknown error'));
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error saving changes: ' + error.message);
-        });
     },
 
     // Save edited analysis from modal
