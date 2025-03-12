@@ -115,6 +115,7 @@ def debug_image_details():
 def debug_story_details():
     """API endpoint for debug page to get stories with pagination and additional details"""
     try:
+        logger.info("Fetching stories details with pagination")
         page = request.args.get('page', 1, type=int)
         limit = request.args.get('limit', 10, type=int)
         search = request.args.get('search')

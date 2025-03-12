@@ -431,23 +431,14 @@ export default class DataHandler {
             `;
 
             const data = await DebugAPI.getStories(this.storyCurrentPage || 1, this.pageSize, this.storySearchTerm);
-            this.debugUI.elements.storiesTableBody.innerHTML = '';
 
             if (!data.success) {
                 throw new Error(data.error || 'Failed to load stories');
             }
 
-            if (data.stories.length === 0) {
-                this.debugUI.elements.storiesTableBody.innerHTML = `
-                    <tr>
-                        <td colspan="7" class="text-center">No stories found</td>
-                    </tr>
-                `;
-                return;
-            }
+            this.renderStories(data.stories, data.pagination);
 
-            this.renderStories(data.stories);
-            this.renderStoryPagination(data.pagination);
+
         } catch (error) {
             console.error('Error loading stories:', error);
             this.debugUI.elements.storiesTableBody.innerHTML = `
@@ -462,11 +453,13 @@ export default class DataHandler {
         }
     }
 
-    renderStoriesTable(stories) {
+    renderStories(stories, pagination) {
         if (!this.debugUI.elements.storiesTableBody) {
             console.error('Stories table body element not found');
             return;
         }
+
+        this.debugUI.elements.storiesTableBody.innerHTML = ''; // Clear existing rows
 
         if (!stories || stories.length === 0) {
             this.debugUI.elements.storiesTableBody.innerHTML = `
@@ -477,15 +470,11 @@ export default class DataHandler {
             return;
         }
 
-        this.debugUI.elements.storiesTableBody.innerHTML = '';
-
         stories.forEach(story => {
             const row = document.createElement('tr');
             let charactersText = 'None';
             if (story.characters && story.characters.length > 0) {
-                charactersText = story.characters
-                    .map(char => char.name || `ID: ${char.id}`)
-                    .join(', ');
+                charactersText = story.characters.map(char => char.name || `ID: ${char.id}`).join(', ');
             }
             row.innerHTML = `
                 <td>${story.id}</td>
@@ -509,6 +498,17 @@ export default class DataHandler {
             row.querySelector('.view-story-btn').addEventListener('click', () => this.viewStory(story.id));
             row.querySelector('.delete-story-btn').addEventListener('click', () => this.deleteStory(story.id));
         });
+
+        // Create pagination for stories
+        if (pagination && pagination.pages) {
+            console.log(`Creating stories pagination: total=${pagination.pages}, current=${this.storyCurrentPage}`);
+            this.debugUI.createPagination('storiesPagination', pagination.pages, this.storyCurrentPage,
+                (page) => {
+                    this.storyCurrentPage = page;
+                    this.loadStories();
+                }
+            );
+        }
     }
 
     async viewStory(storyId) {
@@ -793,50 +793,4 @@ export default class DataHandler {
         paginationEl.appendChild(nextLi);
     }
 
-    renderStories(stories) {
-        if (!this.debugUI.elements.storiesTableBody) {
-            console.error('Stories table body element not found');
-            return;
-        }
-
-        this.debugUI.elements.storiesTableBody.innerHTML = ''; // Clear existing rows
-
-        if (!stories || stories.length === 0) {
-            this.debugUI.elements.storiesTableBody.innerHTML = `
-                <tr>
-                    <td colspan="7" class="text-center">No stories found</td>
-                </tr>
-            `;
-            return;
-        }
-
-        stories.forEach(story => {
-            const row = document.createElement('tr');
-            let charactersText = 'None';
-            if (story.characters && story.characters.length > 0) {
-                charactersText = story.characters.map(char => char.name || `ID: ${char.id}`).join(', ');
-            }
-            row.innerHTML = `
-                <td>${story.id}</td>
-                <td>${story.title || 'Untitled'}</td>
-                <td>${story.conflict || 'N/A'}</td>
-                <td>${story.setting || 'N/A'}</td>
-                <td>${charactersText}</td>
-                <td>${new Date(story.created_at).toLocaleString()}</td>
-                <td>
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-info view-story-btn" data-id="${story.id}">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-outline-danger delete-story-btn" data-id="${story.id}">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </td>
-            `;
-            this.debugUI.elements.storiesTableBody.appendChild(row);
-            row.querySelector('.view-story-btn').addEventListener('click', () => this.viewStory(story.id));
-            row.querySelector('.delete-story-btn').addEventListener('click', () => this.deleteStory(story.id));
-        });
-    }
 }
