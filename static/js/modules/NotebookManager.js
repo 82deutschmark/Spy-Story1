@@ -46,46 +46,45 @@ class NotebookManager {
 
         // Continue story button
         if (this.continueStoryButton) {
-            this.continueStoryButton.addEventListener('click', () => this.continueStory());
+            this.continueStoryButton.addEventListener('click', () => this.continueLastStory());
         }
     }
 
     toggleNotebook() {
-        if (this.notebookElement) {
-            this.notebookElement.classList.toggle('open');
-            this.isOpen = !this.isOpen;
+        if (!this.notebookElement) return;
+        
+        this.isOpen = !this.isOpen;
+        if (this.isOpen) {
+            this.notebookElement.classList.add('open');
+        } else {
+            this.notebookElement.classList.remove('open');
         }
     }
 
     closeNotebook() {
-        if (this.notebookElement) {
-            this.notebookElement.classList.remove('open');
-            this.isOpen = false;
+        if (!this.notebookElement) return;
+        
+        this.isOpen = false;
+        this.notebookElement.classList.remove('open');
+    }
+
+    continueLastStory() {
+        if (this.lastStoryId) {
+            window.location.href = `/story/${this.lastStoryId}`;
         }
     }
 
-    continueStory() {
-        // Get the last story ID from local storage or from the page
-        const storyId = this.lastStoryId || 
-                        (document.querySelector('[data-story-id]') ? 
-                         document.querySelector('[data-story-id]').dataset.storyId : null);
-
-        if (storyId) {
-            window.location.href = `/storyboard?story_id=${storyId}`;
-        } else {
-            console.error("No story ID found to continue");
-            // Show an error message or toast notification
-            if (typeof showNotification === 'function') {
-                showNotification('No previous story found to continue', 'warning');
-            }
-        }
+    updateNotebookData(userData) {
+        // Update notebook data with user progress
+        // This is a placeholder for future implementation
+        console.log("Updating notebook data:", userData);
     }
 }
 
-// Export for ES module use
+// Export the NotebookManager class as default
 export default NotebookManager;
 
-// Initialize on page load if we're not in an ES module context
+// For backwards compatibility
 if (typeof window !== 'undefined') {
     // Make NotebookManager available globally
     window.NotebookManager = NotebookManager;
