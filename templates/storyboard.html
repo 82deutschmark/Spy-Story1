@@ -12,7 +12,80 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 </head>
 <body class="storyboard-body">
-    <!-- User Progress Button removed -->
+    <!-- Notebook button -->
+    <button id="toggleNotebookBtn" class="notebook-toggle-btn">
+        <i class="fas fa-book-open"></i> Agent's Notebook
+    </button>
+
+    <!-- Notebook Sidebar -->
+    <div id="notebookSidebar" class="notebook-sidebar">
+        <div class="notebook-header">
+            <h3><i class="fas fa-book me-2"></i>Agent's Notebook</h3>
+            <button id="closeNotebookBtn" class="close-notebook-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="notebook-content">
+            <div class="notebook-section">
+                <h4><i class="fas fa-user-circle me-2"></i>Agent Profile</h4>
+                <div class="notebook-data">
+                    <p><strong>Name:</strong> <span id="agentName">{{ user_progress.protagonist_name or "Agent" }}</span></p>
+                    <p><strong>Level:</strong> <span id="agentLevel">{{ user_progress.level }}</span></p>
+                    <div class="progress mb-2">
+                        <div class="progress-bar" id="xpProgressBar" role="progressbar" style="width: {{ (user_progress.experience_points % 100) }}%"></div>
+                    </div>
+                    <p><small><span id="agentXP">{{ user_progress.experience_points }}</span> XP</small></p>
+                </div>
+            </div>
+            
+            <div class="notebook-section">
+                <h4><i class="fas fa-coins me-2"></i>Currency</h4>
+                <div class="notebook-data currency-balances">
+                    {% for currency, amount in user_progress.currency_balances.items() %}
+                    <div class="currency-item">
+                        <span class="currency-symbol">{{ currency }}</span>
+                        <span class="currency-amount">{{ amount }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="notebook-section">
+                <h4><i class="fas fa-tasks me-2"></i>Active Missions</h4>
+                <div class="notebook-data">
+                    {% if user_progress.active_missions and user_progress.active_missions|length > 0 %}
+                        <ul class="notebook-missions-list">
+                        {% for mission_id in user_progress.active_missions %}
+                            <li class="mission-item">Mission #{{ mission_id }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>No active missions</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="notebook-section">
+                <h4><i class="fas fa-users me-2"></i>Character Relationships</h4>
+                <div class="notebook-data">
+                    {% if user_progress.character_relationships and user_progress.character_relationships|length > 0 %}
+                        <ul class="relationships-list">
+                        {% for char_id, data in user_progress.character_relationships.items() %}
+                            <li>
+                                <span class="char-name">{{ data.name }}</span>
+                                <div class="relationship-meter">
+                                    <div class="relationship-level" style="width: {{ data.relationship_value * 10 }}%"></div>
+                                </div>
+                            </li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>No character relationships</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
 
     {% if background_image %}
     <img src="{{ background_image }}" class="story-background" alt="Story Background">

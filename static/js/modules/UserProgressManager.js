@@ -1,113 +1,110 @@
-
 /**
- * User Progress Management Module
- * Handles fetching and updating user progress data
+ * User Progress Manager Module
+ * Manages user progress data and interface
  */
-import NotebookManager from './NotebookManager.js';
 
 const UserProgressManager = {
-    /**
-     * Initialize user progress manager
-     */
     initialize() {
         console.log('User progress manager initialized');
-        this.userData = null;
-        this.fetchUserData();
+        this.loadUserProgress();
+        this.setupEventListeners();
     },
 
-    /**
-     * Fetch user data from the API
-     */
-    fetchUserData() {
-        // Get current user ID from session
-        const userId = this._getUserId();
-        if (!userId) {
-            console.log('No user ID found, using default data');
-            this._useDefaultData();
-            return;
-        }
+    loadUserProgress() {
+        // Get user progress from the server
+        const userProgressElement = document.getElementById('userProgress');
+        if (userProgressElement) {
+            const currency = userProgressElement.dataset.currency;
+            const level = userProgressElement.dataset.level;
+            const xp = userProgressElement.dataset.xp;
 
-        // Fetch user data from API
-        fetch(`/api/game/state/${userId}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch user data: ${response.status}`);
+            if (currency) {
+                try {
+                    this.currentCurrency = JSON.parse(currency);
+                } catch (e) {
+                    console.error('Error parsing currency data:', e);
+                    this.currentCurrency = {};
                 }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success' && data.data) {
-                    this.userData = data.data;
-                    console.log('User data loaded:', this.userData);
-                    this._updateNotebook();
-                } else {
-                    throw new Error('Invalid response from server');
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching user data:', error);
-                this._useDefaultData();
-            });
-    },
-
-    /**
-     * Update the notebook with current user data
-     */
-    _updateNotebook() {
-        if (NotebookManager && this.userData) {
-            NotebookManager.updateNotebook(this.userData);
-        }
-    },
-
-    /**
-     * Get user ID from cookie or session storage
-     * @returns {string|null} User ID or null if not found
-     */
-    _getUserId() {
-        // Try to get from URL parameter first
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlUserId = urlParams.get('user_id');
-        if (urlUserId) return urlUserId;
-
-        // Try to get from data attribute in body
-        const bodyElement = document.body;
-        if (bodyElement && bodyElement.dataset.userId) {
-            return bodyElement.dataset.userId;
-        }
-
-        // Try to get from an input field that might contain it
-        const userIdInput = document.querySelector('input[name="user_id"]');
-        if (userIdInput && userIdInput.value) {
-            return userIdInput.value;
-        }
-
-        // Try session storage as a fallback
-        return sessionStorage.getItem('userId');
-    },
-
-    /**
-     * Use default data when API call fails
-     */
-    _useDefaultData() {
-        // Use default data structure matching our model
-        this.userData = {
-            user_id: 'guest',
-            level: 1,
-            experience_points: 0,
-            currency_balances: {
-                "💎": 500,
-                "💷": 5000,
-                "💶": 5000,
-                "💴": 5000,
-                "💵": 5000
-            },
-            active_missions: [],
-            encountered_characters: {},
-            game_state: {
-                protagonist_name: "Agent"
             }
-        };
-        this._updateNotebook();
+
+            this.currentLevel = level || 1;
+            this.currentXP = xp || 0;
+
+            this.updateProgressDisplay();
+        } else {
+            console.log('No user ID found, using default data');
+            // Default data for new users
+            this.currentCurrency = {'💵': 5000, '💎': 100};
+            this.currentLevel = 1;
+            this.currentXP = 0;
+        }
+    },
+
+    setupEventListeners() {
+        // Set up notebook toggle on storyboard
+        const toggleBtn = document.getElementById('toggleNotebookBtn');
+        const closeBtn = document.getElementById('closeNotebookBtn');
+        const notebookSidebar = document.getElementById('notebookSidebar');
+
+        if (toggleBtn && notebookSidebar) {
+            toggleBtn.addEventListener('click', () => {
+                notebookSidebar.classList.toggle('active');
+            });
+        }
+
+        if (closeBtn && notebookSidebar) {
+            closeBtn.addEventListener('click', () => {
+                notebookSidebar.classList.remove('active');
+            });
+        }
+    },
+
+    updateProgressDisplay() {
+        // Update the UI with current progress in both progress modal and notebook
+        const levelElement = document.getElementById('userLevel');
+        const xpElement = document.getElementById('userXP');
+        const currencyContainer = document.getElementById('currencyBalances');
+
+        // Update notebook elements if they exist
+        const agentLevelElement = document.getElementById('agentLevel');
+        const agentXpElement = document.getElementById('agentXP');
+        const xpProgressBar = document.getElementById('xpProgressBar');
+
+        if (levelElement) levelElement.textContent = this.currentLevel;
+        if (xpElement) xpElement.textContent = this.currentXP;
+
+        // Update notebook progress display
+        if (agentLevelElement) agentLevelElement.textContent = this.currentLevel;
+        if (agentXpElement) agentXpElement.textContent = this.currentXP;
+        if (xpProgressBar) {
+            const xpPercentage = (this.currentXP % 100);
+            xpProgressBar.style.width = `${xpPercentage}%`;
+            xpProgressBar.textContent = `${xpPercentage}%`;
+        }
+
+        if (currencyContainer) {
+            currencyContainer.innerHTML = '';
+            for (const [currency, amount] of Object.entries(this.currentCurrency)) {
+                const currencyItem = document.createElement('div');
+                currencyItem.classList.add('currency-item');
+                currencyItem.innerHTML = `
+                    <span class="currency-symbol">${currency}</span>
+                    <span class="currency-amount">${amount}</span>
+                `;
+                currencyContainer.appendChild(currencyItem);
+            }
+        }
+    },
+
+    updateCurrency(newBalances) {
+        this.currentCurrency = newBalances;
+        this.updateProgressDisplay();
+    },
+
+    updateExperience(level, xp) {
+        this.currentLevel = level;
+        this.currentXP = xp;
+        this.updateProgressDisplay();
     }
 };
 
