@@ -169,10 +169,22 @@ class UserProgressManager {
 
         // Handle continue story button
         const continueStoryContainer = document.getElementById('continue-story-container');
-        if (continueStoryContainer && this.userData.current_story_id) {
-            // Store last story ID in localStorage
-            localStorage.setItem('lastStoryId', this.userData.current_story_id);
-            continueStoryContainer.style.display = 'block';
+        if (continueStoryContainer) {
+            if (this.userData.current_story_id) {
+                // Store last story ID in localStorage
+                localStorage.setItem('lastStoryId', this.userData.current_story_id);
+                continueStoryContainer.style.display = 'block';
+                
+                // Ensure the button has an event listener
+                const continueStoryBtn = document.getElementById('continueStoryBtn');
+                if (continueStoryBtn) {
+                    continueStoryBtn.addEventListener('click', () => {
+                        window.location.href = `/storyboard?story_id=${this.userData.current_story_id}`;
+                    });
+                }
+            } else {
+                continueStoryContainer.style.display = 'none';
+            }
         }
     }
 
