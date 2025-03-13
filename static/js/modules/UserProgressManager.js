@@ -166,6 +166,14 @@ class UserProgressManager {
                 currencyContainer.appendChild(currencyItem);
             }
         }
+
+        // Handle continue story button
+        const continueStoryContainer = document.getElementById('continue-story-container');
+        if (continueStoryContainer && this.userData.current_story_id) {
+            // Store last story ID in localStorage
+            localStorage.setItem('lastStoryId', this.userData.current_story_id);
+            continueStoryContainer.style.display = 'block';
+        }
     }
 
     /**

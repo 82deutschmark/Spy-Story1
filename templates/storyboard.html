@@ -35,6 +35,13 @@
                         <div class="progress-bar" id="xpProgressBar" role="progressbar" style="width: {{ (user_progress.experience_points % 100) }}%"></div>
                     </div>
                     <p><small><span id="agentXP">{{ user_progress.experience_points }}</span> XP</small></p>
+                    {% if user_progress.current_story_id %}
+                    <div class="continue-story-btn-container mt-3">
+                        <button id="continueStoryBtn" class="btn btn-primary btn-sm w-100">
+                            <i class="fas fa-book-reader me-2"></i>Continue Your Adventure
+                        </button>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             
