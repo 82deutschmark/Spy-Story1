@@ -7,6 +7,7 @@ import uuid
 from database import db
 from models import (AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, 
                    StoryChoice, UserProgress, Transaction, PlotArc, CharacterEvolution, Mission)
+from models.character_data import Character
 from services.story_maker import generate_story, get_story_options
 
 # Configure logging
@@ -49,7 +50,6 @@ def get_random_scene_background():
 
     except Exception as e:
         logger.error(f"Error getting random scene background: {str(e)}")
-        # Return None on any error to ensure the application doesn't crash
         return None
 
 @main_bp.route('/')
@@ -59,49 +59,23 @@ def index():
     background_image = get_random_scene_background()
     user_progress = get_or_create_user_progress()
 
-    # Get 2 random images for character selection
-    images = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).limit(2).all()
-    image_data = []
-    for img in images:
-        analysis = img.analysis_result or {}
-        char_name = img.character_name or ''
-        if not char_name and analysis:
-            if 'character' in analysis and 'name' in analysis['character']:
-                char_name = analysis['character'].get('name', '')
-            elif 'character_name' in analysis:
-                char_name = analysis.get('character_name', '')
-            elif 'name' in analysis:
-                char_name = analysis.get('name', '')
-
-        char_traits = []
-        plot_lines = []
-        try:
-            if hasattr(img, 'character_traits') and img.character_traits:
-                char_traits = img.character_traits
-            elif analysis and 'character_traits' in analysis:
-                char_traits = analysis.get('character_traits', [])
-
-            if hasattr(img, 'plot_lines') and img.plot_lines:
-                plot_lines = img.plot_lines
-            elif analysis and 'plot_lines' in analysis:
-                plot_lines = analysis.get('plot_lines', [])
-        except:
-            pass
-
-        image_data.append({
-            'id': img.id,
-            'image_url': img.image_url,
-            'name': char_name,
-            'style': analysis.get('style', ''),
-            'story': analysis.get('story', ''),
-            'character_traits': char_traits,
-            'plot_lines': plot_lines
+    # Get 2 random characters for selection
+    characters = Character.query.order_by(db.func.random()).limit(2).all()
+    character_data = []
+    for char in characters:
+        character_data.append({
+            'id': char.id,
+            'image_url': char.image_url,
+            'name': char.character_name,
+            'story': char.description or '',
+            'character_traits': char.character_traits or [],
+            'plot_lines': char.plot_lines or []
         })
 
     return render_template(
         'index.html',
         story_options=story_options,
-        images=image_data,
+        images=character_data,
         background_image=background_image,
         user_progress=user_progress
     )
@@ -186,7 +160,7 @@ def generate_story_route():
     try:
         # Get form data
         data = request.form
-        selected_image_ids = request.form.getlist('selected_images[]')
+        selected_character_ids = request.form.getlist('selected_images[]')
         protagonist_gender = request.form.get('protagonist_gender')
         protagonist_name = request.form.get('protagonist_name')
         custom_choice = data.get('custom_choice', '')
@@ -204,12 +178,12 @@ def generate_story_route():
             return jsonify({'error': 'Invalid story parameters', 'details': errors}), 400
 
         # Validate character selection
-        if not selected_image_ids:
+        if not selected_character_ids:
             logger.error("No character selected - missing selected_images[] in form data")
             return jsonify({'error': 'Please select a character for your story'}), 400
 
-        if len(selected_image_ids) < 1:
-            logger.error(f"No characters selected, got {len(selected_image_ids)}")
+        if len(selected_character_ids) < 1:
+            logger.error(f"No characters selected, got {len(selected_character_ids)}")
             return jsonify({'error': 'Please select at least one character for your story'}), 400
 
         # Check if this is a custom choice and process currency requirement
@@ -238,7 +212,7 @@ def generate_story_route():
                 return jsonify({'error': error_message}), 400
 
         logger.debug(f"Form data received: {data}")
-        logger.debug(f"Selected image IDs: {selected_image_ids}")
+        logger.debug(f"Selected image IDs: {selected_character_ids}")
 
         # Get the story parameters
         story_params = {
@@ -262,44 +236,32 @@ def generate_story_route():
         logger.debug(f"Story parameters: {story_params}")
 
         # Get character information from selected images
-        selected_images = ImageAnalysis.query.filter(ImageAnalysis.id.in_(selected_image_ids)).all()
-        if not selected_images:
-            return jsonify({'error': 'Selected images not found'}), 404
+        selected_characters = Character.query.filter(Character.id.in_(selected_character_ids)).all()
+        if not selected_characters:
+            return jsonify({'error': 'Selected characters not found'}), 404
 
         # Get information for all selected characters - DIRECTLY from the database
         # This avoids any unnecessary API calls for image analysis
-        selected_characters = []
-        for img in selected_images:
-            # Use only the data already in the database
+        character_info = []
+        for char in selected_characters:
             char_data = {
-                'name': img.character_name or 'Unknown Character',
-                'role': img.character_role or 'protagonist',
-                'character_traits': img.character_traits or [],
+                'name': char.character_name,
+                'role': char.character_role or 'protagonist',
+                'character_traits': char.character_traits or [],
                 'style': 'A mysterious character',  # Default description if none exists
-                'plot_lines': img.plot_lines or []
+                'plot_lines': char.plot_lines or []
             }
-
-            # Only if we already have analysis_result stored, get additional info from it
-            if img.analysis_result:
-                try:
-                    analysis = img.analysis_result
-                    if 'style' in analysis:
-                        char_data['style'] = analysis.get('style', char_data['style'])
-                except Exception as e:
-                    logger.error(f"Error parsing stored analysis result: {str(e)}")
-
-            selected_characters.append(char_data)
+            character_info.append(char_data)
 
         # Use the first character as the main character for backward compatibility
-        main_character_img = selected_images[0]
-        character_info = selected_characters[0]
+        main_character = selected_characters[0]
+        main_character_info = character_info[0]
 
         # Get additional characters from database (excluding the selected characters)
         additional_characters = []
-        selected_ids = [img.id for img in selected_images]
-        additional_chars_query = ImageAnalysis.query.filter_by(image_type='character') \
-            .filter(~ImageAnalysis.id.in_(selected_ids)) \
-            .filter(ImageAnalysis.character_name.isnot(None)) \
+        selected_ids = [img.id for img in selected_characters]
+        additional_chars_query = Character.query.filter(~Character.id.in_(selected_ids)) \
+            .filter(Character.character_name.isnot(None)) \
             .order_by(db.func.random()) \
             .limit(3) \
             .all()  # Only get characters with names
@@ -315,14 +277,14 @@ def generate_story_route():
             additional_characters.append(char_data)
 
         # Add the selected characters (except the main one) to story_params
-        if len(selected_characters) > 1:
+        if len(character_info) > 1:
             # Remove the main character from the list
-            secondary_characters = selected_characters[1:]
+            secondary_characters = character_info[1:]
             # Add them to additional characters
             additional_characters = secondary_characters + additional_characters
 
         # Generate the story
-        story_params['character_info'] = character_info
+        story_params['character_info'] = main_character_info
         story_params['additional_characters'] = additional_characters
         story_params['protagonist_name'] = protagonist_name
         story_params['protagonist_gender'] = protagonist_gender
@@ -338,8 +300,8 @@ def generate_story_route():
         )
 
         # Associate selected images with the story
-        for image in selected_images:
-            story.images.append(image)
+        for character in selected_characters:
+            story.images.append(character)
 
         db.session.add(story)
         db.session.commit()
@@ -354,7 +316,7 @@ def generate_story_route():
             arc_type="main",
             story_id=story.id,
             status="active",
-            primary_characters=selected_ids
+            primary_characters=[char.id for char in selected_characters]
         )
         db.session.add(plot_arc)
 
@@ -364,21 +326,21 @@ def generate_story_route():
         user_progress.active_plot_arcs.append(plot_arc.id)
 
         # Process character evolutions for all characters
-        for img in selected_images:
+        for char in selected_characters:
             # Register this character encounter with the user
             user_progress.encounter_character(
-                character_id=img.id,
-                character_name=img.character_name or "Unknown Character",
-                initial_relationship=5 if img.id == main_character_img.id else 0
+                character_id=char.id,
+                character_name=char.character_name,
+                initial_relationship=5 if char.id == main_character.id else 0
             )
 
             # Create character evolution entry
             char_evolution = CharacterEvolution(
                 user_id=user_progress.user_id,
-                character_id=img.id,
+                character_id=char.id,
                 story_id=story.id,
-                role='protagonist' if img.id == main_character_img.id else 'supporting',
-                evolved_traits=img.character_traits or []
+                role='protagonist' if char.id == main_character.id else 'supporting',
+                evolved_traits=char.character_traits or []
             )
             db.session.add(char_evolution)
 
@@ -521,14 +483,14 @@ def make_choice():
             if story_id and characters:
                 for char_id in characters:
                     # Get character details
-                    character = ImageAnalysis.query.get(char_id)
+                    character = Character.query.get(char_id)
                     if not character:
                         continue
 
                     # Update user's character relationship
                     user_progress.encounter_character(
                         character_id=char_id, 
-                        character_name=character.character_name or "Unknown Character"
+                        character_name=character.character_name
                     )
 
                     # Check if this character already has an evolution record
