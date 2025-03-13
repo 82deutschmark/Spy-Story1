@@ -288,7 +288,7 @@ def generate_story(
 
         # Make the OpenAI API call
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o-mini",
             messages=messages,
             temperature=0.9,
             max_tokens=5000
