@@ -336,9 +336,13 @@ Format as JSON with:
             content = response.choices[0].message.content.strip()
             result = json.loads(content)
 
-            # Return formatted result
+            # Parse JSON content to ensure it's valid
+            story_data = json.loads(content)
+            
+            # Return formatted result with both parsed JSON and the original JSON string
             formatted_result = {
-                "story": content,  # Return the raw JSON string instead of re-serializing
+                "stories": story_data,  # Include parsed JSON as 'stories' key that JS expects
+                "story": content,  # Also keep the raw JSON string
                 "conflict": final_conflict,
                 "setting": final_setting,
                 "narrative_style": final_narrative,
