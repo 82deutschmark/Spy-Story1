@@ -27,7 +27,20 @@ window.App = {
 
 // Initialize the application when the DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    // Check if we're on a storyboard page and save the story ID
+    const storyIdParam = new URLSearchParams(window.location.search).get('story_id');
+    if (storyIdParam) {
+        localStorage.setItem('lastStoryId', storyIdParam);
+    }
+
     EventHandlers.initialize();
     NotebookManager.initialize(); // Added NotebookManager initialization
     UserProgressManager.initialize();// Added UserProgressManager initialization
 });
+
+// NOTE: The following features are described in the thinking section but not fully implemented in the provided changes:
+// - "Continue Story" button in storyboard.html
+// - "Continue Story" button in index.html
+// - continueStory method in NotebookManager.js
+// - Updated UserProgressManager.js to handle last story ID and button display
+// - Updated main.js to handle story ID storage when a story is viewed.

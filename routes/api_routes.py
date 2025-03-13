@@ -107,7 +107,8 @@ def get_user_progress():
                 'experience_points': user_progress.experience_points,
                 'currency_balances': user_progress.currency_balances,
                 'active_missions': user_progress.active_missions,
-                'encountered_characters': user_progress.encountered_characters
+                'encountered_characters': user_progress.encountered_characters,
+                'current_story_id': user_progress.current_story_id
             }
         })
     except Exception as e:
