@@ -13,16 +13,39 @@ import EventHandlers from './modules/EventHandlers.js';
 // Import modules - using dynamic import to ensure they load properly
 async function loadModules() {
     try {
-        const NotebookManagerModule = await import('./modules/NotebookManager.js');
-        const NotebookManager = NotebookManagerModule.default;
-        
-        // Initialize notebook manager if we're on a page that uses it
-        if (document.getElementById('notebookSidebar')) {
-            const notebookManager = new NotebookManager();
-            notebookManager.initialize();
-            window.notebookManagerInstance = notebookManager;
+        // Load NotebookManager if the module exists
+        try {
+            const NotebookManagerModule = await import('./modules/NotebookManager.js');
+            // Check if default export exists
+            if (NotebookManagerModule.default) {
+                const NotebookManager = NotebookManagerModule.default;
+
+                if (document.querySelector('.notebook-container')) {
+                    const notebookManager = new NotebookManager();
+                    notebookManager.initialize();
+                    window.notebookManagerInstance = notebookManager;
+                } else {
+                    console.log("Notebook elements not found in the DOM, skipping initialization");
+                }
+            } else {
+                console.log("NotebookManager module loaded but doesn't have a default export");
+            }
+        } catch (notebookError) {
+            console.log("NotebookManager module not available or error:", notebookError.message);
         }
-        
+
+        // Load UserProgressManager
+        try {
+            const UserProgressManagerModule = await import('./modules/UserProgressManager.js');
+            const UserProgressManager = UserProgressManagerModule.default;
+
+            const userProgressManager = new UserProgressManager();
+            userProgressManager.initialize();
+            window.userProgressManagerInstance = userProgressManager;
+        } catch (progressError) {
+            console.error("Error initializing UserProgressManager:", progressError);
+        }
+
         console.log("Modules loaded successfully");
     } catch (error) {
         console.error("Error loading modules:", error);
@@ -57,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     EventHandlers.initialize();
-    
+
     // Let the class initialization handle itself in their respective module files
     // This ensures modules are loaded consistently whether imported in main.js or loaded via script tags
 });

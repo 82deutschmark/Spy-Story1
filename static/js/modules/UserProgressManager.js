@@ -19,9 +19,12 @@ class UserProgressManager {
         // Check if we have a stored agent codename
         const storedCodename = localStorage.getItem('agentCodename');
         if (storedCodename) {
-            document.getElementById('protagonistName').value = storedCodename;
-            // Auto-load agent data
-            this.loadAgentData(storedCodename);
+            const protagonistInput = document.getElementById('protagonistName');
+            if (protagonistInput) {
+                protagonistInput.value = storedCodename;
+                // Auto-load agent data
+                this.loadAgentData(storedCodename);
+            }
         }
     }
 
@@ -138,8 +141,11 @@ class UserProgressManager {
         if (placeholder) placeholder.style.display = 'none';
 
         // Update level and XP
-        document.getElementById('agent-level').textContent = this.userData.level;
-        document.getElementById('agent-xp').textContent = this.userData.experience_points;
+        const agentLevel = document.getElementById('agent-level');
+        const agentXp = document.getElementById('agent-xp');
+        
+        if (agentLevel) agentLevel.textContent = this.userData.level;
+        if (agentXp) agentXp.textContent = this.userData.experience_points;
         
         // Calculate XP progress (simple formula: level = 1 + sqrt(xp/100))
         const nextLevelXP = Math.pow((this.userData.level), 2) * 100;
@@ -243,23 +249,11 @@ class UserProgressManager {
     }
 }
 
-// Export the module
-export default new UserProgressManager();
+// Export the UserProgressManager class
+export default UserProgressManager;
 
 // For backward compatibility with non-module scripts
 if (typeof window !== 'undefined') {
     // Make UserProgressManager available globally
     window.UserProgressManager = UserProgressManager;
-    
-    // Initialize the user progress manager when the DOM is loaded
-    document.addEventListener('DOMContentLoaded', () => {
-        try {
-            const userProgressManager = new UserProgressManager();
-            userProgressManager.initialize();
-            // Store instance globally for debugging
-            window.userProgressManagerInstance = userProgressManager;
-        } catch (error) {
-            console.error('Error initializing UserProgressManager:', error);
-        }
-    });
 }
