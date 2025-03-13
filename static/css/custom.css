@@ -138,30 +138,7 @@ body::before {
 
 }
 
-/* Accordion (story options) */
-.accordion {
-    margin-top: 2rem;
-}
-
-.accordion-button {
-    background-color: var(--card-bg);
-    color: var(--text-color);
-}
-
-.accordion-item {
-    background-color: var(--card-bg);
-    border: 1px solid var(--card-border);
-}
-
-.accordion-button:not(.collapsed) {
-    background-color: var(--light-bg-color);
-    color: var(--text-color);
-}
-
-.accordion-body {
-    background-color: var(--card-bg);
-    padding: 1.5rem;
-}
+/* Accordion styles moved to accordion.css */
 
 /* Form elements */
 .form-control, .form-select {
@@ -176,23 +153,7 @@ body::before {
     box-shadow: 0 0 0 0.25rem rgba(66, 153, 225, 0.25);
 }
 
-/* Pagination */
-.pagination .page-link {
-    background-color: var(--card-bg);
-    border-color: var(--card-border);
-    color: var(--text-color);
-}
-
-.pagination .page-item.active .page-link {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-    color: #fff;
-}
-
-.pagination .page-item.disabled .page-link {
-    background-color: var(--light-bg-color);
-    color: #718096;
-}
+/* Pagination styles moved to pagination.css */
 
 /* Table row hover */
 .table-hover tbody tr:hover {
