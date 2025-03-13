@@ -1,4 +1,3 @@
-
 /**
  * Notebook Management Module
  * Handles displaying and updating user progress information
@@ -11,50 +10,48 @@ const NotebookManager = {
      */
     initialize() {
         console.log('Notebook manager initialized');
-        this.setupNotebookToggle();
+        this.setupNotebookControls();
     },
 
     /**
-     * Set up notebook toggle functionality
+     * Set up notebook controls and event listeners
      */
-    setupNotebookToggle() {
-        const notebookToggle = document.querySelector('.notebook-toggle');
-        if (notebookToggle) {
-            notebookToggle.addEventListener('click', () => {
-                const notebook = document.querySelector('.notebook-container');
-                if (notebook) {
-                    const isOpen = notebook.classList.toggle('open');
-                    notebookToggle.innerHTML = isOpen ? 
-                        '<i class="fas fa-book-open"></i> Close Notebook' : 
-                        '<i class="fas fa-book"></i> Open Notebook';
-                }
+    setupNotebookControls() {
+        // Set up notebook toggle buttons
+        const toggleBtn = document.getElementById('toggleNotebookBtn');
+        const closeBtn = document.getElementById('closeNotebookBtn');
+        const notebookContainer = document.querySelector('.notebook-container');
+
+        if (toggleBtn && notebookContainer) {
+            toggleBtn.addEventListener('click', () => {
+                this.toggleNotebook();
             });
         }
-        
-        // Also set up close button functionality
-        const closeBtn = document.querySelector('.notebook-close-btn');
-        if (closeBtn) {
+
+        if (closeBtn && notebookContainer) {
             closeBtn.addEventListener('click', () => {
-                const notebook = document.querySelector('.notebook-container');
-                if (notebook) {
-                    notebook.classList.remove('open');
-                    const toggle = document.querySelector('.notebook-toggle');
-                    if (toggle) {
-                        toggle.innerHTML = '<i class="fas fa-book"></i> Open Notebook';
-                    }
-                }
+                this.closeNotebook();
             });
         }
-        
-        // Update notebook when protagonist name changes
-        const nameInput = document.getElementById('protagonistName');
-        if (nameInput) {
-            nameInput.addEventListener('input', () => {
-                const nameElement = document.querySelector('.protagonist-name');
-                if (nameElement) {
-                    nameElement.textContent = nameInput.value || 'Unknown Agent';
-                }
-            });
+    },
+
+    /**
+     * Toggle notebook visibility
+     */
+    toggleNotebook() {
+        const notebookContainer = document.querySelector('.notebook-container');
+        if (notebookContainer) {
+            notebookContainer.classList.toggle('active');
+        }
+    },
+
+    /**
+     * Close the notebook
+     */
+    closeNotebook() {
+        const notebookContainer = document.querySelector('.notebook-container');
+        if (notebookContainer) {
+            notebookContainer.classList.remove('active');
         }
     },
 
@@ -64,166 +61,139 @@ const NotebookManager = {
      */
     updateNotebook(userData) {
         if (!userData) return;
-        
+
         const notebook = document.querySelector('.notebook-content');
         if (!notebook) return;
-        
+
         // Update user info section
         const userInfoSection = notebook.querySelector('.notebook-section.user-info');
         if (userInfoSection) {
+            // Update protagonist name if available
             const nameElement = userInfoSection.querySelector('.protagonist-name');
             if (nameElement && userData.game_state && userData.game_state.protagonist_name) {
                 nameElement.textContent = userData.game_state.protagonist_name;
             }
-            
+
+            // Update level information
             const levelElement = userInfoSection.querySelector('.user-level');
             if (levelElement) {
                 levelElement.textContent = `Level ${userData.level || 1}`;
             }
-            
+
+            // Update XP information
             const xpElement = userInfoSection.querySelector('.user-xp');
             if (xpElement) {
                 xpElement.textContent = `XP: ${userData.experience_points || 0}`;
             }
+
+            // Update XP progress bar if it exists
+            const xpProgressBar = userInfoSection.querySelector('.xp-progress-bar');
+            if (xpProgressBar) {
+                const xpPercentage = (userData.experience_points % 100);
+                xpProgressBar.style.width = `${xpPercentage}%`;
+                xpProgressBar.textContent = `${xpPercentage}%`;
+            }
         }
-        
+
         // Update currency section
         const currencySection = notebook.querySelector('.notebook-section.currency');
         if (currencySection && userData.currency_balances) {
             const currencyList = currencySection.querySelector('.currency-list');
             if (currencyList) {
                 currencyList.innerHTML = '';
-                for (const [currency, amount] of Object.entries(userData.currency_balances)) {
+
+                // Add each currency to the list
+                Object.entries(userData.currency_balances).forEach(([currency, amount]) => {
                     const currencyItem = document.createElement('div');
-                    currencyItem.className = 'currency-item';
-                    currencyItem.innerHTML = `<span class="currency-symbol">${currency}</span> <span class="currency-amount">${amount}</span>`;
+                    currencyItem.classList.add('currency-item');
+
+                    const currencySymbol = document.createElement('span');
+                    currencySymbol.classList.add('currency-symbol');
+                    currencySymbol.textContent = currency;
+
+                    const currencyAmount = document.createElement('span');
+                    currencyAmount.classList.add('currency-amount');
+                    currencyAmount.textContent = amount;
+
+                    currencyItem.appendChild(currencySymbol);
+                    currencyItem.appendChild(currencyAmount);
                     currencyList.appendChild(currencyItem);
-                }
+                });
             }
         }
-        
+
         // Update missions section
         const missionsSection = notebook.querySelector('.notebook-section.missions');
         if (missionsSection && userData.active_missions) {
             const missionsList = missionsSection.querySelector('.missions-list');
             if (missionsList) {
                 missionsList.innerHTML = '';
-                if (userData.active_missions.length === 0) {
-                    missionsList.innerHTML = '<div class="empty-list">No active missions</div>';
-                } else {
+
+                if (userData.active_missions.length > 0) {
+                    // Add each mission to the list
                     userData.active_missions.forEach(mission => {
-                        const missionItem = document.createElement('div');
-                        missionItem.className = 'mission-item';
-                        missionItem.innerHTML = `
-                            <div class="mission-title">${mission.title}</div>
-                            <div class="mission-objective">${mission.objective}</div>
-                            <div class="mission-progress">
-                                <div class="progress">
-                                    <div class="progress-bar bg-success" role="progressbar" 
-                                        style="width: ${mission.progress}%" 
-                                        aria-valuenow="${mission.progress}" 
-                                        aria-valuemin="0" 
-                                        aria-valuemax="100">
-                                        ${mission.progress}%
-                                    </div>
-                                </div>
-                            </div>
-                        `;
+                        const missionItem = document.createElement('li');
+                        missionItem.classList.add('mission-item');
+
+                        const missionTitle = document.createElement('div');
+                        missionTitle.classList.add('mission-title');
+                        missionTitle.textContent = mission.title || `Mission #${mission.id || '?'}`;
+
+                        const missionDescription = document.createElement('div');
+                        missionDescription.classList.add('mission-description');
+                        missionDescription.textContent = mission.description || 'Details classified';
+
+                        missionItem.appendChild(missionTitle);
+                        missionItem.appendChild(missionDescription);
                         missionsList.appendChild(missionItem);
                     });
-                }
-            }
-        }
-        
-        // Update characters section
-        const charactersSection = notebook.querySelector('.notebook-section.characters');
-        if (charactersSection && userData.encountered_characters) {
-            const charactersList = charactersSection.querySelector('.characters-list');
-            if (charactersList) {
-                charactersList.innerHTML = '';
-                const characters = Object.entries(userData.encountered_characters);
-                if (characters.length === 0) {
-                    charactersList.innerHTML = '<div class="empty-list">No encountered characters</div>';
                 } else {
-                    characters.forEach(([id, charData]) => {
-                        const characterItem = document.createElement('div');
-                        characterItem.className = 'character-item';
-                        characterItem.innerHTML = `
-                            <div class="character-name">${charData.name}</div>
-                            <div class="relationship-level">Relationship: 
-                                <span class="relation-value ${this.getRelationshipClass(charData.relationship_level)}">
-                                    ${charData.relationship_level}
-                                </span>
-                            </div>
-                        `;
-                        charactersList.appendChild(characterItem);
-                    });
+                    // No missions message
+                    const noMissions = document.createElement('p');
+                    noMissions.textContent = 'No active missions';
+                    missionsList.appendChild(noMissions);
                 }
             }
         }
-    },
-    
-    /**
-     * Get appropriate CSS class based on relationship level
-     * @param {number} level - Relationship level value
-     * @returns {string} CSS class name
-     */
-    getRelationshipClass(level) {
-        if (level < -5) return 'relation-very-negative';
-        if (level < 0) return 'relation-negative';
-        if (level === 0) return 'relation-neutral';
-        if (level > 5) return 'relation-very-positive';
-        return 'relation-positive';
-    },
-    
-    /**
-     * Creates notebook HTML structure
-     * @returns {string} Notebook HTML
-     */
-    createNotebookHTML() {
-        return `
-        <div class="notebook-container">
-            <div class="notebook-header">
-                <h3><i class="fas fa-book"></i> Agent's Notebook</h3>
-                <button class="notebook-close-btn"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="notebook-content">
-                <div class="notebook-section user-info">
-                    <h4>Agent Profile</h4>
-                    <div class="protagonist-name">Unknown Agent</div>
-                    <div class="user-stats">
-                        <div class="user-level">Level 1</div>
-                        <div class="user-xp">XP: 0</div>
-                    </div>
-                </div>
-                
-                <div class="notebook-section currency">
-                    <h4>Resources</h4>
-                    <div class="currency-list">
-                        <div class="currency-item">
-                            <span class="currency-symbol">💎</span>
-                            <span class="currency-amount">0</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="notebook-section missions">
-                    <h4>Active Missions</h4>
-                    <div class="missions-list">
-                        <div class="empty-list">No active missions</div>
-                    </div>
-                </div>
-                
-                <div class="notebook-section characters">
-                    <h4>Network Contacts</h4>
-                    <div class="characters-list">
-                        <div class="empty-list">No encountered characters</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <button class="notebook-toggle"><i class="fas fa-book"></i> Open Notebook</button>
-        `;
+
+        // Update relationships section
+        const relationshipsSection = notebook.querySelector('.notebook-section.relationships');
+        if (relationshipsSection && userData.character_relationships) {
+            const relationshipsList = relationshipsSection.querySelector('.relationships-list');
+            if (relationshipsList) {
+                relationshipsList.innerHTML = '';
+
+                const relationships = Object.entries(userData.character_relationships);
+                if (relationships.length > 0) {
+                    // Add each relationship to the list
+                    relationships.forEach(([charId, data]) => {
+                        const relationshipItem = document.createElement('li');
+                        relationshipItem.classList.add('relationship-item');
+
+                        const charName = document.createElement('span');
+                        charName.classList.add('char-name');
+                        charName.textContent = data.name || `Character #${charId}`;
+
+                        const relationshipMeter = document.createElement('div');
+                        relationshipMeter.classList.add('relationship-meter');
+
+                        const relationshipLevel = document.createElement('div');
+                        relationshipLevel.classList.add('relationship-level');
+                        relationshipLevel.style.width = `${(data.relationship_value || 0) * 10}%`;
+
+                        relationshipMeter.appendChild(relationshipLevel);
+                        relationshipItem.appendChild(charName);
+                        relationshipItem.appendChild(relationshipMeter);
+                        relationshipsList.appendChild(relationshipItem);
+                    });
+                } else {
+                    // No relationships message
+                    const noRelationships = document.createElement('p');
+                    noRelationships.textContent = 'No character relationships';
+                    relationshipsList.appendChild(noRelationships);
+                }
+            }
+        }
     }
 };
 
