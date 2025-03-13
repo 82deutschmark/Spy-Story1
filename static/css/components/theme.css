@@ -1,63 +1,65 @@
 
-/* Base Theme Styles */
+/* Base Theme Variables */
 :root {
-    --bg-color: #f9f7ff;
-    --text-color: #222;
-    --card-bg: #fff;
-    --card-border: #ddd;
-    --primary-color: #4299e1;
-    --primary-hover: #3182ce;
-    --accent-color: #8B5CF6;
-    --border-radius: 8px;
-    --box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  --bg-color: #f9f7ff;
+  --text-color: #222;
+  --card-bg: #fff;
+  --card-border: #ddd;
+  --primary-color: #4299e1;
+  --primary-hover: #3182ce;
+  --accent-color: #8B5CF6;
+  --border-radius: 8px;
+  --box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 /* Core Layout */
 body {
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    font-family: 'Segoe UI', Tahoma, sans-serif;
-    position: relative;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  position: relative;
 }
 
 body::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1;
-    background-size: cover;
-    background-position: center;
-    opacity: 0.2;
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.2;
 }
 
 .container, .story-main-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
 }
 
-/* Component base styles */
-.card, .modal-content, .accordion-item, .story-content-container {
-    background-color: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
-    padding: 1rem;
-    margin-bottom: 1rem;
-}
-
-/* Headers */
+/* Common headings */
 h1, h2, h3, .story-title, .character-name {
-    color: var(--text-color);
+  color: var(--text-color);
 }
 
-.badge {
-    background-color: #eee;
-    color: var(--text-color);
-    padding: 0.35em 0.65em;
-    font-size: 0.75em;
-    border-radius: 0.5rem;
+/* Card base styles */
+.card, .modal-content, .accordion-item, .story-content-container {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Storyboard page specific */
+.storyboard-body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.6;
 }
