@@ -248,8 +248,20 @@ export default new UserProgressManager();
 
 // For backward compatibility with non-module scripts
 if (typeof window !== 'undefined') {
-    window.UserProgressManager = new UserProgressManager();
+    // Make UserProgressManager available globally
+    window.UserProgressManager = UserProgressManager;
+    
+    // Initialize the user progress manager when the DOM is loaded
     document.addEventListener('DOMContentLoaded', () => {
-        window.UserProgressManager.initialize();
+        try {
+            const userProgressManager = new UserProgressManager();
+            userProgressManager.initialize();
+            // Store instance globally for debugging
+            window.userProgressManagerInstance = userProgressManager;
+        } catch (error) {
+            console.error('Error initializing UserProgressManager:', error);
+        }
+    });
+}ze();
     });
 }
