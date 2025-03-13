@@ -28,6 +28,8 @@ class NotebookManager {
         if (this.toggleButton && this.notebookElement) {
             this.setupEventListeners();
             console.log("Notebook manager initialized");
+        } else {
+            console.log("Notebook elements not found in the DOM, skipping initialization");
         }
     }
 
@@ -90,7 +92,13 @@ if (typeof window !== 'undefined') {
     
     // Initialize the notebook manager when the DOM is loaded
     document.addEventListener('DOMContentLoaded', () => {
-        const notebookManager = new NotebookManager();
-        notebookManager.initialize();
+        try {
+            const notebookManager = new NotebookManager();
+            notebookManager.initialize();
+            // Store instance globally for debugging
+            window.notebookManagerInstance = notebookManager;
+        } catch (error) {
+            console.error('Error initializing NotebookManager:', error);
+        }
     });
 }
