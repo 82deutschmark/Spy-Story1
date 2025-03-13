@@ -12,16 +12,22 @@ class UserProgressManager {
      * Initialize the user progress manager
      */
     initialize() {
-        // Setup event listeners
-        this.setupEventListeners();
         console.log("User progress manager initialized");
         
-        // Check if we have a stored agent codename
-        const storedCodename = localStorage.getItem('agentCodename');
-        if (storedCodename) {
-            document.getElementById('protagonistName').value = storedCodename;
-            // Auto-load agent data
-            this.loadAgentData(storedCodename);
+        // Setup event listeners only if we're on a page that has these elements
+        const protagonistNameInput = document.getElementById('protagonistName');
+        if (protagonistNameInput) {
+            this.setupEventListeners();
+            
+            // Check if we have a stored agent codename
+            const storedCodename = localStorage.getItem('agentCodename');
+            if (storedCodename) {
+                protagonistNameInput.value = storedCodename;
+                // Auto-load agent data
+                this.loadAgentData(storedCodename);
+            }
+        } else {
+            console.log("Progress UI elements not found, skipping event setup");
         }
     }
 
@@ -138,8 +144,11 @@ class UserProgressManager {
         if (placeholder) placeholder.style.display = 'none';
 
         // Update level and XP
-        document.getElementById('agent-level').textContent = this.userData.level;
-        document.getElementById('agent-xp').textContent = this.userData.experience_points;
+        const agentLevel = document.getElementById('agent-level');
+        const agentXP = document.getElementById('agent-xp');
+        
+        if (agentLevel) agentLevel.textContent = this.userData.level;
+        if (agentXP) agentXP.textContent = this.userData.experience_points;
         
         // Calculate XP progress (simple formula: level = 1 + sqrt(xp/100))
         const nextLevelXP = Math.pow((this.userData.level), 2) * 100;
@@ -243,12 +252,8 @@ class UserProgressManager {
     }
 }
 
-// Export the module
-export default new UserProgressManager();
-
-// For backward compatibility with non-module scripts
+// Make UserProgressManager available globally
 if (typeof window !== 'undefined') {
-    // Make UserProgressManager available globally
     window.UserProgressManager = UserProgressManager;
     
     // Initialize the user progress manager when the DOM is loaded
