@@ -243,14 +243,10 @@ class UserProgressManager {
     }
 }
 
-// Export the UserProgressManager class for ES6 modules
-export default UserProgressManager;
+// Export the module
+export default new UserProgressManager();
 
 // For backward compatibility with non-module scripts
-if (typeof window !== 'undefined') {
-    // Make UserProgressManager available globally
-    window.UserProgressManager = UserProgressManager;
-}-module scripts
 if (typeof window !== 'undefined') {
     // Make UserProgressManager available globally
     window.UserProgressManager = UserProgressManager;
