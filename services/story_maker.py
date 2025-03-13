@@ -4,6 +4,7 @@ import logging
 from typing import Dict, List, Tuple, Optional, Any
 from openai import OpenAI
 import random
+import re
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -298,25 +299,32 @@ def generate_story(
         logger.debug(f"Raw response content: {response.choices[0].message.content}")
 
         # Parse the generated story
-        result = json.loads(response.choices[0].message.content)
+        try:
+            content = response.choices[0].message.content
+            if content:
+                json_match = re.search(r'(\{.*\})', content, re.DOTALL)
+                if json_match:
+                    content = json_match.group(1)
+                content = content.strip()
+            result = json.loads(content)
 
-        # Return formatted result
-        formatted_result = {
-            "story": json.dumps(result),
-            "conflict": custom_conflict or conflict,
-            "setting": custom_setting or setting,
-            "narrative_style": custom_narrative or narrative_style,
-            "mood": custom_mood or mood
-        }
+            # Return formatted result
+            formatted_result = {
+                "story": json.dumps(result),
+                "conflict": custom_conflict or conflict,
+                "setting": custom_setting or setting,
+                "narrative_style": custom_narrative or narrative_style,
+                "mood": custom_mood or mood
+            }
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse OpenAI response as JSON: {str(e)}")
+            logger.error(f"Raw response content: {response.choices[0].message.content}")
+            raise Exception(f"Failed to parse story: {str(e)}")
 
         logger.info("Successfully generated and formatted story")
         logger.info("Exiting generate_story function")
         return formatted_result
 
-    except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse OpenAI response as JSON: {str(e)}")
-        logger.error(f"Raw response content: {response.choices[0].message.content if 'response' in locals() else 'No response'}")
-        raise Exception(f"Failed to parse story: {str(e)}")
     except Exception as e:
         logger.error(f"Error generating story: {str(e)}", exc_info=True)
         raise Exception(f"Failed to generate story: {str(e)}")
