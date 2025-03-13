@@ -1,3 +1,4 @@
+import os
 import logging
 import json
 from typing import Dict, List, Any, Optional, Tuple
@@ -8,6 +9,12 @@ from services.mission_generator import generate_mission, complete_mission, fail_
 from database import db
 
 logger = logging.getLogger(__name__)
+
+# Add debug log for OpenAI API key presence
+if os.environ.get("OPENAI_API_KEY"):
+    logger.info("OpenAI API key is present in environment")
+else:
+    logger.warning("OpenAI API key is missing from environment")
 
 class GameState:
     """Represents the current state of the game for a user"""
