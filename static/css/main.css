@@ -8,8 +8,10 @@
 @import 'components/accordion.css';
 @import 'components/buttons.css';
 @import 'components/cards.css';
+@import 'components/character.css';
 @import 'components/choices.css';
 @import 'components/currency.css';
+@import 'components/debug.css';
 @import 'components/forms.css';
 @import 'components/loading.css';
 @import 'components/modals.css';
