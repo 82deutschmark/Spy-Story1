@@ -1,3 +1,4 @@
+
 /**
  * Notebook Management Module
  * Handles displaying and updating user progress information
@@ -84,7 +85,10 @@ export default NotebookManager;
 
 // Initialize on page load if we're not in an ES module context
 if (typeof window !== 'undefined') {
+    // Make NotebookManager available globally
     window.NotebookManager = NotebookManager;
+    
+    // Initialize the notebook manager when the DOM is loaded
     document.addEventListener('DOMContentLoaded', () => {
         const notebookManager = new NotebookManager();
         notebookManager.initialize();
