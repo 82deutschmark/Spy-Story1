@@ -28,9 +28,9 @@ class StoryGeneration(db.Model):
     images = db.relationship('ImageAnalysis', secondary=story_images,
                            backref=db.backref('stories', lazy='dynamic'))
 
-    # Many-to-many relationship with Character (new) - using a different backref name
+    # Many-to-many relationship with Character (new) - matching the backref name expected by SQLAlchemy
     characters = db.relationship('Character', secondary=story_characters,
-                               backref=db.backref('character_stories', lazy='dynamic'))
+                               backref=db.backref('stories', lazy='dynamic'))
 
 class StoryNode(db.Model):
     """Model for storing individual story nodes in the branching narrative"""
