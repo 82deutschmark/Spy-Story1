@@ -28,12 +28,6 @@ window.App = {
 // Initialize the application when the DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     EventHandlers.initialize();
-    // Initialize notebook manager after a slight delay to ensure DOM is fully ready
-    if (window.NotebookManager) {
-        setTimeout(() => {
-            NotebookManager.initialize();
-            console.log('Notebook manager initialized with delay');
-        }, 100);
-    }
-    UserProgressManager.initialize();
+    NotebookManager.initialize(); // Added NotebookManager initialization
+    UserProgressManager.initialize();// Added UserProgressManager initialization
 });
