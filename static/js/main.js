@@ -35,15 +35,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     EventHandlers.initialize();
     
-    // Initialize NotebookManager as an instance
-    const notebookManager = new NotebookManager();
-    notebookManager.initialize();
-    window.notebookManager = notebookManager; // Make available globally
-    
-    // Initialize UserProgressManager as an instance
-    const userProgressManager = new UserProgressManager();
-    userProgressManager.initialize();
-    window.userProgressManager = userProgressManager; // Make available globally
+    // Let the class initialization handle itself in their respective module files
+    // This ensures modules are loaded consistently whether imported in main.js or loaded via script tags
 });
 
 // NOTE: The following features are described in the thinking section but not fully implemented in the provided changes:
