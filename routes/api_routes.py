@@ -1,5 +1,6 @@
 import logging
 from flask import Blueprint, request, jsonify
+from models.character_data import Character
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -20,13 +21,12 @@ def random_character():
     """
     Return a random character from the database.
     """
-    from models import ImageAnalysis
     import random
     import logging
 
     try:
-        # Get all characters
-        characters = ImageAnalysis.query.filter_by(image_type='character').all()
+        # Get all characters using the new Character model
+        characters = Character.query.order_by(Character.id).all()
 
         # Log character count and first few IDs for debugging
         logger.info(f"Found {len(characters)} characters for random selection")
@@ -45,7 +45,7 @@ def random_character():
         # Return character data
         response_data = {
             "id": random_char.id,
-            "name": random_char.character_name or "Unknown Character",
+            "name": random_char.character_name,
             "image_url": random_char.image_url,
             "character_role": random_char.character_role or "neutral",
             "success": True
@@ -66,7 +66,7 @@ def api_make_choice():
             return jsonify({'error': 'No data provided'}), 400
 
         # Forward to the main route handler
-        # which contains the business logic
+        from routes.main_routes import make_choice as make_choice_handler
         result = make_choice_handler(data)
         return jsonify(result)
     except Exception as e:
