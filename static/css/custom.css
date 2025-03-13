@@ -43,26 +43,7 @@ body::before {
 /* Plot arc styles moved to plot.css */
 
 
-/* Debug page improvements */
-.result-content {
-  background: rgba(255,255,255,0.9);
-  backdrop-filter: blur(5px);
-  padding: 1rem;
-  border-radius: 8px;
-  border: 1px solid rgba(66, 153, 225, 0.3);
-  max-height: 500px;
-  overflow-y: auto;
-}
-
-.result-content.editable {
-  min-height: 200px;
-  outline: none;
-}
-
-.result-content.editable:focus {
-  border-color: #4299e1;
-  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
-}
+/* Debug page styles moved to debug.css */
 
 /* Ensure progress modal text is black and visible */
 #progressModal .card-body p,
@@ -81,73 +62,9 @@ body::before {
   color: #000000;
 }
 
-/* Story title and content */
-.story-title-area {
-  text-align: center;
-  margin-bottom: 0.5rem;
-  padding: 0.5rem;
-  border-bottom: 1px solid rgba(139, 92, 246, 0.3);
-}
+/* Story title and content styles moved to story.css */
 
-.story-title {
-  font-size: 1.8rem;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 0.25rem;
-}
-
-.story-subtitle {
-  color: #666;
-  font-size: 0.9rem;
-}
-
-.story-scroll-container {
-  position: relative;
-  overflow-y: auto;
-  max-height: 60vh;
-}
-
-.story-content {
-  background-color: transparent;
-  padding: 0.5rem;
-  font-size: 1.1rem;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  color: #333;
-}
-
-/* Choices styling */
-.choices-container {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-  margin: 1.5rem 0;
-}
-
-.choice-btn {
-  background: transparent;
-  color: #000;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  padding: 1rem;
-  border-radius: 8px;
-  cursor: pointer;
-  text-align: center;
-  width: 100%;
-  transition: all 0.2s ease;
-}
-
-.choice-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
-  transform: translateY(-3px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.choice-text {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #000;
-  line-height: 1.4;
-}
+/* Choices styling moved to choices.css */
 
 /* Navigation */
 .navigation-area {
@@ -354,12 +271,7 @@ body::before {
     opacity: 0.85;
 }
 
-.story-text {
-    line-height: 1.6;
-    margin-bottom: var(--spacing-xl, 2rem);
-    font-size: 1.1rem;
-    color: var(--text-color, #333);
-}
+/* Story text styles moved to story.css */
 
 /* Currency styles moved to currency.css */
 
@@ -374,30 +286,7 @@ body::before {
     box-shadow: var(--box-shadow);
 }
 
-.character-info { padding: 0 10px; }
-
-.character-name {
-    font-size: 1.2rem;
-    margin-bottom: 0.5rem;
-    text-align: center;
-    color: var(--text-color);
-    font-weight: 600;
-}
-
-.character-traits {
-    margin-top: 10px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-}
-
-.badge {
-    background-color: #eee;
-    color: var(--text-color);
-    padding: 0.35em 0.65em;
-    font-size: 0.75em;
-    border-radius: 0.5rem;
-}
+/* Character info styles moved to character.css */
 
 
 .light-theme-modal .modal-content {
@@ -411,70 +300,10 @@ body::before {
   box-shadow: var(--box-shadow);
 }
 
-.character-mention {
-  font-weight: bold;
-  color: #0097FB;
-  cursor: pointer;
-  position: relative;
-  text-decoration: underline dotted;
-}
-
-.character-tooltip {
-  position: absolute;
-  display: none;
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 5px;
-  border-radius: 3px;
-  font-size: 14px;
-  font-weight: normal;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 120px;
-  text-align: center;
-  z-index: 1000;
-}
+/* Character mention styles moved to character.css */
 
 
-/* Story Container */
-.story-container {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2rem;
-  margin-top: 2rem;
-  position: relative;
-}
-
-.story-background {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-  opacity: 0.6;
-  object-fit: cover;
-}
-
-/* Story Content */
-.story-content-container {
-  position: relative;
-  z-index: 1;
-  background: rgba(255, 255, 255, 0.85);
-  border-radius: 10px;
-  padding: 0.75rem;
-  width: 100%;
-}
-
-.story-content {
-  background-color: transparent;
-  padding: 0.5rem;
-  font-size: 1.1rem;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  color: #333;
-}
+/* Story Container and Story Content styles moved to story.css */
 
 /* Story Choices */
 .choices-container {
@@ -509,115 +338,9 @@ body::before {
   line-height: 1.4;
 }
 
-/* Character Card */
-.character-card {
-  background-color: #fff;
-  border-radius: 15px;
-  overflow: hidden;
-  transition: transform 0.3s ease;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
+/* Character styles moved to character.css */
 
-.character-card:hover {
-  transform: translateY(-5px);
-}
-
-.character-card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* Character Showcase */
-.character-showcase {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 0;
-  width: 100%;
-}
-
-.character-portrait-container {
-  width: 100%;
-  max-width: 600px;
-  height: auto;
-  overflow: hidden;
-  border-radius: 10px;
-  border: 2px solid #ccc;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-}
-
-.main-character-img {
-  width: 100%;
-  height: auto;
-  object-fit: cover;
-}
-
-.character-info-box {
-  background: rgba(255, 255, 255, 0.7);
-  padding: 0.35rem;
-  border-radius: 8px;
-  text-align: center;
-  max-width: 600px;
-  margin-top: 0.5rem;
-  margin-bottom: 0;
-}
-
-/* Character Traits */
-.character-traits-list {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.25rem;
-}
-
-.trait-badge {
-  background-color: var(--accent-color);
-  color: white;
-  padding: 0.15rem 0.35rem;
-  border-radius: 50px;
-  font-size: 0.7rem;
-  margin: 0.1rem;
-  opacity: 0.85;
-}
-
-/* Character Gallery */
-.character-gallery {
-  background-color: rgba(255, 255, 255, 0.85);
-  padding: 1rem;
-  border-radius: 10px;
-  margin-bottom: 1rem;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.character-portraits-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-  gap: 10px;
-  margin-top: 10px;
-}
-
-/* Custom Choice Form */
-.custom-choice-form {
-  margin-top: 2rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(139, 92, 246, 0.2);
-}
-
-.custom-choice-input { margin-bottom: 1rem; }
-
-.custom-choice-btn {
-  background: transparent;
-  color: #000;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
-}
-
-.custom-choice-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
-  transform: translateY(-3px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
+/* Custom Choice Form styles moved to choices.css */
 
 /* Responsive Design */
 @media (min-width: 992px) {

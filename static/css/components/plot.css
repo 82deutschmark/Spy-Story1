@@ -1,5 +1,6 @@
-
 /* Plot Component Styles */
+
+/* Plot arc styles */
 .plot-arc-item {
   border-left: 4px solid #ff9800;
   padding: 0.5rem 1rem;
@@ -16,18 +17,3 @@
   font-size: 0.9rem;
   color: #666;
 }
-
-/* Relationship styles */
-.relationship-indicator {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 5px;
-}
-
-.relationship-excellent { background-color: #4caf50; }
-.relationship-good { background-color: #2196f3; }
-.relationship-neutral { background-color: #9e9e9e; }
-.relationship-poor { background-color: #ff9800; }
-.relationship-hostile { background-color: #f44336; }

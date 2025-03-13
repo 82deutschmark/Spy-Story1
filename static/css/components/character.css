@@ -326,3 +326,167 @@
   object-fit: cover;
   background-color: #fff;
 }
+/* Character Component Styles */
+
+/* Character Card */
+.character-card {
+  background-color: #fff;
+  border-radius: 15px;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.character-card:hover {
+  transform: translateY(-5px);
+}
+
+.character-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Character Info */
+.character-info { 
+  padding: 0 10px; 
+}
+
+.character-name {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  text-align: center;
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+/* Character Showcase */
+.character-showcase {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 0;
+  width: 100%;
+}
+
+.character-portrait-container {
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 2px solid #ccc;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.main-character-img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.character-info-box {
+  background: rgba(255, 255, 255, 0.7);
+  padding: 0.35rem;
+  border-radius: 8px;
+  text-align: center;
+  max-width: 600px;
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+/* Character Traits */
+.character-traits {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.character-traits-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.trait-badge {
+  background-color: var(--accent-color);
+  color: white;
+  padding: 0.15rem 0.35rem;
+  border-radius: 50px;
+  font-size: 0.7rem;
+  margin: 0.1rem;
+  opacity: 0.85;
+}
+
+.badge {
+  background-color: #eee;
+  color: var(--text-color);
+  padding: 0.35em 0.65em;
+  font-size: 0.75em;
+  border-radius: 0.5rem;
+}
+
+/* Character Gallery */
+.character-gallery {
+  background-color: rgba(255, 255, 255, 0.85);
+  padding: 1rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.character-portraits-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* Character mentions */
+.character-mention {
+  font-weight: bold;
+  color: #0097FB;
+  cursor: pointer;
+  position: relative;
+  text-decoration: underline dotted;
+}
+
+.character-tooltip {
+  position: absolute;
+  display: none;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 5px;
+  border-radius: 3px;
+  font-size: 14px;
+  font-weight: normal;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  text-align: center;
+  z-index: 1000;
+}
+
+/* Responsive design */
+@media (min-width: 992px) {
+  .character-showcase { 
+    width: 40%; 
+    position: sticky; 
+    top: 1rem; 
+  }
+  
+  .character-portrait-container,
+  .character-info-box {
+    max-width: 650px;
+  }
+}
+
+@media (max-width: 768px) {
+  .character-select-container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+}
