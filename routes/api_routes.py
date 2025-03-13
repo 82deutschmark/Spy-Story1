@@ -1,4 +1,3 @@
-
 import logging
 from flask import Blueprint, request, jsonify
 
@@ -24,11 +23,11 @@ def random_character():
     from models import ImageAnalysis
     import random
     import logging
-    
+
     try:
         # Get all characters
         characters = ImageAnalysis.query.filter_by(image_type='character').all()
-        
+
         # Log character count and first few IDs for debugging
         logger.info(f"Found {len(characters)} characters for random selection")
         if characters:
@@ -36,13 +35,13 @@ def random_character():
         else:
             logger.info("No characters found in database")
             return jsonify({"error": "No characters found in database"}), 404
-            
+
         # Select a random character
         random_char = random.choice(characters)
-        
+
         # Log the selected character
         logger.info(f"Selected random character: id={random_char.id}, name={random_char.character_name}")
-        
+
         # Return character data
         response_data = {
             "id": random_char.id,
@@ -51,9 +50,66 @@ def random_character():
             "character_role": random_char.character_role or "neutral",
             "success": True
         }
-        
+
         logger.info(f"Returning character data: {response_data}")
         return jsonify(response_data)
     except Exception as e:
         logger.error(f"Error fetching random character: {str(e)}")
         return jsonify({"error": str(e), "success": False}), 500
+
+@api_bp.route('/story/make_choice', methods=['POST'])
+def api_make_choice():
+    """API endpoint for making a story choice"""
+    try:
+        data = request.json
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        # Forward to the main route handler
+        # which contains the business logic
+        result = make_choice_handler(data)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"API error in make_choice: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/user/progress', methods=['GET'])
+def get_user_progress():
+    """API endpoint for getting user progress by codename"""
+    try:
+        codename = request.args.get('codename')
+        if not codename:
+            return jsonify({'error': 'No codename provided'}), 400
+
+        # Query the database for user progress with matching protagonist name
+        from models.user import UserProgress
+
+        # Find user progress with matching protagonist name from game_state
+        user_progress = UserProgress.query.filter(
+            UserProgress.game_state.has_key('protagonist_name')
+        ).filter(
+            UserProgress.game_state['protagonist_name'].astext == codename
+        ).first()
+
+        if not user_progress:
+            return jsonify({
+                'success': False,
+                'message': 'No user progress found with that codename',
+                'create_new': True
+            })
+
+        # Return user progress data
+        return jsonify({
+            'success': True,
+            'user_progress': {
+                'user_id': user_progress.user_id,
+                'level': user_progress.level,
+                'experience_points': user_progress.experience_points,
+                'currency_balances': user_progress.currency_balances,
+                'active_missions': user_progress.active_missions,
+                'encountered_characters': user_progress.encountered_characters
+            }
+        })
+    except Exception as e:
+        logger.error(f"API error in get_user_progress: {str(e)}")
+        return jsonify({'error': str(e)}), 500

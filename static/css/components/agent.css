@@ -1,0 +1,63 @@
+
+/* Agent Login Styles */
+.agent-login-section {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    padding-bottom: 1.5rem;
+}
+
+.agent-profile-form {
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 1.25rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.agent-stats {
+    background-color: rgba(240, 240, 240, 0.7);
+    padding: 0.75rem;
+    border-radius: 8px;
+}
+
+.agent-level {
+    font-weight: bold;
+    color: #007bff;
+}
+
+.agent-xp {
+    color: #28a745;
+}
+
+.currency-display {
+    background-color: rgba(240, 240, 240, 0.7);
+    padding: 0.75rem;
+    border-radius: 8px;
+}
+
+.currency-item {
+    display: inline-flex;
+    align-items: center;
+    background-color: #fff;
+    padding: 0.35rem 0.75rem;
+    border-radius: 50px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.currency-symbol {
+    margin-right: 0.35rem;
+    font-size: 1.1rem;
+}
+
+.agent-profile-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.agent-profile-card .card-body {
+    flex: 1;
+}
+
+/* Hide agent details initially */
+#agent-details {
+    display: none;
+}

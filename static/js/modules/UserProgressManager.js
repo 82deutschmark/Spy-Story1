@@ -1,182 +1,247 @@
 
 /**
- * User Progress Manager Module
- * Manages user progress data and interface
+ * Module for handling user progress, including agent login and progress
  */
-import NotebookManager from './NotebookManager.js';
+class UserProgressManager {
+    constructor() {
+        this.userData = null;
+        this.isInitialized = false;
+    }
 
-const UserProgressManager = {
-    // Current user data
-    currentCurrency: {},
-    currentLevel: 1,
-    currentXP: 0,
-    userData: null,
-
+    /**
+     * Initialize the user progress manager
+     */
     initialize() {
-        console.log('User progress manager initialized');
-        this.loadUserProgress();
-    },
-
-    /**
-     * Load user progress data from the server or from DOM elements
-     */
-    loadUserProgress() {
-        // Get user progress from the server or from DOM elements
-        const userProgressElement = document.getElementById('userProgress');
-        if (userProgressElement) {
-            this.userData = {
-                level: userProgressElement.dataset.level || 1,
-                experience_points: userProgressElement.dataset.xp || 0,
-                currency_balances: {}
-            };
-
-            // Parse currency data
-            const currency = userProgressElement.dataset.currency;
-            if (currency) {
-                try {
-                    this.userData.currency_balances = JSON.parse(currency);
-                    this.currentCurrency = JSON.parse(currency);
-                } catch (e) {
-                    console.error('Error parsing currency data:', e);
-                    this.userData.currency_balances = {};
-                    this.currentCurrency = {};
-                }
-            }
-
-            // Set current user data
-            this.currentLevel = this.userData.level;
-            this.currentXP = this.userData.experience_points;
-
-            // Get additional data from other elements if available
-            const gameStateElement = document.getElementById('gameState');
-            if (gameStateElement && gameStateElement.dataset.state) {
-                try {
-                    this.userData.game_state = JSON.parse(gameStateElement.dataset.state);
-                } catch (e) {
-                    console.error('Error parsing game state data:', e);
-                    this.userData.game_state = {};
-                }
-            }
-
-            // Get active missions if available
-            const missionsElement = document.getElementById('activeMissions');
-            if (missionsElement && missionsElement.dataset.missions) {
-                try {
-                    this.userData.active_missions = JSON.parse(missionsElement.dataset.missions);
-                } catch (e) {
-                    console.error('Error parsing active missions data:', e);
-                    this.userData.active_missions = [];
-                }
-            }
-
-            // Get character relationships if available
-            const relationshipsElement = document.getElementById('characterRelationships');
-            if (relationshipsElement && relationshipsElement.dataset.relationships) {
-                try {
-                    this.userData.character_relationships = JSON.parse(relationshipsElement.dataset.relationships);
-                } catch (e) {
-                    console.error('Error parsing character relationships data:', e);
-                    this.userData.character_relationships = {};
-                }
-            }
-
-            // Update UI with current data
-            this.updateProgressDisplay();
-        } else {
-            console.log('No user ID found, using default data');
-            // Default data for new users
-            this.currentCurrency = {'💵': 5000, '💎': 100};
-            this.currentLevel = 1;
-            this.currentXP = 0;
-            
-            this.userData = {
-                level: 1,
-                experience_points: 0,
-                currency_balances: {'💵': 5000, '💎': 100},
-                active_missions: [],
-                character_relationships: {},
-                game_state: {
-                    protagonist_name: 'Agent'
-                }
-            };
-            
-            this.updateProgressDisplay();
+        // Setup event listeners
+        this.setupEventListeners();
+        console.log("User progress manager initialized");
+        
+        // Check if we have a stored agent codename
+        const storedCodename = localStorage.getItem('agentCodename');
+        if (storedCodename) {
+            document.getElementById('protagonistName').value = storedCodename;
+            // Auto-load agent data
+            this.loadAgentData(storedCodename);
         }
-    },
+    }
 
     /**
-     * Update progress display in both progress modal and notebook
+     * Setup event listeners
      */
-    updateProgressDisplay() {
-        // Update the progress modal elements
-        const levelElement = document.getElementById('userLevel');
-        const xpElement = document.getElementById('userXP');
-        const currencyContainer = document.getElementById('currencyBalances');
-
-        if (levelElement) levelElement.textContent = this.currentLevel;
-        if (xpElement) xpElement.textContent = this.currentXP;
-
-        // Update currency display in progress modal
-        if (currencyContainer) {
-            currencyContainer.innerHTML = '';
-            Object.entries(this.currentCurrency).forEach(([currency, amount]) => {
-                const currencyItem = document.createElement('div');
-                currencyItem.classList.add('currency-item');
-                currencyItem.innerHTML = `<span class="currency-symbol">${currency}</span> <span class="currency-amount">${amount}</span>`;
-                currencyContainer.appendChild(currencyItem);
+    setupEventListeners() {
+        // Listen for load agent button click
+        const loadAgentBtn = document.getElementById('loadAgentBtn');
+        if (loadAgentBtn) {
+            loadAgentBtn.addEventListener('click', () => {
+                const agentCodename = document.getElementById('protagonistName').value.trim();
+                if (agentCodename) {
+                    this.loadAgentData(agentCodename);
+                } else {
+                    this.showNotification('Please enter an agent codename', 'warning');
+                }
             });
         }
 
-        // Update the notebook with all user data
-        if (window.NotebookManager) {
-            window.NotebookManager.updateNotebook(this.userData);
-        } else if (NotebookManager) {
-            NotebookManager.updateNotebook(this.userData);
+        // Listen for protagonist name input change
+        const protagonistNameInput = document.getElementById('protagonistName');
+        if (protagonistNameInput) {
+            protagonistNameInput.addEventListener('change', (e) => {
+                const agentCodename = e.target.value.trim();
+                if (agentCodename) {
+                    // Save to local storage
+                    localStorage.setItem('agentCodename', agentCodename);
+                    // Optionally auto-load data
+                    this.loadAgentData(agentCodename);
+                }
+            });
         }
-    },
+    }
 
     /**
-     * Update user level, experience, or currency
-     * @param {Object} updates - Object containing updates to apply
+     * Load agent data by codename
+     * @param {string} codename - The agent's codename to look up
      */
-    updateUserProgress(updates) {
-        if (updates.level) {
-            this.currentLevel = updates.level;
-            this.userData.level = updates.level;
-        }
-        
-        if (updates.xp) {
-            this.currentXP = updates.xp;
-            this.userData.experience_points = updates.xp;
-        }
-        
-        if (updates.currency) {
-            this.currentCurrency = {...this.currentCurrency, ...updates.currency};
-            this.userData.currency_balances = {...this.userData.currency_balances, ...updates.currency};
-        }
-        
-        if (updates.missions) {
-            this.userData.active_missions = updates.missions;
-        }
-        
-        if (updates.relationships) {
-            this.userData.character_relationships = updates.relationships;
-        }
-        
-        if (updates.game_state) {
-            this.userData.game_state = {...this.userData.game_state, ...updates.game_state};
-        }
-        
-        // Update the display with new data
-        this.updateProgressDisplay();
+    loadAgentData(codename) {
+        if (!codename) return;
+
+        // Show loading state
+        this.toggleAgentDetailsLoading(true);
+
+        // Make API call to get user progress data
+        fetch(`/api/user/progress?codename=${encodeURIComponent(codename)}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to load agent data');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    this.userData = data.user_progress;
+                    this.updateAgentDisplay();
+                    this.showNotification(`Agent ${codename} loaded successfully!`, 'success');
+                } else {
+                    // If no existing data but valid response, we'll create a new agent
+                    this.userData = {
+                        level: 1,
+                        experience_points: 0,
+                        currency_balances: {
+                            "💎": 500,
+                            "💷": 5000,
+                            "💶": 5000,
+                            "💴": 5000,
+                            "💵": 5000,
+                        },
+                        is_new: true
+                    };
+                    this.updateAgentDisplay();
+                    this.showNotification(`New agent ${codename} created!`, 'info');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading agent data:', error);
+                this.showNotification('Error loading agent data', 'danger');
+                this.toggleAgentDetailsLoading(false);
+            });
     }
-};
 
-// Export for ES module use
-export default UserProgressManager;
+    /**
+     * Toggle loading state for agent details
+     * @param {boolean} isLoading - Whether the data is loading
+     */
+    toggleAgentDetailsLoading(isLoading) {
+        const placeholder = document.getElementById('agent-details-placeholder');
+        const details = document.getElementById('agent-details');
+        
+        if (isLoading) {
+            if (placeholder) placeholder.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading agent data...</p></div>';
+            if (details) details.style.display = 'none';
+        } else {
+            if (placeholder) placeholder.style.display = 'none';
+            if (details) details.style.display = 'block';
+        }
+    }
 
-// Initialize on page load if we're not in an ES module context
+    /**
+     * Update the agent display with loaded data
+     */
+    updateAgentDisplay() {
+        if (!this.userData) return;
+
+        // Hide placeholder and show details
+        this.toggleAgentDetailsLoading(false);
+        
+        const agentDetails = document.getElementById('agent-details');
+        const placeholder = document.getElementById('agent-details-placeholder');
+        
+        if (agentDetails) agentDetails.style.display = 'block';
+        if (placeholder) placeholder.style.display = 'none';
+
+        // Update level and XP
+        document.getElementById('agent-level').textContent = this.userData.level;
+        document.getElementById('agent-xp').textContent = this.userData.experience_points;
+        
+        // Calculate XP progress (simple formula: level = 1 + sqrt(xp/100))
+        const nextLevelXP = Math.pow((this.userData.level), 2) * 100;
+        const prevLevelXP = Math.pow((this.userData.level - 1), 2) * 100;
+        const xpRange = nextLevelXP - prevLevelXP;
+        const xpProgress = (this.userData.experience_points - prevLevelXP) / xpRange * 100;
+        
+        // Update XP bar
+        const xpBar = document.getElementById('agent-xp-bar');
+        if (xpBar) xpBar.style.width = `${Math.min(100, Math.max(0, xpProgress))}%`;
+
+        // Update currency display
+        const currencyContainer = document.getElementById('agent-currency');
+        if (currencyContainer) {
+            currencyContainer.innerHTML = '';
+            
+            for (const [currency, amount] of Object.entries(this.userData.currency_balances)) {
+                const currencyItem = document.createElement('div');
+                currencyItem.className = 'currency-item';
+                currencyItem.innerHTML = `
+                    <span class="currency-symbol">${currency}</span>
+                    <span class="currency-amount">${amount.toLocaleString()}</span>
+                `;
+                currencyContainer.appendChild(currencyItem);
+            }
+        }
+    }
+
+    /**
+     * Show a notification toast
+     * @param {string} message - The message to display
+     * @param {string} type - The type of notification (success, danger, warning, info)
+     */
+    showNotification(message, type = 'info') {
+        const toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) return;
+
+        const toast = document.getElementById('notificationToast');
+        const toastTitle = document.getElementById('toastTitle');
+        const toastMessage = document.getElementById('toastMessage');
+        
+        // Set appropriate title and icon based on type
+        let title = 'Notification';
+        let icon = 'fa-info-circle';
+        
+        switch (type) {
+            case 'success':
+                title = 'Success';
+                icon = 'fa-check-circle';
+                break;
+            case 'danger':
+                title = 'Error';
+                icon = 'fa-exclamation-circle';
+                break;
+            case 'warning':
+                title = 'Warning';
+                icon = 'fa-exclamation-triangle';
+                break;
+        }
+        
+        // Update toast content
+        if (toastTitle) toastTitle.innerHTML = `<i class="fas ${icon} me-2"></i>${title}`;
+        if (toastMessage) toastMessage.textContent = message;
+        
+        // Show the toast
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+    }
+
+    /**
+     * Get current user data
+     * @returns {Object} The user data
+     */
+    getUserData() {
+        return this.userData;
+    }
+
+    /**
+     * Check if the user has enough currency
+     * @param {Object} requirements - The currency requirements
+     * @returns {boolean} Whether the user can afford the requirements
+     */
+    canAfford(requirements) {
+        if (!this.userData || !this.userData.currency_balances) return false;
+        
+        for (const [currency, amount] of Object.entries(requirements)) {
+            if ((this.userData.currency_balances[currency] || 0) < amount) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+}
+
+// Export the module
+export default new UserProgressManager();
+
+// For backward compatibility with non-module scripts
 if (typeof window !== 'undefined') {
-    window.UserProgressManager = UserProgressManager;
-    document.addEventListener('DOMContentLoaded', () => UserProgressManager.initialize());
+    window.UserProgressManager = new UserProgressManager();
+    document.addEventListener('DOMContentLoaded', () => {
+        window.UserProgressManager.initialize();
+    });
 }
