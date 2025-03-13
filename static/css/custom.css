@@ -992,7 +992,7 @@ h1, h2, h3, .story-title, .character-name {
 @keyframes pulse {
     0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(56, 180, 74, 0.7); }
     70% { transform: scale(1.05); box-shadow: 0 0 010px rgba(56, 180, 74, 0); }
-    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(56, 180, 74, 0); }
+    100% { transform: scale(1); box-shadow: 00 0 0 0 rgba(56, 180, 74, 0); }
 }
 
 .select-character-btn {
@@ -1537,4 +1537,130 @@ h1, h2, h3, .story-title, .character-name {
     height: 100%;
     background-color: #4a90e2;
     transition: width 0.3s;
+}
+
+/* Add your custom styles here */
+
+/* Notebook Sidebar Styles */
+.notebook-toggle-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    background: #3a3a3a;
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 10px 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+}
+
+.notebook-toggle-btn:hover {
+    background: #555;
+    transform: translateY(-2px);
+}
+
+.notebook-sidebar {
+    position: fixed;
+    top: 0;
+    right: -350px; /* Start off-screen */
+    width: 350px;
+    height: 100vh;
+    background: #f8f9fa;
+    box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+    transition: right 0.3s ease;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.notebook-sidebar.active {
+    right: 0;
+}
+
+.notebook-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.close-notebook-btn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+.notebook-section {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.notebook-section h4 {
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+    color: #333;
+}
+
+.notebook-data {
+    color: #666;
+}
+
+.currency-balances {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.currency-item {
+    background: #f0f0f0;
+    padding: 5px 10px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.currency-symbol {
+    font-size: 1.2rem;
+}
+
+.relationships-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.relationships-list li {
+    margin-bottom: 8px;
+}
+
+.relationship-meter {
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    margin-top: 5px;
+    overflow: hidden;
+}
+
+.relationship-level {
+    height: 100%;
+    background: #4caf50;
+}
+
+.notebook-missions-list {
+    list-style: none;
+    padding: 0;
+}
+
+.mission-item {
+    padding: 5px 0;
+    border-bottom: 1px dotted #eee;
 }
