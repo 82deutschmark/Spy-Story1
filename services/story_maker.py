@@ -16,7 +16,7 @@ if not api_key:
 # Initialize OpenAI client
 client = OpenAI(api_key=api_key)
 
-# Default story options (remains unchanged)
+# Default story options
 STORY_OPTIONS = {
     "conflicts": [
         ("🤵", "Double agent exposed"),
@@ -59,7 +59,7 @@ STORY_OPTIONS = {
 }
 
 
-# --- Helper functions --- (remains unchanged)
+# --- Helper functions ---
 
 def get_story_options() -> Dict[str, List[Tuple[str, str]]]:
     """Return available story options for UI display"""
@@ -120,7 +120,7 @@ def generate_story(
         raise ValueError("OpenAI API key not found. Please add it to your environment variables.")
 
     try:
-        # Build the main prompt (existing prompt construction code)
+        # Build the main prompt
         prompt = f"Primary Conflict: {custom_conflict or conflict}\n"
         prompt += f"Setting: {custom_setting or setting}\n"
         prompt += f"Narrative Style: {custom_narrative or narrative_style}\n"
@@ -208,7 +208,7 @@ def generate_story(
             "2. Introduces the selected character (if provided) into a complex international spy scenario\n"
             "3. IMPORTANT: If plot lines are provided for the character, you MUST incorporate at least one into the story\n"
             "4. " + (f"Since there are already {len(additional_characters) + (1 if character_info else 0)} characters in this story, only include a new character in choices if absolutely necessary for the plot" if len(additional_characters) + (1 if character_info else 0) >= 4 else
-                    "IMPORTANT: Include one new character from the database in the choices when needed") + "\n"
+                   "IMPORTANT: Include one new character from the database in the choices when needed") + "\n"
             "5. Includes betrayal, romantic flings, and over-the-top action sequences\n"
             "6. Uses the character's traits to guide their behavior and dialogue\n"
             "7. CRITICAL: The story MUST begin with a mission-giver character assigning a mission to the player with these components:\n"
@@ -218,9 +218,8 @@ def generate_story(
             "   - A deadline or sense of urgency\n"
             "   - The mission should be central to the plot and referenced throughout the story\n"
             "   - IMPORTANT: The mission giver should be different for different playthroughs. They reluctantly task you with missions targeting villains while reminding you not to screw up again.\n"
-
             "9. Provides three meaningful choice options that MUST relate to the mission:\n"
-            "   - One 'mission-advancing' choice: Clear progress on the primary objective\n" 
+            "   - One 'mission-advancing' choice: Clear progress on the primary objective\n"
             "   - One 'risky' choice: High risk/reward or possible mission failure\n"
             "   - One 'alternative' choice: Indirect help, intel gathering, new allies, or a delay\n"
             "   - Lead to different potential outcomes (each one should sound sexy and dangerous)\n"
@@ -289,11 +288,10 @@ def generate_story(
 
         # Make the OpenAI API call
         response = client.chat.completions.create(
-            model="gpt-4",  # Fixed the model name from gpt-4o to gpt-4
+            model="gpt-4",
             messages=messages,
             temperature=0.9,
-            max_tokens=5000,
-            response_format={"type": "json_object"}
+            max_tokens=5000
         )
 
         logger.info("Successfully received response from OpenAI")
@@ -304,7 +302,7 @@ def generate_story(
 
         # Return formatted result
         formatted_result = {
-            "story": json.dumps(result),  # Convert dict to JSON string for database storage
+            "story": json.dumps(result),
             "conflict": custom_conflict or conflict,
             "setting": custom_setting or setting,
             "narrative_style": custom_narrative or narrative_style,

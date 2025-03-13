@@ -1,0 +1,164 @@
+8884-b2a20ef10299b2c5.js:1 Replit version b0f98197, pid2 version 0.0.1080
+_app-16b818bf6d4cfdc4.js:16 
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@#//////////////
+   ///////////////////////////
+      /////////////////////
+      
+_app-16b818bf6d4cfdc4.js:16 [LaunchDarkly] LaunchDarkly client initialized
+web-client-content-script.js:2 Uncaught (in promise) Error: Access to storage is not allowed from this context.
+web-client-content-script.js:2 Uncaught (in promise) Error: Access to storage is not allowed from this context.
+web-client-content-script.js:2 Uncaught TypeError: Failed to execute 'observe' on 'MutationObserver': parameter 1 is not of type 'Node'.
+    at HTMLIFrameElement.<anonymous> (web-client-content-script.js:2:304735)
+[Report Only] Refused to frame 'https://www.google.com/' because an ancestor violates the following Content Security Policy directive: "frame-ancestors 'self'".
+
+web-client-content-script.js:2 Uncaught (in promise) Error: Access to storage is not allowed from this context.
+_app-16b818bf6d4cfdc4.js:16 [TikTok Pixel] - Invalid pixel ID
+Issue: The pixel ID is invalid. This could prevent your pixel from receiving data.
+Suggestion: Please go to Events Manager and find the correct pixel ID.
+(anonymous) @ _app-16b818bf6d4cfdc4.js:16
+web-client-content-script.js:2 Uncaught (in promise) Error: Access to storage is not allowed from this context.
+web-client-content-script.js:2 Uncaught (in promise) Error: Access to storage is not allowed from this context.
+Spy-Story:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+web-client-content-script.js:2 Uncaught (in promise) Error: Access to storage is not allowed from this context.
+gravatar.com/avatar/bc046cd8b3f7872701ce27a4231d3fbe?d=404:1 
+            
+            
+           Failed to load resource: the server responded with a status of 404 ()
+web-client-content-script.js:2 Uncaught (in promise) Error: Access to storage is not allowed from this context.
+web-client-content-script.js:2 Uncaught TypeError: Failed to execute 'observe' on 'MutationObserver': parameter 1 is not of type 'Node'.
+    at HTMLIFrameElement.<anonymous> (web-client-content-script.js:2:304735)
+gravatar.com/avatar/bc046cd8b3f7872701ce27a4231d3fbe?d=404:1 
+            
+            
+           Failed to load resource: the server responded with a status of 404 ()
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+framework-80b3e7fd1f6c496f.js:1 Unrecognized feature: 'ambient-light-sensor'.
+_ @ framework-80b3e7fd1f6c496f.js:1
+framework-80b3e7fd1f6c496f.js:1 Unrecognized feature: 'battery'.
+_ @ framework-80b3e7fd1f6c496f.js:1
+framework-80b3e7fd1f6c496f.js:1 Unrecognized feature: 'execution-while-not-rendered'.
+_ @ framework-80b3e7fd1f6c496f.js:1
+framework-80b3e7fd1f6c496f.js:1 Unrecognized feature: 'execution-while-out-of-viewport'.
+_ @ framework-80b3e7fd1f6c496f.js:1
+framework-80b3e7fd1f6c496f.js:1 Unrecognized feature: 'layout-animations'.
+_ @ framework-80b3e7fd1f6c496f.js:1
+framework-80b3e7fd1f6c496f.js:1 Unrecognized feature: 'legacy-image-formats'.
+_ @ framework-80b3e7fd1f6c496f.js:1
+framework-80b3e7fd1f6c496f.js:1 Unrecognized feature: 'navigation-override'.
+_ @ framework-80b3e7fd1f6c496f.js:1
+framework-80b3e7fd1f6c496f.js:1 Unrecognized feature: 'oversized-images'.
+_ @ framework-80b3e7fd1f6c496f.js:1
+framework-80b3e7fd1f6c496f.js:1 Unrecognized feature: 'publickey-credentials'.
+_ @ framework-80b3e7fd1f6c496f.js:1
+framework-80b3e7fd1f6c496f.js:1 Unrecognized feature: 'speaker-selection'.
+_ @ framework-80b3e7fd1f6c496f.js:1
+framework-80b3e7fd1f6c496f.js:1 Unrecognized feature: 'unoptimized-images'.
+_ @ framework-80b3e7fd1f6c496f.js:1
+framework-80b3e7fd1f6c496f.js:1 Unrecognized feature: 'unsized-media'.
+_ @ framework-80b3e7fd1f6c496f.js:1
+framework-80b3e7fd1f6c496f.js:1 Unrecognized feature: 'pointer-lock'.
+_ @ framework-80b3e7fd1f6c496f.js:1
+framework-80b3e7fd1f6c496f.js:1 Allow attribute will take precedence over 'allowfullscreen'.
+_ @ framework-80b3e7fd1f6c496f.js:1
+framework-80b3e7fd1f6c496f.js:1 Allow attribute will take precedence over 'allowpaymentrequest'.
+_ @ framework-80b3e7fd1f6c496f.js:1
+gravatar.com/avatar/bc046cd8b3f7872701ce27a4231d3fbe?d=404:1 
+            
+            
+           Failed to load resource: the server responded with a status of 404 ()
+gravatar.com/avatar/bc046cd8b3f7872701ce27a4231d3fbe?d=404:1 
+            
+            
+           Failed to load resource: the server responded with a status of 404 ()
+gravatar.com/avatar/bc046cd8b3f7872701ce27a4231d3fbe?d=404:1 
+            
+            
+           Failed to load resource: the server responded with a status of 404 ()
+gravatar.com/avatar/bc046cd8b3f7872701ce27a4231d3fbe?d=404:1 
+            
+            
+           Failed to load resource: the server responded with a status of 404 ()
+gravatar.com/avatar/bc046cd8b3f7872701ce27a4231d3fbe?d=404:1 
+            
+            
+           Failed to load resource: the server responded with a status of 404 ()
+web-client-content-script.js:2 Uncaught (in promise) Error: Access to storage is not allowed from this context.
+web-client-content-script.js:2 Uncaught (in promise) Error: Access to storage is not allowed from this context.
+web-client-content-script.js:2 Uncaught (in promise) Error: Access to storage is not allowed from this context.
+web-client-content-script.js:2 Uncaught (in promise) Error: Access to storage is not allowed from this context.
+web-client-content-script.js:2 Uncaught (in promise) Error: Access to storage is not allowed from this context.
+stallwart.build.js:1 stallwart: failed ping 1
+web-client-content-script.js:2 Uncaught (in promise) Error: Access to storage is not allowed from this context.
+Spy-Story:1 Blocked aria-hidden on an element because its descendant retained focus. The focus must not be hidden from assistive technology users. Avoid using aria-hidden on a focused element or its ancestor. Consider using the inert attribute instead, which will also prevent focus. For more details, see the aria-hidden section of the WAI-ARIA specification at https://w3c.github.io/aria/#aria-hidden.
+Element with focus: div
+Ancestor with aria-hidden:  <div class=​" useView_view__C2mnv css-1gdmsm6 Surface_surfaceDefault__TcNI5" aria-hidden=​"true" style=​"--useView--gap:​ 4px;​ --borderColor:​ var(--outline-dimmer)​;​ --focusedBorderColor:​ var(--accent-primary-default)​;​ --hoverBorderColor:​ var(--accent-primary-default)​;​">​…​</div>​flex
+web-client-content-script.js:2 Uncaught (in promise) Error: Access to storage is not allowed from this context.
+web-client-content-script.js:2 Uncaught (in promise) Error: Access to storage is not allowed from this context.
+web-client-content-script.js:2 Uncaught (in promise) Error: Access to storage is not allowed from this context.
+workspace_iframe.html:32 Unrecognized feature: 'ambient-light-sensor'.
+workspace_iframe.html:32 Unrecognized feature: 'battery'.
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-not-rendered'.
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-out-of-viewport'.
+workspace_iframe.html:32 Unrecognized feature: 'layout-animations'.
+workspace_iframe.html:32 Unrecognized feature: 'legacy-image-formats'.
+workspace_iframe.html:32 Unrecognized feature: 'navigation-override'.
+workspace_iframe.html:32 Unrecognized feature: 'oversized-images'.
+workspace_iframe.html:32 Unrecognized feature: 'publickey-credentials'.
+workspace_iframe.html:32 Unrecognized feature: 'speaker-selection'.
+workspace_iframe.html:32 Unrecognized feature: 'unoptimized-images'.
+workspace_iframe.html:32 Unrecognized feature: 'unsized-media'.
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowfullscreen'.
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowpaymentrequest'.
+web-client-content-script.js:2 Uncaught (in promise) Error: Access to storage is not allowed from this context.
+Console.js:61 Character manager initialized
+Console.js:61 DOM loaded, initializing modules...
+Console.js:61 DOM loaded, initializing payment system...
+Console.js:61 Notebook elements not found in the DOM, skipping initialization
+Console.js:61 User progress manager initialized
+Console.js:61 Modules loaded successfully
+web-client-content-script.js:2 Uncaught (in promise) Error: Access to storage is not allowed from this context.
+Console.js:61 Payment system initialized
+Console.js:61 Sending story generation data: Object
+79527dfb-c294-466d-871e-a455c1fb9a3d-00-9c9jxly5p0zd.picard.replit.dev/generate_story:1 
+            
+            
+           Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+Console.js:61 Error generating story: Error: Failed to generate story: Error code: 400 - {'error': {'message': "Invalid parameter: 'response_format' of type 'json_object' is not supported with this model.", 'type': 'invalid_request_error', 'param': 'response_format', 'code': None}}
+    at StoryManager.js:62:27
+Mt.forEach.n.<computed> @ Console.js:61
+Console.js:61 Story generation failed: Error: Failed to generate story: Error code: 400 - {'error': {'message': "Invalid parameter: 'response_format' of type 'json_object' is not supported with this model.", 'type': 'invalid_request_error', 'param': 'response_format', 'code': None}}
+    at StoryManager.js:62:27
+Mt.forEach.n.<computed> @ Console.js:61
+web-client-content-script.js:2 Uncaught (in promise) Error: Access to storage is not allowed from this context.
+
+                
+          
+          
+          
+         Chrome is moving towards a new experience that allows users to choose to browse without third-party cookies.
+
+                
+          
+          
+          
+         Chrome is moving towards a new experience that allows users to choose to browse without third-party cookies.
