@@ -1,4 +1,3 @@
-
 /**
  * Event Handlers Module
  * Centralizes all event handlers for the application
@@ -17,19 +16,19 @@ export default {
     setupEventHandlers() {
         // Character selection
         this.setupCharacterSelectionHandlers();
-        
+
         // Form submission handling
         this.setupFormSubmissionHandlers();
-        
+
         // Debug page enhancements
         this.setupDebugPageHandlers();
-        
+
         // Trade form handling
         this.setupTradeFormHandlers();
-        
+
         // Mission-related handlers
         this.setupMissionHandlers();
-        
+
         // Update choice buttons to show currency requirements
         this.setupChoiceCurrencyIndicators();
     },
@@ -205,6 +204,30 @@ export default {
                 // Submit the form
                 const formData = new FormData(this);
                 StoryManager.generateStory(formData)
+                    .then(data => {
+                        // Process the generated story
+                        // Make sure data contains the appropriate story structure
+                        if (data && !data.stories && data.story) {
+                            try {
+                                // Try to parse the story string if it's not already parsed
+                                if (typeof data.story === 'string') {
+                                    data.stories = JSON.parse(data.story);
+                                } else {
+                                    data.stories = data.story;
+                                }
+                            } catch (e) {
+                                console.error('Error parsing story data:', e);
+                            }
+                        }
+
+                        StoryManager.generateStory(data)
+                            .then(() => {
+                                // Success - UI updates handled in StoryManager
+                            })
+                            .catch(error => {
+                                console.error('Story generation failed:', error);
+                            });
+                    })
                     .catch(error => {
                         console.error('Story generation failed:', error);
                     });
@@ -216,7 +239,7 @@ export default {
             // Only process choice forms
             if (!e.target.classList.contains('choice-form')) return;
             e.preventDefault();
-            
+
             StoryManager.processChoice(e.target)
                 .catch(error => {
                     console.error('Choice processing failed:', error);
@@ -278,10 +301,10 @@ export default {
         // Handle character offer trade buttons
         document.addEventListener('click', function(e) {
             if (!e.target.matches('.accept-trade-btn')) return;
-            
+
             const fromCurrency = e.target.dataset.from;
             const toCurrency = e.target.dataset.to;
-            
+
             // Default to 1 unit
             const amount = 1;
 
@@ -306,7 +329,7 @@ export default {
         // Handle mission details button click
         document.addEventListener('click', function(e) {
             if (!e.target.matches('.mission-details-btn')) return;
-            
+
             const missionId = e.target.dataset.missionId;
             MissionManager.loadMissionDetails(missionId)
                 .catch(error => {
@@ -317,7 +340,7 @@ export default {
         // Handle mission completion button
         document.addEventListener('click', function(e) {
             if (!e.target.matches('#completeBtn')) return;
-            
+
             const missionId = e.target.dataset.missionId;
             MissionManager.completeMission(missionId)
                 .catch(error => {
@@ -328,7 +351,7 @@ export default {
         // Handle mission failure button
         document.addEventListener('click', function(e) {
             if (!e.target.matches('#failBtn')) return;
-            
+
             const missionId = e.target.dataset.missionId;
             MissionManager.failMission(missionId)
                 .catch(error => {
@@ -366,14 +389,14 @@ export default {
     initialize() {
         // Set up all event handlers
         this.setupEventHandlers();
-        
+
         // Highlight characters in story
         CharacterManager.highlightCharactersInStory();
-        
+
         // Check radio buttons on page load to restore selection state
         const characterCheckboxes = document.querySelectorAll('.character-checkbox');
         const characterCards = document.querySelectorAll('.character-select-card');
-        
+
         if (characterCheckboxes && characterCheckboxes.length > 0 && characterCards && characterCards.length > 0) {
             characterCheckboxes.forEach((checkbox, index) => {
                 if (checkbox.checked && index < characterCards.length) {
@@ -385,7 +408,7 @@ export default {
                 }
             });
         }
-        
+
         // Initialize Payment System
         console.log('DOM loaded, initializing payment system...');
         setTimeout(() => {
