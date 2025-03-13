@@ -45,22 +45,7 @@ body::before {
 
 /* Debug page styles moved to debug.css */
 
-/* Ensure progress modal text is black and visible */
-#progressModal .card-body p,
-#progressModal .card-body strong,
-#progressModal .text-muted,
-#progressModal .card-text .text-muted {
-  color: #000000 !important;
-  font-weight: 500;
-}
-
-#progressModal .modal-body {
-  color: #000000;
-}
-
-#progressModal .card-body {
-  color: #000000;
-}
+/* Progress modal styles moved to modals.css */
 
 /* Story title and content styles moved to story.css */
 
@@ -140,39 +125,13 @@ body::before {
 
 /* Accordion styles moved to accordion.css */
 
-/* Form elements */
-.form-control, .form-select {
-    background-color: var(--card-bg);
-    border-color: var(--card-border);
-    color: var(--text-color);
-}
-
-.form-control:focus, .form-select:focus {
-    background-color: var(--card-bg);
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.25rem rgba(66, 153, 225, 0.25);
-}
+/* Form styles moved to forms.css */
 
 /* Pagination styles moved to pagination.css */
 
-/* Table row hover */
-.table-hover tbody tr:hover {
-    background-color: rgba(74, 85, 104, 0.1);
-}
+/* Table styles moved to tables.css */
 
-.table td, .table th {
-    vertical-align: middle;
-}
-
-/* Story content container */
-.story-content-container {
-    position: relative;
-    z-index: 1;
-    background: rgba(255, 255, 255, 0.85);
-    border-radius: 10px;
-    padding: 0.75rem;
-    width: 100%;
-}
+/* Story content container styles moved to story.css */
 
 /* Character showcase */
 .character-showcase {
@@ -230,68 +189,19 @@ body::before {
 
 /* Currency styles moved to currency.css */
 
-.modal-content {
-    background-color: var(--card-bg);
-    color: var(--text-color);
-}
-
-.modal .card {
-    border-radius: var(--border-radius);
-    overflow: hidden;
-    box-shadow: var(--box-shadow);
-}
+/* Modal styles moved to modals.css */
 
 /* Character info styles moved to character.css */
 
 
-.light-theme-modal .modal-content {
-  background-color: var(--card-bg);
-  color: var(--text-color);
-}
-
-.light-theme-modal .modal .card {
-  border-radius: var(--border-radius);
-  overflow: hidden;
-  box-shadow: var(--box-shadow);
-}
+/* Light theme modal styles moved to modals.css */
 
 /* Character mention styles moved to character.css */
 
 
 /* Story Container and Story Content styles moved to story.css */
 
-/* Story Choices */
-.choices-container {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-  margin: 1.5rem 0;
-}
-
-.choice-btn {
-  background: transparent;
-  color: #000;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  padding: 1rem;
-  border-radius: 8px;
-  cursor: pointer;
-  text-align: center;
-  width: 100%;
-  transition: all 0.2s ease;
-}
-
-.choice-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
-  transform: translateY(-3px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.choice-text {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #000;
-  line-height: 1.4;
-}
+/* Story choices styles moved to choices.css */
 
 /* Character styles moved to character.css */
 
