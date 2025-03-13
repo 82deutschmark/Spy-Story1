@@ -158,16 +158,27 @@ def generate_story_route():
     from utils.currency_utils import process_transaction
 
     try:
-        # Get form data
-        data = request.form
-        selected_character_ids = request.form.getlist('selected_images[]')
-        protagonist_gender = request.form.get('protagonist_gender')
-        protagonist_name = request.form.get('protagonist_name')
-        custom_choice = data.get('custom_choice', '')
+        # Get data from either JSON or form data
+        if request.is_json:
+            data = request.get_json()
+            selected_character_ids = data.get('selected_images[]', [])
+            protagonist_gender = data.get('protagonist_gender')
+            protagonist_name = data.get('protagonist_name')
+            custom_choice = data.get('custom_choice', '')
+        else:
+            data = request.form
+            selected_character_ids = request.form.getlist('selected_images[]')
+            protagonist_gender = request.form.get('protagonist_gender')
+            protagonist_name = request.form.get('protagonist_name')
+            custom_choice = data.get('custom_choice', '')
 
         # Get previous story context
         previous_story_id = data.get('story_id')
         story_context = data.get('story_context', '')
+
+        logger.debug(f"Received data format: {'JSON' if request.is_json else 'Form'}")
+        logger.debug(f"Data received: {data}")
+        logger.debug(f"Selected character IDs: {selected_character_ids}")
 
         # Get user progress with protagonist name for identification
         user_progress = get_or_create_user_progress(protagonist_name)
@@ -385,7 +396,7 @@ def generate_story_route():
             return redirect(url_for('main.storyboard', story_id=story.id))
 
     except Exception as e:
-        logger.error(f"Error generating story: {str(e)}")
+        logger.error(f"Error generating story: {str(e)}", exc_info=True)
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'error': str(e)}), 500
         else:
