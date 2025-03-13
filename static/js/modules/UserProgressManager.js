@@ -262,6 +262,4 @@ if (typeof window !== 'undefined') {
             console.error('Error initializing UserProgressManager:', error);
         }
     });
-}ze();
-    });
 }
