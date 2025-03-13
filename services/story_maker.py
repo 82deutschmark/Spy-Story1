@@ -338,7 +338,7 @@ Format as JSON with:
 
             # Return formatted result
             formatted_result = {
-                "story": json.dumps(result),
+                "story": content,  # Return the raw JSON string instead of re-serializing
                 "conflict": final_conflict,
                 "setting": final_setting,
                 "narrative_style": final_narrative,
