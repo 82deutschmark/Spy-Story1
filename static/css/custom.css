@@ -135,13 +135,7 @@ body::before {
     .story-content-container { width: 60%; }
 }
 
-/* Consequence text */
-.consequence {
-    font-style: italic;
-    color: var(--accent-color);
-    font-size: 0.95rem;
-    opacity: 0.85;
-    margin-top: 0.5rem;
+
 }
 
 /* Accordion (story options) */
