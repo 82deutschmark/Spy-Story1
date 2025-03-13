@@ -79,14 +79,4 @@ class NotebookManager {
     }
 }
 
-// Export for ES module use
 export default NotebookManager;
-
-// Initialize on page load if we're not in an ES module context
-if (typeof window !== 'undefined') {
-    window.NotebookManager = NotebookManager;
-    document.addEventListener('DOMContentLoaded', () => {
-        const notebookManager = new NotebookManager();
-        notebookManager.initialize();
-    });
-}
