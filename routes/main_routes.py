@@ -161,7 +161,10 @@ def generate_story_route():
         # Get data from either JSON or form data
         if request.is_json:
             data = request.get_json()
-            selected_character_ids = data.get('selected_images[]', [])
+            # Handle array data from JSON properly
+            selected_character_ids = data.get('selected_images', [])
+            if isinstance(selected_character_ids, str):
+                selected_character_ids = [selected_character_ids]
             protagonist_gender = data.get('protagonist_gender')
             protagonist_name = data.get('protagonist_name')
             custom_choice = data.get('custom_choice', '')
@@ -190,7 +193,7 @@ def generate_story_route():
 
         # Validate character selection
         if not selected_character_ids:
-            logger.error("No character selected - missing selected_images[] in form data")
+            logger.error("No character selected - missing selected_images in form data")
             return jsonify({'error': 'Please select a character for your story'}), 400
 
         if len(selected_character_ids) < 1:

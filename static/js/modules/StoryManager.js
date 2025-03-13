@@ -33,8 +33,9 @@ export default {
         // Convert form data to JSON for the request
         const jsonData = {};
         formData.forEach((value, key) => {
+            // Handle array fields (like selected_images[])
             if (key.endsWith('[]')) {
-                const actualKey = key.slice(0, -2);
+                const actualKey = key.slice(0, -2); // Remove [] suffix
                 if (!jsonData[actualKey]) {
                     jsonData[actualKey] = [];
                 }
@@ -44,6 +45,9 @@ export default {
             }
         });
 
+        // Log the data being sent
+        console.log('Sending story generation data:', jsonData);
+
         return fetch('/generate_story', {
             method: 'POST',
             headers: {
@@ -52,40 +56,40 @@ export default {
             },
             body: JSON.stringify(jsonData)
         })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(data => {
-                        throw new Error(data.error || 'Failed to generate story');
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                clearInterval(progressInterval);
-
-                if (data.success && data.redirect) {
-                    UIUtils.updateLoadingPercent(loadingPercent, 100);
-                    setTimeout(() => {
-                        window.location.href = data.redirect;
-                    }, 500);
-                    return data;
-                } else {
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
                     throw new Error(data.error || 'Failed to generate story');
-                }
-            })
-            .catch(error => {
-                console.error('Error generating story:', error);
-                UIUtils.showToast('Error', error.message || 'Failed to generate story. Please try again.');
-                clearInterval(progressInterval);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            clearInterval(progressInterval);
 
-                if (generateStoryBtn) {
-                    generateStoryBtn.disabled = false;
-                    generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
-                }
+            if (data.success && data.redirect) {
+                UIUtils.updateLoadingPercent(loadingPercent, 100);
+                setTimeout(() => {
+                    window.location.href = data.redirect;
+                }, 500);
+                return data;
+            } else {
+                throw new Error(data.error || 'Failed to generate story');
+            }
+        })
+        .catch(error => {
+            console.error('Error generating story:', error);
+            UIUtils.showToast('Error', error.message || 'Failed to generate story. Please try again.');
+            clearInterval(progressInterval);
 
-                UIUtils.removeLoadingOverlay(loadingPercent);
-                throw error;
-            });
+            if (generateStoryBtn) {
+                generateStoryBtn.disabled = false;
+                generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
+            }
+
+            UIUtils.removeLoadingOverlay(loadingPercent);
+            throw error;
+        });
     },
 
     /**
@@ -165,12 +169,14 @@ export default {
                 }
 
                 // Generate next part of the story
+                const continueFormData = new FormData(form);
                 return fetch('/generate_story', {
                     method: 'POST',
-                    body: formData,
                     headers: {
+                        'Content-Type': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest'
-                    }
+                    },
+                    body: JSON.stringify(Object.fromEntries(continueFormData))
                 });
             })
             .then(response => response.json())
