@@ -19,14 +19,14 @@ main_bp = Blueprint('main', __name__)
 def get_or_create_user_progress(protagonist_name=None):
     """Get or create user progress record for the current session. Uses protagonist_name for identification."""
     from utils.db_utils import get_or_create_user_progress as db_get_or_create_user_progress
-    
+
     if 'user_id' not in session:
         session['user_id'] = str(uuid.uuid4())
         logger.debug(f"Created new user session with ID: {session['user_id']}")
 
     # Use the enhanced db_utils version that handles protagonist name lookup
     user_progress = db_get_or_create_user_progress(session['user_id'], protagonist_name)
-    
+
     return user_progress
 
 # PayPal check removed
@@ -315,7 +315,10 @@ def generate_story_route():
 
         # Associate selected images with the story
         for character in selected_characters:
-            story.images.append(character)
+            # Link character to story if character ID is provided
+            if character and character.id:
+                # Use the characters relationship instead of images
+                story.characters.append(character)
 
         db.session.add(story)
         db.session.commit()
