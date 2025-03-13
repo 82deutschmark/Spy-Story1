@@ -1,0 +1,47 @@
+
+/* Currency Component Styles */
+/* Currency dashboard */
+.currency-dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+/* Currency trade offer styles */
+.currency-trade-offer {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid var(--accent-color);
+}
+
+.trade-offer-text {
+    font-size: 1.1rem;
+    color: #333;
+    margin-bottom: 1rem;
+    font-style: italic;
+}
+
+.trade-offer-details {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 1rem;
+}
+
+.accept-trade-btn {
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    transition: all 0.2s ease;
+}
+
+.accept-trade-btn:hover {
+    background-color: var(--accent-color);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2);
+}

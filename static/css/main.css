@@ -1,0 +1,23 @@
+
+/* Main CSS file - imports all modularized components */
+
+/* Base theme variables and common styles */
+@import 'components/theme.css';
+
+/* Component styles */
+@import 'components/accordion.css';
+@import 'components/buttons.css';
+@import 'components/cards.css';
+@import 'components/choices.css';
+@import 'components/currency.css';
+@import 'components/forms.css';
+@import 'components/loading.css';
+@import 'components/modals.css';
+@import 'components/notebook.css';
+@import 'components/pagination.css';
+@import 'components/plot.css';
+@import 'components/story.css';
+@import 'components/storyboard.css';
+@import 'components/tables.css';
+
+/* Add any other component files here as we create them */
