@@ -34,8 +34,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     EventHandlers.initialize();
-    NotebookManager.initialize(); // Added NotebookManager initialization
-    UserProgressManager.initialize();// Added UserProgressManager initialization
+    
+    // Initialize NotebookManager as an instance
+    const notebookManager = new NotebookManager();
+    notebookManager.initialize();
+    window.notebookManager = notebookManager; // Make available globally
+    
+    // Initialize UserProgressManager as an instance
+    const userProgressManager = new UserProgressManager();
+    userProgressManager.initialize();
+    window.userProgressManager = userProgressManager; // Make available globally
 });
 
 // NOTE: The following features are described in the thinking section but not fully implemented in the provided changes:
