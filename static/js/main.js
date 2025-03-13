@@ -13,7 +13,6 @@ import EventHandlers from './modules/EventHandlers.js';
 // Import modules - using dynamic import to ensure they load properly
 async function loadModules() {
     try {
-        // Load NotebookManager
         const NotebookManagerModule = await import('./modules/NotebookManager.js');
         const NotebookManager = NotebookManagerModule.default;
         
@@ -22,18 +21,6 @@ async function loadModules() {
             const notebookManager = new NotebookManager();
             notebookManager.initialize();
             window.notebookManagerInstance = notebookManager;
-        }
-        
-        // Load and initialize UserProgressManager
-        try {
-            const UserProgressManagerModule = await import('./modules/UserProgressManager.js');
-            const UserProgressManager = UserProgressManagerModule.default;
-            
-            const progressManager = new UserProgressManager();
-            progressManager.initialize();
-            window.userProgressManagerInstance = progressManager;
-        } catch (userProgressError) {
-            console.error("Error initializing UserProgressManager:", userProgressError);
         }
         
         console.log("Modules loaded successfully");
