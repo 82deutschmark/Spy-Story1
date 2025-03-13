@@ -1226,57 +1226,7 @@ h1, h2, h3, .story-title, .character-name {
     margin-top: 10px;
 }
 
-.character-portrait-mini {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    cursor: pointer;
-    transition: transform 0.2s ease;
-}
-
-.character-portrait-mini:hover { transform: scale(1.1); }
-
-.character-mini-img {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--accent-color);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.character-mini-name {
-    font-size: 0.7rem;
-    margin-top: 5px;
-    color: #333;
-    text-align: center;
-    max-width: 70px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.character-mini-highlight {
-    animation: pulseBorder 2s infinite;
-}
-
-@keyframes pulseBorder {
-    0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7); }
-    70% { box-shadow: 0 0 0 6px rgba(139, 92, 246, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
-}
-
-/* Character mention styles */
-.character-mention {
-    font-weight: 500;
-    color: var(--accent-color);
-    cursor: pointer;
-    position: relative;
-    display: inline-block;
-}
-
-.character-mention:hover { text-decoration: underline; }
-
+/* Character tooltip styles */
 .character-tooltip {
     position: absolute;
     left: 50%;
@@ -1315,7 +1265,7 @@ h1, h2, h3, .story-title, .character-name {
 
 .trade-offer-text {
     font-size: 1.1rem;
-    color: #333;
+    color: var(--text-color, #333);
     margin-bottom: 1rem;
     font-style: italic;
 }
@@ -1325,7 +1275,7 @@ h1, h2, h3, .story-title, .character-name {
     align-items: center;
     gap: 0.5rem;
     font-weight: 600;
-    color: #1a1a1a;
+    color: var(--text-dark, #1a1a1a);
     margin-bottom: 1rem;
 }
 
@@ -1337,7 +1287,7 @@ h1, h2, h3, .story-title, .character-name {
 
 .accept-trade-btn:hover {
     background-color: var(--accent-color);
-    color: #fff;
+    color: var(--light-color, #fff);
     transform: translateY(-2px);
     box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2);
 }
@@ -1359,11 +1309,11 @@ h1, h2, h3, .story-title, .character-name {
     padding: 0.25rem 0.75rem;
     border-radius: 12px;
     font-weight: 600;
-    color: #333;
+    color: var(--text-color, #333);
 }
 
 .currency-req-insufficient {
-    color: #dc3545;
+    color: var(--danger-color, #dc3545);
     background: rgba(220, 53, 69, 0.1);
 }
 
