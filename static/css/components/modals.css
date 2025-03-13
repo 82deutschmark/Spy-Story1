@@ -1,0 +1,39 @@
+
+/* Modal styles */
+.modal-content {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+}
+
+.modal-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 1rem 1.5rem;
+}
+
+.modal-title {
+    color: #2d3748;
+    font-weight: 600;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 1px solid #e2e8f0;
+    padding: 1rem 1.5rem;
+    background-color: #f8f9fa;
+}
+
+.close {
+    color: #718096;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.close:hover {
+    opacity: 1;
+}

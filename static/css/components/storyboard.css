@@ -1,0 +1,91 @@
+
+/* Storyboard specific styles */
+.storyboard-body {
+    background-color: #f9f7ff;
+    color: #333;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.6;
+}
+
+.story-bg-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: -1;
+    opacity: 0.4;
+}
+
+.story-content-container {
+    position: relative;
+    z-index: 1;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 10px;
+    padding: 0.75rem;
+    width: 100%;
+}
+
+/* Character showcase */
+.character-showcase {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 0;
+    width: 100%;
+}
+
+.character-portrait-container {
+    width: 100%;
+    max-width: 600px;
+    height: auto;
+    overflow: hidden;
+    border-radius: 10px;
+    border: 2px solid #ccc;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.main-character-img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+}
+
+.character-info-box {
+    background: rgba(255, 255, 255, 0.7);
+    padding: 0.35rem;
+    border-radius: 8px;
+    text-align: center;
+    max-width: 600px;
+    margin-top: 0.5rem;
+    margin-bottom: 0;
+}
+
+.character-info-box h3 {
+    color: #333;
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Plot arc styles */
+.plot-arc-item {
+    border-left: 4px solid #ff9800;
+    padding: 0.5rem 1rem;
+    margin-bottom: 0.5rem;
+    background-color: rgba(255, 152, 0, 0.1);
+}
+
+.plot-arc-title {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.plot-arc-description {
+    font-size: 0.9rem;
+    color: #666;
+}
