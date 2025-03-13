@@ -41,16 +41,10 @@ const UserProgressManager = {
     },
 
     setupEventListeners() {
-        // Event listeners are now handled by NotebookManager
-        
-        // Set up currency trade handlers if on storyboard
-        const tradeForm = document.getElementById('tradeForm');
-        if (tradeForm) {
-            tradeForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.handleTradeCurrency();
-            });
-        }bar');
+        // Set up notebook toggle on storyboard
+        const toggleBtn = document.getElementById('toggleNotebookBtn');
+        const closeBtn = document.getElementById('closeNotebookBtn');
+        const notebookSidebar = document.getElementById('notebookSidebar');
 
         if (toggleBtn && notebookSidebar) {
             toggleBtn.addEventListener('click', () => {
@@ -71,22 +65,21 @@ const UserProgressManager = {
         const xpElement = document.getElementById('userXP');
         const currencyContainer = document.getElementById('currencyBalances');
 
+        // Update notebook elements if they exist
+        const agentLevelElement = document.getElementById('agentLevel');
+        const agentXpElement = document.getElementById('agentXP');
+        const xpProgressBar = document.getElementById('xpProgressBar');
+
         if (levelElement) levelElement.textContent = this.currentLevel;
         if (xpElement) xpElement.textContent = this.currentXP;
-        
-        // Use NotebookManager to update the notebook if it exists
-        if (window.NotebookManager) {
-            const userData = {
-                protagonist_name: document.getElementById('agentName')?.textContent || 'Agent',
-                level: this.currentLevel,
-                experience_points: this.currentXP,
-                currency_balances: this.currentCurrency,
-                active_missions: [],  // This would be filled with actual mission data
-                character_relationships: {}  // This would be filled with actual relationship data
-            };
-            
-            window.NotebookManager.updateNotebook(userData);
-        }
+
+        // Update notebook progress display
+        if (agentLevelElement) agentLevelElement.textContent = this.currentLevel;
+        if (agentXpElement) agentXpElement.textContent = this.currentXP;
+        if (xpProgressBar) {
+            const xpPercentage = (this.currentXP % 100);
+            xpProgressBar.style.width = `${xpPercentage}%`;
+            xpProgressBar.textContent = `${xpPercentage}%`;
         }
 
         if (currencyContainer) {
