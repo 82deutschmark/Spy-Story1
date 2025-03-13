@@ -218,7 +218,7 @@ def generate_story(
             "   - A large reward in one of the game currencies (💵, 💷, 💶, 💴)\n"
             "   - A deadline or sense of urgency\n"
             "   - The mission should be central to the plot and referenced throughout the story\n"
-            "   - IMPORTANT: The mission giver should be different for different playthroughs. They reluctantly task you with missions targeting villains while reminding you not to screw up again.\n"
+            "   - IMPORTANT: The mission giver reluctantly tasks you with missions targeting villains while reminding you not to screw up again.\n"
             "9. Provides three meaningful choice options that MUST relate to the mission:\n"
             "   - One 'mission-advancing' choice: Clear progress on the primary objective\n"
             "   - One 'risky' choice: High risk/reward or possible mission failure\n"
