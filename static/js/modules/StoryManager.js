@@ -1,4 +1,3 @@
-
 /**
  * Story Generation Module
  * Handles story generation and choice processing
@@ -16,7 +15,7 @@ export default {
     generateStory(formData) {
         // Create loading overlay with percentage
         const loadingPercent = UIUtils.createLoadingOverlay('Generating your adventure...');
-        
+
         const generateStoryBtn = document.getElementById('generateStoryBtn');
         if (generateStoryBtn) {
             generateStoryBtn.disabled = true;
@@ -31,14 +30,36 @@ export default {
             }
         }, 500);
 
+        // Convert form data to JSON for the request
+        const jsonData = {};
+        formData.forEach((value, key) => {
+            if (key.endsWith('[]')) {
+                const actualKey = key.slice(0, -2);
+                if (!jsonData[actualKey]) {
+                    jsonData[actualKey] = [];
+                }
+                jsonData[actualKey].push(value);
+            } else {
+                jsonData[key] = value;
+            }
+        });
+
         return fetch('/generate_story', {
             method: 'POST',
-            body: formData,
             headers: {
+                'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
-            }
+            },
+            body: JSON.stringify(jsonData)
         })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || 'Failed to generate story');
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
                 clearInterval(progressInterval);
 
@@ -56,12 +77,12 @@ export default {
                 console.error('Error generating story:', error);
                 UIUtils.showToast('Error', error.message || 'Failed to generate story. Please try again.');
                 clearInterval(progressInterval);
-                
+
                 if (generateStoryBtn) {
                     generateStoryBtn.disabled = false;
                     generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
                 }
-                
+
                 UIUtils.removeLoadingOverlay(loadingPercent);
                 throw error;
             });
@@ -120,7 +141,7 @@ export default {
                             let errorMessage = isCustomChoice ?
                                 `Insufficient diamonds. Writing a custom choice costs 100 💎 but you only have ${data.current_balance} 💎.` :
                                 'Insufficient funds for this choice.';
-                    
+
                             throw new Error(errorMessage);
                         }
                         throw new Error(data.error || 'Failed to process choice');
