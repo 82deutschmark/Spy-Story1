@@ -10,7 +10,30 @@ import StoryManager from './modules/StoryManager.js';
 import MissionManager from './modules/MissionManager.js';
 import PaymentManager from './modules/PaymentManager.js';
 import EventHandlers from './modules/EventHandlers.js';
-import NotebookManager from './modules/NotebookManager.js';
+// Import modules - using dynamic import to ensure they load properly
+async function loadModules() {
+    try {
+        const NotebookManagerModule = await import('./modules/NotebookManager.js');
+        const NotebookManager = NotebookManagerModule.default;
+        
+        // Initialize notebook manager if we're on a page that uses it
+        if (document.getElementById('notebookSidebar')) {
+            const notebookManager = new NotebookManager();
+            notebookManager.initialize();
+            window.notebookManagerInstance = notebookManager;
+        }
+        
+        console.log("Modules loaded successfully");
+    } catch (error) {
+        console.error("Error loading modules:", error);
+    }
+}
+
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOM loaded, initializing modules...");
+    loadModules();
+});
 import UserProgressManager from './modules/UserProgressManager.js';
 
 
