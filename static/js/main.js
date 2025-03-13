@@ -28,4 +28,6 @@ window.App = {
 // Initialize the application when the DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     EventHandlers.initialize();
+    NotebookManager.initialize(); // Added NotebookManager initialization
+    UserProgressManager.initialize();// Added UserProgressManager initialization
 });
