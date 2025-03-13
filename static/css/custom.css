@@ -1,11 +1,6 @@
-/* Root CSS variables moved to theme.css */
-
-/* Character styles moved to character.css */
-
-/* Notebook styles moved to notebook.css */
-
-/* Import notebook.css only if not already imported in main.css */
-@import 'notebook.css';
+/* Custom.css - Core layout styles */
+/* Note: This file now uses a modular CSS system with component-specific styles moved to dedicated files in the components directory. */
+/* See main.css for the complete import structure */
 
 /* ==== Core Layout ==== */
 body {
@@ -34,23 +29,6 @@ body::before {
   padding: 1rem;
 }
 
-
-/* Loading Overlay */
-/* Loading overlay styles moved to loading.css */
-
-
-/* Plot arc styles */
-/* Plot arc styles moved to plot.css */
-
-
-/* Debug page styles moved to debug.css */
-
-/* Progress modal styles moved to modals.css */
-
-/* Story title and content styles moved to story.css */
-
-/* Choices styling moved to choices.css */
-
 /* Navigation */
 .navigation-area {
   margin-top: 1rem;
@@ -76,64 +54,7 @@ body::before {
   transform: translateY(-2px);
 }
 
-/* Media queries */
-@media (max-width: 768px) {
-    .character-select-container {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 15px;
-    }
-
-    .story-choice {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .story-cost {
-        margin-top: 10px;
-    }
-
-    .welcome-section {
-        padding: 1.5rem;
-    }
-
-    .mission-card {
-        padding: 1rem;
-    }
-}
-
-@media (min-width: 992px) {
-    .story-container {
-        grid-template-columns: minmax(300px, 1fr) 2fr;
-    }
-
-    .story-main-container {
-        flex-direction: row;
-        gap: 1.5rem;
-        align-items: flex-start;
-    }
-
-    .character-showcase { 
-        width: 40%; 
-        position: sticky; 
-        top: 1rem; 
-    }
-    .story-content-container { width: 60%; }
-}
-
-
-}
-
-/* Accordion styles moved to accordion.css */
-
-/* Form styles moved to forms.css */
-
-/* Pagination styles moved to pagination.css */
-
-/* Table styles moved to tables.css */
-
-/* Story content container styles moved to story.css */
-
-/* Character showcase */
+/* Character showcase - Consider moving to character.css in future refactoring */
 .character-showcase {
     display: flex;
     flex-direction: column;
@@ -185,51 +106,53 @@ body::before {
     opacity: 0.85;
 }
 
-/* Story text styles moved to story.css */
-
-/* Currency styles moved to currency.css */
-
-/* Modal styles moved to modals.css */
-
-/* Character info styles moved to character.css */
-
-
-/* Light theme modal styles moved to modals.css */
-
-/* Character mention styles moved to character.css */
-
-
-/* Story Container and Story Content styles moved to story.css */
-
-/* Story choices styles moved to choices.css */
-
-/* Character styles moved to character.css */
-
-/* Custom Choice Form styles moved to choices.css */
-
 /* Responsive Design */
+@media (max-width: 768px) {
+    .character-select-container {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+
+    .story-choice {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .story-cost {
+        margin-top: 10px;
+    }
+
+    .welcome-section {
+        padding: 1.5rem;
+    }
+
+    .mission-card {
+        padding: 1rem;
+    }
+}
+
 @media (min-width: 992px) {
-  .story-container {
-    grid-template-columns: minmax(300px, 1fr) 2fr;
-  }
+    .story-container {
+        grid-template-columns: minmax(300px, 1fr) 2fr;
+    }
 
-  .story-main-container {
-    flex-direction: row;
-    gap: 1.5rem;
-    align-items: flex-start;
-  }
+    .story-main-container {
+        flex-direction: row;
+        gap: 1.5rem;
+        align-items: flex-start;
+    }
 
-  .character-showcase { 
-    width: 40%; 
-    position: sticky; 
-    top: 1rem; 
-  }
-  .story-content-container { width: 60%; }
+    .character-showcase { 
+        width: 40%; 
+        position: sticky; 
+        top: 1rem; 
+    }
+    .story-content-container { width: 60%; }
 
-  .character-portrait-container,
-  .character-info-box {
-    max-width: 650px;
-  }
+    .character-portrait-container,
+    .character-info-box {
+        max-width: 650px;
+    }
 }
 
 @keyframes pulseBorder {
