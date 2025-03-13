@@ -38,6 +38,9 @@ This application allows users to generate interactive stories featuring images f
   - Fixed JavaScript syntax error in DebugAPI.js
     - Problem: Encountered "unexpected token async" error due to incorrect usage of static methods in object literal
     - Solution: Refactored the DebugAPI.js module to use proper JavaScript object pattern without static keyword and simplified API methods
+  - Fixed JavaScript module export and import errors in UserProgressManager.js and NotebookManager.js
+    - Problem: "Unexpected identifier 'scripts'" error in UserProgressManager.js and "NotebookManager is not a constructor" error
+    - Solution: Fixed export syntax in both modules, added proper DOM element null checks, and improved module import handling in main.js
   - Fixed debug image loading issues
     - Problem: Images not loading properly in the debug interface despite stories data loading correctly
     - Solution: Standardized API response handling and improved error detection in DataHandler.js and DebugAPI.js
@@ -347,6 +350,9 @@ The story universe is set in a high-stakes, sexy dramatic international world of
 - **Social Sharing**: Enable sharing of story moments on social media
 - **Audio Elements**: Add background music and sound effects for enhanced immersion
 - **Modular JavaScript Architecture**: Continue refining the ES6 module structure to prevent loading conflicts
+  - Ensure proper export/import syntax across all modules
+  - Add null checks for DOM elements before accessing them
+  - Use try/catch blocks when importing modules to handle potential import failures gracefully
 - **Unity Integration**: Complete the UI-agnostic game engine to enable smooth porting to Unity
 - **API Enhancements**: Expand the game API for better interoperability between platforms
 - **State Management**: Refine the state machine for more complex branching narratives
@@ -358,6 +364,13 @@ The story universe is set in a high-stakes, sexy dramatic international world of
   - Always ensure the frontend expectations match the backend API response structure
   - When debugging API interactions, check both the server-side response format and the client-side parsing logic
   - The "reroll character" feature was breaking because the client code expected a nested structure (`data.character`) while the API returned a flat structure with character properties directly in the root object
+
+- **ES6 Module Architecture Best Practices**:
+  - **Export Consistency**: Always use consistent export syntax (either default or named exports) in ES6 modules
+  - **DOM Element Access**: Add null checks before accessing DOM elements in modules to prevent "Cannot set properties of null" errors
+  - **Module Loading**: Implement robust module loading with try/catch blocks to handle import failures gracefully
+  - **Module Initialization**: Structure module initialization to accommodate missing DOM elements when a module might be used across different pages
+  - **Conditional Module Loading**: Use conditional checks to only initialize modules when needed elements are present in the DOM
 
 ## Credits
 
