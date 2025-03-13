@@ -35,26 +35,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     EventHandlers.initialize();
     
-    console.log("DOM loaded, initializing modules...");
-    
-    // Each module will initialize itself through the DOMContentLoaded event
-    // This is now handled in the module files themselves
-    
-    // Optionally connect modules that need to interact with each other
-    // For example, after UserProgressManager loads data, update the notebook
-    if (window.userProgressManagerInstance && window.notebookManagerInstance) {
-        const userProgressManager = window.userProgressManagerInstance;
-        const notebookManager = window.notebookManagerInstance;
-        
-        // When user progress data is loaded, update the notebook
-        const originalUpdateAgentDisplay = userProgressManager.updateAgentDisplay;
-        userProgressManager.updateAgentDisplay = function() {
-            originalUpdateAgentDisplay.call(userProgressManager);
-            if (notebookManager && userProgressManager.userData) {
-                notebookManager.updateNotebookContent(userProgressManager.userData);
-            }
-        };
-    }
+    // Let the class initialization handle itself in their respective module files
+    // This ensures modules are loaded consistently whether imported in main.js or loaded via script tags
 });
 
 // NOTE: The following features are described in the thinking section but not fully implemented in the provided changes:
