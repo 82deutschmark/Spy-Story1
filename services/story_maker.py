@@ -1,3 +1,4 @@
+
 import os
 import json
 import logging
@@ -121,29 +122,63 @@ def generate_story(
         raise ValueError("OpenAI API key not found. Please add it to your environment variables.")
 
     try:
-        # Build the main prompt
-        prompt = f"Primary Conflict: {custom_conflict or conflict}\n"
-        prompt += f"Setting: {custom_setting or setting}\n"
-        prompt += f"Narrative Style: {custom_narrative or narrative_style}\n"
-        prompt += f"Mood: {custom_mood or mood}\n\n"
+        # Get final values, using custom if provided
+        final_conflict = custom_conflict or conflict
+        final_setting = custom_setting or setting
+        final_narrative = custom_narrative or narrative_style
+        final_mood = custom_mood or mood
 
+        # Build system message - improved approach based on JS version
+        system_message = {
+            "role": "system",
+            "content": f"""You are a creative narrative generator for our spy-themed adventure game. 
+You create engaging interactive narratives in a {final_mood} tone with a {final_narrative} storytelling style.
+
+This game is set in the high-stakes world of international espionage, luxury, and intrigue. 
+Players take on missions, develop relationships with various characters, and navigate complex scenarios 
+where betrayal, romance, and action are common themes. The game tracks character relationships, 
+currency balances, and mission progress.
+
+Your narratives should be immersive, exciting, and offer meaningful choices that impact the story 
+and the player's status in the game world. Always maintain the selected mood and narrative style throughout.
+
+IMPORTANT FORMATTING INSTRUCTIONS:
+1. Your response MUST be valid JSON, following exactly the structure provided.
+2. Do not include any explanation, markdown formatting, code blocks, or additional text before or after the JSON.
+3. Make sure all keys and values in the JSON are properly quoted with double quotes.
+4. Ensure all arrays and objects are correctly closed.
+5. Avoid using unescaped special characters (like " or \\) within JSON strings.
+
+For initial story segments:
+1. Always introduce a character with the "mission-giver" role who assigns a mission to the player
+2. Ensure one of the three choices involves meeting/interacting with a character (to introduce potential future mission-givers)
+3. Structure the mission with a clear objective, target, reward, and deadline"""
+        }
+
+        # Build main prompt content
         protagonist_info = ""
         if protagonist_name and protagonist_gender:
             protagonist_info = f"You are {protagonist_name}, a {protagonist_gender} agent who is very charismatic, arrogant, and constantly receives romantic advances from practically everybody you meet. "
         else:
             protagonist_info = "You are a charismatic but reckless agent who constantly receives romantic advances from practically everybody you meet. "
 
-        universe_prompt = (
-            f"This is set in the high stakes sexy dramatic international world of business, espionage, luxury, and parties. {protagonist_info}"
-            "The world is mostly as we know it, but there is some future tech and many of the villains have powerful global properties. "
-            "The world is in a state of emergency, and you believe the only way to save it is to party hard, seduce as many people as possible, and have James Bond style adventures with crazy action scenes and gunfights, "
-            "involving more and more beautiful people and increasingly ridiculous scenarios and global settings.\n\n"
-            "All the characters are constantly betraying each other and seducing each other. The narrative should be told directly to the reader (using 'you'), be over-the-top, "
-            "with excessive action scenes, dramatic romantic encounters, and constant plot twists where allies become enemies and vice versa.\n\n"
-            "Each character has international connections and unique skills they use in increasingly absurd ways.\n\n"
-            "IMPORTANT: The story should begin with a mission giver character (any character with the 'mission-giver' role) giving the player a mission. This mission should be a central plot point. The mission giver should be different for different playthroughs. They reluctantly task you with missions targeting villains while reminding you not to screw up again. These missions offer currency rewards when completed."
-        )
+        # Construct main content prompt
+        content_prompt = f"""Create a story with:
+Conflict: {final_conflict}
+Setting: {final_setting}
+Narrative Style: {final_narrative}
+Mood: {final_mood}
+{f"Protagonist: {protagonist_name} ({protagonist_gender})" if protagonist_name else ""}
+{f"Previous Context: {story_context}" if story_context else ""}
+{f"Previous Choice: {previous_choice}" if previous_choice else ""}
 
+This is set in the high stakes sexy dramatic international world of business, espionage, luxury, and parties. {protagonist_info}
+The world is mostly as we know it, but there is some future tech and many of the villains have powerful global properties. 
+The world is in a state of emergency, and you believe the only way to save it is to party hard, seduce as many people as possible, and have James Bond style adventures with crazy action scenes and gunfights.
+
+Generate an engaging story segment with 3 choices."""
+
+        # Add character information if provided
         selected_character_prompt = ""
         if character_info and extract_character_name(character_info):
             traits = extract_character_traits(character_info)
@@ -163,6 +198,7 @@ def generate_story(
                 for plot in plot_lines:
                     selected_character_prompt += f"- {plot}\n"
 
+        # Add additional characters if provided
         additional_characters_prompt = ""
         if additional_characters and len(additional_characters) > 0:
             additional_characters_prompt = "\nAdditional Characters from Database (MUST INCLUDE AT LEAST ONE NEW CHARACTER):\n"
@@ -181,6 +217,7 @@ def generate_story(
                     f"  Traits: {traits_str}\n"
                 )
 
+        # Add previous choice context if any
         context_prompt = ""
         if story_context and previous_choice:
             is_custom_choice = previous_choice.startswith("Custom choice:")
@@ -199,131 +236,150 @@ def generate_story(
                     "Continue the story based on this choice, maintaining consistency with previous events."
                 )
 
-        prompt += (
-            f"{universe_prompt}\n"
+        # Build mission guidance
+        mission_prompt = """
+If this is the beginning of a story, ensure:
+1. IMPORTANT: The story MUST begin with a mission-giver character assigning a mission to the player with these components:
+   - A clear objective (steal an item, sabotage a plan, investigate a location, etc.)
+   - A specific target character who has the 'villain' role
+   - A large reward in one of the game currencies (💵, 💷, 💶, 💴)
+   - A deadline or sense of urgency
+   - The mission should be central to the plot and referenced throughout the story
+   - IMPORTANT: The mission giver reluctantly tasks you with missions targeting villains while reminding you not to screw up again.
+
+2. Provide three meaningful choice options that MUST relate to the mission:
+   - One 'mission-advancing' choice: Clear progress on the primary objective
+   - One 'risky' choice: High risk/reward or possible mission failure
+   - One 'alternative' choice: Indirect help, intel gathering, new allies, or a delay
+   - Each choice should have a cost in dollars (💵) starting at $500
+   - Choices should lead to different potential outcomes (each one should sound sexy and dangerous)
+"""
+
+        # Format request
+        format_prompt = """
+Format as JSON with:
+{
+  "title": "Episode title",
+  "story": "Story text with integrated mission assignment",
+  "choices": [
+    {
+      "text": "First choice related to the mission",
+      "consequence": "Brief outcome hint",
+      "currency_requirements": {"💵": 500},
+      "mission_impact": "Describe how this choice affects the mission (advancing it)",
+      "type": "mission-advancing"
+    },
+    {
+      "text": "Second choice with high risk/reward",
+      "consequence": "Possible danger or unexpected outcome",
+      "currency_requirements": {"💵": 750},
+      "mission_impact": "High risk impact on mission (potential failure or big success)",
+      "type": "risky"
+    },
+    {
+      "text": "Third choice, an alternative approach",
+      "consequence": "Outcome hint, like gaining allies or resources",
+      "currency_requirements": {"💵": 600},
+      "mission_impact": "Alternative path that may help indirectly",
+      "type": "alternative"
+    }
+  ],
+  "mission": {
+    "title": "Mission title",
+    "description": "Detailed mission description",
+    "giver": "Name of character who gave the mission",
+    "giver_id": "ID of the character who gave the mission",
+    "target": "Name of target character (villain)",
+    "target_id": "ID of target character",
+    "objective": "What the player must do",
+    "reward_currency": "Currency symbol (💎, 💵, etc.)",
+    "reward_amount": "Amount of reward",
+    "deadline": "Narrative deadline description",
+    "difficulty": "Easy, Medium, or Hard"
+  },
+  "characters": ["List of character names featured, including new characters"]
+}"""
+
+        # Combine all prompts
+        full_prompt = (
+            f"{content_prompt}\n"
             f"{selected_character_prompt}\n"
             f"{additional_characters_prompt}\n"
-            f"{context_prompt}\n\n"
-            "Create an engaging story introduction that:\n"
-            f"1. Features the reader as 'you' (second-person narrative) as the main story driver with {custom_narrative or narrative_style} narrative style\n"
-            "2. Introduces the selected character (if provided) into a complex international spy scenario\n"
-            "3. IMPORTANT: If plot lines are provided for the character, you MUST incorporate at least one into the story\n"
-            "4. " + (f"Since there are already {len(additional_characters) + (1 if character_info else 0)} characters in this story, only include a new character in choices if absolutely necessary for the plot" if len(additional_characters) + (1 if character_info else 0) >= 4 else
-                   "IMPORTANT: Include one new character from the database in the choices when needed") + "\n"
-            "5. Includes betrayal, romantic flings, and over-the-top action sequences\n"
-            "6. Uses the character's traits to guide their behavior and dialogue\n"
-            "7. CRITICAL: The story MUST begin with a mission-giver character assigning a mission to the player with these components:\n"
-            "   - A clear objective (steal an item, sabotage a plan, investigate a location, etc.)\n"
-            "   - A specific target character who has the 'villain' role\n"
-            "   - A large reward in one of the game currencies (💵, 💷, 💶, 💴)\n"
-            "   - A deadline or sense of urgency\n"
-            "   - The mission should be central to the plot and referenced throughout the story\n"
-            "   - IMPORTANT: The mission giver reluctantly tasks you with missions targeting villains while reminding you not to screw up again.\n"
-            "9. Provides three meaningful choice options that MUST relate to the mission:\n"
-            "   - One 'mission-advancing' choice: Clear progress on the primary objective\n"
-            "   - One 'risky' choice: High risk/reward or possible mission failure\n"
-            "   - One 'alternative' choice: Indirect help, intel gathering, new allies, or a delay\n"
-            "   - Lead to different potential outcomes (each one should sound sexy and dangerous)\n"
-            "   - Stay true to the characters' established traits\n"
-            "   - Relate to at least one of the plot lines or missions \n"
-            "   - IMPORTANT: One choice must allude to maybe needing outside help and introduce a new character from the database \n"
-            "   - REQUIRED: Each choice must have a dollar (💵) cost starting at $500, with increased costs for choices that: involve powerful characters, have higher risk/reward, include exotic locations, or advanced technology\n"
-            "   - Avoid dead ends but escalate the ridiculousness with each choice\n"
-            "10. Include clear consequences for each choice that involve romantic encounters, betrayal, or absurd action scenarios\n"
-            "11. If player has an active mission, reference it and potentially provide progress updates\n\n"
-            "Format the response as a JSON object with:\n"
-            "{\n"
-            "  'title': 'Episode title',\n"
-            "  'story': 'The story text with integrated mission assignment',\n"
-            "  'choices': [\n"
-            "    {\n"
-            "      'text': 'First choice related to the mission',\n"
-            "      'consequence': 'Brief outcome hint',\n"
-            "      'currency_requirements': {'💵': 500 + random.randint(0, min(1000, 200 * (protagonist_level or 1)))},\n"
-            "      'mission_impact': 'Describe how this choice affects the mission (advancing it)',\n"
-            "      'type': 'mission-advancing'\n"
-            "    },\n"
-            "    {\n"
-            "      'text': 'Second choice with high risk/reward',\n"
-            "      'consequence': 'Possible danger or unexpected outcome',\n"
-            "      'currency_requirements': {'💵': 750 + random.randint(0, min(1500, 300 * (protagonist_level or 1)))},\n"
-            "      'mission_impact': 'High risk impact on mission (potential failure or big success)',\n"
-            "      'type': 'risky'\n"
-            "    },\n"
-            "    {\n"
-            "      'text': 'Third choice, an alternative approach',\n"
-            "      'consequence': 'Outcome hint, like gaining allies or resources',\n"
-            "      'currency_requirements': {'💵': 600 + random.randint(0, min(1200, 250 * (protagonist_level or 1)))},\n"
-            "      'mission_impact': 'Alternative path that may help indirectly',\n"
-            "      'type': 'alternative'\n"
-            "    }\n"
-            "  ],\n"
-            "  'mission': {\n"
-            "    'title': 'Mission title',\n"
-            "    'description': 'Detailed mission description',\n"
-            "    'giver': 'Name of character who gave the mission',\n"
-            "    'giver_id': 'ID of the character who gave the mission',\n"
-            "    'target': 'Name of target character (villain)',\n"
-            "    'target_id': 'ID of target character',\n"
-            "    'objective': 'What the player must do',\n"
-            "    'reward_currency': 'Currency symbol (💎, 💵, etc.)',\n"
-            "    'reward_amount': 'Amount of reward',\n"
-            "    'deadline': 'Narrative deadline description',\n"
-            "    'difficulty': 'Easy, Medium, or Hard'\n"
-            "  },\n"
-            "  'characters': ['List of character names featured, including new characters']\n"
-            "}"
+            f"{context_prompt}\n"
+            f"{mission_prompt}\n"
+            f"{format_prompt}"
         )
 
-
-        logger.info("Making OpenAI API call...")
-        messages = [{"role": "user", "content": prompt}]
-
-        # If story_context exists, include previous context
-        if story_context:
-            messages.insert(1, {"role": "assistant", "content": f"Previous story context: {story_context}"})
-            if previous_choice:
-                messages.insert(2, {"role": "user", "content": f"Player chose: {previous_choice}"})
+        # Set up messages
+        messages = [
+            system_message,
+            {"role": "user", "content": full_prompt}
+        ]
 
         logger.debug(f"Sending messages to OpenAI: {json.dumps(messages, indent=2)}")
 
-        # Make the OpenAI API call
+        # Make the OpenAI API call with response_format parameter
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages,
             temperature=0.9,
-            max_tokens=5000
+            max_tokens=5000,
+            response_format={"type": "json_object"}  # Force JSON response format
         )
 
         logger.info("Successfully received response from OpenAI")
         logger.debug(f"Raw response content: {response.choices[0].message.content}")
 
-        # Parse the generated story
+        # Parse the generated story - with proper error handling
         try:
-            content = response.choices[0].message.content
-            if content:
-                json_match = re.search(r'(\{.*\})', content, re.DOTALL)
-                if json_match:
-                    content = json_match.group(1)
-                content = content.strip()
+            # The response should now be valid JSON without any need for regex extraction
+            content = response.choices[0].message.content.strip()
             result = json.loads(content)
 
             # Return formatted result
             formatted_result = {
                 "story": json.dumps(result),
-                "conflict": custom_conflict or conflict,
-                "setting": custom_setting or setting,
-                "narrative_style": custom_narrative or narrative_style,
-                "mood": custom_mood or mood
+                "conflict": final_conflict,
+                "setting": final_setting,
+                "narrative_style": final_narrative,
+                "mood": final_mood
             }
+            
+            logger.info("Successfully generated and formatted story")
+            logger.info("Exiting generate_story function")
+            return formatted_result
+            
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse OpenAI response as JSON: {str(e)}")
             logger.error(f"Raw response content: {response.choices[0].message.content}")
-            raise Exception(f"Failed to parse story: {str(e)}")
-
-        logger.info("Successfully generated and formatted story")
-        logger.info("Exiting generate_story function")
-        return formatted_result
+            
+            # Create a fallback story structure
+            fallback_result = {
+                "title": "Story Generation Error",
+                "story": "Our storyteller encountered an error. Please try again with different parameters.",
+                "choices": [
+                    {
+                        "text": "Try again",
+                        "consequence": "Start over with new options",
+                        "currency_requirements": {"💵": 0},
+                        "mission_impact": "None",
+                        "type": "retry"
+                    }
+                ],
+                "characters": []
+            }
+            
+            # Format and return fallback result
+            formatted_result = {
+                "story": json.dumps(fallback_result),
+                "conflict": final_conflict,
+                "setting": final_setting,
+                "narrative_style": final_narrative,
+                "mood": final_mood
+            }
+            
+            logger.info("Using fallback story structure due to parsing error")
+            return formatted_result
 
     except Exception as e:
         logger.error(f"Error generating story: {str(e)}", exc_info=True)
