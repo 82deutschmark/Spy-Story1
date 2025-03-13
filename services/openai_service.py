@@ -135,10 +135,9 @@ def analyze_artwork(image_url):
 
         # Make the API call
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4o-mini",
             messages=messages,
-            max_tokens=2000,
-            response_format={"type": "json_object"}
+            max_tokens=2000
         )
 
         # Parse the JSON response
