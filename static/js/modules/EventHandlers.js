@@ -31,6 +31,9 @@ export default {
 
         // Update choice buttons to show currency requirements
         this.setupChoiceCurrencyIndicators();
+
+        //Setup story choice submission
+        this.setupChoiceSubmission();
     },
 
     /**
@@ -380,6 +383,66 @@ export default {
 
                 button.parentNode.insertBefore(reqDiv, button.nextSibling);
             }
+        });
+    },
+
+    setupChoiceSubmission() {
+        // Delegate event listener for choice forms
+        document.addEventListener('submit', function(event) {
+            const choiceForm = event.target.closest('.choice-form');
+            if (!choiceForm) return; // Not a choice form
+
+            event.preventDefault();
+
+            // Create loading overlay
+            const loadingOverlay = UIUtils.createLoadingOverlay('Continuing your adventure...');
+            const loadingPercent = loadingOverlay.querySelector('.loading-percent');
+
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                if (progress < 90) {
+                    progress += 5;
+                    UIUtils.updateLoadingPercent(loadingPercent, progress);
+                }
+            }, 500);
+
+            // Validate form data before submitting
+            const formData = new FormData(choiceForm);
+            const previousChoice = formData.get('previous_choice');
+            const storyContext = formData.get('story_context');
+
+            if (!previousChoice || !storyContext) {
+                clearInterval(progressInterval);
+                if (loadingOverlay) {
+                    loadingOverlay.remove();
+                }
+                UIUtils.showToast('Error', 'Missing required story parameters. Please try again.');
+                return;
+            }
+
+            // Generate next part of the story
+            StoryManager.generateStory(formData)
+                .then(data => {
+                    clearInterval(progressInterval);
+
+                    if (data.success && data.redirect) {
+                        UIUtils.updateLoadingPercent(loadingPercent, 100);
+                        setTimeout(() => {
+                            window.location.href = data.redirect;
+                        }, 500);
+                    } else {
+                        throw new Error(data.error || 'Failed to generate story continuation');
+                    }
+                })
+                .catch(error => {
+                    console.error('Story generation failed:', error);
+                    UIUtils.showToast('Error', error.message || 'Failed to generate story. Please try again.');
+
+                    clearInterval(progressInterval);
+                    if (loadingOverlay) {
+                        loadingOverlay.remove();
+                    }
+                });
         });
     },
 
