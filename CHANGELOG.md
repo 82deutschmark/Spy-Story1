@@ -3,6 +3,25 @@
 
 This document tracks all significant database migrations and schema changes.
 
+## UI and Progress Tracking Improvements
+**Files:** 
+- `static/js/modules/UserProgressManager.js`
+- `static/css/components/story.css`
+- `static/css/components/notebook.css`
+- `static/css/custom.css`
+- `templates/storyboard.html`
+- `templates/index.html`
+**Date Added:** 2023
+**Purpose:** Enhanced user interface and improved player progress tracking
+**Changes:**
+- Fixed display of player progress in UI components
+- Improved UI scaling and responsive design across devices
+- Updated scene images to properly display as page backgrounds
+- Implemented collapsible accordion for Agent Notebook
+- Added character thumbnails with proper name captions in text
+- Enhanced mobile experience with responsive meta tags and sizing
+- Added Unity-compatible container classes for future portability
+
 ## Currency System Migration
 **File:** `migrations/add_currency_system.py`
 **Date Added:** 2023
