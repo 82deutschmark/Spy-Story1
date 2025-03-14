@@ -4,13 +4,6 @@ All notable changes to the Story Creator project will be documented in this file
 
 ## [Unreleased]
 
-### Improved
-- Enhanced storyboard page UI with better layout and styling
-- Improved readability for story content
-- Added responsive design improvements for better mobile experience
-- Enhanced character thumbnails panel with better visual organization
-- Improved choice buttons with clearer visual hierarchy
-
 ### Fixed
 - Fixed Flask-Admin integration by updating CharacterView to properly reflect Character model attributes
 - Removed references to deprecated ImageAnalysis model throughout the application 
