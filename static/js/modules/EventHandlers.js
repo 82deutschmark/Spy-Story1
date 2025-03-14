@@ -209,30 +209,21 @@ export default {
                 StoryManager.generateStory(formData)
                     .then(data => {
                         // Process the generated story
-                        // Make sure data contains the appropriate story structure
-                        if (data && !data.stories && data.story) {
-                            try {
-                                // Try to parse the story string if it's not already parsed
-                                if (typeof data.story === 'string') {
-                                    data.stories = JSON.parse(data.story);
-                                } else {
-                                    data.stories = data.story;
-                                }
-                            } catch (e) {
-                                console.error('Error parsing story data:', e);
-                            }
+                        if (data.redirect) {
+                            // Redirect to the new story page
+                            window.location.href = data.redirect;
+                        } else {
+                            console.log('Story generated successfully:', data);
+                            UIUtils.toggleLoadingOverlay(false);
                         }
-
-                        StoryManager.generateStory(data)
-                            .then(() => {
-                                // Success - UI updates handled in StoryManager
-                            })
-                            .catch(error => {
-                                console.error('Story generation failed:', error);
-                            });
                     })
                     .catch(error => {
                         console.error('Story generation failed:', error);
+                        UIUtils.toggleLoadingOverlay(false);
+                        
+                        // Display more specific error message
+                        const errorMessage = error.message || 'Failed to generate story';
+                        UIUtils.showNotification(errorMessage, 'error');
                     });
             });
         }

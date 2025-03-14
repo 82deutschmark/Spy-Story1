@@ -31,7 +31,8 @@ export default {
             let jsonData;
             if (formData instanceof FormData) {
                 jsonData = {};
-                formData.forEach((value, key) => {
+                // Create an object from FormData
+                for (const [key, value] of formData.entries()) {
                     // Handle array fields (like selected_images[])
                     if (key.endsWith('[]')) {
                         const actualKey = key.slice(0, -2); // Remove [] suffix
@@ -42,11 +43,10 @@ export default {
                     } else {
                         jsonData[key] = value;
                     }
-                });
+                }
             } else {
                 jsonData = formData;
             }
-
 
             // Log the data being sent
             console.log('Sending story generation data:', jsonData);
@@ -99,6 +99,11 @@ export default {
             .then(data => {
                 clearInterval(progressInterval);
                 UIUtils.updateLoadingPercent(loadingPercent, 100);
+
+                // Handle a successful redirect response
+                if (data.success && data.redirect) {
+                    return data;
+                }
 
                 if (!data || (data.error && !data.success)) {
                     throw new Error(data.error || 'Invalid story data received');
