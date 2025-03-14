@@ -1,3 +1,9 @@
+"""
+Base Character Model
+Stores core character information and attributes.
+Character evolution/progression is handled by CharacterEvolution in character.py
+"""
+
 from models.base import db
 from sqlalchemy.dialects.postgresql import JSONB
 from .stories import story_characters

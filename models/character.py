@@ -1,4 +1,10 @@
 
+"""
+Character Evolution Model
+Tracks how characters change and develop through user stories.
+Works in conjunction with the base Character model from character_data.py
+"""
+
 from datetime import datetime
 from .base import db
 from sqlalchemy.dialects.postgresql import JSONB
