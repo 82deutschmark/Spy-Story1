@@ -2,6 +2,12 @@
 
 All notable changes to the Story Creator project will be documented in this file.
 
+
+- Enhanced storyboard page styling for dynamically generated pages:
+  - Improved styling for story buttons and content area.
+  - Updated `story.css` for better visual alignment.
+  - Adjustments to HTML templates to match new style requirements.
+
 ## [Unreleased]
 
 ### Fixed
