@@ -51,7 +51,8 @@ def get_random_scene_background():
 
     except Exception as e:
         logger.error(f"Error getting random scene background: {str(e)}")
-        return None
+        # Return a default or fallback image URL if the above fails
+        return "/static/images/default-background.jpg"
 
 @main_bp.route('/')
 def index():
@@ -128,9 +129,8 @@ def storyboard(story_id):
             continue
 
         # Look for this character in the database
-        character_img = ImageAnalysis.query.filter(
-            ImageAnalysis.image_type == 'character',
-            ImageAnalysis.character_name.ilike(f'%{character_name}%')
+        character_img = Character.query.filter(
+            Character.character_name.ilike(f'%{character_name}%')
         ).first()
 
         if character_img:
