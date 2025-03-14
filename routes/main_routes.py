@@ -63,14 +63,21 @@ def index():
     characters = Character.query.order_by(db.func.random()).limit(2).all()
     character_data = []
     for char in characters:
-        character_data.append({
+        # Ensure we're using standardized role values
+        role = char.character_role or 'neutral'
+        if role.lower() not in ['villain', 'neutral', 'mission-giver', 'undetermined']:
+            role = 'neutral'
+
+        char_data = {
             'id': char.id,
             'image_url': char.image_url,
             'name': char.character_name,
             'story': char.description or '',
             'character_traits': char.character_traits or [],
-            'plot_lines': char.plot_lines or []
-        })
+            'plot_lines': char.plot_lines or [],
+            'character_role': role
+        }
+        character_data.append(char_data)
 
     return render_template(
         'index.html',
@@ -258,9 +265,14 @@ def generate_story_route():
         # This avoids any unnecessary API calls for image analysis
         character_info = []
         for char in selected_characters:
+            # Ensure we're using standardized role values
+            role = char.character_role or 'neutral'
+            if role.lower() not in ['villain', 'neutral', 'mission-giver', 'undetermined']:
+                role = 'neutral'
+
             char_data = {
                 'name': char.character_name,
-                'role': char.character_role or 'protagonist',
+                'role': role,
                 'character_traits': char.character_traits or [],
                 'style': 'A mysterious character',  # Default description if none exists
                 'plot_lines': char.plot_lines or []
@@ -281,11 +293,15 @@ def generate_story_route():
             .all()  # Only get characters with names
 
         for char in additional_chars_query:
-            # Use only data already in the database, no analysis needed
+            # Ensure we're using standardized role values 
+            role = char.character_role or 'neutral'
+            if role.lower() not in ['villain', 'neutral', 'mission-giver', 'undetermined']:
+                role = 'neutral'
+
             char_data = {
                 'name': char.character_name or 'Unknown Character',
                 'character_traits': char.character_traits or [],
-                'role': char.character_role or 'neutral',
+                'role': role,
                 'plot_lines': char.plot_lines or []
             }
             additional_characters.append(char_data)
