@@ -1,3 +1,4 @@
+
 # Models package
 
 from .base import db
@@ -5,7 +6,8 @@ from .currency import Currency, Transaction
 from .scene_images import SceneImages
 from .stories import StoryGeneration, story_images, StoryNode, StoryChoice
 from .user import UserProgress
-from .character import CharacterEvolution, Character
+from .character_data import Character
+from .character import CharacterEvolution
 from .missions import Mission
 from .achievements import Achievement
 from .plot import PlotArc
