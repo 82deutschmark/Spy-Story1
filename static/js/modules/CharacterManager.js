@@ -74,7 +74,7 @@ const CharacterManager = {
     /**
      * Initialize the character interactions
      */
-    init() {
+    initialize() {
         console.log('Character manager initialized');
         this.setupCharacterSelection();
     },
@@ -164,5 +164,9 @@ export default CharacterManager;
 // Initialize on page load if we're not in an ES module context
 if (typeof window !== 'undefined') {
     window.CharacterManager = CharacterManager;
-    document.addEventListener('DOMContentLoaded', () => CharacterManager.initialize());
+    document.addEventListener('DOMContentLoaded', () => {
+        if (CharacterManager && CharacterManager.initialize) {
+            CharacterManager.initialize();
+        }
+    });
 }
