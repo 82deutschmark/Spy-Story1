@@ -1,6 +1,6 @@
 from models.base import db
 from models.currency import Currency, Transaction
-from models.images import ImageAnalysis
+from models.character import Character
 from models.stories import StoryGeneration, story_images, StoryNode, StoryChoice
 from models.user import UserProgress
 from models.character import CharacterEvolution
@@ -14,7 +14,7 @@ from models.ai import AIInstruction
 __all__ = [
     'db',
     'Currency', 'Transaction',
-    'ImageAnalysis', 
+    'Character',
     'StoryGeneration', 'story_images', 'StoryNode', 'StoryChoice',
     'UserProgress',
     'CharacterEvolution',

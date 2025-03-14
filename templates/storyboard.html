@@ -131,17 +131,17 @@
 
     <div class="story-main-container">
         <!-- Character Thumbnails -->
-    <div class="character-thumbnails-panel">
-        <h4 class="text-center mb-3">Characters</h4>
-        <div class="character-thumbnails-grid">
-            {% for char in character_images %}
-            <div class="character-thumbnail" data-character-name="{{ char.name|lower|replace(' ', '-') }}">
-                <img src="{{ char.image_url }}" alt="{{ char.name }}" class="character-thumbnail-img">
-                <div class="character-thumbnail-name">{{ char.name }}</div>
+        <div class="character-thumbnails-panel">
+            <h4 class="text-center mb-3">Characters</h4>
+            <div class="character-thumbnails-grid">
+                {% for char in story.characters %}
+                <div class="character-thumbnail" data-character-name="{{ char.character_name|lower|replace(' ', '-') }}">
+                    <img src="{{ char.image_url }}" alt="{{ char.character_name }}" class="character-thumbnail-img">
+                    <div class="character-thumbnail-name">{{ char.character_name }}</div>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
-    </div>
 
         <!-- Story Content -->
         <div class="story-content-container">
