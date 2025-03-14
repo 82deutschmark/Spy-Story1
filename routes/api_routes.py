@@ -98,16 +98,18 @@ def get_user_progress():
                 'create_new': True
             })
 
-        # Return user progress data
+        # Return user progress data with proper null handling for all required fields
         return jsonify({
             'success': True,
             'user_progress': {
                 'user_id': user_progress.user_id,
                 'level': user_progress.level,
                 'experience_points': user_progress.experience_points,
-                'currency_balances': user_progress.currency_balances,
-                'active_missions': user_progress.active_missions,
-                'encountered_characters': user_progress.encountered_characters,
+                'currency_balances': user_progress.currency_balances or {},
+                'active_missions': user_progress.active_missions or [],
+                'completed_plot_arcs': user_progress.completed_plot_arcs if hasattr(user_progress, 'completed_plot_arcs') else [],
+                'choice_history': user_progress.choice_history if hasattr(user_progress, 'choice_history') else [],
+                'encountered_characters': user_progress.encountered_characters or {},
                 'current_story_id': user_progress.current_story_id
             }
         })

@@ -79,11 +79,19 @@ class UserProgressManager {
                 return response.json();
             })
             .then(data => {
-                if (data.success) {
+                console.log("User progress data received:", data);
+                if (data.success && data.user_progress) {
                     this.userData = data.user_progress;
+                    // Ensure all required fields exist
+                    if (!this.userData.currency_balances) this.userData.currency_balances = {};
+                    if (!this.userData.active_missions) this.userData.active_missions = [];
+                    if (!this.userData.completed_plot_arcs) this.userData.completed_plot_arcs = [];
+                    if (!this.userData.choice_history) this.userData.choice_history = [];
+                    if (!this.userData.encountered_characters) this.userData.encountered_characters = {};
+                    
                     this.updateAgentDisplay();
                     this.showNotification(`Agent ${codename} loaded successfully!`, 'success');
-                } else {
+                } else if (data.create_new || !data.success) {
                     // If no existing data but valid response, we'll create a new agent
                     this.userData = {
                         level: 1,
@@ -95,6 +103,10 @@ class UserProgressManager {
                             "💴": 5000,
                             "💵": 5000,
                         },
+                        active_missions: [],
+                        completed_plot_arcs: [],
+                        choice_history: [],
+                        encountered_characters: {},
                         is_new: true
                     };
                     this.updateAgentDisplay();
