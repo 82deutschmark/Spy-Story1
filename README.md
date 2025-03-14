@@ -201,7 +201,7 @@ This application allows users to generate interactive stories featuring images f
     - Made all component styles reusable across the application
 
 - **Database Schema Fixes**:
-  - Fixed critical database column issues in the image_analysis table
+  - Fixed critical database column issues in the character table
   - Added missing columns: role, potential_plot_lines, backstory, description
   - Created database migration scripts to handle schema updates
   - Implemented data synchronization between duplicate fields

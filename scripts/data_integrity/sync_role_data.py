@@ -5,6 +5,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app import app
 from database import db
+from models.character_data import Character
 import logging
 
 # Configure logging

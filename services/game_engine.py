@@ -165,8 +165,12 @@ class GameEngine:
 
             # If character provided, add to story relationships
             if character_id and character:
-                story.characters.append(character)
-                db.session.commit()
+                # Make sure we're using the Character model from character_data.py
+                from models.character_data import Character
+                character_obj = Character.query.get(character_id)
+                if character_obj:
+                    story.characters.append(character_obj)
+                    db.session.commit()
 
             # Reload game state with new data
             game_state.reload_state()
