@@ -47,8 +47,8 @@ def test_character_queries():
             
         # Test 4: Check routes to see if they're properly using the Character model
         from routes.main_routes import main_bp
-        route_functions = [r.endpoint for r in main_bp.routes]
-        logger.info(f"Main blueprint routes: {route_functions}")
+        # Flask blueprints use .route decorator, not .routes attribute
+        logger.info(f"Checking routes in {main_bp.name} blueprint")
         
         # Test 5: Look for specific code patterns in main_routes.py that use Character model
         import inspect
