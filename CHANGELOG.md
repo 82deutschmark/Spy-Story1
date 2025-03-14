@@ -4,6 +4,12 @@
 ### Security
 - Removed debug tools access from main interface for improved security
 
+### Database
+- Migrated from ImageAnalysis table to new Characters table
+- Updated CharacterEvolution model to reference new Characters table
+- Fixed database relationships and foreign key constraints
+- Ensured proper character role standardization across the system
+
 ### Improved
 - Enhanced story generation service with more detailed prompts and narrative guidance
 - Increased story segment length and detail with improved system and content prompts
