@@ -1,6 +1,17 @@
-# CHANGELOG
+# Changelog
 
-## [Unreleased] - 2023-xx-xx
+All notable changes to the Story Creator project will be documented in this file.
+
+## [Unreleased]
+
+### Fixed
+- Fixed Flask-Admin integration by updating CharacterView to properly reflect Character model attributes
+- Removed references to deprecated ImageAnalysis model throughout the application 
+- Updated unity_routes.py to use SceneImages instead of ImageAnalysis
+- Updated debug_routes.py to use SceneImages model
+- Fixed mission_generator.py to use SceneImages model
+- Updated remaining service files to use new model structure
+
 ### Security
 - Removed debug tools access from main interface for improved security
 

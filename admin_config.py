@@ -35,7 +35,6 @@ class CharacterView(BaseModelView):
     column_labels = {
         'character_name': 'Name',
         'character_role': 'Role',
-        'image_type': 'Type',
         'image_url': 'Image URL',
         'created_at': 'Created'
     }
@@ -46,19 +45,16 @@ class CharacterView(BaseModelView):
     }
     
     # Customize the displayed columns
-    column_list = ['id', 'image_type', 'character_name', 'character_role', 'image_url', 'created_at']
+    column_list = ['id', 'character_name', 'character_role', 'image_url', 'created_at']
     
     # Columns to display in the edit form
     form_columns = [
-        'image_url', 
-        'image_type',
+        'image_url',
         'character_name', 
         'character_role',
         'character_traits', 
         'description',
-        'backstory',
-        'setting',
-        'setting_description'
+        'backstory'
     ]
     
     # Create template for displaying images
