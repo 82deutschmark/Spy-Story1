@@ -406,7 +406,7 @@ Format as JSON with:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages,
-            temperature=0.05,  # Ranges from 0 to 2, higher creates weirder responses, 1.4 is unusable, 1.05 is a little odd, 0.1 is very dull 
+            temperature=0.95,  # Ranges from 0 to 2, higher creates weirder responses, 1.4 is unusable, 1.05 is a little odd, 0.1 is very dull 
             max_tokens=14000,    # Increased token limit for longer responses
             response_format={"type": "json_object"}  # Force JSON response format
         )
