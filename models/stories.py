@@ -38,8 +38,8 @@ class StoryNode(db.Model):
     """Model for storing individual story nodes in the branching narrative"""
     id = db.Column(db.Integer, primary_key=True)
     narrative_text = db.Column(db.Text, nullable=False)
-    image_id = db.Column(db.Integer, db.ForeignKey('image_analysis.id'))
-    character_id = db.Column(db.Integer, db.ForeignKey('characters.id'))  # New reference to Character
+    image_id = db.Column(db.Integer)  # Legacy column, should be phased out
+    character_id = db.Column(db.Integer, db.ForeignKey('characters.id'))  # Character reference
     is_endpoint = db.Column(db.Boolean, default=False)
     generated_by_ai = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -47,10 +47,7 @@ class StoryNode(db.Model):
     branch_metadata = db.Column(JSONB)  # Store branch-specific metadata
     parent_node_id = db.Column(db.Integer, db.ForeignKey('story_node.id'))  # Track story hierarchy
 
-    # Relationship with ImageAnalysis (legacy)
-    image = db.relationship('ImageAnalysis')
-
-    # Relationship with Character (new)
+    # Relationship with Character
     character = db.relationship('Character')
 
     # Relationship with Achievement
