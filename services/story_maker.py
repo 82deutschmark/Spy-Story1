@@ -131,16 +131,24 @@ def generate_story(
         # Build system message - improved approach based on JS version
         system_message = {
             "role": "system",
-            "content": f"""You are a creative narrative generator for our spy-themed adventure game. 
-You create engaging interactive narratives in a {final_mood} tone with a {final_narrative} storytelling style.
+            "content": f"""You are a master narrative generator for our spy-themed adventure game. 
+Create highly detailed, layered narratives in a {final_mood} tone with a {final_narrative} storytelling style.
 
 This game is set in the high-stakes world of international espionage, luxury, and intrigue. 
 Players take on missions, develop relationships with various characters, and navigate complex scenarios 
 where betrayal, romance, and action are common themes. The game tracks character relationships, 
 currency balances, and mission progress.
 
-Your narratives should be immersive, exciting, and offer meaningful choices that impact the story 
-and the player's status in the game world. Always maintain the selected mood and narrative style throughout.
+NARRATIVE STYLE GUIDELINES:
+1. Create LENGTHY, DETAILED story segments (at least 800-1000 words) with rich descriptions
+2. Use vivid sensory details, atmospheric descriptions, and character development
+3. Each segment should advance the plot significantly with unexpected twists or revelations
+4. Include multiple scenes within each story segment when appropriate
+5. Incorporate dynamic character interactions with dialogue that reveals personality
+6. Balance action, dialogue, intrigue, and character development
+7. If this is a continuation, reference previous events and choices to maintain continuity
+8. Never repeat the same scenarios, locations, or dialogue patterns
+9. Create a sense of escalating stakes and tension throughout the narrative
 
 IMPORTANT FORMATTING INSTRUCTIONS:
 1. Your response MUST be valid JSON, following exactly the structure provided.
@@ -152,7 +160,13 @@ IMPORTANT FORMATTING INSTRUCTIONS:
 For initial story segments:
 1. Always introduce a character with the "mission-giver" role who assigns a mission to the player
 2. Ensure one of the three choices involves meeting/interacting with a character (to introduce potential future mission-givers)
-3. Structure the mission with a clear objective, target, reward, and deadline"""
+3. Structure the mission with a clear objective, target, reward, and deadline
+
+For continuation segments:
+1. Reference previous events to maintain continuity
+2. Introduce new complications, challenges, or opportunities
+3. Develop existing character relationships while potentially introducing new characters
+4. Avoid repeating the same narrative patterns from previous segments"""
         }
 
         # Build main prompt content
@@ -163,20 +177,32 @@ For initial story segments:
             protagonist_info = "You are a charismatic but reckless agent who constantly receives romantic advances from practically everybody you meet. "
 
         # Construct main content prompt
-        content_prompt = f"""Create a story with:
+        content_prompt = f"""Create a DETAILED, EXTENSIVE story segment with:
 Conflict: {final_conflict}
 Setting: {final_setting}
 Narrative Style: {final_narrative}
 Mood: {final_mood}
-{f"Protagonist: {protagonist_name} ({protagonist_gender})" if protagonist_name else ""}
+{f"Protagonist: {protagonist_name} ({protagonist_gender}, Level {protagonist_level})" if protagonist_name else ""}
 {f"Previous Context: {story_context}" if story_context else ""}
 {f"Previous Choice: {previous_choice}" if previous_choice else ""}
 
-This is set in the high stakes sexy dramatic international world of business, espionage, luxury, and parties. {protagonist_info}
-The world is mostly as we know it, but there is some future tech and many of the villains have powerful global properties. 
-The world is in a state of emergency, and you believe the only way to save it is to party hard, seduce as many people as possible, and have James Bond style adventures with crazy action scenes and gunfights.
+WORLD BACKGROUND:
+This is set in the high-stakes, sexy, dramatic international world of business, espionage, luxury, and parties. {protagonist_info}
+The world is mostly as we know it, but features advanced technology like holographic disguises, neural implants, satellite surveillance networks, and experimental weapons. Many villains control vast global empires with private armies and cutting-edge technology.
+The world faces multiple crises - climate catastrophes, economic collapse, political instability, and secret wars between shadow organizations. You believe the only way to save it is to party hard, seduce strategic contacts, and undertake James Bond-style missions with elaborate infiltrations, thrilling chase sequences, and intense gunfights.
 
-Generate an engaging story segment with 3 choices."""
+IMPORTANT NARRATIVE REQUIREMENTS:
+1. Write a SUBSTANTIAL narrative (at least 800-1000 words) with multiple scenes when appropriate
+2. Include vivid descriptions of locations, characters, and actions
+3. Feature sophisticated dialogue that reveals character motivations and relationships
+4. Incorporate sensory details that bring the setting to life
+5. Include at least one dramatic action sequence or tense confrontation
+6. Blend elements of suspense, romance, and danger throughout
+7. If this is a continuation, meaningfully advance the plot based on previous choices
+8. Avoid reusing scenarios, dialogue patterns, or narrative structures from previous segments
+9. Each choice should lead to significantly different narrative paths
+
+Generate an engaging, detailed story segment with 3 distinct choices that offer meaningful narrative branches."""
 
         # Add character information if provided
         selected_character_prompt = ""
@@ -184,24 +210,36 @@ Generate an engaging story segment with 3 choices."""
             traits = extract_character_traits(character_info)
             plot_lines = extract_plot_lines(character_info)
             style = extract_character_style(character_info)
+            char_name = extract_character_name(character_info)
+            char_role = extract_character_role(character_info)
 
             selected_character_prompt = (
-                f"\nSelected Character to Feature:\n"
-                f"Name: {extract_character_name(character_info)}\n"
-                f"Role: {extract_character_role(character_info)}\n"
+                f"\nFEATURED CHARACTER - INTEGRATE DEEPLY INTO THE NARRATIVE:\n"
+                f"Name: {char_name}\n"
+                f"Role: {char_role}\n"
                 f"Traits: {', '.join(traits)}\n"
                 f"Visual Description: {style}\n"
             )
 
+            # Add character development instructions
+            selected_character_prompt += (
+                f"\nCHARACTER DEVELOPMENT INSTRUCTIONS FOR {char_name.upper()}:\n"
+                f"1. Show this character's personality through actions, dialogue, and decisions\n"
+                f"2. Reveal deeper aspects of their background and motivations\n"
+                f"3. Create meaningful interactions between this character and the protagonist\n"
+                f"4. Establish or develop a dynamic relationship (alliance, rivalry, romance, etc.)\n"
+                f"5. Demonstrate how this character's unique traits influence the narrative\n"
+            )
+
             if plot_lines:
-                selected_character_prompt += f"Suggested Plot Lines (MUST USE AT LEAST ONE):\n"
+                selected_character_prompt += f"PLOT LINES (INTEGRATE AT LEAST ONE INTO THE NARRATIVE):\n"
                 for plot in plot_lines:
                     selected_character_prompt += f"- {plot}\n"
 
         # Add additional characters if provided
         additional_characters_prompt = ""
         if additional_characters and len(additional_characters) > 0:
-            additional_characters_prompt = "\nAdditional Characters from Database (MUST INCLUDE AT LEAST ONE NEW CHARACTER):\n"
+            additional_characters_prompt = "\nSECONDARY CHARACTERS - INCORPORATE AT LEAST ONE INTO THE NARRATIVE:\n"
             for char in additional_characters:
                 char_traits = extract_character_traits(char)
                 if isinstance(char_traits, str):
@@ -215,6 +253,7 @@ Generate an engaging story segment with 3 choices."""
                     f"- Name: {char_name}\n"
                     f"  Role: {char_role}\n"
                     f"  Traits: {traits_str}\n"
+                    f"  Suggested Usage: Include in a meaningful scene that showcases their personality\n"
                 )
 
         # Add previous choice context if any
@@ -224,35 +263,64 @@ Generate an engaging story segment with 3 choices."""
 
             if is_custom_choice:
                 context_prompt = (
-                    f"\nPrevious story context: {story_context}\n"
-                    f"Player entered a custom choice: {previous_choice[14:].strip()}\n"
-                    "Continue the story based on this custom input from the player, treating it as a direct action or decision made by the protagonist. "
-                    "Be creative and incorporate their specific input naturally into the story flow, maintaining consistency with previous events."
+                    f"\nNARRATIVE CONTINUATION CONTEXT:\n"
+                    f"Previous story summary: {story_context[:300]}...\n"
+                    f"Player entered a custom choice: {previous_choice[14:].strip()}\n\n"
+                    "CONTINUATION INSTRUCTIONS:\n"
+                    "1. Treat the player's custom input as a direct action or decision made by the protagonist\n"
+                    "2. Build directly from this choice to create a NEW narrative direction\n" 
+                    "3. Use this choice as a catalyst for significant plot development\n"
+                    "4. Introduce new complications or opportunities stemming from this decision\n"
+                    "5. Avoid repeating narrative elements from the previous segment\n"
+                    "6. Show immediate and potential long-term consequences of this choice\n"
                 )
             else:
                 context_prompt = (
-                    f"\nPrevious story context: {story_context}\n"
-                    f"Player chose: {previous_choice}\n"
-                    "Continue the story based on this choice, maintaining consistency with previous events."
+                    f"\nNARRATIVE CONTINUATION CONTEXT:\n"
+                    f"Previous story summary: {story_context[:300]}...\n"
+                    f"Player chose: {previous_choice}\n\n"
+                    "CONTINUATION INSTRUCTIONS:\n"
+                    "1. Build directly upon this choice with NEW narrative developments\n"
+                    "2. Avoid repeating scenarios, dialogue patterns, or story beats from previous segments\n"
+                    "3. Move the plot forward significantly with this continuation\n"
+                    "4. Introduce unexpected consequences or developments from this choice\n"
+                    "5. Deepen character relationships and advance any mission objectives\n"
+                    "6. If appropriate, introduce a new complication, character, or location\n"
                 )
 
         # Build mission guidance
         mission_prompt = """
-If this is the beginning of a story, ensure:
-1. IMPORTANT: The story MUST begin with a mission-giver character assigning a mission to the player with these components:
-   - A clear objective (steal an item, sabotage a plan, investigate a location, etc.)
-   - A specific target character who has the 'villain' role
-   - A large reward in one of the game currencies (💵, 💷, 💶, 💴)
-   - A deadline or sense of urgency
-   - The mission should be central to the plot and referenced throughout the story
-   - IMPORTANT: The mission giver reluctantly tasks you with missions targeting villains while reminding you not to screw up again.
+MISSION FRAMEWORK INSTRUCTIONS:
 
-2. Provide three meaningful choice options that MUST relate to the mission:
-   - One 'mission-advancing' choice: Clear progress on the primary objective
-   - One 'risky' choice: High risk/reward or possible mission failure
-   - One 'alternative' choice: Indirect help, intel gathering, new allies, or a delay
-   - Each choice should have a cost in dollars (💵) starting at $500
-   - Choices should lead to different potential outcomes (each one should sound sexy and dangerous)
+If this is the beginning of a story, ensure:
+1. IMPORTANT: The story MUST begin with a detailed mission briefing scene where a mission-giver character assigns a mission to the player with these components:
+   - A clear, specific objective (steal a prototype, sabotage a weapons system, infiltrate a secure facility, etc.)
+   - A compelling target character who has the 'villain' role with detailed background
+   - A substantial reward in one of the game currencies (💵, 💷, 💶, 💴)
+   - A deadline with serious consequences for failure
+   - Detailed mission parameters, challenges, and potential complications
+   - IMPORTANT: The mission giver should have a complex attitude - they reluctantly task you with missions while expressing doubts about your reliability, referencing your past failures or unprofessional methods, yet acknowledging your unique skills
+
+2. The mission briefing should include:
+   - Rich environmental descriptions of the briefing location
+   - Character development through dialogue and interactions
+   - Background information on why this mission is critical
+   - Personal stakes for both the mission-giver and protagonist
+   - Technical details or intelligence relevant to the mission
+
+3. Provide three sophisticated choice options that:
+   - Offer genuinely different approaches to the mission
+   - Reflect different aspects of the protagonist's character
+   - Have distinct risk/reward profiles
+   - Connect to the mission in meaningful ways
+   - Each choice should have a cost in dollars (💵) ranging from $500-$1500 based on potential value
+   - Each choice should offer a compelling and sexy/dangerous description
+
+If this is a continuation segment:
+1. Reference the mission objectives and progress
+2. Introduce new complications or developments related to the mission
+3. Ensure the narrative advances the mission in some way
+4. Maintain the tension and stakes established in the mission briefing
 """
 
         # Format request
@@ -318,12 +386,12 @@ Format as JSON with:
 
         logger.debug(f"Sending messages to OpenAI: {json.dumps(messages, indent=2)}")
 
-        # Make the OpenAI API call with response_format parameter
+        # Make the OpenAI API call with response_format parameter - increased token limit and adjusted temperature
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages,
-            temperature=0.9,
-            max_tokens=5000,
+            temperature=0.85,  # Slightly reduced for more coherent narratives while still maintaining creativity
+            max_tokens=8000,    # Increased token limit for longer responses
             response_format={"type": "json_object"}  # Force JSON response format
         )
 
