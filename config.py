@@ -18,6 +18,10 @@ class Config:
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
     LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 
+    # Flask-Admin settings
+    FLASK_ADMIN_SWATCH = 'cerulean'
+    ADMIN_URL_PREFIX = '/admin'
+
 
 class DevelopmentConfig(Config):
     """Development configuration"""

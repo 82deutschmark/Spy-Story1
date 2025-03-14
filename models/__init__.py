@@ -1,9 +1,10 @@
+
 # Models package
 
 from .base import db
 from .currency import Currency, Transaction
 from .scene_images import SceneImages
-from .stories import StoryGeneration, StoryNode, StoryChoice
+from .stories import StoryGeneration, story_images, StoryNode, StoryChoice
 from .user import UserProgress
 from .character_data import Character
 from .character import CharacterEvolution
@@ -19,7 +20,7 @@ __all__ = [
     'Currency', 'Transaction',
     'Character',
     'SceneImages',
-    'StoryGeneration', 'StoryNode', 'StoryChoice',
+    'StoryGeneration', 'story_images', 'StoryNode', 'StoryChoice',
     'UserProgress',
     'CharacterEvolution',
     'Mission',

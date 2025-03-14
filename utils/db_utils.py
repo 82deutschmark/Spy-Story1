@@ -1,7 +1,7 @@
 import logging
 from typing import List, Dict, Any, Optional, Tuple, Union
 from database import db
-from models import Character, StoryGeneration, UserProgress, Transaction
+from models import ImageAnalysis, StoryGeneration, UserProgress, Transaction
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -133,24 +133,24 @@ def record_currency_transaction(
         logger.error(f"Error recording transaction: {str(e)}")
         return False
 
-def get_character_by_id(character_id: int, with_stories: bool = False) -> Optional[Character]:
+def get_image_by_id(image_id: int, with_stories: bool = False) -> Optional[ImageAnalysis]:
     """
-    Get a character by ID with option to load related stories.
+    Get an image by ID with option to load related stories.
 
     Args:
-        character_id: Character ID
+        image_id: Image ID
         with_stories: Whether to eagerly load related stories
 
     Returns:
-        Character object or None if not found
+        ImageAnalysis object or None if not found
     """
     try:
         if with_stories:
-            return Character.query.options(db.joinedload(Character.stories)).get(character_id)
+            return ImageAnalysis.query.options(db.joinedload(ImageAnalysis.stories)).get(image_id)
         else:
-            return Character.query.get(character_id)
+            return ImageAnalysis.query.get(image_id)
     except Exception as e:
-        logger.error(f"Error getting character {character_id}: {str(e)}")
+        logger.error(f"Error getting image {image_id}: {str(e)}")
         return None
 
 def get_story_by_id(story_id: int, with_images: bool = False) -> Optional[StoryGeneration]:
@@ -178,27 +178,27 @@ def delete_entity(entity_type: str, entity_id: int) -> Tuple[bool, str]:
     Safely delete an entity from the database with appropriate relationship handling.
 
     Args:
-        entity_type: Type of entity ('character', 'story', etc.)
+        entity_type: Type of entity ('image', 'story', etc.)
         entity_id: Entity ID
 
     Returns:
         Tuple of (success, message)
     """
     try:
-        if entity_type == 'character':
-            character = Character.query.get(entity_id)
-            if not character:
-                return False, f"Character with ID {entity_id} not found"
+        if entity_type == 'image':
+            image = ImageAnalysis.query.get(entity_id)
+            if not image:
+                return False, f"Image with ID {entity_id} not found"
 
             # Remove associations with stories
-            for story in character.stories:
-                story.characters.remove(character)
+            for story in image.stories:
+                story.images.remove(image)
 
-            db.session.delete(character)
+            db.session.delete(image)
             if safe_commit():
-                return True, f"Character {entity_id} deleted successfully"
+                return True, f"Image {entity_id} deleted successfully"
             else:
-                return False, f"Error deleting character {entity_id}"
+                return False, f"Error deleting image {entity_id}"
 
         elif entity_type == 'story':
             story = StoryGeneration.query.get(entity_id)
