@@ -11,6 +11,9 @@ All notable changes to the Story Creator project will be documented in this file
 - Updated debug_routes.py to use SceneImages model
 - Fixed mission_generator.py to use SceneImages model
 - Updated remaining service files to use new model structure
+- Fixed references in scripts/debugging/debug_associations.py to use Character model
+- Updated game_engine.py to properly use Character model from character_data.py
+- Fixed data integrity and database fix scripts to use the proper Character model
 
 ### Security
 - Removed debug tools access from main interface for improved security
