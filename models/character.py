@@ -7,7 +7,7 @@ class CharacterEvolution(db.Model):
     """Model for tracking how characters evolve through a user's story"""
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(255), nullable=False)
-    character_id = db.Column(db.Integer, db.ForeignKey('image_analysis.id', ondelete='CASCADE'))
+    character_id = db.Column(db.Integer, db.ForeignKey('characters.id', ondelete='CASCADE'))
     story_id = db.Column(db.Integer, db.ForeignKey('story_generation.id', ondelete='CASCADE'))
     
     # Character status in story
