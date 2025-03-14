@@ -20,7 +20,7 @@ async function loadModules() {
             if (NotebookManagerModule.default) {
                 const NotebookManager = NotebookManagerModule.default;
 
-                if (document.querySelector('.notebook-container')) {
+                if (document.querySelector('.notebook-accordion') || document.querySelector('.notebook-container')) {
                     const notebookManager = new NotebookManager();
                     notebookManager.initialize();
                     window.notebookManagerInstance = notebookManager;
