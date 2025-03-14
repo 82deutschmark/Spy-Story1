@@ -51,8 +51,15 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.5;
-  filter: blur(2px);
+  opacity: 0.35;
+  filter: blur(1px);
+}
+
+/* Ensure body has proper setup for the background */
+.storyboard-body {
+  background-color: transparent;
+  position: relative;
+  min-height: 100vh;
 }
 
 /* Story content */

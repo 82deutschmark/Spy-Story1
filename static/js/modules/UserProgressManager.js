@@ -1,4 +1,3 @@
-
 /**
  * Module for handling user progress, including agent login and progress
  */
@@ -15,7 +14,7 @@ class UserProgressManager {
         // Setup event listeners
         this.setupEventListeners();
         console.log("User progress manager initialized");
-        
+
         // Check if we have a stored agent codename
         const storedCodename = localStorage.getItem('agentCodename');
         if (storedCodename) {
@@ -88,7 +87,7 @@ class UserProgressManager {
                     if (!this.userData.completed_plot_arcs) this.userData.completed_plot_arcs = [];
                     if (!this.userData.choice_history) this.userData.choice_history = [];
                     if (!this.userData.encountered_characters) this.userData.encountered_characters = {};
-                    
+
                     this.updateAgentDisplay();
                     this.showNotification(`Agent ${codename} loaded successfully!`, 'success');
                 } else if (data.create_new || !data.success) {
@@ -127,7 +126,7 @@ class UserProgressManager {
     toggleAgentDetailsLoading(isLoading) {
         const placeholder = document.getElementById('agent-details-placeholder');
         const details = document.getElementById('agent-details');
-        
+
         if (isLoading) {
             if (placeholder) placeholder.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading agent data...</p></div>';
             if (details) details.style.display = 'none';
@@ -145,26 +144,26 @@ class UserProgressManager {
 
         // Hide placeholder and show details
         this.toggleAgentDetailsLoading(false);
-        
+
         const agentDetails = document.getElementById('agent-details');
         const placeholder = document.getElementById('agent-details-placeholder');
-        
+
         if (agentDetails) agentDetails.style.display = 'block';
         if (placeholder) placeholder.style.display = 'none';
 
         // Update level and XP
         const agentLevel = document.getElementById('agent-level');
         const agentXp = document.getElementById('agent-xp');
-        
+
         if (agentLevel) agentLevel.textContent = this.userData.level;
         if (agentXp) agentXp.textContent = this.userData.experience_points;
-        
+
         // Calculate XP progress (simple formula: level = 1 + sqrt(xp/100))
         const nextLevelXP = Math.pow((this.userData.level), 2) * 100;
         const prevLevelXP = Math.pow((this.userData.level - 1), 2) * 100;
         const xpRange = nextLevelXP - prevLevelXP;
         const xpProgress = (this.userData.experience_points - prevLevelXP) / xpRange * 100;
-        
+
         // Update XP bar
         const xpBar = document.getElementById('agent-xp-bar');
         if (xpBar) xpBar.style.width = `${Math.min(100, Math.max(0, xpProgress))}%`;
@@ -173,7 +172,7 @@ class UserProgressManager {
         const currencyContainer = document.getElementById('agent-currency');
         if (currencyContainer) {
             currencyContainer.innerHTML = '';
-            
+
             for (const [currency, amount] of Object.entries(this.userData.currency_balances)) {
                 const currencyItem = document.createElement('div');
                 currencyItem.className = 'currency-item';
@@ -191,7 +190,7 @@ class UserProgressManager {
             // Store last story ID in localStorage
             localStorage.setItem('lastStoryId', this.userData.current_story_id);
             continueStoryContainer.style.display = 'block';
-            
+
             // Setup continue story button if it exists
             const continueStoryBtn = document.getElementById('continue-story-btn');
             if (continueStoryBtn) {
@@ -214,11 +213,11 @@ class UserProgressManager {
         const toast = document.getElementById('notificationToast');
         const toastTitle = document.getElementById('toastTitle');
         const toastMessage = document.getElementById('toastMessage');
-        
+
         // Set appropriate title and icon based on type
         let title = 'Notification';
         let icon = 'fa-info-circle';
-        
+
         switch (type) {
             case 'success':
                 title = 'Success';
@@ -233,11 +232,11 @@ class UserProgressManager {
                 icon = 'fa-exclamation-triangle';
                 break;
         }
-        
+
         // Update toast content
         if (toastTitle) toastTitle.innerHTML = `<i class="fas ${icon} me-2"></i>${title}`;
         if (toastMessage) toastMessage.textContent = message;
-        
+
         // Show the toast
         const bsToast = new bootstrap.Toast(toast);
         bsToast.show();
@@ -258,13 +257,13 @@ class UserProgressManager {
      */
     canAfford(requirements) {
         if (!this.userData || !this.userData.currency_balances) return false;
-        
+
         for (const [currency, amount] of Object.entries(requirements)) {
             if ((this.userData.currency_balances[currency] || 0) < amount) {
                 return false;
             }
         }
-        
+
         return true;
     }
 }

@@ -18,78 +18,106 @@
         <i class="fas fa-book-open"></i> Agent's Notebook
     </button>
 
-    <!-- Notebook Sidebar -->
-    <div id="notebookSidebar" class="notebook-sidebar">
+    <!-- Notebook Accordion -->
+    <div id="notebookSidebar" class="notebook-accordion">
         <div class="notebook-header">
             <h3><i class="fas fa-book me-2"></i>Agent's Notebook</h3>
             <button id="closeNotebookBtn" class="close-notebook-btn">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <div class="notebook-content">
-            <div class="notebook-section">
-                <h4><i class="fas fa-user-circle me-2"></i>Agent Profile</h4>
-                <div class="notebook-data">
-                    <p><strong>Name:</strong> <span id="agentName">{{ user_progress.protagonist_name or "Agent" }}</span></p>
-                    <p><strong>Level:</strong> <span id="agentLevel">{{ user_progress.level }}</span></p>
-                    <div class="progress mb-2">
-                        <div class="progress-bar" id="xpProgressBar" role="progressbar" style="width: {{ (user_progress.experience_points % 100) }}%"></div>
+        <div class="notebook-content accordion" id="agentNotebookAccordion">
+            <!-- Agent Profile Section -->
+            <div class="accordion-item notebook-accordion-item">
+                <h2 class="accordion-header" id="headingProfile">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseProfile" aria-expanded="true" aria-controls="collapseProfile">
+                        <i class="fas fa-user-circle me-2"></i>Agent Profile
+                    </button>
+                </h2>
+                <div id="collapseProfile" class="accordion-collapse collapse show" aria-labelledby="headingProfile" data-bs-parent="#agentNotebookAccordion">
+                    <div class="accordion-body notebook-data">
+                        <p><strong>Name:</strong> <span id="agentName">{{ user_progress.protagonist_name or "Agent" }}</span></p>
+                        <p><strong>Level:</strong> <span id="agentLevel">{{ user_progress.level }}</span></p>
+                        <div class="progress mb-2">
+                            <div class="progress-bar" id="xpProgressBar" role="progressbar" style="width: {{ (user_progress.experience_points % 100) }}%"></div>
+                        </div>
+                        <p><small><span id="agentXP">{{ user_progress.experience_points }}</span> XP</small></p>
+                        {% if user_progress.current_story_id %}
+                        <div class="continue-story-btn-container mt-3">
+                            <button id="continueStoryBtn" class="btn btn-primary btn-sm w-100">
+                                <i class="fas fa-book-reader me-2"></i>Continue Your Adventure
+                            </button>
+                        </div>
+                        {% endif %}
                     </div>
-                    <p><small><span id="agentXP">{{ user_progress.experience_points }}</span> XP</small></p>
-                    {% if user_progress.current_story_id %}
-                    <div class="continue-story-btn-container mt-3">
-                        <button id="continueStoryBtn" class="btn btn-primary btn-sm w-100">
-                            <i class="fas fa-book-reader me-2"></i>Continue Your Adventure
-                        </button>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
 
-            <div class="notebook-section">
-                <h4><i class="fas fa-coins me-2"></i>Currency</h4>
-                <div class="notebook-data currency-balances">
-                    {% for currency, amount in user_progress.currency_balances.items() %}
-                    <div class="currency-item">
-                        <span class="currency-symbol">{{ currency }}</span>
-                        <span class="currency-amount">{{ amount }}</span>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <div class="notebook-section">
-                <h4><i class="fas fa-tasks me-2"></i>Active Missions</h4>
-                <div class="notebook-data">
-                    {% if user_progress.active_missions and user_progress.active_missions|length > 0 %}
-                        <ul class="notebook-missions-list">
-                        {% for mission_id in user_progress.active_missions %}
-                            <li class="mission-item">Mission #{{ mission_id }}</li>
+            <!-- Currency Section -->
+            <div class="accordion-item notebook-accordion-item">
+                <h2 class="accordion-header" id="headingCurrency">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCurrency" aria-expanded="false" aria-controls="collapseCurrency">
+                        <i class="fas fa-coins me-2"></i>Currency
+                    </button>
+                </h2>
+                <div id="collapseCurrency" class="accordion-collapse collapse" aria-labelledby="headingCurrency" data-bs-parent="#agentNotebookAccordion">
+                    <div class="accordion-body notebook-data currency-balances">
+                        {% for currency, amount in user_progress.currency_balances.items() %}
+                        <div class="currency-item">
+                            <span class="currency-symbol">{{ currency }}</span>
+                            <span class="currency-amount">{{ amount }}</span>
+                        </div>
                         {% endfor %}
-                        </ul>
-                    {% else %}
-                        <p>No active missions</p>
-                    {% endif %}
+                    </div>
                 </div>
             </div>
 
-            <div class="notebook-section">
-                <h4><i class="fas fa-users me-2"></i>Character Relationships</h4>
-                <div class="notebook-data">
-                    {% if user_progress.character_relationships and user_progress.character_relationships|length > 0 %}
-                        <ul class="relationships-list">
-                        {% for char_id, data in user_progress.character_relationships.items() %}
-                            <li>
-                                <span class="char-name">{{ data.name }}</span>
-                                <div class="relationship-meter">
-                                    <div class="relationship-level" style="width: {{ data.relationship_value * 10 }}%"></div>
-                                </div>
-                            </li>
-                        {% endfor %}
-                        </ul>
-                    {% else %}
-                        <p>No character relationships</p>
-                    {% endif %}
+            <!-- Missions Section -->
+            <div class="accordion-item notebook-accordion-item">
+                <h2 class="accordion-header" id="headingMissions">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMissions" aria-expanded="false" aria-controls="collapseMissions">
+                        <i class="fas fa-tasks me-2"></i>Active Missions
+                    </button>
+                </h2>
+                <div id="collapseMissions" class="accordion-collapse collapse" aria-labelledby="headingMissions" data-bs-parent="#agentNotebookAccordion">
+                    <div class="accordion-body notebook-data">
+                        {% if user_progress.active_missions and user_progress.active_missions|length > 0 %}
+                            <ul class="notebook-missions-list">
+                            {% for mission_id in user_progress.active_missions %}
+                                <li class="mission-item">Mission #{{ mission_id }}</li>
+                            {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>No active missions</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Character Relationships Section -->
+            <div class="accordion-item notebook-accordion-item">
+                <h2 class="accordion-header" id="headingRelationships">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRelationships" aria-expanded="false" aria-controls="collapseRelationships">
+                        <i class="fas fa-users me-2"></i>Character Relationships
+                    </button>
+                </h2>
+                <div id="collapseRelationships" class="accordion-collapse collapse" aria-labelledby="headingRelationships" data-bs-parent="#agentNotebookAccordion">
+                    <div class="accordion-body notebook-data">
+                        {% if user_progress.character_relationships and user_progress.character_relationships|length > 0 %}
+                            <ul class="relationships-list">
+                            {% for char_id, data in user_progress.character_relationships.items() %}
+                                <li>
+                                    <span class="char-name">{{ data.name }}</span>
+                                    <div class="relationship-meter">
+                                        <div class="relationship-level" style="width: {{ data.relationship_value * 10 }}%"></div>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>No character relationships</p>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>

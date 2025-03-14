@@ -220,3 +220,53 @@
     border-color: #1e7e34;
     transform: translateY(-2px);
 }
+
+/* Notebook Accordion Styles */
+.notebook-accordion {
+  position: fixed;
+  top: 0;
+  right: -350px; /* Start offscreen */
+  width: 350px;
+  height: 100vh;
+  background-color: #f8f9fa;
+  border-left: 1px solid #dee2e6;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  transition: right 0.3s ease;
+  z-index: 1050;
+  overflow-y: auto;
+  padding-bottom: 60px; /* Add space for any buttons at bottom */
+}
+
+.notebook-accordion.active {
+  right: 0;
+}
+
+/* Accordion styling */
+.notebook-accordion-item {
+  border: none;
+  border-bottom: 1px solid rgba(0,0,0,0.125);
+  background-color: transparent;
+}
+
+.notebook-accordion .accordion-button {
+  background-color: rgba(255,255,255,0.7);
+  padding: 0.75rem 1.25rem;
+  color: #333;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.notebook-accordion .accordion-button:not(.collapsed) {
+  background-color: rgba(139, 92, 246, 0.1);
+  color: #7c3aed;
+}
+
+.notebook-accordion .accordion-button:focus {
+  box-shadow: none;
+  border-color: rgba(139, 92, 246, 0.5);
+}
+
+.notebook-accordion .accordion-body {
+  padding: 1rem;
+  background-color: rgba(255,255,255,0.5);
+}
