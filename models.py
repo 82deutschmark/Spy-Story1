@@ -1,7 +1,7 @@
 from models.base import db
 from models.currency import Currency, Transaction
 from models.character import Character
-from models.stories import StoryGeneration, story_images, StoryNode, StoryChoice
+from models.stories import StoryGeneration, StoryNode, StoryChoice
 from models.user import UserProgress
 from models.character import CharacterEvolution
 from models.missions import Mission
@@ -15,7 +15,7 @@ __all__ = [
     'db',
     'Currency', 'Transaction',
     'Character',
-    'StoryGeneration', 'story_images', 'StoryNode', 'StoryChoice',
+    'StoryGeneration', 'StoryNode', 'StoryChoice',
     'UserProgress',
     'CharacterEvolution',
     'Mission',
