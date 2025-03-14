@@ -148,7 +148,7 @@ def generate_story(
         # Build system message - improved approach based on JS version
         system_message = {
             "role": "system",
-            "content": f"""You are a master narrative generator for our spy-themed adventure game. 
+            "content": f"""You are a master narrative generator for our adventure game. 
 Create highly detailed, layered narratives in a {final_mood} tone with a {final_narrative} storytelling style.
 
 This game is set in the high-stakes world of international espionage, luxury, and intrigue. 
@@ -205,7 +205,7 @@ Mood: {final_mood}
 
 WORLD BACKGROUND:
 This is set in the high-stakes, sexy, dramatic international world of business, espionage, luxury, and parties. {protagonist_info}
-The world is mostly as we know it, but features advanced technology like holographic disguises, neural implants, satellite surveillance networks, and experimental weapons. Many villains control vast global empires with private armies and cutting-edge technology.
+The world is mostly as we know it, but features advanced technology like neural implants, satellite surveillance networks, and experimental weapons. Many villains control vast global empires with private armies and cutting-edge technology.
 The world faces multiple crises - climate catastrophes, economic collapse, political instability, and secret wars between shadow organizations. You believe the only way to save it is to party hard, seduce strategic contacts, and undertake James Bond-style missions with elaborate infiltrations, thrilling chase sequences, and intense gunfights.
 
 IMPORTANT NARRATIVE REQUIREMENTS:
@@ -216,7 +216,7 @@ IMPORTANT NARRATIVE REQUIREMENTS:
 5. Include at least one dramatic action sequence or tense confrontation
 6. Blend elements of suspense, romance, and danger throughout
 7. If this is a continuation, meaningfully advance the plot based on previous choices
-8. Avoid reusing scenarios, dialogue patterns, or narrative structures from previous segments
+8. Avoid reusing scenarios, dialogue patterns, or narrative structures from previous segments, but maintain continuity.
 9. Each choice should lead to significantly different narrative paths
 
 Generate an engaging, detailed story segment with 3 distinct choices that offer meaningful narrative branches."""
@@ -330,11 +330,10 @@ If this is the beginning of a story, ensure:
    - Reflect different aspects of the protagonist's character
    - Have distinct risk/reward profiles
    - Connect to the mission in meaningful ways
-   - Each choice should have a cost in dollars (💵) ranging from $500-$1500 based on potential value
    - Each choice should offer a compelling and sexy/dangerous description
 
 If this is a continuation segment:
-1. Reference the mission objectives and progress
+1. Briefly and naturally reference the mission objectives and progress
 2. Introduce new complications or developments related to the mission
 3. Ensure the narrative advances the mission in some way
 4. Maintain the tension and stakes established in the mission briefing
@@ -407,8 +406,8 @@ Format as JSON with:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages,
-            temperature=0.85,  # Slightly reduced for more coherent narratives while still maintaining creativity
-            max_tokens=8000,    # Increased token limit for longer responses
+            temperature=0.45,  # Slightly reduced for more coherent narratives while still maintaining creativity
+            max_tokens=11000,    # Increased token limit for longer responses
             response_format={"type": "json_object"}  # Force JSON response format
         )
 
