@@ -5,7 +5,8 @@ import uuid
 from flask import Blueprint, render_template, request, jsonify, url_for, redirect, flash, session
 
 from database import db
-from models import AIInstruction, ImageAnalysis, StoryGeneration
+from models import AIInstruction, StoryGeneration
+from models.scene_images import SceneImages
 from services.openai_service import analyze_artwork, generate_image_description
 from routes.main_routes import get_or_create_user_progress
 
@@ -21,15 +22,15 @@ def debug_dashboard():
     """Debug page with image analysis tool and database view"""
     from datetime import datetime
     now = datetime.now().timestamp()
-    recent_images = ImageAnalysis.query.order_by(ImageAnalysis.created_at.desc()).limit(10).all()
+    recent_images = SceneImages.query.order_by(SceneImages.created_at.desc()).limit(10).all()
     recent_stories = StoryGeneration.query.order_by(StoryGeneration.created_at.desc()).limit(10).all()
 
     # Database statistics
-    image_count = ImageAnalysis.query.count()
-    character_count = ImageAnalysis.query.filter_by(image_type='character').count()
-    scene_count = ImageAnalysis.query.filter_by(image_type='scene').count()
+    image_count = SceneImages.query.count()
+    character_count = SceneImages.query.filter_by(image_type='character').count()
+    scene_count = SceneImages.query.filter_by(image_type='scene').count()
     story_count = StoryGeneration.query.count()
-    orphaned_images = ImageAnalysis.query.filter(~ImageAnalysis.stories.any()).count()
+    orphaned_images = SceneImages.query.filter(~SceneImages.stories.any()).count() if hasattr(SceneImages, 'stories') else 0
     empty_stories = StoryGeneration.query.filter(StoryGeneration.generated_story.is_(None)).count()
 
     # Try to get admin URL, or use a fallback
@@ -65,7 +66,7 @@ def debug_image_details():
         
         logger.info(f"Getting images with pagination: page={page}, limit={limit}, type={image_type}, search={search}")
 
-        query = ImageAnalysis.query
+        query = SceneImages.query
 
         # Apply filters
         if image_type:
@@ -74,9 +75,9 @@ def debug_image_details():
         if search:
             # Search by ID or character name
             if search.isdigit():
-                query = query.filter(ImageAnalysis.id == int(search))
+                query = query.filter(SceneImages.id == int(search))
             else:
-                query = query.filter(ImageAnalysis.character_name.ilike(f'%{search}%'))
+                query = query.filter(SceneImages.name.ilike(f'%{search}%'))
 
         # Execute count query
         total = query.count()
@@ -405,7 +406,7 @@ def save_analysis():
 def image_actions(image_id):
     """Handle actions for a specific image (view, delete, or update)"""
     try:
-        image = ImageAnalysis.query.get_or_404(image_id)
+        image = SceneImages.query.get_or_404(image_id)
         
         if request.method == 'DELETE':
             # Store image details for logging
@@ -529,10 +530,10 @@ def delete_all_images():
             return api_error_response(error_message, 400, error_type="validation_error")
 
         # Get count for logging
-        count = ImageAnalysis.query.count()
+        count = SceneImages.query.count()
 
         # Delete all images
-        ImageAnalysis.query.delete()
+        SceneImages.query.delete()
         db.session.commit()
 
         logger.info(f"Deleted all images: {count} total")
