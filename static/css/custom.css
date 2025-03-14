@@ -54,13 +54,17 @@ body::before {
   transform: translateY(-2px);
 }
 
-/* Character showcase - Consider moving to character.css in future refactoring */
+/* Character showcase */
 .character-showcase {
     display: flex;
     flex-direction: column;
     align-items: center;
     margin-bottom: 0;
     width: 100%;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .character-portrait-container {
@@ -69,8 +73,8 @@ body::before {
     height: auto;
     overflow: hidden;
     border-radius: 10px;
-    border: 2px solid #ccc;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    border: 2px solid #fff;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
 .main-character-img {
@@ -81,29 +85,115 @@ body::before {
 
 .character-info-box {
     background: rgba(255, 255, 255, 0.7);
-    padding: 0.35rem;
+    padding: 0.75rem;
     border-radius: 8px;
     text-align: center;
     max-width: 600px;
     margin-top: 0.5rem;
-    margin-bottom: 0;
+    margin-bottom: 1rem;
+}
+
+.character-info-box h3 {
+    color: #333;
+    margin-bottom: 0.5rem;
 }
 
 .character-traits-list {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 0.25rem;
+    gap: 0.5rem;
 }
 
 .trait-badge {
-    background-color: var(--accent-color);
-    color: white;
-    padding: 0.15rem 0.35rem;
-    border-radius: 50px;
+    background-color: #e3e0f3;
+    color: #635fcf;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+}
+
+.character-gallery {
+    width: 100%;
+}
+
+.character-portraits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 0.75rem;
+}
+
+.character-portrait-mini {
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.character-portrait-mini:hover {
+    transform: scale(1.05);
+}
+
+.character-mini-img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid #ccc;
+}
+
+.character-mini-name {
     font-size: 0.7rem;
-    margin: 0.1rem;
-    opacity: 0.85;
+    margin-top: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Storyboard page specific styles */
+.storyboard-body {
+    background-color: #f9f7ff;
+    color: #333;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.6;
+}
+
+.story-main-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.story-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    opacity: 0.6;
+    object-fit: cover;
+}
+
+@media (min-width: 992px) {
+    .story-main-container {
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 2rem;
+    }
+
+    .character-showcase {
+        flex: 0 0 300px;
+        position: sticky;
+        top: 1rem;
+    }
+
+    .story-content-container {
+        flex: 1;
+    }
 }
 
 /* Responsive Design */
@@ -174,24 +264,24 @@ body::before {
   h1 {
     font-size: calc(1.3rem + 1.5vw) !important;
   }
-  
+
   h2 {
     font-size: calc(1.2rem + 1vw) !important;
   }
-  
+
   h3 {
     font-size: calc(1.1rem + 0.5vw) !important;
   }
-  
+
   .lead {
     font-size: 1rem !important;
   }
-  
+
   .container {
     padding-left: 10px;
     padding-right: 10px;
   }
-  
+
   /* Improve tap targets on mobile */
   button, .btn, a {
     min-height: 44px;

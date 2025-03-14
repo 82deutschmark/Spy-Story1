@@ -79,9 +79,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     EventHandlers.initialize();
-    
+
     // Initialize character mentions in story text
     initializeCharacterMentions();
+
+    // Initialize character highlighting if on storyboard page
+    if (document.querySelector('.story-content') && typeof CharacterManager !== 'undefined') {
+        CharacterManager.highlightCharactersInStory();
+    }
 
     // Let the class initialization handle itself in their respective module files
     // This ensures modules are loaded consistently whether imported in main.js or loaded via script tags
@@ -92,27 +97,27 @@ function initializeCharacterMentions() {
     // Find all character mentions in the story text
     const characterMentions = document.querySelectorAll('.character-mention');
     const characterThumbnails = document.querySelectorAll('.character-thumbnail');
-    
+
     if (characterMentions.length > 0) {
         characterMentions.forEach(mention => {
             // Create tooltip element for the character
             const tooltipEl = document.createElement('div');
             tooltipEl.className = 'character-tooltip';
-            
+
             // Get character name from the mention
             const characterName = mention.getAttribute('data-character-name');
-            
+
             // Find matching thumbnail
             const matchingThumbnail = Array.from(characterThumbnails).find(thumb => 
                 thumb.getAttribute('data-character-name') === characterName
             );
-            
+
             if (matchingThumbnail) {
                 const thumbnailImg = matchingThumbnail.querySelector('img').cloneNode(true);
                 tooltipEl.appendChild(thumbnailImg);
                 tooltipEl.insertAdjacentHTML('beforeend', characterName);
                 mention.appendChild(tooltipEl);
-                
+
                 // Highlight matching thumbnail when hovering over mention
                 mention.addEventListener('mouseenter', () => {
                     matchingThumbnail.classList.add('highlight');
