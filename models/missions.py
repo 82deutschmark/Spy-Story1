@@ -11,8 +11,8 @@ class Mission(db.Model):
     description = db.Column(db.Text)
     
     # Mission giver and target
-    giver_id = db.Column(db.Integer, db.ForeignKey('image_analysis.id', ondelete='SET NULL'))
-    target_id = db.Column(db.Integer, db.ForeignKey('image_analysis.id', ondelete='SET NULL'))
+    giver_id = db.Column(db.Integer, db.ForeignKey('scene_images.id', ondelete='SET NULL'))
+    target_id = db.Column(db.Integer, db.ForeignKey('scene_images.id', ondelete='SET NULL'))
     
     # Mission details
     objective = db.Column(db.String(255))
@@ -34,8 +34,8 @@ class Mission(db.Model):
     progress_updates = db.Column(JSONB, default=[])  # Array of progress updates
     
     # Relationships
-    giver = db.relationship('ImageAnalysis', foreign_keys=[giver_id])
-    target = db.relationship('ImageAnalysis', foreign_keys=[target_id])
+    giver = db.relationship('SceneImages', foreign_keys=[giver_id])
+    target = db.relationship('SceneImages', foreign_keys=[target_id])
     story = db.relationship('StoryGeneration')
     
     def update_progress(self, progress_amount, description=None):

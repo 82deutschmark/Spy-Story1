@@ -24,8 +24,8 @@ class StoryGeneration(db.Model):
     generated_story = db.Column(JSONB)  # Stores the story text and choices
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Many-to-many relationship with ImageAnalysis (legacy)
-    images = db.relationship('ImageAnalysis', secondary=story_images,
+    # Many-to-many relationship with SceneImages
+    images = db.relationship('SceneImages', secondary=story_images,
                            backref=db.backref('stories', lazy='dynamic'))
 
     # Many-to-many relationship with Character (new) - matching the backref name expected by SQLAlchemy
