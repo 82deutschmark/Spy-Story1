@@ -9,7 +9,7 @@ import UserProgress from './UserProgress.js';
 export default {
     /**
      * Generates a new story based on form data
-     * @param {FormData} formData - Form data for story generation
+     * @param {FormData|Object} formData - Form data or object for story generation
      * @returns {Promise} - Promise resolving to story generation result
      */
     generateStory(formData) {
@@ -30,20 +30,26 @@ export default {
             }
         }, 500);
 
-        // Convert form data to JSON for the request
-        const jsonData = {};
-        formData.forEach((value, key) => {
-            // Handle array fields (like selected_images[])
-            if (key.endsWith('[]')) {
-                const actualKey = key.slice(0, -2); // Remove [] suffix
-                if (!jsonData[actualKey]) {
-                    jsonData[actualKey] = [];
+        // Handle FormData and plain objects differently
+        let jsonData;
+        if (formData instanceof FormData) {
+            jsonData = {};
+            formData.forEach((value, key) => {
+                // Handle array fields (like selected_images[])
+                if (key.endsWith('[]')) {
+                    const actualKey = key.slice(0, -2); // Remove [] suffix
+                    if (!jsonData[actualKey]) {
+                        jsonData[actualKey] = [];
+                    }
+                    jsonData[actualKey].push(value);
+                } else {
+                    jsonData[key] = value;
                 }
-                jsonData[actualKey].push(value);
-            } else {
-                jsonData[key] = value;
-            }
-        });
+            });
+        } else {
+            jsonData = formData;
+        }
+
 
         // Log the data being sent
         console.log('Sending story generation data:', jsonData);
@@ -170,16 +176,8 @@ export default {
 
                 // Generate next part of the story
                 const continueFormData = new FormData(form);
-                return fetch('/generate_story', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify(Object.fromEntries(continueFormData))
-                });
+                return this.generateStory(continueFormData); // Use generateStory with FormData
             })
-            .then(response => response.json())
             .then(storyData => {
                 clearInterval(progressInterval);
 
