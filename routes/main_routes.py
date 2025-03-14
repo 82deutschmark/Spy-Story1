@@ -5,9 +5,10 @@ from flask import Blueprint, render_template, request, jsonify, url_for, redirec
 import uuid
 
 from database import db
-from models import (AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, 
+from models import (AIInstruction, StoryGeneration, StoryNode, 
                    StoryChoice, UserProgress, Transaction, PlotArc, CharacterEvolution, Mission)
 from models.character_data import Character
+from models.scene_images import SceneImages
 from services.story_maker import generate_story, get_story_options
 
 # Configure logging
@@ -35,15 +36,15 @@ def get_random_scene_background():
     """Get a random scene image suitable for background"""
     try:
         # Try filtering by dimension first
-        scene = ImageAnalysis.query.filter(
-            ImageAnalysis.image_type == 'scene',
-            ImageAnalysis.image_width > ImageAnalysis.image_height
+        scene = SceneImages.query.filter(
+            SceneImages.image_type == 'scene',
+            SceneImages.image_width > SceneImages.image_height
         ).order_by(db.func.random()).first()
 
         # Fallback if no scene images with right dimensions exist
         if not scene:
-            scene = ImageAnalysis.query.filter(
-                ImageAnalysis.image_type == 'scene'
+            scene = SceneImages.query.filter(
+                SceneImages.image_type == 'scene'
             ).order_by(db.func.random()).first()
 
         return scene.image_url if scene else None
