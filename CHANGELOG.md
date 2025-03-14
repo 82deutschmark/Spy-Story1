@@ -14,6 +14,9 @@ All notable changes to the Story Creator project will be documented in this file
 - Fixed references in scripts/debugging/debug_associations.py to use Character model
 - Updated game_engine.py to properly use Character model from character_data.py
 - Fixed data integrity and database fix scripts to use the proper Character model
+- Updated utils/db_utils.py to use Character and SceneImages models instead of deprecated ImageAnalysis
+- Fixed error handling in get_random_scene_background to provide a fallback image
+- Fixed storyboard route to use Character model instead of ImageAnalysis
 
 ### Security
 - Removed debug tools access from main interface for improved security
