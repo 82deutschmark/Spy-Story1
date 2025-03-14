@@ -26,6 +26,9 @@ This application allows users to generate interactive stories featuring images f
 
 ## Recent Improvements
 
+- **Enhanced Story Generation**: Our narrative engine now creates more detailed, lengthy story segments with improved character development, continuity, and plot progression
+- **Detailed Prompts**: Stories now feature richer environmental descriptions, more sophisticated dialogue, and better integration of character traits
+- **Improved Continuity**: Better handling of story context between segments ensures a cohesive narrative experience
 - **Recent Bug Fixes**:
   - Fixed API blueprint import error in routes system
   - Corrected middleware integration for request logging
@@ -93,15 +96,15 @@ This application allows users to generate interactive stories featuring images f
 - **Appropriate Complexity for the Use Case**:
   - While pagination is important for user-facing features, it adds unnecessary complexity for admin/debug interfaces
   - For debug-only pages, simpler is better—loading all records at once is more reliable than complex pagination
-  
+
 - **API Interface Consistency**:
   - The mismatch between API response structure (`this.debugUI.createPagination`) and client expectations was a key source of errors
   - Standardizing API response formats across all endpoints would prevent similar issues in the future
-  
+
 - **Debug vs. Production Considerations**:
   - Debug interfaces don't need the same optimizations as production-facing pages
   - Performance considerations can be relaxed for admin-only tools, focusing instead on functionality and clarity
-  
+
 - **Refactoring Approach**:
   - When fixing complex UI issues, sometimes removing functionality (pagination) is better than trying to fix it
   - Simplified solutions are easier to maintain and less prone to breaking in the future
