@@ -30,6 +30,7 @@ All notable changes to the Story Creator project will be documented in this file
 - Updated story_images association table to use SceneImages instead of ImageAnalysis
 - Fixed database relationships and foreign key constraints
 - Ensured proper character role standardization across the system
+- Created migration script to move scene images from ImageAnalysis to SceneImages and update story associations
 
 ### Improved
 - Enhanced story generation service with more detailed prompts and narrative guidance
