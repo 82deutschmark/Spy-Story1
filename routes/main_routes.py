@@ -8,6 +8,7 @@ from database import db
 from models import (AIInstruction, StoryGeneration, StoryNode, 
                    StoryChoice, UserProgress, Transaction, PlotArc, CharacterEvolution, Mission)
 from models.character_data import Character
+from models.scene_images import SceneImages
 from services.story_maker import generate_story, get_story_options
 
 # Configure logging
@@ -29,19 +30,21 @@ def get_or_create_user_progress(protagonist_name=None):
 
     return user_progress
 
+# PayPal check removed
+
 def get_random_scene_background():
     """Get a random scene image suitable for background"""
     try:
         # Try filtering by dimension first
-        scene = Character.query.filter(
-            Character.image_type == 'scene',
-            Character.image_width > Character.image_height
+        scene = SceneImages.query.filter(
+            SceneImages.image_type == 'scene',
+            SceneImages.image_width > SceneImages.image_height
         ).order_by(db.func.random()).first()
 
         # Fallback if no scene images with right dimensions exist
         if not scene:
-            scene = Character.query.filter(
-                Character.image_type == 'scene'
+            scene = SceneImages.query.filter(
+                SceneImages.image_type == 'scene'
             ).order_by(db.func.random()).first()
 
         return scene.image_url if scene else None
@@ -58,7 +61,7 @@ def index():
     user_progress = get_or_create_user_progress()
 
     # Get 2 random characters for selection
-    characters = Character.query.filter_by(image_type='character').order_by(db.func.random()).limit(2).all()
+    characters = Character.query.order_by(db.func.random()).limit(2).all()
     character_data = []
     for char in characters:
         # Ensure we're using standardized role values
@@ -100,16 +103,17 @@ def storyboard(story_id):
     # Get random scene for background
     background_image = get_random_scene_background()
 
-    # Get associated characters from the story
+    # Get associated character images from the story and referenced characters
     character_images = []
 
-    # Add direct story characters
-    for character in story.characters:
+    # Add direct story images first
+    for image in story.images:
+        analysis = image.analysis_result or {}
         character_images.append({
-            'id': character.id,
-            'image_url': character.image_url,
-            'name': character.character_name,
-            'traits': character.character_traits
+            'id': image.id,
+            'image_url': image.image_url,
+            'name': image.character_name or analysis.get('character_name', ''),
+            'traits': image.character_traits
         })
 
     # Get all characters mentioned in the story
@@ -117,24 +121,24 @@ def storyboard(story_id):
     if 'characters' in story_data and isinstance(story_data['characters'], list):
         mentioned_characters = story_data['characters']
 
-    # Try to find characters for any additional characters mentioned
+    # Try to find images for any additional characters mentioned
     for character_name in mentioned_characters:
         # Skip characters we already have
         if any(char['name'].lower() == character_name.lower() for char in character_images):
             continue
 
         # Look for this character in the database
-        character = Character.query.filter(
-            Character.image_type == 'character',
-            Character.character_name.ilike(f'%{character_name}%')
+        character_img = ImageAnalysis.query.filter(
+            ImageAnalysis.image_type == 'character',
+            ImageAnalysis.character_name.ilike(f'%{character_name}%')
         ).first()
 
-        if character:
+        if character_img:
             character_images.append({
-                'id': character.id,
-                'image_url': character.image_url,
-                'name': character.character_name,
-                'traits': character.character_traits
+                'id': character_img.id,
+                'image_url': character_img.image_url,
+                'name': character_img.character_name,
+                'traits': character_img.character_traits
             })
 
     # Prepare story progress data for the template with proper field names
