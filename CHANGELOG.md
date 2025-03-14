@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## [Unreleased] - 2023-xx-xx
+### Security
+- Removed debug tools access from main interface for improved security
+
 ### Improved
 - Enhanced story generation service with more detailed prompts and narrative guidance
 - Increased story segment length and detail with improved system and content prompts
