@@ -25,8 +25,8 @@ class CharacterEvolution(db.Model):
     evolution_log = db.Column(JSONB, default=[])  # Log of changes to character
     
     # Relationships
-    character = db.relationship('ImageAnalysis')
-    story = db.relationship('StoryGeneration')
+    character = db.relationship('Character', foreign_keys=[character_id])
+    story = db.relationship('StoryGeneration', foreign_keys=[story_id])
     
     def add_trait(self, trait, reason=None):
         """Add a new trait to the character's evolved traits"""
