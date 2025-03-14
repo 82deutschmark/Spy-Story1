@@ -13,88 +13,105 @@ export default {
      * @returns {Promise} - Promise resolving to story generation result
      */
     generateStory(formData) {
-        // Create loading overlay with percentage
-        const loadingPercent = UIUtils.createLoadingOverlay('Generating your adventure...');
+        return new Promise((resolve, reject) => {
+            // Show loading indicator
+            const loadingOverlay = UIUtils.createLoadingOverlay('Generating your adventure...');
+            const loadingPercent = loadingOverlay.querySelector('.loading-percent');
 
-        const generateStoryBtn = document.getElementById('generateStoryBtn');
-        if (generateStoryBtn) {
-            generateStoryBtn.disabled = true;
-            generateStoryBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Story...';
-        }
-
-        let progress = 0;
-        const progressInterval = setInterval(() => {
-            if (progress < 90) {
-                progress += 5;
-                UIUtils.updateLoadingPercent(loadingPercent, progress);
-            }
-        }, 500);
-
-        // Handle FormData and plain objects differently
-        let jsonData;
-        if (formData instanceof FormData) {
-            jsonData = {};
-            formData.forEach((value, key) => {
-                // Handle array fields (like selected_images[])
-                if (key.endsWith('[]')) {
-                    const actualKey = key.slice(0, -2); // Remove [] suffix
-                    if (!jsonData[actualKey]) {
-                        jsonData[actualKey] = [];
-                    }
-                    jsonData[actualKey].push(value);
-                } else {
-                    jsonData[key] = value;
+            // Simulate progress
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                if (progress < 90) {
+                    progress += 5;
+                    UIUtils.updateLoadingPercent(loadingPercent, progress);
                 }
-            });
-        } else {
-            jsonData = formData;
-        }
+            }, 500);
 
+            // Handle FormData and plain objects differently
+            let jsonData;
+            try {
+                if (formData instanceof FormData) {
+                    jsonData = {};
+                    formData.forEach((value, key) => {
+                        // Handle array fields (like selected_images[])
+                        if (key.endsWith('[]')) {
+                            const actualKey = key.slice(0, -2); // Remove [] suffix
+                            if (!jsonData[actualKey]) {
+                                jsonData[actualKey] = [];
+                            }
+                            jsonData[actualKey].push(value);
+                        } else {
+                            jsonData[key] = value;
+                        }
+                    });
+                } else if (typeof formData === 'object') {
+                    jsonData = formData;
+                } else {
+                    throw new Error('Invalid form data format');
+                }
 
-        // Log the data being sent
-        console.log('Sending story generation data:', jsonData);
-
-        return fetch('/generate_story', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify(jsonData)
-        })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(data => {
-                    throw new Error(data.error || 'Failed to generate story');
-                });
+                // Validate required parameters
+                if (!jsonData.conflict && !jsonData.previous_choice) {
+                    throw new Error('Missing required story parameters');
+                }
+            } catch (error) {
+                clearInterval(progressInterval);
+                if (loadingOverlay) {
+                    loadingOverlay.remove();
+                }
+                reject(error);
+                return;
             }
-            return response.json();
-        })
-        .then(data => {
-            clearInterval(progressInterval);
 
-            if (data.success && data.redirect) {
+            // Log the data being sent
+            console.log('Sending story generation data:', jsonData);
+
+            // Make API request
+            fetch('/generate_story', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(jsonData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errorData => {
+                        throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
+                    }).catch(e => {
+                        if (e instanceof SyntaxError) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        throw e;
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                clearInterval(progressInterval);
                 UIUtils.updateLoadingPercent(loadingPercent, 100);
+
+                if (!data || (data.error && !data.success)) {
+                    throw new Error(data.error || 'Invalid story data received');
+                }
+
+                // Handle successful response
                 setTimeout(() => {
-                    window.location.href = data.redirect;
+                    if (loadingOverlay) {
+                        loadingOverlay.remove();
+                    }
+                    resolve(data);
                 }, 500);
-                return data;
-            } else {
-                throw new Error(data.error || 'Failed to generate story');
-            }
-        })
-        .catch(error => {
-            console.error('Error generating story:', error);
-            UIUtils.showToast('Error', error.message || 'Failed to generate story. Please try again.');
-            clearInterval(progressInterval);
-
-            if (generateStoryBtn) {
-                generateStoryBtn.disabled = false;
-                generateStoryBtn.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
-            }
-
-            UIUtils.removeLoadingOverlay(loadingPercent);
-            throw error;
+            })
+            .catch(error => {
+                console.error('Story generation failed:', error);
+                clearInterval(progressInterval);
+                if (loadingOverlay) {
+                    loadingOverlay.remove();
+                }
+                reject(error);
+            });
         });
     },
 
