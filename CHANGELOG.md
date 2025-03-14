@@ -17,6 +17,7 @@ All notable changes to the Story Creator project will be documented in this file
 - Updated utils/db_utils.py to use Character and SceneImages models instead of deprecated ImageAnalysis
 - Fixed error handling in get_random_scene_background to provide a fallback image
 - Fixed storyboard route to use Character model instead of ImageAnalysis
+- Fixed story_images association table to properly link StoryGeneration with SceneImages
 
 ### Security
 - Removed debug tools access from main interface for improved security
