@@ -18,6 +18,7 @@ All notable changes to the Story Creator project will be documented in this file
 - Fixed error handling in get_random_scene_background to provide a fallback image
 - Fixed storyboard route to use Character model instead of ImageAnalysis
 - Fixed story_images association table to properly link StoryGeneration with SceneImages
+- Fixed StoryNode model by removing ImageAnalysis relationship references
 
 ### Security
 - Removed debug tools access from main interface for improved security
