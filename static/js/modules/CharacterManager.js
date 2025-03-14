@@ -20,9 +20,61 @@ document.addEventListener('DOMContentLoaded', function() {
 
 const CharacterManager = {
     /**
-     * Initialize character manager
+     * Highlights character names in the story text
      */
-    initialize() {
+    highlightCharactersInStory() {
+        const storyContent = document.querySelector('.story-content');
+        if (!storyContent) return;
+
+        // Get all character thumbnails/portraits
+        const characterElements = document.querySelectorAll('.character-portrait-mini, .character-thumbnail');
+
+        // For each character
+        characterElements.forEach(charElement => {
+            const characterName = charElement.getAttribute('data-character-name');
+            if (!characterName) return;
+
+            // Create a friendly name for display (convert from slug to display format)
+            const displayName = characterName.split('-')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+
+            // Create a regex that matches the character name with word boundaries
+            // This ensures we only match whole words, not partial matches
+            const nameRegex = new RegExp(`\\b${displayName}\\b`, 'g');
+
+            // Replace character name with highlighted version
+            storyContent.innerHTML = storyContent.innerHTML.replace(
+                nameRegex, 
+                `<span class="character-highlight" data-character="${characterName}">${displayName}</span>`
+            );
+        });
+
+        // Add click event listeners to highlighted characters
+        const highlightedChars = document.querySelectorAll('.character-highlight');
+        highlightedChars.forEach(highlighted => {
+            highlighted.addEventListener('click', function() {
+                const charName = this.getAttribute('data-character');
+                const charElement = document.querySelector(`.character-portrait-mini[data-character-name="${charName}"], .character-thumbnail[data-character-name="${charName}"]`);
+
+                if (charElement) {
+                    // Scroll the character into view
+                    charElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    // Add a brief highlight effect
+                    charElement.classList.add('character-highlight-pulse');
+                    setTimeout(() => {
+                        charElement.classList.remove('character-highlight-pulse');
+                    }, 1500);
+                }
+            });
+        });
+    },
+
+    /**
+     * Initialize the character interactions
+     */
+    init() {
         console.log('Character manager initialized');
         this.setupCharacterSelection();
     },
@@ -103,68 +155,6 @@ const CharacterManager = {
                 // The API is returning the character data directly at the top level
                 return data;
             });
-    },
-
-    /**
-     * Highlights character mentions in story text
-     */
-    highlightCharactersInStory() {
-        const storyContent = document.querySelector('.story-content');
-        if (!storyContent) return;
-
-        // Get all character names from the mini-portraits
-        const characterPortraits = document.querySelectorAll('.character-portrait-mini');
-        const characterNames = Array.from(characterPortraits).map(portrait => {
-            return {
-                name: portrait.querySelector('.character-mini-name').textContent.trim(),
-                image: portrait.querySelector('img').src,
-                element: portrait
-            };
-        });
-
-        // Sort names by length (longest first) to avoid partial matches
-        characterNames.sort((a, b) => b.name.length - a.name.length);
-
-        // Get the story text
-        let storyText = storyContent.innerHTML;
-
-        // Replace character names with highlighted spans
-        characterNames.forEach(character => {
-            const regex = new RegExp(`\\b${character.name}\\b`, 'gi');
-            storyText = storyText.replace(regex, match => {
-                return `<span class="character-mention" data-character="${character.name.toLowerCase().replace(/\s/g, '-')}">${match}<span class="character-tooltip"><img src="${character.image}" alt="${match}">${match}</span></span>`;
-            });
-        });
-
-        // Update the story content
-        storyContent.innerHTML = storyText;
-
-        // Add click event to highlight corresponding mini-portrait
-        document.querySelectorAll('.character-mention').forEach(mention => {
-            mention.addEventListener('click', function() {
-                const characterId = this.dataset.character;
-                const targetPortrait = document.querySelector(`.character-portrait-mini[data-character-name="${characterId}"]`);
-
-                // Remove highlight from all portraits
-                document.querySelectorAll('.character-mini-img').forEach(img => {
-                    img.classList.remove('character-mini-highlight');
-                });
-
-                // Add highlight to this portrait
-                if (targetPortrait) {
-                    const portraitImg = targetPortrait.querySelector('.character-mini-img');
-                    portraitImg.classList.add('character-mini-highlight');
-
-                    // Scroll to the portrait if needed
-                    targetPortrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-                    // Remove highlight after 3 seconds
-                    setTimeout(() => {
-                        portraitImg.classList.remove('character-mini-highlight');
-                    }, 3000);
-                }
-            });
-        });
     }
 };
 
