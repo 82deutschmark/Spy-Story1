@@ -1,184 +1,161 @@
-
 /**
  * Module for handling user progress, including agent login and progress
  */
 class UserProgressManager {
     constructor() {
-        this.userData = null;
-        this.isInitialized = false;
-    }
+        this.userData = {
+            level: 1,
+            experience_points: 0,
+            currency_balances: {},
+            active_missions: [],
+            encountered_characters: {},
+            current_story_id: null
+        };
 
-    /**
-     * Initialize the user progress manager
-     */
-    initialize() {
-        // Setup event listeners
-        this.setupEventListeners();
+        this.initialized = false;
         console.log("User progress manager initialized");
-        
-        // Check if we have a stored agent codename
-        const storedCodename = localStorage.getItem('agentCodename');
-        if (storedCodename) {
-            const protagonistInput = document.getElementById('protagonistName');
-            if (protagonistInput) {
-                protagonistInput.value = storedCodename;
-                // Auto-load agent data
-                this.loadAgentData(storedCodename);
+    }
+
+    /**
+     * Initialize user progress data
+     */
+    async initialize() {
+        try {
+            // Fetch initial user progress data
+            const response = await fetch('/api/user_progress');
+            if (!response.ok) {
+                throw new Error('Failed to fetch user progress');
             }
+
+            const data = await response.json();
+            if (data.success && data.user_progress) {
+                this.updateUserData(data.user_progress);
+                this.initialized = true;
+            }
+
+            // Update UI elements
+            this.updateUIElements();
+
+            // Set up event listeners for notebook elements
+            this.setupNotebookListeners();
+        } catch (error) {
+            console.error("Error initializing user progress:", error);
         }
     }
 
     /**
-     * Setup event listeners
+     * Set up event listeners for notebook elements
      */
-    setupEventListeners() {
-        // Listen for load agent button click
-        const loadAgentBtn = document.getElementById('loadAgentBtn');
-        if (loadAgentBtn) {
-            loadAgentBtn.addEventListener('click', () => {
-                const agentCodename = document.getElementById('protagonistName').value.trim();
-                if (agentCodename) {
-                    this.loadAgentData(agentCodename);
-                } else {
-                    this.showNotification('Please enter an agent codename', 'warning');
-                }
-            });
+    setupNotebookListeners() {
+        const notebookBtn = document.getElementById('toggleNotebookBtn');
+        const closeBtn = document.getElementById('closeNotebookBtn');
+        const sidebar = document.getElementById('notebookSidebar');
+
+        if (!notebookBtn || !closeBtn || !sidebar) {
+            console.log("Notebook elements not found in the DOM, skipping initialization");
+            return;
         }
 
-        // Listen for protagonist name input change
-        const protagonistNameInput = document.getElementById('protagonistName');
-        if (protagonistNameInput) {
-            protagonistNameInput.addEventListener('change', (e) => {
-                const agentCodename = e.target.value.trim();
-                if (agentCodename) {
-                    // Save to local storage
-                    localStorage.setItem('agentCodename', agentCodename);
-                    // Optionally auto-load data
-                    this.loadAgentData(agentCodename);
-                }
-            });
-        }
+        notebookBtn.addEventListener('click', () => {
+            sidebar.classList.add('open');
+        });
+
+        closeBtn.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+        });
     }
 
     /**
-     * Load agent data by codename
-     * @param {string} codename - The agent's codename to look up
+     * Update user data from API response
+     * @param {Object} progressData - The user progress data
      */
-    loadAgentData(codename) {
-        if (!codename) return;
+    updateUserData(progressData) {
+        if (!progressData) return;
 
-        // Show loading state
-        this.toggleAgentDetailsLoading(true);
-
-        // Make API call to get user progress data
-        fetch(`/api/user/progress?codename=${encodeURIComponent(codename)}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to load agent data');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    this.userData = data.user_progress;
-                    this.updateAgentDisplay();
-                    this.showNotification(`Agent ${codename} loaded successfully!`, 'success');
-                } else {
-                    // If no existing data but valid response, we'll create a new agent
-                    this.userData = {
-                        level: 1,
-                        experience_points: 0,
-                        currency_balances: {
-                            "💎": 500,
-                            "💷": 5000,
-                            "💶": 5000,
-                            "💴": 5000,
-                            "💵": 5000,
-                        },
-                        is_new: true
-                    };
-                    this.updateAgentDisplay();
-                    this.showNotification(`New agent ${codename} created!`, 'info');
-                }
-            })
-            .catch(error => {
-                console.error('Error loading agent data:', error);
-                this.showNotification('Error loading agent data', 'danger');
-                this.toggleAgentDetailsLoading(false);
-            });
+        this.userData = {
+            ...this.userData,
+            ...progressData
+        };
     }
 
     /**
-     * Toggle loading state for agent details
-     * @param {boolean} isLoading - Whether the data is loading
+     * Update UI elements with current user data
      */
-    toggleAgentDetailsLoading(isLoading) {
-        const placeholder = document.getElementById('agent-details-placeholder');
-        const details = document.getElementById('agent-details');
-        
-        if (isLoading) {
-            if (placeholder) placeholder.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading agent data...</p></div>';
-            if (details) details.style.display = 'none';
-        } else {
-            if (placeholder) placeholder.style.display = 'none';
-            if (details) details.style.display = 'block';
-        }
-    }
-
-    /**
-     * Update the agent display with loaded data
-     */
-    updateAgentDisplay() {
-        if (!this.userData) return;
-
-        // Hide placeholder and show details
-        this.toggleAgentDetailsLoading(false);
-        
-        const agentDetails = document.getElementById('agent-details');
-        const placeholder = document.getElementById('agent-details-placeholder');
-        
-        if (agentDetails) agentDetails.style.display = 'block';
-        if (placeholder) placeholder.style.display = 'none';
+    updateUIElements() {
+        // Update agent name
+        const agentName = document.getElementById('agentName');
+        if (agentName) agentName.textContent = this.userData.protagonist_name || 'Agent';
 
         // Update level and XP
-        const agentLevel = document.getElementById('agent-level');
-        const agentXp = document.getElementById('agent-xp');
-        
-        if (agentLevel) agentLevel.textContent = this.userData.level;
-        if (agentXp) agentXp.textContent = this.userData.experience_points;
-        
-        // Calculate XP progress (simple formula: level = 1 + sqrt(xp/100))
-        const nextLevelXP = Math.pow((this.userData.level), 2) * 100;
-        const prevLevelXP = Math.pow((this.userData.level - 1), 2) * 100;
-        const xpRange = nextLevelXP - prevLevelXP;
-        const xpProgress = (this.userData.experience_points - prevLevelXP) / xpRange * 100;
-        
-        // Update XP bar
-        const xpBar = document.getElementById('agent-xp-bar');
-        if (xpBar) xpBar.style.width = `${Math.min(100, Math.max(0, xpProgress))}%`;
+        const agentLevel = document.getElementById('agentLevel');
+        const agentXP = document.getElementById('agentXP');
+        const xpProgressBar = document.getElementById('xpProgressBar');
 
-        // Update currency display
-        const currencyContainer = document.getElementById('agent-currency');
-        if (currencyContainer) {
+        if (agentLevel) agentLevel.textContent = this.userData.level || 1;
+        if (agentXP) agentXP.textContent = this.userData.experience_points || 0;
+
+        // Calculate XP progress (simple formula: level = 1 + sqrt(xp/100))
+        if (xpProgressBar && this.userData.experience_points) {
+            const nextLevelXP = Math.pow((this.userData.level), 2) * 100;
+            const prevLevelXP = Math.pow((this.userData.level - 1), 2) * 100;
+            const xpRange = nextLevelXP - prevLevelXP;
+            const xpProgress = (this.userData.experience_points - prevLevelXP) / xpRange * 100;
+
+            xpProgressBar.style.width = `${Math.min(100, Math.max(0, xpProgress))}%`;
+        }
+
+        // Update currency balances
+        const currencyContainer = document.querySelector('.currency-balances');
+        if (currencyContainer && this.userData.currency_balances) {
             currencyContainer.innerHTML = '';
-            
+
             for (const [currency, amount] of Object.entries(this.userData.currency_balances)) {
                 const currencyItem = document.createElement('div');
                 currencyItem.className = 'currency-item';
                 currencyItem.innerHTML = `
                     <span class="currency-symbol">${currency}</span>
-                    <span class="currency-amount">${amount.toLocaleString()}</span>
+                    <span class="currency-amount">${amount}</span>
                 `;
                 currencyContainer.appendChild(currencyItem);
             }
         }
 
-        // Handle continue story button
-        const continueStoryContainer = document.getElementById('continue-story-container');
-        if (continueStoryContainer && this.userData.current_story_id) {
-            // Store last story ID in localStorage
-            localStorage.setItem('lastStoryId', this.userData.current_story_id);
-            continueStoryContainer.style.display = 'block';
+        // Update missions list
+        const missionsList = document.querySelector('.notebook-missions-list');
+        if (missionsList && this.userData.active_missions) {
+            missionsList.innerHTML = '';
+
+            if (this.userData.active_missions.length > 0) {
+                for (const missionId of this.userData.active_missions) {
+                    const missionItem = document.createElement('li');
+                    missionItem.className = 'mission-item';
+                    missionItem.textContent = `Mission #${missionId}`;
+                    missionsList.appendChild(missionItem);
+                }
+            } else {
+                missionsList.innerHTML = '<p>No active missions</p>';
+            }
+        }
+
+        // Update character relationships
+        const relationshipsList = document.querySelector('.relationships-list');
+        if (relationshipsList && this.userData.character_relationships) {
+            relationshipsList.innerHTML = '';
+
+            if (Object.keys(this.userData.character_relationships).length > 0) {
+                for (const [charId, data] of Object.entries(this.userData.character_relationships)) {
+                    const relationshipItem = document.createElement('li');
+                    relationshipItem.innerHTML = `
+                        <span class="char-name">${data.name}</span>
+                        <div class="relationship-meter">
+                            <div class="relationship-level" style="width: ${data.relationship_value * 10}%"></div>
+                        </div>
+                    `;
+                    relationshipsList.appendChild(relationshipItem);
+                }
+            } else {
+                relationshipsList.innerHTML = '<p>No character relationships</p>';
+            }
         }
     }
 
@@ -194,11 +171,11 @@ class UserProgressManager {
         const toast = document.getElementById('notificationToast');
         const toastTitle = document.getElementById('toastTitle');
         const toastMessage = document.getElementById('toastMessage');
-        
+
         // Set appropriate title and icon based on type
         let title = 'Notification';
         let icon = 'fa-info-circle';
-        
+
         switch (type) {
             case 'success':
                 title = 'Success';
@@ -213,11 +190,11 @@ class UserProgressManager {
                 icon = 'fa-exclamation-triangle';
                 break;
         }
-        
+
         // Update toast content
         if (toastTitle) toastTitle.innerHTML = `<i class="fas ${icon} me-2"></i>${title}`;
         if (toastMessage) toastMessage.textContent = message;
-        
+
         // Show the toast
         const bsToast = new bootstrap.Toast(toast);
         bsToast.show();
@@ -238,22 +215,16 @@ class UserProgressManager {
      */
     canAfford(requirements) {
         if (!this.userData || !this.userData.currency_balances) return false;
-        
+
         for (const [currency, amount] of Object.entries(requirements)) {
             if ((this.userData.currency_balances[currency] || 0) < amount) {
                 return false;
             }
         }
-        
+
         return true;
     }
 }
 
 // Export the UserProgressManager class
 export default UserProgressManager;
-
-// For backward compatibility with non-module scripts
-if (typeof window !== 'undefined') {
-    // Make UserProgressManager available globally
-    window.UserProgressManager = UserProgressManager;
-}

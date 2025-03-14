@@ -1,93 +1,217 @@
+
 /**
- * Main entry point for the application
- * Imports all modules and initializes the application
+ * Main JavaScript entry point for the application
+ * Initializes all modules and sets up event handlers
  */
-import UIUtils from './modules/UIUtils.js';
-import CurrencyManager from './modules/CurrencyManager.js';
-import UserProgress from './modules/UserProgress.js';
-import CharacterManager from './modules/CharacterManager.js';
-import StoryManager from './modules/StoryManager.js';
-import MissionManager from './modules/MissionManager.js';
-import PaymentManager from './modules/PaymentManager.js';
-import EventHandlers from './modules/EventHandlers.js';
-// Import modules - using dynamic import to ensure they load properly
-async function loadModules() {
-    try {
-        // Load NotebookManager if the module exists
-        try {
-            const NotebookManagerModule = await import('./modules/NotebookManager.js');
-            // Check if default export exists
-            if (NotebookManagerModule.default) {
-                const NotebookManager = NotebookManagerModule.default;
+import UserProgressManager from './modules/UserProgressManager.js';
+// Import other modules as needed
 
-                if (document.querySelector('.notebook-container')) {
-                    const notebookManager = new NotebookManager();
-                    notebookManager.initialize();
-                    window.notebookManagerInstance = notebookManager;
-                } else {
-                    console.log("Notebook elements not found in the DOM, skipping initialization");
+// Initialize modules when DOM is loaded
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('DOM loaded, initializing modules...');
+    
+    // Initialize User Progress Manager
+    const userProgressManager = new UserProgressManager();
+    await userProgressManager.initialize();
+    
+    // Make userProgressManager available globally for debugging
+    window.userProgressManager = userProgressManager;
+    
+    // Initialize other modules if needed
+    // ...
+    
+    // Set up page-specific initializations
+    initPageSpecificFeatures();
+    
+    console.log('Modules loaded successfully');
+});
+
+/**
+ * Initialize page-specific features based on current page
+ */
+function initPageSpecificFeatures() {
+    // Initialize storyboard-specific features
+    if (document.querySelector('.storyboard-body')) {
+        initStoryboardFeatures();
+    }
+    
+    // Initialize choice buttons
+    initChoiceButtons();
+}
+
+/**
+ * Initialize storyboard-specific features
+ */
+function initStoryboardFeatures() {
+    // Initialize notebook toggle
+    const notebookBtn = document.getElementById('toggleNotebookBtn');
+    const closeBtn = document.getElementById('closeNotebookBtn');
+    const sidebar = document.getElementById('notebookSidebar');
+    
+    if (notebookBtn && closeBtn && sidebar) {
+        notebookBtn.addEventListener('click', () => {
+            sidebar.classList.add('open');
+        });
+        
+        closeBtn.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+        });
+    }
+    
+    // Initialize currency trading if available
+    initCurrencyTrading();
+}
+
+/**
+ * Initialize choice buttons
+ */
+function initChoiceButtons() {
+    // Handle choice form submissions
+    const choiceForms = document.querySelectorAll('.choice-form');
+    
+    choiceForms.forEach(form => {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const customChoice = formData.get('custom_choice');
+            
+            // Check if this is a custom choice that requires diamonds
+            if (customChoice && form.classList.contains('custom-choice-form')) {
+                // Check if user has enough diamonds
+                if (!window.userProgressManager.canAfford({'💎': 100})) {
+                    showNotification('Insufficient diamonds', 'You need 100 💎 to make a custom choice.');
+                    return;
                 }
-            } else {
-                console.log("NotebookManager module loaded but doesn't have a default export");
             }
-        } catch (notebookError) {
-            console.log("NotebookManager module not available or error:", notebookError.message);
-        }
+            
+            // Proceed with form submission
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to process choice');
+                }
+                
+                const data = await response.json();
+                
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                }
+            } catch (error) {
+                console.error('Error processing choice:', error);
+                showNotification('Error', 'Failed to process your choice. Please try again.');
+            }
+        });
+    });
+}
 
-        // Load UserProgressManager
-        try {
-            const UserProgressManagerModule = await import('./modules/UserProgressManager.js');
-            const UserProgressManager = UserProgressManagerModule.default;
-
-            const userProgressManager = new UserProgressManager();
-            userProgressManager.initialize();
-            window.userProgressManagerInstance = userProgressManager;
-        } catch (progressError) {
-            console.error("Error initializing UserProgressManager:", progressError);
-        }
-
-        console.log("Modules loaded successfully");
-    } catch (error) {
-        console.error("Error loading modules:", error);
+/**
+ * Initialize currency trading
+ */
+function initCurrencyTrading() {
+    const acceptTradeBtn = document.querySelector('.accept-trade-btn');
+    
+    if (acceptTradeBtn) {
+        acceptTradeBtn.addEventListener('click', async () => {
+            const fromCurrency = acceptTradeBtn.dataset.from;
+            const toCurrency = acceptTradeBtn.dataset.to;
+            const rate = acceptTradeBtn.dataset.rate;
+            
+            // Show trade modal
+            const tradeModal = new bootstrap.Modal(document.getElementById('tradeModal'));
+            
+            // Pre-fill modal with trade details
+            const fromSelect = document.getElementById('fromCurrency');
+            const toSelect = document.getElementById('toCurrency');
+            
+            if (fromSelect) fromSelect.value = fromCurrency;
+            if (toSelect) toSelect.value = toCurrency;
+            
+            tradeModal.show();
+        });
+    }
+    
+    // Handle trade form submission
+    const tradeForm = document.getElementById('tradeForm');
+    
+    if (tradeForm) {
+        tradeForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const fromCurrency = document.getElementById('fromCurrency').value;
+            const toCurrency = document.getElementById('toCurrency').value;
+            const amount = parseInt(document.getElementById('tradeAmount').value, 10);
+            
+            if (isNaN(amount) || amount <= 0) {
+                showNotification('Invalid Amount', 'Please enter a valid amount to trade.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/trade_currency', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        from_currency: fromCurrency,
+                        to_currency: toCurrency,
+                        amount: amount
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to process trade');
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update user progress with new balances
+                    if (window.userProgressManager) {
+                        window.userProgressManager.updateUserData({
+                            currency_balances: data.new_balances
+                        });
+                        window.userProgressManager.updateUIElements();
+                    }
+                    
+                    showNotification('Trade Successful', 'Your currency trade was successful!');
+                    
+                    // Close the modal
+                    const tradeModal = bootstrap.Modal.getInstance(document.getElementById('tradeModal'));
+                    if (tradeModal) {
+                        tradeModal.hide();
+                    }
+                } else {
+                    showNotification('Trade Failed', data.error || 'Failed to process your trade request.');
+                }
+            } catch (error) {
+                console.error('Error processing trade:', error);
+                showNotification('Error', 'Failed to process your trade. Please try again.');
+            }
+        });
     }
 }
 
-// Wait for DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("DOM loaded, initializing modules...");
-    loadModules();
-});
-import UserProgressManager from './modules/UserProgressManager.js';
-
-
-// Make core modules available globally for debugging
-window.App = {
-    UI: UIUtils,
-    Currency: CurrencyManager,
-    Progress: UserProgress,
-    Character: CharacterManager,
-    Story: StoryManager,
-    Mission: MissionManager,
-    Payment: PaymentManager
-};
-
-// Initialize the application when the DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Check if we're on a storyboard page and save the story ID
-    const storyIdParam = new URLSearchParams(window.location.search).get('story_id');
-    if (storyIdParam) {
-        localStorage.setItem('lastStoryId', storyIdParam);
+/**
+ * Show a notification toast
+ * @param {string} title - The notification title
+ * @param {string} message - The notification message
+ */
+function showNotification(title, message) {
+    const toastTitle = document.getElementById('toastTitle');
+    const toastMessage = document.getElementById('toastMessage');
+    const toast = document.getElementById('notificationToast');
+    
+    if (toastTitle && toastMessage && toast) {
+        toastTitle.textContent = title;
+        toastMessage.textContent = message;
+        
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
     }
-
-    EventHandlers.initialize();
-
-    // Let the class initialization handle itself in their respective module files
-    // This ensures modules are loaded consistently whether imported in main.js or loaded via script tags
-});
-
-// NOTE: The following features are described in the thinking section but not fully implemented in the provided changes:
-// - "Continue Story" button in storyboard.html
-// - "Continue Story" button in index.html
-// - continueStory method in NotebookManager.js
-// - Updated UserProgressManager.js to handle last story ID and button display
-// - Updated main.js to handle story ID storage when a story is viewed.
+}
