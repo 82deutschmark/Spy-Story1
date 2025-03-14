@@ -1,26 +1,48 @@
-
 /**
  * UI Utilities Module
  * Handles UI interactions like overlays, notifications and toasts
  */
 export default {
     /**
-     * Creates a loading overlay with a spinner and percentage
-     * @param {string} message - Message to display in the overlay
-     * @returns {HTMLElement} - The percentage element for updating
+     * Creates a loading overlay on the page
+     * @param {string} message - Optional message to display
+     * @return {HTMLElement} - The created overlay element
      */
     createLoadingOverlay(message = 'Loading...') {
+        // Remove any existing overlay first
+        this.removeLoadingOverlay();
+
+        // Create overlay elements
         const overlay = document.createElement('div');
-        overlay.className = 'loading-overlay';
-        overlay.innerHTML = `
-            <div class="loading-content">
-                <div class="loading-spinner"></div>
-                <div class="loading-percentage">0%</div>
-            </div>
-        `;
+        overlay.classList.add('loading-overlay');
+        overlay.id = 'loadingOverlay';
+
+        const spinner = document.createElement('div');
+        spinner.classList.add('loading-spinner');
+
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('loading-message');
+        messageElement.textContent = message;
+
+        const progressContainer = document.createElement('div');
+        progressContainer.classList.add('loading-progress-container');
+
+        const progressBar = document.createElement('div');
+        progressBar.classList.add('loading-progress-bar');
+        progressBar.id = 'loadingProgressBar';
+        progressBar.style.width = '0%';
+
+        progressContainer.appendChild(progressBar);
+
+        // Assemble the overlay
+        overlay.appendChild(spinner);
+        overlay.appendChild(messageElement);
+        overlay.appendChild(progressContainer);
+
+        // Add to document
         document.body.appendChild(overlay);
-        overlay.style.display = 'flex';
-        return overlay.querySelector('.loading-percentage');
+
+        return overlay;
     },
 
     /**
@@ -35,12 +57,26 @@ export default {
     },
 
     /**
-     * Removes a loading overlay from the DOM
-     * @param {HTMLElement} overlay - The percentage element within the overlay
+     * Updates the loading progress bar
+     * @param {number} percent - Progress percentage (0-100)
      */
-    removeLoadingOverlay(overlay) {
-        if (overlay && overlay.closest('.loading-overlay')) {
-            overlay.closest('.loading-overlay').remove();
+    updateLoadingPercent(percent) {
+        const progressBar = document.getElementById('loadingProgressBar');
+        if (progressBar) {
+            progressBar.style.width = `${percent}%`;
+        }
+    },
+
+    /**
+     * Removes the loading overlay
+     */
+    removeLoadingOverlay() {
+        const overlay = document.getElementById('loadingOverlay');
+        if (overlay) {
+            overlay.classList.add('fadeout');
+            setTimeout(() => {
+                overlay.remove();
+            }, 500); // Allow time for animation
         }
     },
 

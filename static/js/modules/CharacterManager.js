@@ -1,8 +1,22 @@
 /**
  * Character Management Module
- * Handles character selection and display
+ * Handles character selection, display, and highlighting in story text
  */
 import UIUtils from './UIUtils.js';
+
+// Character highlighting functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // This will be called after the DOM is fully loaded
+    if (typeof CharacterManager !== 'undefined' && CharacterManager) {
+        // Only initialize if CharacterManager exists
+        CharacterManager.highlightCharactersInStory();
+    }
+});
+
+/**
+ * Character Management Module
+ * Handles character selection, display, and highlighting in story text
+ */
 
 const CharacterManager = {
     /**
