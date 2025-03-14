@@ -1,3 +1,144 @@
+
+/* Notebook Sidebar Styles */
+.notebook-toggle-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.notebook-toggle-btn:hover {
+    background-color: rgba(0, 0, 0, 0.9);
+}
+
+.notebook-sidebar {
+    position: fixed;
+    top: 0;
+    right: -350px;
+    width: 350px;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.85);
+    color: white;
+    transition: right 0.3s ease-in-out;
+    z-index: 1001;
+    overflow-y: auto;
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
+}
+
+.notebook-sidebar.open {
+    right: 0;
+}
+
+.notebook-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.notebook-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.close-notebook-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+.notebook-content {
+    padding: 15px;
+}
+
+.notebook-section {
+    margin-bottom: 25px;
+}
+
+.notebook-section h4 {
+    font-size: 1rem;
+    margin-bottom: 10px;
+    color: #f8f9fa;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 5px;
+}
+
+.notebook-data {
+    padding: 0 10px;
+}
+
+.notebook-missions-list, .relationships-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.mission-item {
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.currency-balances {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.currency-item {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 5px 10px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.currency-symbol {
+    font-size: 1.2rem;
+}
+
+.currency-amount {
+    font-weight: bold;
+}
+
+.relationship-meter {
+    height: 6px;
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    margin-top: 5px;
+}
+
+.relationship-level {
+    height: 100%;
+    background-color: #4CAF50;
+    border-radius: 3px;
+}
+
+.progress {
+    height: 8px;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.progress-bar {
+    background-color: #1e88e5;
+}
+
+.continue-story-btn-container {
+    text-align: center;
+}
+
 /* Custom.css - Core layout styles */
 /* Note: This file now uses a modular CSS system with component-specific styles moved to dedicated files in the components directory. */
 /* See main.css for the complete import structure */
