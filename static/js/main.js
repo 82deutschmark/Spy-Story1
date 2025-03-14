@@ -79,10 +79,51 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     EventHandlers.initialize();
+    
+    // Initialize character mentions in story text
+    initializeCharacterMentions();
 
     // Let the class initialization handle itself in their respective module files
     // This ensures modules are loaded consistently whether imported in main.js or loaded via script tags
 });
+
+// Handle character mentions in story text
+function initializeCharacterMentions() {
+    // Find all character mentions in the story text
+    const characterMentions = document.querySelectorAll('.character-mention');
+    const characterThumbnails = document.querySelectorAll('.character-thumbnail');
+    
+    if (characterMentions.length > 0) {
+        characterMentions.forEach(mention => {
+            // Create tooltip element for the character
+            const tooltipEl = document.createElement('div');
+            tooltipEl.className = 'character-tooltip';
+            
+            // Get character name from the mention
+            const characterName = mention.getAttribute('data-character-name');
+            
+            // Find matching thumbnail
+            const matchingThumbnail = Array.from(characterThumbnails).find(thumb => 
+                thumb.getAttribute('data-character-name') === characterName
+            );
+            
+            if (matchingThumbnail) {
+                const thumbnailImg = matchingThumbnail.querySelector('img').cloneNode(true);
+                tooltipEl.appendChild(thumbnailImg);
+                tooltipEl.insertAdjacentHTML('beforeend', characterName);
+                mention.appendChild(tooltipEl);
+                
+                // Highlight matching thumbnail when hovering over mention
+                mention.addEventListener('mouseenter', () => {
+                    matchingThumbnail.classList.add('highlight');
+                });
+                mention.addEventListener('mouseleave', () => {
+                    matchingThumbnail.classList.remove('highlight');
+                });
+            }
+        });
+    }
+}
 
 // NOTE: The following features are described in the thinking section but not fully implemented in the provided changes:
 // - "Continue Story" button in storyboard.html
