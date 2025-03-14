@@ -366,30 +366,15 @@ def save_analysis():
         elif is_character and 'character' in analysis and 'description' in character_data:
             description = character_data.get('description')
 
-        # Create new ImageAnalysis record
-        image_analysis = ImageAnalysis(
+        # Create new Character record
+        character = Character(
             image_url=image_url,
-            image_width=metadata.get('width'),
-            image_height=metadata.get('height'),
-            image_format=metadata.get('format'),
-            image_size_bytes=metadata.get('size_bytes'),
-            image_type='character' if is_character else 'scene',
-            analysis_result=analysis,
-            name=name,  # Set the name field for compatibility
-            character_name=character_name,  
+            character_name=character_name,
             character_traits=character_traits,
-            personality_traits=personality_traits,  # Add personality_traits for consistency
             character_role=character_role,
-            role=character_role,  # Set role field for compatibility
             plot_lines=plot_lines,
-            potential_plot_lines=plot_lines,  # Set potential_plot_lines for compatibility
             backstory=backstory,
-            description=description,
-            scene_type=analysis.get('scene_type') if not is_character else None,
-            setting=analysis.get('setting') if not is_character else None,
-            setting_description=analysis.get('setting_description') if not is_character else None,
-            story_fit=analysis.get('story_fit') if not is_character else None,
-            dramatic_moments=analysis.get('dramatic_moments') if not is_character else None
+            description=description
         )
 
         db.session.add(image_analysis)
