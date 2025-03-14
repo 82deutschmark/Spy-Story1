@@ -15,7 +15,6 @@ This application allows users to generate interactive stories featuring images f
 - **Story Customization**: Set conflict, setting, narrative style, and mood
 - **Interactive Choices**: Make decisions that affect the story's outcome
 - **Image Analysis**: Upload character/scene images for AI analysis 
-- **Debug Tools**: View and manage database records
 - **Gamification System**: Earn experience points, level up, and track relationships with characters
 - **Virtual Currency**: Earn and spend various currencies (💎, 💵, 💷, 💶, 💴) on story choices
 - **Plot Arcs**: Track active and completed story arcs across multiple sessions
@@ -26,6 +25,7 @@ This application allows users to generate interactive stories featuring images f
 
 ## Recent Improvements
 
+- **Enhanced Security**: Removed debug interface access from main UI for better security
 - **Enhanced Story Generation**: Our narrative engine now creates more detailed, lengthy story segments with improved character development, continuity, and plot progression
 - **Detailed Prompts**: Stories now feature richer environmental descriptions, more sophisticated dialogue, and better integration of character traits
 - **Improved Continuity**: Better handling of story context between segments ensures a cohesive narrative experience
@@ -292,15 +292,6 @@ SESSION_SECRET=your_session_secret
 3. View relationship status in the character panel
 4. Unlock new storylines based on relationship status
 
-### Using Debug Tools
-
-1. Navigate to `/debug/dashboard` endpoint
-2. Upload images for AI analysis
-3. View and manage database records with pagination
-4. Run health checks on the database
-5. Use the admin interface for advanced database management by clicking the admin link
-6. Test image analysis functionality directly from the debug interface
-7. View characters and stories with proper filtering and pagination
 
 ## Project Structure
 
