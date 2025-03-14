@@ -422,25 +422,30 @@ export default {
 
             // Generate next part of the story
             StoryManager.generateStory(formData)
-                .then(data => {
-                    clearInterval(progressInterval);
-
-                    if (data.success && data.redirect) {
-                        UIUtils.updateLoadingPercent(loadingPercent, 100);
-                        setTimeout(() => {
-                            window.location.href = data.redirect;
-                        }, 500);
+                .then(response => {
+                    // Hide the loading overlay
+                    UIUtils.toggleLoadingOverlay(false);
+                    // Redirect to the storyboard page
+                    if (response.redirect) {
+                        window.location.href = response.redirect;
                     } else {
-                        throw new Error(data.error || 'Failed to generate story continuation');
+                        console.log('Story response:', response);
                     }
                 })
                 .catch(error => {
+                    // Hide the loading overlay
+                    UIUtils.toggleLoadingOverlay(false);
                     console.error('Story generation failed:', error);
-                    UIUtils.showToast('Error', error.message || 'Failed to generate story. Please try again.');
 
-                    clearInterval(progressInterval);
-                    if (loadingOverlay) {
-                        loadingOverlay.remove();
+                    // Display more specific error message
+                    const errorMessage = error.message || 'Failed to generate story';
+                    UIUtils.showNotification(errorMessage, 'error');
+
+                    // If the error is about missing parameters, help the user
+                    if (errorMessage.includes('Missing required')) {
+                        setTimeout(() => {
+                            alert('Please ensure you have selected at least one character and all story parameters (conflict, setting, narrative style, and mood).');
+                        }, 500);
                     }
                 });
         });

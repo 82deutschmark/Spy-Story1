@@ -29,42 +29,50 @@ export default {
 
             // Handle FormData and plain objects differently
             let jsonData;
-            try {
-                if (formData instanceof FormData) {
-                    jsonData = {};
-                    formData.forEach((value, key) => {
-                        // Handle array fields (like selected_images[])
-                        if (key.endsWith('[]')) {
-                            const actualKey = key.slice(0, -2); // Remove [] suffix
-                            if (!jsonData[actualKey]) {
-                                jsonData[actualKey] = [];
-                            }
-                            jsonData[actualKey].push(value);
-                        } else {
-                            jsonData[key] = value;
+            if (formData instanceof FormData) {
+                jsonData = {};
+                formData.forEach((value, key) => {
+                    // Handle array fields (like selected_images[])
+                    if (key.endsWith('[]')) {
+                        const actualKey = key.slice(0, -2); // Remove [] suffix
+                        if (!jsonData[actualKey]) {
+                            jsonData[actualKey] = [];
                         }
-                    });
-                } else if (typeof formData === 'object') {
-                    jsonData = formData;
-                } else {
-                    throw new Error('Invalid form data format');
-                }
-
-                // Validate required parameters
-                if (!jsonData.conflict && !jsonData.previous_choice) {
-                    throw new Error('Missing required story parameters');
-                }
-            } catch (error) {
-                clearInterval(progressInterval);
-                if (loadingOverlay) {
-                    loadingOverlay.remove();
-                }
-                reject(error);
-                return;
+                        jsonData[actualKey].push(value);
+                    } else {
+                        jsonData[key] = value;
+                    }
+                });
+            } else {
+                jsonData = formData;
             }
+
 
             // Log the data being sent
             console.log('Sending story generation data:', jsonData);
+
+            // Handle redirect responses (story already generated)
+            if (jsonData.redirect && jsonData.success) {
+                return Promise.resolve(jsonData);
+            }
+
+            // Validate required parameters
+            const missingParams = [];
+            if (!jsonData.conflict) missingParams.push('conflict');
+            if (!jsonData.setting) missingParams.push('setting');
+            if (!jsonData.narrative_style) missingParams.push('narrative_style');
+            if (!jsonData.mood) missingParams.push('mood');
+
+            // Check for selected_images
+            if (!jsonData.selected_images || 
+                (Array.isArray(jsonData.selected_images) && jsonData.selected_images.length < 1)) {
+                missingParams.push('selected_images');
+            }
+
+            if (missingParams.length > 0) {
+                console.error('Missing required parameters:', missingParams);
+                return Promise.reject(new Error(`Missing required story parameters: ${missingParams.join(', ')}`));
+            }
 
             // Make API request
             fetch('/generate_story', {
