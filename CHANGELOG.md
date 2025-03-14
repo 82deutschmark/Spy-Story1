@@ -1,7 +1,11 @@
+# CHANGELOG
 
-# Database Changelog
-
-This document tracks all significant database migrations and schema changes.
+## [Unreleased] - 2023-xx-xx
+### Improved
+- Enhanced story generation service with more detailed prompts and narrative guidance
+- Increased story segment length and detail with improved system and content prompts
+- Added better continuity handling between story segments
+- Improved character integration into narrative with deeper character development
 
 ## UI and Progress Tracking Improvements
 **Files:** 
