@@ -7,7 +7,7 @@ from flask_admin.contrib.sqla import ModelView
 from flask_admin.contrib.sqla.filters import FilterEqual, FilterLike
 from flask_admin.form import JSONField
 from database import db
-from models import ImageAnalysis, StoryGeneration, CharacterEvolution, UserProgress, Transaction
+from models import Character, StoryGeneration, CharacterEvolution, UserProgress, Transaction
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -22,17 +22,13 @@ class BaseModelView(ModelView):
     def __init__(self, model, **kwargs):
         super(BaseModelView, self).__init__(model, db.session, **kwargs)
 
-class ImageAnalysisView(BaseModelView):
-    column_searchable_list = ['character_name', 'image_type', 'role', 'setting']
+class CharacterView(BaseModelView):
+    column_searchable_list = ['character_name', 'character_role']
     column_filters = [
-        'image_type', 
         'character_role',
-        'role',
-        'scene_type',
-        FilterEqual(ImageAnalysis.image_type, 'Image Type'),
-        FilterEqual(ImageAnalysis.character_role, 'Character Role')
+        FilterEqual(Character.character_role, 'Character Role')
     ]
-    column_exclude_list = ['analysis_result', 'plot_lines', 'potential_plot_lines', 'character_traits', 'personality_traits', 'story_fit', 'dramatic_moments']
+    column_exclude_list = ['character_traits', 'plot_lines']
     column_default_sort = ('created_at', True)
     
     # Better column labels
@@ -141,7 +137,7 @@ def init_admin(app):
         admin.init_app(app)
         
         # Add model views
-        admin.add_view(ImageAnalysisView(ImageAnalysis, name='Images'))
+        admin.add_view(CharacterView(Character, name='Characters'))
         admin.add_view(StoryGenerationView(StoryGeneration, name='Stories'))
         admin.add_view(CharacterEvolutionView(CharacterEvolution, name='Characters'))
         admin.add_view(UserProgressView(UserProgress, name='Users'))
