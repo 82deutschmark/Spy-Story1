@@ -105,14 +105,10 @@ def get_user_progress():
                 'user_id': user_progress.user_id,
                 'level': user_progress.level,
                 'experience_points': user_progress.experience_points,
-                'currency_balances': user_progress.currency_balances or {},
-                'active_missions': user_progress.active_missions or [],
-                'protagonist_name': user_progress.protagonist_name,
-                'encountered_characters': user_progress.encountered_characters or {},
-                'character_relationships': user_progress.character_relationships or {},
-                'current_story_id': user_progress.current_story_id,
-                'active_plot_arcs': user_progress.active_plot_arcs or [],
-                'completed_plot_arcs': user_progress.completed_plot_arcs or []
+                'currency_balances': user_progress.currency_balances,
+                'active_missions': user_progress.active_missions,
+                'encountered_characters': user_progress.encountered_characters,
+                'current_story_id': user_progress.current_story_id
             }
         })
     except Exception as e:
