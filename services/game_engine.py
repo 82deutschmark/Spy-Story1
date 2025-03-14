@@ -3,7 +3,7 @@ import logging
 import json
 from typing import Dict, List, Any, Optional, Tuple
 from models import UserProgress, StoryGeneration, StoryNode, StoryChoice, Mission
-from models.character_data import Character  # Update import for new Character model
+from models.scene_images import SceneImages  # Use SceneImages for character data
 from services.story_maker import generate_story
 from services.mission_generator import generate_mission, complete_mission, fail_mission, update_mission_progress
 from database import db
@@ -89,15 +89,15 @@ class GameEngine:
             # Get character info if provided
             character_info = None
             if character_id:
-                character = Character.query.get(character_id)  # Use new Character model
+                character = SceneImages.query.get(character_id)  # Use SceneImages model
                 if character:
-                    logger.debug(f"Found character: {character.character_name}")
+                    logger.debug(f"Found character: {character.name}")
                     character_info = {
-                        "name": character.character_name,
-                        "role": character.character_role,
-                        "character_traits": character.character_traits,
-                        "plot_lines": character.plot_lines,
-                        "description": character.description  # Use description instead of style
+                        "name": character.name,
+                        "role": getattr(character, 'character_role', ''),
+                        "character_traits": getattr(character, 'character_traits', []),
+                        "plot_lines": getattr(character, 'plot_lines', []),
+                        "description": getattr(character, 'setting_description', '')
                     }
                 else:
                     logger.warning(f"Character not found with ID: {character_id}")

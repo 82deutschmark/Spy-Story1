@@ -4,7 +4,8 @@ import re
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 
-from models import ImageAnalysis, Mission, UserProgress, StoryGeneration
+from models import Mission, UserProgress, StoryGeneration
+from models.scene_images import SceneImages
 from database import db
 
 logger = logging.getLogger(__name__)
@@ -93,15 +94,15 @@ def create_mission_from_story(user_id: str, story_text: str, story_id: Optional[
         target = None
         
         if details['giver']:
-            giver = ImageAnalysis.query.filter(
-                ImageAnalysis.image_type == 'character',
-                ImageAnalysis.character_name.ilike(f"%{details['giver']}%")
+            giver = SceneImages.query.filter(
+                SceneImages.image_type == 'character',
+                SceneImages.name.ilike(f"%{details['giver']}%")
             ).first()
             
         if details['target']:
-            target = ImageAnalysis.query.filter(
-                ImageAnalysis.image_type == 'character', 
-                ImageAnalysis.character_name.ilike(f"%{details['target']}%")
+            target = SceneImages.query.filter(
+                SceneImages.image_type == 'character', 
+                SceneImages.name.ilike(f"%{details['target']}%")
             ).first()
 
         # Fall back to None if not found
@@ -197,9 +198,9 @@ def generate_mission(user_id: str, story_id: Optional[int] = None) -> Optional[M
                             giver_id = int(mission_data['giver_id'])
                         # Otherwise try to find by name
                         elif mission_data.get('giver'):
-                            giver = ImageAnalysis.query.filter(
-                                ImageAnalysis.image_type == 'character',
-                                ImageAnalysis.character_name.ilike(f"%{mission_data['giver']}%")
+                            giver = SceneImages.query.filter(
+                                SceneImages.image_type == 'character',
+                                SceneImages.name.ilike(f"%{mission_data['giver']}%")
                             ).first()
                             if giver:
                                 giver_id = giver.id
@@ -209,9 +210,9 @@ def generate_mission(user_id: str, story_id: Optional[int] = None) -> Optional[M
                             target_id = int(mission_data['target_id'])
                         # Otherwise try to find by name
                         elif mission_data.get('target'):
-                            target = ImageAnalysis.query.filter(
-                                ImageAnalysis.image_type == 'character',
-                                ImageAnalysis.character_name.ilike(f"%{mission_data['target']}%")
+                            target = SceneImages.query.filter(
+                                SceneImages.image_type == 'character',
+                                SceneImages.name.ilike(f"%{mission_data['target']}%")
                             ).first()
                             if target:
                                 target_id = target.id
