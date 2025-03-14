@@ -2,10 +2,10 @@ from datetime import datetime
 from .base import db
 from sqlalchemy.dialects.postgresql import JSONB
 
-# Association table for many-to-many relationship between stories and images/characters
+# Association table for many-to-many relationship between stories and scene images
 story_images = db.Table('story_images',
     db.Column('story_id', db.Integer, db.ForeignKey('story_generation.id'), primary_key=True),
-    db.Column('image_id', db.Integer, db.ForeignKey('image_analysis.id'), primary_key=True)
+    db.Column('image_id', db.Integer, db.ForeignKey('scene_images.id'), primary_key=True)
 )
 
 # New association table for stories and characters
@@ -26,7 +26,9 @@ class StoryGeneration(db.Model):
 
     # Many-to-many relationship with SceneImages
     images = db.relationship('SceneImages', secondary=story_images,
-                           backref=db.backref('stories', lazy='dynamic'))
+                           backref=db.backref('stories', lazy='dynamic'),
+                           primaryjoin="StoryGeneration.id == story_images.c.story_id",
+                           secondaryjoin="SceneImages.id == story_images.c.image_id")
 
     # Many-to-many relationship with Character (new) - matching the backref name expected by SQLAlchemy
     characters = db.relationship('Character', secondary=story_characters,
