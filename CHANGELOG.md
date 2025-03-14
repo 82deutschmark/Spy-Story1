@@ -26,6 +26,8 @@ All notable changes to the Story Creator project will be documented in this file
 ### Database
 - Migrated from ImageAnalysis table to new Characters table
 - Updated CharacterEvolution model to reference new Characters table
+- Migrated scene images from ImageAnalysis to SceneImages table
+- Updated story_images association table to use SceneImages instead of ImageAnalysis
 - Fixed database relationships and foreign key constraints
 - Ensured proper character role standardization across the system
 
