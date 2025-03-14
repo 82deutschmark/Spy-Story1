@@ -1,4 +1,3 @@
-
 import logging
 from datetime import datetime
 from typing import Dict, Any
@@ -93,25 +92,25 @@ def update_character_relationships(
                 continue
 
             target_ce = char_map[target_id]
-            
+
             # Get relationship details
             rel_type = change_data.get('type', 'neutral')
             strength = change_data.get('amount', 0)
-            
+
             # Update relationship from protagonist to target
             if str(protagonist_id) in char_map:
                 protag_ce = char_map[str(protagonist_id)]
                 _update_relationship(protag_ce, target_id, rel_type, strength)
-            
+
             # Update relationship from target to protagonist (may be different)
             inverse_strength = change_data.get('inverse_amount', strength)
             inverse_type = change_data.get('inverse_type', rel_type)
             _update_relationship(target_ce, protagonist_id, inverse_type, inverse_strength)
-            
+
         db.session.commit()
         logger.info(f"[Relationships] Successfully updated relationships for user {user_id}, story {story_id}.")
         return True
-    
+
     except Exception as e:
         logger.error(f"[Relationships] Error updating character relationships: {str(e)}", exc_info=True)
         db.session.rollback()
