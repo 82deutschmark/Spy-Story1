@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request, current_app
-from models import StoryNode, StoryChoice, UserProgress, ImageAnalysis, Achievement # Added Achievement import
+from models import StoryNode, StoryChoice, UserProgress, Achievement # Added Achievement import
+from models.scene_images import SceneImages
 from database import db
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
@@ -197,17 +198,17 @@ def get_user_progress(user_id):
 def get_characters():
     """Get all available characters"""
     try:
-        characters = ImageAnalysis.query.filter_by(image_type='character').all()
+        characters = SceneImages.query.filter_by(image_type='character').all()
         character_list = []
 
         for char in characters:
             character_list.append({
                 'id': char.id,
-                'name': char.character_name,
+                'name': char.name,
                 'image_url': char.image_url,
-                'traits': char.character_traits,
-                'role': char.character_role,
-                'plot_lines': char.plot_lines
+                'traits': getattr(char, 'character_traits', []),
+                'role': getattr(char, 'character_role', ''),
+                'plot_lines': getattr(char, 'plot_lines', [])
             })
 
         response = APIResponse(

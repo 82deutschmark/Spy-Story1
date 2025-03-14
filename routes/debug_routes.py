@@ -84,7 +84,7 @@ def debug_image_details():
         logger.debug(f"Total images matching query: {total}")
 
         # Get paginated results
-        images = query.order_by(ImageAnalysis.id.desc()).paginate(page=page, per_page=limit)
+        images = query.order_by(SceneImages.id.desc()).paginate(page=page, per_page=limit)
 
         # Format results
         results = []
@@ -367,20 +367,40 @@ def save_analysis():
         elif is_character and 'character' in analysis and 'description' in character_data:
             description = character_data.get('description')
 
-        # Create new Character record
-        character = Character(
+        # Create new SceneImage record
+        scene_image = SceneImages(
             image_url=image_url,
-            character_name=character_name,
-            character_traits=character_traits,
-            character_role=character_role,
-            plot_lines=plot_lines,
-            backstory=backstory,
-            description=description
+            name=character_name if is_character else name,
+            image_type='character' if is_character else 'scene',
+            analysis_result=analysis
         )
+        
+        # Add additional fields based on type
+        if is_character:
+            # Set character-specific fields
+            scene_image.character_role = character_role
+            
+            if character_traits:
+                scene_image.character_traits = character_traits
+            
+            if plot_lines:
+                scene_image.plot_lines = plot_lines
+                
+            if backstory:
+                scene_image.backstory = backstory
+                
+            if description:
+                scene_image.description = description
+        else:
+            # Set scene-specific fields
+            scene_image.scene_type = analysis.get('scene_type', '')
+            scene_image.setting = analysis.get('setting', '')
+            scene_image.setting_description = description or analysis.get('setting_description', '')
+            scene_image.dramatic_moments = analysis.get('dramatic_moments', [])
 
-        db.session.add(image_analysis)
+        db.session.add(scene_image)
         db.session.commit()
-        logger.info(f"Saved image analysis: {image_analysis.id}")
+        logger.info(f"Saved scene image: {scene_image.id}")
 
         return jsonify({
             'success': True,
