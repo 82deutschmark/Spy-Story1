@@ -19,6 +19,7 @@ All notable changes to the Story Creator project will be documented in this file
 - Fixed storyboard route to use Character model instead of ImageAnalysis
 - Fixed story_images association table to properly link StoryGeneration with SceneImages
 - Fixed StoryNode model by removing ImageAnalysis relationship references
+- Fixed CharacterEvolution model to reference characters table instead of image_analysis
 
 ### Security
 - Removed debug tools access from main interface for improved security
