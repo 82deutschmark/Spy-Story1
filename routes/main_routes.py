@@ -5,10 +5,9 @@ from flask import Blueprint, render_template, request, jsonify, url_for, redirec
 import uuid
 
 from database import db
-from models import (AIInstruction, StoryGeneration, StoryNode, 
+from models import (AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, 
                    StoryChoice, UserProgress, Transaction, PlotArc, CharacterEvolution, Mission)
 from models.character_data import Character
-from models.images import ImageAnalysis  # Import directly from the module instead of from models package
 from services.story_maker import generate_story, get_story_options
 
 # Configure logging
