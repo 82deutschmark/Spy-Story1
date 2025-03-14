@@ -91,7 +91,24 @@ def extract_character_name(character_data: Dict[str, Any]) -> str:
 
 def extract_character_role(character_data: Dict[str, Any]) -> str:
     """Extract character role from different data structures"""
-    return extract_field(character_data, 'role', 'character_role', 'neutral')
+    role = extract_field(character_data, 'character_role', 'role', 'neutral')
+    
+    # Standardize the role to match our database values
+    valid_roles = ['villain', 'neutral', 'mission-giver', 'undetermined']
+    role_lower = role.lower() if role else 'neutral'
+    
+    # Map known role values to standardized versions
+    if role_lower in ['antagonist', 'villain']:
+        return 'villain'
+    elif role_lower in ['protagonist', 'hero']:
+        return 'neutral'
+    elif role_lower == 'mission giver':
+        return 'mission-giver'
+    elif role_lower in valid_roles:
+        return role_lower
+    
+    # Default for unrecognized roles
+    return 'neutral'
 
 
 # --- Main story generation ---
