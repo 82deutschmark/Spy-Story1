@@ -384,3 +384,9 @@ The story universe is set in a high-stakes, sexy dramatic international world of
 ## License
 
 MIT License
+
+## Database Schema
+
+### 3. Characters
+**Purpose**: Stores character data and metadata
+**Usage**: Central repository for all character information
