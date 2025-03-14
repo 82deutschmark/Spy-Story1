@@ -179,6 +179,14 @@ class UserProgressManager {
             // Store last story ID in localStorage
             localStorage.setItem('lastStoryId', this.userData.current_story_id);
             continueStoryContainer.style.display = 'block';
+            
+            // Setup continue story button if it exists
+            const continueStoryBtn = document.getElementById('continue-story-btn');
+            if (continueStoryBtn) {
+                continueStoryBtn.addEventListener('click', () => {
+                    window.location.href = `/storyboard?story_id=${this.userData.current_story_id}`;
+                });
+            }
         }
     }
 

@@ -57,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM loaded, initializing modules...");
     loadModules();
 });
-import UserProgressManager from './modules/UserProgressManager.js';
 
 
 // Make core modules available globally for debugging
