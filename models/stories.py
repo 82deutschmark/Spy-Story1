@@ -2,13 +2,7 @@ from datetime import datetime
 from .base import db
 from sqlalchemy.dialects.postgresql import JSONB
 
-# Association table for many-to-many relationship between stories and images/characters
-story_images = db.Table('story_images',
-    db.Column('story_id', db.Integer, db.ForeignKey('story_generation.id'), primary_key=True),
-    db.Column('image_id', db.Integer, db.ForeignKey('image_analysis.id'), primary_key=True)
-)
-
-# New association table for stories and characters
+# Remove deprecated story_images table, keep only story_characters
 story_characters = db.Table('story_characters',
     db.Column('story_id', db.Integer, db.ForeignKey('story_generation.id'), primary_key=True),
     db.Column('character_id', db.Integer, db.ForeignKey('characters.id'), primary_key=True)
@@ -24,20 +18,15 @@ class StoryGeneration(db.Model):
     generated_story = db.Column(JSONB)  # Stores the story text and choices
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Many-to-many relationship with SceneImages
-    images = db.relationship('SceneImages', secondary=story_images,
-                           backref=db.backref('stories', lazy='dynamic'))
-
-    # Many-to-many relationship with Character (new) - matching the backref name expected by SQLAlchemy
+    # Many-to-many relationship with Character
     characters = db.relationship('Character', secondary=story_characters,
-                               backref=db.backref('stories', lazy='dynamic'))
+                                backref=db.backref('stories', lazy='dynamic'))
 
 class StoryNode(db.Model):
     """Model for storing individual story nodes in the branching narrative"""
     id = db.Column(db.Integer, primary_key=True)
     narrative_text = db.Column(db.Text, nullable=False)
-    image_id = db.Column(db.Integer, db.ForeignKey('image_analysis.id'))
-    character_id = db.Column(db.Integer, db.ForeignKey('characters.id'))  # New reference to Character
+    character_id = db.Column(db.Integer, db.ForeignKey('characters.id'))  # Update to use Character
     is_endpoint = db.Column(db.Boolean, default=False)
     generated_by_ai = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -45,10 +34,7 @@ class StoryNode(db.Model):
     branch_metadata = db.Column(JSONB)  # Store branch-specific metadata
     parent_node_id = db.Column(db.Integer, db.ForeignKey('story_node.id'))  # Track story hierarchy
 
-    # Relationship with ImageAnalysis (legacy)
-    image = db.relationship('ImageAnalysis')
-
-    # Relationship with Character (new)
+    # Update relationship to use Character model
     character = db.relationship('Character')
 
     # Relationship with Achievement
