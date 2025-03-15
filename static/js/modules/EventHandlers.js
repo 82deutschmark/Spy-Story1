@@ -210,6 +210,7 @@ export default {
                     .then(data => {
                         // Process the generated story
                         if (data.redirect) {
+                            console.log('Redirecting to:', data.redirect);
                             // Redirect to the new story page
                             window.location.href = data.redirect;
                         } else {

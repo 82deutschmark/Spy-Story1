@@ -102,6 +102,9 @@ export default {
 
                 // Handle a successful redirect response
                 if (data.success && data.redirect) {
+                    console.log("Received redirect to:", data.redirect);
+                    // Redirect the browser to the new URL
+                    window.location.href = data.redirect;
                     return data;
                 }
 
