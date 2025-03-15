@@ -129,3 +129,35 @@ All notable changes to the Story Creator project will be documented in this file
 - Added story_id to node metadata
 - Linked story choices to next nodes
 - Connected missions to story nodes
+
+### To Do
+- Resolve remaining issues with loading animation not functioning
+- Finalize character highlighting logic
+- Improve text readability with proper panel or frame styling
+- Ensure character image sizing aligns with reference Yorkie file
+- Validate placement of choice buttons relative to story text
+
+## Debugging Progress (March 2025)
+
+### Character Selection Issues
+**Current State:**
+- Character selection functionality is broken in the storyboard interface
+- JavaScript errors occur with method naming inconsistencies
+- Main JavaScript modules are failing to initialize properly
+
+**Attempted Fixes:**
+1. Fixed method naming consistency issues:
+   - Updated `EventHandlers.js` to use `initialize()` instead of `init()`
+   - Updated `CharacterManager.js` to properly define the `initialize()` method
+
+**Remaining Issues:**
+- Console errors still show: "Uncaught TypeError: EventHandlers.initialize is not a function"
+- Console errors still show: "CharacterManager.init is not a function"
+- Console errors still show: "PaymentManager.init is not a function"
+- Character highlighting in story content isn't functioning
+
+**Next Steps:**
+- Review all JavaScript module imports and ensure proper loading order
+- Verify that method definitions match their invocations across all modules
+- Implement standardized initialization pattern across all modules
+- Check if modules are being registered correctly in the main.js file
