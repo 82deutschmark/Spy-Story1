@@ -208,23 +208,32 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM loaded, initializing modules...");
 
     // Initialize character manager
-    CharacterManager.init();
+    if (CharacterManager && CharacterManager.initialize) {
+        CharacterManager.initialize();
+    }
 
     // Initialize event handlers with loading handlers
-    EventHandlers.init({
-        showLoading: showLoading,
-        hideLoading: hideLoading
-    });
+    if (EventHandlers && EventHandlers.initialize) {
+        EventHandlers.initialize({
+            showLoading: showLoading,
+            hideLoading: hideLoading
+        });
+    }
 
     // Initialize notebook if elements exist in the page
-    if (document.querySelector('.notebook-container')) {
-        NotebookManager.init();
+    if (document.querySelector('.notebook-container') && 
+        typeof NotebookManager !== 'undefined' && 
+        NotebookManager.initialize) {
+        NotebookManager.initialize();
     } else {
         console.log("Notebook elements not found in the DOM, skipping initialization");
     }
 
     // Initialize user progress
-    UserProgressManager.init();
+    if (typeof UserProgressManager !== 'undefined' && 
+        UserProgressManager.initialize) {
+        UserProgressManager.initialize();
+    }
 
     // Initialize character highlighting
     initCharacterHighlighting();
@@ -240,7 +249,11 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM loaded, initializing payment system...");
 
     // Initialize payment manager
-    PaymentManager.init();
+    if (PaymentManager && PaymentManager.initialize) {
+        PaymentManager.initialize();
+    } else if (PaymentManager && PaymentManager.init) {
+        PaymentManager.init();
+    }
 
     console.log("Payment system initialized");
 });

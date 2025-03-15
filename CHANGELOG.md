@@ -1,3 +1,15 @@
+
+# Changelog
+
+## [Unreleased]
+### Fixed
+- Fixed JavaScript architecture inconsistencies between modules
+- Standardized initialization methods across JavaScript modules
+- Added null checks and compatibility methods to prevent errors
+- Fixed character selection on index page
+
+## Previous Changes
+
 # Changelog
 
 All notable changes to the Story Creator project will be documented in this file.

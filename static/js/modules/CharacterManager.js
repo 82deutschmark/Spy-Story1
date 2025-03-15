@@ -210,8 +210,19 @@ const CharacterManager = {
     }
 };
 
+// Add init method for backwards compatibility
+CharacterManager.init = function() {
+    console.log('Character manager init called (compatibility method)');
+    return this.initialize();
+};
+
 // Export for ES module use
 export default CharacterManager;
+
+// Make available globally for non-ES module contexts
+if (typeof window !== 'undefined') {
+    window.CharacterManager = CharacterManager;
+}
 
 // Initialize character highlighting when DOM is loaded if we're on the storyboard page
 document.addEventListener('DOMContentLoaded', function() {
