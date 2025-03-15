@@ -1,70 +1,60 @@
 /**
- * Main entry point for the application
+ * Main JavaScript Application Entry Point
  * Imports all modules and initializes the application
  */
 import UIUtils from './modules/UIUtils.js';
-import * as CharacterManager from './modules/CharacterManager.js';
-import * as EventHandlers from './modules/EventHandlers.js';
-import * as PaymentManager from './modules/PaymentManager.js';
+import * as CharacterManagerModule from './modules/CharacterManager.js';
+import * as EventHandlersModule from './modules/EventHandlers.js';
+import * as PaymentManagerModule from './modules/PaymentManager.js';
 import NotebookManager from './modules/NotebookManager.js';
 import UserProgressManager from './modules/UserProgressManager.js';
 
-// Set flag to indicate we're importing modules
-window.isModuleImported = true;
+// Extract named exports for easier reference
+const CharacterManager = CharacterManagerModule.CharacterManager;
+const EventHandlers = EventHandlersModule.EventHandlers;
+const PaymentManager = PaymentManagerModule.PaymentManager;
 
-// Wait for DOM to be fully loaded
+// Make modules available globally for debugging and legacy compatibility
+window.CharacterManager = CharacterManager;
+window.EventHandlers = EventHandlers;
+window.PaymentManager = PaymentManager;
+window.UIUtils = UIUtils;
+window.NotebookManager = NotebookManager;
+window.UserProgressManager = UserProgressManager;
+
+// Initialize application when DOM is fully loaded
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM fully loaded - initializing application');
 
-    // Initialize modules
-    if (window.EventHandlers && typeof window.EventHandlers.initialize === 'function') {
-        try {
-            console.log('Initializing EventHandlers module');
-            window.EventHandlers.initialize();
-        } catch (error) {
-            console.error('Error initializing EventHandlers:', error);
-        }
+    // Initialize modules in order of dependency
+    console.log('Initializing EventHandlers module');
+    if (EventHandlers && typeof EventHandlers.initialize === 'function') {
+        EventHandlers.initialize();
+    } else {
+        console.error('EventHandlers module or initialize method not found');
     }
 
-    if (window.CharacterManager && typeof window.CharacterManager.initialize === 'function') {
-        try {
-            console.log('Initializing CharacterManager module');
-            window.CharacterManager.initialize();
-        } catch (error) {
-            console.error('Error initializing CharacterManager:', error);
-        }
+    console.log('Initializing CharacterManager module');
+    if (CharacterManager && typeof CharacterManager.initialize === 'function') {
+        CharacterManager.initialize();
+    } else {
+        console.error('CharacterManager module or initialize method not found');
     }
 
-    if (window.PaymentManager && typeof window.PaymentManager.initialize === 'function') {
-        try {
-            console.log('Initializing PaymentManager module');
-            // PaymentManager is initialized inside EventHandlers
-            // window.PaymentManager.initialize();
-        } catch (error) {
-            console.error('Error initializing PaymentManager:', error);
-        }
+    console.log('Initializing PaymentManager module');
+    if (PaymentManager && typeof PaymentManager.initialize === 'function') {
+        PaymentManager.initialize();
+    } else {
+        console.error('PaymentManager module or initialize method not found');
     }
 
-    if (window.UserProgressManager && typeof window.UserProgressManager.initialize === 'function') {
-        try {
-            console.log('Initializing UserProgressManager module');
-            window.UserProgressManager.initialize();
-        } catch (error) {
-            console.error('Error initializing UserProgressManager:', error);
-        }
+    if (NotebookManager && typeof NotebookManager.initialize === 'function') {
+        NotebookManager.initialize();
     }
 
-    if (window.NotebookManager && typeof window.NotebookManager.initialize === 'function') {
-        try {
-            console.log('Initializing NotebookManager module');
-            window.NotebookManager.initialize();
-        } catch (error) {
-            console.error('Error initializing NotebookManager:', error);
-        }
+    if (UserProgressManager && typeof UserProgressManager.initialize === 'function') {
+        UserProgressManager.initialize();
     }
-
-    // Setup any global event listeners that aren't in EventHandlers
-    setupGlobalListeners();
 });
 
 /**
@@ -142,12 +132,12 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeCharacterMentions();
 });
 
-// Export for possible import in other modules
-export default {
-    UIUtils,
-    CharacterManager,
-    EventHandlers,
-    PaymentManager,
-    NotebookManager,
-    UserProgressManager
-};
+//This export is not needed anymore, as we are using named exports and global variables
+//export default {
+//    UIUtils,
+//    CharacterManager,
+//    EventHandlers,
+//    PaymentManager,
+//    NotebookManager,
+//    UserProgressManager
+//};
