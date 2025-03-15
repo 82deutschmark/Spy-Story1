@@ -32,9 +32,9 @@ STORY_OPTIONS = {
     ],
     "settings": [
         ("🗼", "Paris Office"),
-        ("🏝️", "Private Luxury Island"),
+        ("🏝️", "Private Island"),
         ("🏙️", "Dubai Mega-Skyscraper"),
-        ("🚢", "Orbital Cruise Liner"),
+        ("🚢", "Luxury Cruise Liner"),
         ("❄️", "Arctic Research Base"),
         ("🏰", "Monaco Casino"),
         ("🏜️", "Sahara Desert Compound"),
@@ -175,7 +175,7 @@ IMPORTANT FORMATTING INSTRUCTIONS:
 5. Avoid using unescaped special characters (like " or \\) within JSON strings.
 
 For initial story segments:
-1. Always introduce a character with the "mission-giver" role who assigns a mission to the player
+1. Always introduce a character from the database with the "mission-giver" role who assigns a mission to the player
 2. Ensure one of the three choices involves meeting/interacting with a character (to introduce potential future mission-givers)
 3. Structure the mission with a clear objective, target, reward, and deadline
 
@@ -209,13 +209,13 @@ The world is mostly as we know it, but features advanced technology like neural 
 The world faces multiple crises - climate catastrophes, economic collapse, political instability, and secret wars between shadow organizations. You believe the only way to save it is to party hard, seduce strategic contacts, and undertake James Bond-style missions with elaborate infiltrations, thrilling chase sequences, and intense gunfights.
 
 IMPORTANT NARRATIVE REQUIREMENTS:
-1. Write a SUBSTANTIAL narrative (at least 800-1000 words) with multiple scenes when appropriate
+1. Write a SUBSTANTIAL narrative (at least 1800-2000 words) with multiple scenes when appropriate, if this is a continuation, meaningfully advance the plot based on previous choices, events, and character traits.
 2. Include vivid descriptions of locations, characters, and actions
-3. Feature sophisticated dialogue that reveals character motivations and relationships
+3. Feature realistic dialogue that reveals character motivations and relationships
 4. Incorporate sensory details that bring the setting to life
-5. Include at least one dramatic action sequence or tense confrontation
-6. Blend elements of suspense, romance, and danger throughout
-7. If this is a continuation, meaningfully advance the plot based on previous choices
+5. Stay true to the requested narrative style and mood, with a focus on layered storytelling and dynamic character interactions across story segments
+6. Freely incorporate unusual elements and themes to create a unique and engaging story.
+7. Avoid using unescaped special characters (like " or \\) within JSON strings.
 8. Avoid reusing scenarios, dialogue patterns, or narrative structures from previous segments, but maintain continuity.
 9. Each choice should lead to significantly different narrative paths
 
@@ -312,11 +312,11 @@ MISSION FRAMEWORK INSTRUCTIONS:
 If this is the beginning of a story, ensure:
 1. IMPORTANT: The story MUST begin with a detailed mission briefing scene where a mission-giver character assigns a mission to the player with these components:
    - A clear, specific objective (steal a prototype, sabotage a weapons system, infiltrate a secure facility, etc.)
-   - A compelling target character who has the 'villain' role with detailed background
-   - A reward in one of the game currencies (💵, 💷, 💶, 💴)
+   - A target character who has the 'villain' role in the database
+   - A large reward in one of the game currencies (💵, 💷, 💶, 💴)
    - A deadline with serious consequences for failure
    - Detailed mission parameters, challenges, and potential complications
-   - IMPORTANT: The mission giver should have a complex attitude - they reluctantly task you with missions while expressing doubts about your reliability, referencing your past failures or unprofessional methods, yet acknowledging your unique skills
+   - IMPORTANT: The mission-giver has a complex attitude - they reluctantly task you with missions while expressing doubts about your reliability, referencing your past failures or unprofessional methods, yet acknowledging your unique skills
 
 2. The mission briefing should include:
    - Rich environmental descriptions of the briefing location
@@ -406,7 +406,7 @@ Format as JSON with:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages,
-            temperature=0.45,  # Ranges from 0 to 2, higher creates weirder responses, 1.4 is unusable, 1.05 is a little odd, 0.1 is very dull 
+            temperature=0.35,  # Ranges from 0 to 2, higher creates weirder responses, 1.4 is unusable, 1.05 is a little odd, 0.1 is very dull 
             max_tokens=14000,    # Increased token limit for longer responses
             response_format={"type": "json_object"}  # Force JSON response format
         )
