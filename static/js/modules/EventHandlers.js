@@ -89,8 +89,27 @@ export const EventHandlers = {
                         selectedImagesContainer.style.display = 'block';
                     }
 
-                    if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
-                        window.UIUtils.showToast('Character Selected', 'Character has been selected for your story.');
+                    if (window.showToast) {
+                        window.showToast('Character Selected', 'Character has been selected for your story.');
+                    }
+                });
+            });
+
+            // Also handle clicks on the character cards themselves
+            const characterCards = document.querySelectorAll('.character-select-card');
+            characterCards.forEach(card => {
+                const newCard = card.cloneNode(true);
+                card.parentNode.replaceChild(newCard, card);
+
+                newCard.addEventListener('click', function(e) {
+                    // Don't handle click if it's on a button
+                    if (e.target.closest('button')) return;
+
+                    const characterId = this.dataset.id;
+                    const selectButton = this.querySelector(`.select-character-btn[data-character-id="${characterId}"]`);
+                    
+                    if (selectButton) {
+                        selectButton.click();
                     }
                 });
             });
@@ -135,38 +154,77 @@ export const EventHandlers = {
                     this.disabled = true;
 
                     try {
-                        const response = await fetch('/reroll_character', {
+                        const response = await fetch('/api/reroll_character', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
                             },
                             body: JSON.stringify({ character_id: characterId })
                         });
 
                         if (!response.ok) {
-                            throw new Error('Network response was not ok: ' + response.status);
+                            throw new Error(`HTTP error! status: ${response.status}`);
                         }
 
                         const data = await response.json();
-                        if (data.success && data.character_html) {
-                            cardContainer.outerHTML = data.character_html;
-                            EventHandlers.setupCharacterSelection();
-                            EventHandlers.setupRerollButtons();
+                        if (data.success) {
+                            // Update image
+                            const cardImg = characterCard.querySelector('img');
+                            if (cardImg) {
+                                cardImg.src = data.image_url;
+                            }
 
-                            if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
-                                window.UIUtils.showToast('Character Updated', 'A new character has been loaded!');
+                            // Update character ID
+                            characterCard.dataset.id = data.id;
+
+                            // Update character name
+                            const nameElement = cardContainer.querySelector('.character-name');
+                            if (nameElement) {
+                                nameElement.textContent = data.name;
+                            }
+
+                            // Update traits
+                            const traitsContainer = cardContainer.querySelector('.character-traits-list');
+                            if (traitsContainer) {
+                                traitsContainer.innerHTML = '';
+                                if (data.character_traits && data.character_traits.length > 0) {
+                                    data.character_traits.forEach(trait => {
+                                        const traitBadge = document.createElement('span');
+                                        traitBadge.className = 'trait-badge';
+                                        traitBadge.textContent = trait;
+                                        traitsContainer.appendChild(traitBadge);
+                                    });
+                                }
+                            }
+
+                            // Update select button data attribute
+                            const selectBtn = cardContainer.querySelector('.select-character-btn');
+                            if (selectBtn) {
+                                selectBtn.dataset.characterId = data.id;
+                            }
+
+                            // Update checkbox
+                            const checkbox = cardContainer.querySelector('.character-checkbox');
+                            if (checkbox) {
+                                checkbox.value = data.id;
+                                checkbox.id = `character${data.id}`;
+                            }
+
+                            if (window.showToast) {
+                                window.showToast('Character Updated', 'A new character has been loaded!');
                             }
                         } else {
                             throw new Error(data.error || 'Failed to reroll character');
                         }
                     } catch (error) {
                         console.error('Failed to reroll character:', error);
+                        if (window.showToast) {
+                            window.showToast('Error', 'Failed to load a new character. Please try again.');
+                        }
+                    } finally {
                         this.innerHTML = originalButtonText;
                         this.disabled = false;
-
-                        if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
-                            window.UIUtils.showToast('Error', 'Failed to load a new character. Please try again.', 'error');
-                        }
                     }
                 });
             });
@@ -194,8 +252,8 @@ export const EventHandlers = {
                         characterSelectionError.textContent = 'Please select a character for your story';
                         window.scrollTo(0, 0);
                     }
-                    if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
-                        window.UIUtils.showToast('Selection Needed', 'Please select a character before continuing');
+                    if (window.showToast) {
+                        window.showToast('Selection Needed', 'Please select a character before continuing');
                     }
                     return;
                 }
@@ -204,6 +262,22 @@ export const EventHandlers = {
                 if (characterSelectionError) {
                     characterSelectionError.style.display = 'none';
                 }
+
+                const loadingPercent = window.createLoadingOverlay('Generating your adventure...');
+                const generateStoryBtn = document.getElementById('generateStoryBtn');
+
+                if (generateStoryBtn) {
+                    generateStoryBtn.disabled = true;
+                    generateStoryBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Story...';
+                }
+
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    if (progress < 90) {
+                        progress += 5;
+                        window.updateLoadingPercent(loadingPercent, progress);
+                    }
+                }, 500);
 
                 try {
                     const formData = new FormData(this);
@@ -214,14 +288,25 @@ export const EventHandlers = {
 
                     const data = await response.json();
                     if (data.success) {
-                        window.location.href = data.redirect_url;
+                        window.updateLoadingPercent(loadingPercent, 100);
+                        setTimeout(() => {
+                            window.location.href = data.redirect_url;
+                        }, 500);
                     } else {
                         throw new Error(data.error || 'Failed to generate story');
                     }
                 } catch (error) {
                     console.error('Error:', error);
-                    if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
-                        window.UIUtils.showToast('Error', 'Failed to generate story. Please try again.', 'error');
+                    if (window.showToast) {
+                        window.showToast('Error', 'Failed to generate story. Please try again.');
+                    }
+                    if (generateStoryBtn) {
+                        generateStoryBtn.disabled = false;
+                        generateStoryBtn.innerHTML = '<i class="fas fa-book-open me-2"></i>Begin Your Story';
+                    }
+                    clearInterval(progressInterval);
+                    if (loadingPercent) {
+                        window.removeLoadingOverlay(loadingPercent);
                     }
                 }
             });

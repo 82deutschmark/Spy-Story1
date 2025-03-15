@@ -4,7 +4,7 @@ console.log("Initializing CharacterManager module");
 class CharacterManager {
     constructor() {
         this.selectedCharacters = [];
-        this.maxCharacters = 2;
+        this.maxCharacters = 1; // Changed to 1 for single selection
         this.initialized = false;
     }
 
@@ -32,7 +32,7 @@ class CharacterManager {
     async setupCharacterCards() {
         try {
             console.log("Setting up character cards");
-            const characterCards = document.querySelectorAll('.character-card');
+            const characterCards = document.querySelectorAll('.character-select-card');
             
             if (characterCards.length === 0) {
                 console.log("No character cards found");
@@ -65,25 +65,37 @@ class CharacterManager {
             }
 
             const isSelected = card.classList.contains('selected');
+            const checkbox = document.getElementById(`character${characterId}`);
+            const selectionIndicator = card.querySelector('.selection-indicator');
 
-            if (isSelected) {
-                // Deselect character
-                card.classList.remove('selected');
-                this.selectedCharacters = this.selectedCharacters.filter(id => id !== characterId);
-            } else {
-                // Check if we already have max characters selected
-                if (this.selectedCharacters.length >= this.maxCharacters) {
-                    // Remove the oldest selection
-                    const oldestId = this.selectedCharacters.shift();
-                    const oldCard = document.querySelector(`.character-card[data-id="${oldestId}"]`);
-                    if (oldCard) {
-                        oldCard.classList.remove('selected');
-                    }
+            if (!checkbox || !selectionIndicator) {
+                console.error("Required elements not found for character:", characterId);
+                return;
+            }
+
+            // Clear all selections first (for single select)
+            document.querySelectorAll('.character-select-card').forEach(otherCard => {
+                otherCard.classList.remove('selected');
+                const indicator = otherCard.querySelector('.selection-indicator');
+                if (indicator) {
+                    indicator.style.display = 'none';
                 }
+                const otherCheckbox = document.getElementById(`character${otherCard.dataset.id}`);
+                if (otherCheckbox) {
+                    otherCheckbox.checked = false;
+                }
+            });
 
-                // Select character
+            if (!isSelected) {
+                // Select this character
                 card.classList.add('selected');
-                this.selectedCharacters.push(characterId);
+                selectionIndicator.style.display = 'block';
+                checkbox.checked = true;
+                this.selectedCharacters = [characterId];
+
+                if (window.showToast) {
+                    window.showToast('Character Selected', 'Character has been selected for your story.');
+                }
             }
 
             this.updateSelectedCharactersField();
@@ -94,9 +106,9 @@ class CharacterManager {
 
     updateSelectedCharactersField() {
         try {
-            const hiddenField = document.getElementById('selected_images');
+            const hiddenField = document.querySelector('input[name="selected_images"]');
             if (hiddenField) {
-                hiddenField.value = this.selectedCharacters.join(',');
+                hiddenField.value = JSON.stringify(this.selectedCharacters);
             }
         } catch (error) {
             console.error("Error updating selected characters field:", error);
@@ -107,7 +119,7 @@ class CharacterManager {
         try {
             console.log(`Rerolling character ${characterId}`);
 
-            const response = await fetch('/reroll_character', {
+            const response = await fetch('/api/reroll_character', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -125,32 +137,67 @@ class CharacterManager {
                 throw new Error(data.error || 'Failed to reroll character');
             }
 
-            const cardContainer = document.querySelector(`.character-card[data-id="${characterId}"]`)?.parentNode;
+            const cardContainer = document.querySelector(`.character-select-card[data-id="${characterId}"]`)?.parentNode;
             if (!cardContainer) {
                 throw new Error(`Character card container not found for ID: ${characterId}`);
             }
 
-            cardContainer.innerHTML = data.character_html;
+            // Update the card with new character data
+            const card = cardContainer.querySelector('.character-select-card');
+            if (card) {
+                // Update image
+                const cardImg = card.querySelector('img');
+                if (cardImg) {
+                    cardImg.src = data.image_url;
+                }
 
-            // Re-bind click event for new card
-            const newCard = cardContainer.querySelector('.character-card');
-            if (newCard) {
-                newCard.addEventListener('click', (e) => this.handleCharacterSelection(e, newCard));
+                // Update character ID
+                card.dataset.id = data.id;
+
+                // Update character name
+                const nameElement = card.querySelector('.character-name');
+                if (nameElement) {
+                    nameElement.textContent = data.name;
+                }
+
+                // Update traits
+                const traitsContainer = card.querySelector('.character-traits-list');
+                if (traitsContainer) {
+                    traitsContainer.innerHTML = '';
+                    if (data.character_traits && data.character_traits.length > 0) {
+                        data.character_traits.forEach(trait => {
+                            const traitBadge = document.createElement('span');
+                            traitBadge.className = 'trait-badge';
+                            traitBadge.textContent = trait;
+                            traitsContainer.appendChild(traitBadge);
+                        });
+                    }
+                }
+
+                // Update checkbox
+                const checkbox = card.querySelector('.character-checkbox');
+                if (checkbox) {
+                    checkbox.value = data.id;
+                    checkbox.id = `character${data.id}`;
+                }
+
+                // Update select button
+                const selectBtn = card.querySelector('.select-character-btn');
+                if (selectBtn) {
+                    selectBtn.dataset.characterId = data.id;
+                }
             }
 
-            // Rebind reroll button
-            const rerollBtn = cardContainer.querySelector('.reroll-btn');
-            if (rerollBtn) {
-                rerollBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    this.rerollCharacter(rerollBtn.dataset.id);
-                });
+            if (window.showToast) {
+                window.showToast('Character Updated', 'A new character has been loaded!');
             }
 
             console.log(`Successfully rerolled character ${characterId}`);
         } catch (error) {
             console.error('Failed to reroll character:', error);
+            if (window.showToast) {
+                window.showToast('Error', 'Failed to reroll character. Please try again.');
+            }
             throw error;
         }
     }
@@ -165,11 +212,15 @@ class CharacterManager {
             }
 
             // Get character names from the character images
-            const characterImages = document.querySelectorAll('.character-image');
+            const characterImages = document.querySelectorAll('.character-portrait-mini');
             const characterNames = Array.from(characterImages)
                 .map(img => {
-                    const nameElement = img.nextElementSibling;
-                    return nameElement ? nameElement.textContent.trim() : null;
+                    const nameElement = img.querySelector('.character-mini-name');
+                    return nameElement ? {
+                        name: nameElement.textContent.trim(),
+                        image: img.querySelector('img').src,
+                        id: img.dataset.characterName
+                    } : null;
                 })
                 .filter(Boolean);
 
@@ -178,15 +229,22 @@ class CharacterManager {
                 return;
             }
 
+            // Sort names by length (longest first) to avoid partial matches
+            characterNames.sort((a, b) => b.name.length - a.name.length);
+
             // Create a regex to match any of the character names
             const namePattern = characterNames
-                .map(name => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                .map(char => char.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
                 .join('|');
             const nameRegex = new RegExp(`\\b(${namePattern})\\b`, 'gi');
 
             // Replace text with highlighted version
-            storyContent.innerHTML = storyContent.innerHTML.replace(nameRegex, match => {
-                return `<span class="character-highlight">${match}</span>`;
+            storyContent.innerHTML = storyContent.innerHTML.replace(nameRegex, (match) => {
+                const character = characterNames.find(char => char.name.toLowerCase() === match.toLowerCase());
+                if (character) {
+                    return `<span class="character-mention" data-character="${character.id}">${match}<span class="character-tooltip"><img src="${character.image}" alt="${match}">${match}</span></span>`;
+                }
+                return match;
             });
 
             console.log(`Highlighted ${characterNames.length} characters in story`);
