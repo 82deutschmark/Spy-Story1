@@ -19,7 +19,10 @@ window.UserProgressManager = UserProgressManager;
 
 // Initialize all modules when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, initializing modules...');
+    console.log('Initializing modules...');
+
+    // Set flag to indicate modules are being imported by main.js
+    window.isModuleImported = true;
 
     try {
         // Initialize UI utilities first (as other modules may depend on it)
@@ -28,30 +31,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Initialize character manager
-        if (CharacterManager) {
-            if (typeof CharacterManager.initialize === 'function') {
-                CharacterManager.initialize();
-            } else if (typeof CharacterManager.init === 'function') {
-                CharacterManager.init();
-            }
+        if (CharacterManager && typeof CharacterManager.initialize === 'function') {
+            CharacterManager.initialize();
         }
 
         // Initialize event handlers
-        if (EventHandlers) {
-            if (typeof EventHandlers.initialize === 'function') {
-                EventHandlers.initialize();
-            } else if (typeof EventHandlers.init === 'function') {
-                EventHandlers.init();
-            }
+        if (EventHandlers && typeof EventHandlers.initialize === 'function') {
+            EventHandlers.initialize();
         }
 
         // Initialize payment manager
-        if (PaymentManager) {
-            if (typeof PaymentManager.initialize === 'function') {
-                PaymentManager.initialize();
-            } else if (typeof PaymentManager.init === 'function') {
-                PaymentManager.init();
-            }
+        if (PaymentManager && typeof PaymentManager.initialize === 'function') {
+            PaymentManager.initialize();
         }
 
         // Initialize notebook manager if present in the DOM
@@ -73,12 +64,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Initialize user progress manager
-        if (UserProgressManager) {
-            if (typeof UserProgressManager.initialize === 'function') {
-                UserProgressManager.initialize();
-            } else if (typeof UserProgressManager.init === 'function') {
-                UserProgressManager.init();
-            }
+        if (UserProgressManager && typeof UserProgressManager.initialize === 'function') {
+            UserProgressManager.initialize();
         }
 
         console.log('Modules loaded successfully');
