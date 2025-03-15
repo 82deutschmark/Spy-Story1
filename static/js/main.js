@@ -95,18 +95,6 @@ function setupGlobalListeners() {
 
 // Initialize optional modules
 async function initializeOptionalModules() {
-    // Payment Manager
-    try {
-        const PaymentManager = (await import('./modules/PaymentManager.js')).default;
-        if (PaymentManager) {
-            const paymentManager = new PaymentManager();
-            await paymentManager.initialize();
-            console.log("PaymentManager initialized");
-        }
-    } catch (err) {
-        console.warn("PaymentManager not loaded:", err.message);
-    }
-
     // User Progress Manager
     try {
         const UserProgressManager = (await import('./modules/UserProgressManager.js')).default;

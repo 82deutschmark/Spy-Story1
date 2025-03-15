@@ -1,4 +1,3 @@
-
 /**
  * Currency Manager Module
  * Handles currency display and trading functionality
@@ -58,7 +57,7 @@ export default {
         const loadingPercent = UIUtils.createLoadingOverlay('Processing trade...');
         UIUtils.updateLoadingPercent(loadingPercent, 50);
 
-        return fetch('/api/currency/trade', {
+        return fetch('/api/game/currency/trade', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
