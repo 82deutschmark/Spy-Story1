@@ -147,7 +147,8 @@
                             </div>
                         </div>
 
-                        <form id="storyForm" method="POST" action="{{ url_for('main.generate_story_route') }}">
+                        <form id="story-form" method="POST" action="{{ url_for('main.generate_story_route') }}">
+                            <input type="hidden" name="selected_images" value="">
                             <div class="selected-characters-container mb-3" style="display: none;">
                                 <h4>Selected Characters:</h4>
                                 <div class="selected-characters-list d-flex flex-wrap"></div>
