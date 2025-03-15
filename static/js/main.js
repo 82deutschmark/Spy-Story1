@@ -3,63 +3,85 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.log("DOM fully loaded - initializing application");
 
     try {
-        // Import and initialize EventHandlers first
-        const eventHandlersModule = await import('./modules/EventHandlers.js');
+        // Load UI utilities first since other modules might need it
+        console.log("Loading UI utilities...");
+        const UIUtils = await import('./modules/UIUtils.js');
+        console.log("UI utilities loaded");
+
+        // Import and initialize EventHandlers
+        console.log("Loading EventHandlers...");
+        const { default: EventHandlers } = await import('./modules/EventHandlers.js');
         console.log("EventHandlers module loaded");
         
-        const eventHandlers = eventHandlersModule.default;
-        eventHandlers.initialize();
-        console.log("Event handlers initialized");
+        if (EventHandlers && typeof EventHandlers.initialize === 'function') {
+            EventHandlers.initialize();
+            console.log("Event handlers initialized successfully");
+        } else {
+            console.error("EventHandlers module loaded but initialize method not found");
+        }
 
-        // Import and initialize CharacterManager after EventHandlers
+        // Load and initialize UserProgressManager
+        console.log("Loading UserProgressManager...");
+        const { default: UserProgressManager } = await import('./modules/UserProgressManager.js');
+        if (UserProgressManager) {
+            const userProgressManager = new UserProgressManager();
+            userProgressManager.initialize();
+            // Make it globally available for other modules
+            window.userProgressManager = userProgressManager;
+            console.log("User progress manager initialized");
+        } else {
+            console.error("UserProgressManager module loaded but class not found");
+        }
+
+        // Import and initialize CharacterManager
+        console.log("Loading CharacterManager...");
         const characterManagerModule = await import('./modules/CharacterManager.js');
         console.log("CharacterManager module loaded");
         
         if (characterManagerModule.CharacterManager) {
             const characterManager = new characterManagerModule.CharacterManager();
             characterManager.initialize();
+            console.log("Character manager initialized with class");
         } else if (characterManagerModule.default) {
             characterManagerModule.default.initialize();
+            console.log("Character manager initialized with default export");
         }
-        console.log("Character manager initialized");
 
         // Initialize notebook if on story page
         const notebookElements = document.querySelectorAll('.notebook-tab, .notebook-content');
         if (notebookElements.length > 0) {
+            console.log("Loading NotebookManager...");
             const notebookModule = await import('./modules/NotebookManager.js');
             notebookModule.default.initialize();
             console.log("Notebook manager initialized");
         } else {
             console.log("Notebook elements not found, skipping initialization");
         }
+
+        // Load PaymentManager if needed
+        if (document.querySelector('[data-payment-required]')) {
+            console.log("Loading PaymentManager...");
+            const paymentModule = await import('./modules/PaymentManager.js');
+            if (paymentModule.default && typeof paymentModule.default.initialize === 'function') {
+                paymentModule.default.initialize();
+                console.log("Payment manager initialized");
+            }
+        }
+
+        // Initialize character mentions in story text if on story page
+        if (document.querySelector('.story-content')) {
+            initializeCharacterMentions();
+            console.log("Character mentions initialized");
+        }
+
+        console.log("All modules initialized successfully");
+
     } catch (error) {
         console.error('Error initializing application:', error);
     }
 });
 
-// Setup payment processing if PayPal is available
-import('./modules/PaymentManager.js')
-    .then(module => {
-        // PaymentManager will initialize itself if the PayPal script is loaded
-    })
-    .catch(err => console.error("Error loading PaymentManager module:", err));
-
-// Load user progress manager
-import('./modules/UserProgressManager.js')
-    .then(module => {
-        // UserProgressManager will initialize itself
-    })
-    .catch(err => console.error("Error loading UserProgressManager module:", err));
-
-// Load UI utilities
-import('./modules/UIUtils.js')
-    .then(module => {
-        // UI Utils will be available for other modules
-    })
-    .catch(err => console.error("Error loading UIUtils module:", err));
-
-
-// Initialize character mentions in story text
+// Keep the character mentions function
 function initializeCharacterMentions() {
     const storyContent = document.querySelector('.story-content');
     if (!storyContent) return;
@@ -95,28 +117,8 @@ function initializeCharacterMentions() {
     });
 }
 
-// Document this issue in the changelog
+// Setup global event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if we're on a storyboard page and save the story ID
-    const storyIdParam = new URLSearchParams(window.location.search).get('story_id');
-    if (storyIdParam) {
-        localStorage.setItem('lastStoryId', storyIdParam);
-    }
-
-    // Also initialize character highlighting if on storyboard page
-    if (document.querySelector('.story-content')) {
-        import('./modules/CharacterManager.js')
-            .then(module => {
-                const characterManager = module.CharacterManager ? new module.CharacterManager() : module.default;
-                characterManager.highlightCharactersInStory();
-            })
-            .catch(err => console.error("Error loading CharacterManager module in DOMContentLoaded:", err));
-    }
-    initializeCharacterMentions();
-});
-
-// Setup global event listeners that aren't in EventHandlers
-function setupGlobalListeners() {
     // Back to top button
     const backToTopBtn = document.getElementById('back-to-top');
     if (backToTopBtn) {
@@ -133,6 +135,4 @@ function setupGlobalListeners() {
             document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
         });
     }
-
-    // Other global listeners can be added here
-}
+});

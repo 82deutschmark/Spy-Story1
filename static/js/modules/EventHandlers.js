@@ -222,15 +222,5 @@ export const EventHandlers = {
     }
 };
 
-// Export for module systems
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = EventHandlers;
-}
-
-// For browser use, attach to window object
-if (typeof window !== 'undefined') {
-    // Only assign to window if not already defined
-    if (!window.EventHandlers) {
-        window.EventHandlers = EventHandlers;
-    }
-}
+// Export the EventHandlers object as default
+export default EventHandlers;
