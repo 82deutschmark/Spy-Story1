@@ -224,6 +224,14 @@ All notable changes to the Story Creator project will be documented in this file
    - Fixed export pattern in PaymentManager.js
    - Resolved "module does not provide an export named 'default'" errors
 
+**March 18, 2025 Update:**
+1. Fixed EventHandlers module loading error:
+   - Standardized module export pattern to support both ES6 and CommonJS
+   - Added proper default exports to EventHandlers.js and CharacterManager.js
+   - Enhanced main.js to handle both named and default exports
+   - Improved error handling for module initialization
+   - Resolved "The requested module does not provide an export named 'default'" errors
+
 2. Fixed CharacterManager module:
    - Improved character highlighting in story text
    - Fixed character name detection from multiple sources

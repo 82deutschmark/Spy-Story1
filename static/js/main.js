@@ -6,8 +6,14 @@ document.addEventListener('DOMContentLoaded', function() {
     import('./modules/EventHandlers.js')
         .then(module => {
             console.log("Initializing EventHandlers module");
-            module.default.initialize();
-            console.log("Event handlers initialized");
+            // Try both default and named export
+            const handlers = module.default || module.EventHandlers;
+            if (handlers && typeof handlers.initialize === 'function') {
+                handlers.initialize();
+                console.log("Event handlers initialized");
+            } else {
+                console.error("EventHandlers module loaded but initialize method not found");
+            }
         })
         .catch(err => console.error("Error loading EventHandlers module:", err));
 
@@ -23,8 +29,15 @@ document.addEventListener('DOMContentLoaded', function() {
     import('./modules/CharacterManager.js')
         .then(module => {
             console.log("Initializing CharacterManager module");
-            const characterManager = module.CharacterManager ? new module.CharacterManager() : module.default;
-            characterManager.initialize();
+            // Try both default and named export
+            const CharacterManagerClass = module.default || module.CharacterManager;
+            if (CharacterManagerClass) {
+                const characterManager = new CharacterManagerClass();
+                characterManager.initialize();
+                console.log("Character manager initialized");
+            } else {
+                console.error("CharacterManager module loaded but class not found");
+            }
         })
         .catch(err => console.error("Error loading CharacterManager module:", err));
 
