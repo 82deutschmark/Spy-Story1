@@ -1,63 +1,71 @@
 // Main JavaScript file
 import { EventHandlers } from './modules/EventHandlers.js';
 
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log("DOM fully loaded - initializing application");
+// Wait for both DOM and FLASK_CONFIG to be ready
+async function initializeApplication() {
+    if (!window.FLASK_CONFIG) {
+        console.error('FLASK_CONFIG not found. Make sure it is properly initialized in the HTML template.');
+        return;
+    }
+
+    console.log("Initializing application with config:", window.FLASK_CONFIG);
 
     try {
-        // Import and initialize EventHandlers first
-        console.log("EventHandlers module loaded");
-        
+        // Initialize EventHandlers
+        console.log("Initializing EventHandlers");
         EventHandlers.initialize();
-        console.log("Event handlers initialized");
 
-        // Import and initialize CharacterManager after EventHandlers
+        // Initialize CharacterManager
+        console.log("Loading CharacterManager");
         const characterManagerModule = await import('./modules/CharacterManager.js');
-        console.log("CharacterManager module loaded");
+        const CharacterManager = characterManagerModule.default || characterManagerModule.CharacterManager;
         
-        if (characterManagerModule.CharacterManager) {
-            const characterManager = new characterManagerModule.CharacterManager();
-            characterManager.initialize();
-        } else if (characterManagerModule.default) {
-            characterManagerModule.default.initialize();
+        if (CharacterManager) {
+            const manager = new CharacterManager();
+            await manager.initialize();
+            console.log("CharacterManager initialized");
         }
-        console.log("Character manager initialized");
 
-        // Initialize notebook if on story page
+        // Initialize Notebook if elements exist
         const notebookElements = document.querySelectorAll('.notebook-tab, .notebook-content');
         if (notebookElements.length > 0) {
+            console.log("Loading NotebookManager");
             const notebookModule = await import('./modules/NotebookManager.js');
-            notebookModule.default.initialize();
-            console.log("Notebook manager initialized");
-        } else {
-            console.log("Notebook elements not found, skipping initialization");
+            await notebookModule.default.initialize();
+            console.log("NotebookManager initialized");
         }
+
+        // Initialize PaymentManager
+        try {
+            const paymentModule = await import('./modules/PaymentManager.js');
+            if (paymentModule.default) {
+                await paymentModule.default.initialize();
+                console.log("PaymentManager initialized");
+            }
+        } catch (err) {
+            console.warn("PaymentManager not loaded:", err.message);
+        }
+
+        // Initialize UserProgressManager
+        try {
+            const progressModule = await import('./modules/UserProgressManager.js');
+            if (progressModule.default) {
+                await progressModule.default.initialize();
+                console.log("UserProgressManager initialized");
+            }
+        } catch (err) {
+            console.warn("UserProgressManager not loaded:", err.message);
+        }
+
+        console.log("Application initialization complete");
     } catch (error) {
-        console.error('Error initializing application:', error);
+        console.error('Error during application initialization:', error);
+        // You might want to show a user-friendly error message here
     }
-});
+}
 
-// Setup payment processing if PayPal is available
-import('./modules/PaymentManager.js')
-    .then(module => {
-        // PaymentManager will initialize itself if the PayPal script is loaded
-    })
-    .catch(err => console.error("Error loading PaymentManager module:", err));
-
-// Load user progress manager
-import('./modules/UserProgressManager.js')
-    .then(module => {
-        // UserProgressManager will initialize itself
-    })
-    .catch(err => console.error("Error loading UserProgressManager module:", err));
-
-// Load UI utilities
-import('./modules/UIUtils.js')
-    .then(module => {
-        // UI Utils will be available for other modules
-    })
-    .catch(err => console.error("Error loading UIUtils module:", err));
-
+// Start initialization when DOM is ready
+document.addEventListener('DOMContentLoaded', initializeApplication);
 
 // Initialize character mentions in story text
 function initializeCharacterMentions() {
