@@ -4,7 +4,7 @@ from flask import session
 import uuid
 
 from database import db
-from models import Character, SceneImages, StoryGeneration, Transaction #UserProgress moved to edited code
+from models import Character, SceneImages, StoryGeneration, Transaction, UserProgress #UserProgress added here
 
 # Configure logging
 logger = logging.getLogger(__name__)
