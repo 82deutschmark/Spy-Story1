@@ -3,9 +3,9 @@
  * Imports all modules and initializes the application
  */
 import UIUtils from './modules/UIUtils.js';
-import * as CharacterManager from './modules/CharacterManager.js';
-import * as EventHandlers from './modules/EventHandlers.js';
-import * as PaymentManager from './modules/PaymentManager.js';
+import { CharacterManager } from './modules/CharacterManager.js';
+import { EventHandlers } from './modules/EventHandlers.js';
+import { PaymentManager } from './modules/PaymentManager.js';
 import NotebookManager from './modules/NotebookManager.js';
 import UserProgressManager from './modules/UserProgressManager.js';
 

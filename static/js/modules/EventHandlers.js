@@ -151,33 +151,32 @@ export const EventHandlers = {
                 e.preventDefault();
                 e.stopPropagation();
 
+                // Show loading state
+                const originalButtonText = this.innerHTML;
+                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Rerolling...';
+                this.disabled = true;
+
                 const cardContainer = this.closest('.character-container');
                 if (!cardContainer) return;
 
                 const characterCard = cardContainer.querySelector('.character-select-card');
                 if (!characterCard) return;
-
-                // Show loading state
-                const originalButtonText = this.innerHTML;
-                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Rerolling...';
-                this.disabled = true;
                 
-                // Get the character ID to reroll
+                // Get the character ID
                 const characterId = characterCard.dataset.id;
                 
-                // Make AJAX request to reroll endpoint
+                // Make AJAX request to get a new character
                 fetch('/reroll_character', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
                     },
-                    body: JSON.stringify({ character_id: characterId })
+                    body: JSON.stringify({ character_id: characterId }),
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Replace character card with new one
+                        // Get the new character HTML and replace the old card
                         const newCharacterHtml = data.character_html;
                         const tempDiv = document.createElement('div');
                         tempDiv.innerHTML = newCharacterHtml;
@@ -186,66 +185,26 @@ export const EventHandlers = {
                         if (newCard) {
                             characterCard.outerHTML = newCard.outerHTML;
                             
-                            // Re-attach event listeners to the new card
-                            const newCharacterCard = cardContainer.querySelector('.character-select-card');
-                            if (newCharacterCard) {
-                                newCharacterCard.addEventListener('click', function() {
-                                    const newCheckbox = document.getElementById(`character${newCharacterCard.dataset.id}`);
-                                    const newSelectionIndicator = newCharacterCard.querySelector('.selection-indicator');
-                                    
-                                    if (!newCheckbox || !newSelectionIndicator) return;
-                                    
-                                    // Clear all other selections
-                                    document.querySelectorAll('.character-select-card').forEach(c => {
-                                        c.classList.remove('selected');
-                                        const indicator = c.querySelector('.selection-indicator');
-                                        if (indicator) indicator.style.display = 'none';
-                                    });
-                                    
-                                    document.querySelectorAll('input[name="selected_images"]').forEach(c => {
-                                        c.checked = false;
-                                    });
-                                    
-                                    // Select this character
-                                    newCheckbox.checked = true;
-                                    newSelectionIndicator.style.display = 'block';
-                                    newCharacterCard.classList.add('selected');
-                                    
-                                    // Update hidden input
-                                    const hiddenInput = document.querySelector('input[name="selected_images"]');
-                                    if (hiddenInput && hiddenInput.type === 'hidden') {
-                                        hiddenInput.value = newCharacterCard.dataset.id;
-                                    }
-                                    
-                                    // Show toast
-                                    if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
-                                        window.UIUtils.showToast('Character Selected', 'Character has been selected for your story.');
-                                    }
-                                });
+                            // Show toast notification
+                            if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
+                                window.UIUtils.showToast('Character Updated', 'A new character has been loaded!');
                             }
-                        }
-                        
-                        // Show toast notification
-                        if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
-                            window.UIUtils.showToast('Character Rerolled', 'Generated a new character variation.');
                         }
                     } else {
                         console.error('Failed to reroll character:', data.error);
-                        // Show error toast
                         if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
-                            window.UIUtils.showToast('Error', data.error || 'Failed to reroll character.', 'error');
+                            window.UIUtils.showToast('Error', 'Failed to load a new character. Please try again.', 'error');
                         }
                     }
                 })
                 .catch(error => {
-                    console.error('Error rerolling character:', error);
-                    // Show error toast
+                    console.error('Error fetching random character:', error);
                     if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
-                        window.UIUtils.showToast('Error', 'Failed to reroll character. Please try again.', 'error');
+                        window.UIUtils.showToast('Error', 'Failed to load a new character. Please try again.', 'error');
                     }
                 })
                 .finally(() => {
-                    // Restore button state
+                    // Reset button
                     this.innerHTML = originalButtonText;
                     this.disabled = false;
                 });

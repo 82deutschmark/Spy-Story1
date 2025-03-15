@@ -8,6 +8,8 @@
 - Improved module initialization in main.js
 - Fixed character manager and event handlers interaction
 - Restored direct DOM manipulation for reroll behavior matching original implementation
+- Simplified reroll button functionality to match the original working implementation
+- Fixed module import pattern using named exports
 
 ## [1.0.0] - 2025-03-01
 
