@@ -1,132 +1,143 @@
+
 /**
  * Payment Manager Module
- * Handles in-game currency and payment functionality
- */
-export default {
-    /**
-     * Initialize payment system
-     */
-    initialize() {
-        console.log('Payment system initialized');
-        this.initPaymentButtons();
-        this.initCurrencyTrade();
-    },
-
-    /**
-     * Initialize payment buttons
-     */
-    initPaymentButtons() {
-        const purchaseButtons = document.querySelectorAll('.purchase-currency-btn');
-        if (!purchaseButtons.length) return;
-
-        purchaseButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const modal = document.getElementById('purchaseModal');
-                if (modal) {
-                    const bsModal = new bootstrap.Modal(modal);
-                    bsModal.show();
-                }
-            });
-        });
-
-        const diamondPackages = document.querySelectorAll('.diamond-package');
-        diamondPackages.forEach(pkg => {
-            pkg.addEventListener('click', () => {
-                const amount = pkg.dataset.amount;
-                const price = pkg.dataset.price;
-
-                console.log(`Selected package: ${amount} diamonds for $${price}`);
-                // Here would be the actual payment processing
-                // For now, just show a message
-
-                if (window.App && window.App.UI) {
-                    window.App.UI.showToast('Coming Soon', 'Currency purchases will be available soon.');
-                }
-            });
-        });
-    },
-
-    /**
-     * Initialize currency trade functionality
-     */
-    initCurrencyTrade() {
-        const tradeForm = document.getElementById('tradeForm');
-        if (!tradeForm) return;
-
-        tradeForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-
-            const fromCurrency = document.getElementById('fromCurrency').value;
-            const toCurrency = document.getElementById('toCurrency').value;
-            const amount = document.getElementById('tradeAmount').value;
-
-            if (fromCurrency === toCurrency) {
-                if (window.App && window.App.UI) {
-                    window.App.UI.showToast('Error', 'Cannot trade the same currency');
-                }
-                return;
-            }
-
-            if (!amount || amount < 1) {
-                if (window.App && window.App.UI) {
-                    window.App.UI.showToast('Error', 'Please enter a valid amount');
-                }
-                return;
-            }
-
-            console.log(`Trading ${amount} ${fromCurrency} for ${toCurrency}`);
-            // Here would be the actual trade processing
-            // For now, just show a success message
-
-            if (window.App && window.App.UI) {
-                window.App.UI.showToast('Trade Successful', `Traded ${amount} ${fromCurrency} for ${toCurrency}`);
-            }
-
-            // Close modal if it exists
-            const modal = document.getElementById('tradeModal');
-            if (modal) {
-                const bsModal = bootstrap.Modal.getInstance(modal);
-                if (bsModal) bsModal.hide();
-            }
-        });
-    }
-};
-/**
- * Payment Manager Module
- * Handles in-game payments, currency, and transactions
+ * Handles in-game currency, transactions, and payments
  */
 const PaymentManager = {
-    // Method using initialize() name for consistency with other modules
+    /**
+     * Initialize payment manager
+     */
     initialize() {
-        console.log('Payment system initialized');
-        return this;
+        console.log('Payment manager initialized');
+        this.setupPaymentButtons();
+        this.updateCurrencyDisplays();
     },
 
-    // Alias to initialize() for backward compatibility
-    init() {
-        return this.initialize();
+    /**
+     * Setup payment buttons
+     */
+    setupPaymentButtons() {
+        const buyButtons = document.querySelectorAll('.buy-currency-btn');
+        if (!buyButtons.length) return;
+        
+        console.log('Setting up payment buttons');
+        
+        buyButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                const currencyType = button.dataset.currency;
+                const amount = button.dataset.amount;
+                const cost = button.dataset.cost;
+                
+                if (!currencyType || !amount) return;
+                
+                this.processPurchase(currencyType, amount, cost);
+            });
+        });
     },
 
-    processPayment(amount, itemId) {
-        // Payment processing logic
-        console.log(`Processing payment: ${amount} for item ${itemId}`);
-        return true;
+    /**
+     * Process a currency purchase
+     */
+    processPurchase(currencyType, amount, cost) {
+        console.log(`Processing purchase: ${amount} ${currencyType} for $${cost}`);
+        
+        // Show confirmation modal if available
+        if (window.UIUtils && typeof window.UIUtils.showConfirmationModal === 'function') {
+            window.UIUtils.showConfirmationModal(
+                'Confirm Purchase',
+                `Are you sure you want to purchase ${amount} ${currencyType} for $${cost}?`,
+                () => this.executePurchase(currencyType, amount)
+            );
+        } else {
+            // Fallback to basic confirmation
+            if (confirm(`Are you sure you want to purchase ${amount} ${currencyType} for $${cost}?`)) {
+                this.executePurchase(currencyType, amount);
+            }
+        }
+    },
+
+    /**
+     * Execute the actual purchase transaction
+     */
+    executePurchase(currencyType, amount) {
+        // Here we would normally integrate with a payment provider
+        // For now, we'll simulate a successful purchase
+        
+        fetch('/api/purchase_currency', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                currency_type: currencyType,
+                amount: amount
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update UI
+                this.updateCurrencyDisplays();
+                
+                // Show success notification
+                if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
+                    window.UIUtils.showToast('Purchase Successful', `You've received ${amount} ${currencyType}!`);
+                }
+            } else {
+                console.error('Purchase failed:', data.error);
+                
+                // Show error notification
+                if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
+                    window.UIUtils.showToast('Purchase Failed', data.error || 'Transaction could not be completed.', 'error');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error processing purchase:', error);
+            
+            // Show error notification
+            if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
+                window.UIUtils.showToast('Purchase Failed', 'An error occurred. Please try again later.', 'error');
+            }
+        });
+    },
+
+    /**
+     * Update all currency displays in the UI
+     */
+    updateCurrencyDisplays() {
+        fetch('/api/get_currencies')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const currencies = data.currencies;
+                    
+                    // Update each currency display
+                    Object.keys(currencies).forEach(currencyType => {
+                        const displays = document.querySelectorAll(`.currency-${currencyType}`);
+                        displays.forEach(display => {
+                            display.textContent = currencies[currencyType];
+                        });
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error updating currency displays:', error);
+            });
     }
 };
 
+// Export for module systems
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = PaymentManager;
+}
+
+// For browser use, attach to window object
 if (typeof window !== 'undefined') {
     // Only assign to window if not already defined
     if (!window.PaymentManager) {
         window.PaymentManager = PaymentManager;
-    }
-
-    // Auto-initialize on DOM loaded if not being imported as a module
-    // and if this script is loaded directly (not via import)
-    if (!window.isModuleImported && document.currentScript && document.currentScript.src.includes('PaymentManager.js')) {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => PaymentManager.initialize());
-        } else {
-            PaymentManager.initialize();
-        }
     }
 }

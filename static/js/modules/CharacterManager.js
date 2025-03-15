@@ -1,12 +1,6 @@
 /**
- * Character Management Module
- * Handles character selection, display, and highlighting in story text
- */
-import UIUtils from './UIUtils.js';
-
-/**
- * Character Manager
- * Handles character selection, display and interaction
+ * Character Manager Module
+ * Handles character selection, highlighting, and related functionality
  */
 const CharacterManager = {
     /**
@@ -14,16 +8,7 @@ const CharacterManager = {
      */
     initialize() {
         console.log('Character manager initialized');
-        this.setupCharacterSelection();
         this.highlightCharactersInStory();
-    },
-
-    /**
-     * Setup character selection functionality
-     */
-    setupCharacterSelection() {
-        // This can remain empty as EventHandlers handles the actual event binding
-        // We keep this method for API consistency
     },
 
     /**
@@ -37,124 +22,54 @@ const CharacterManager = {
             return;
         }
 
-        // Get all character names from character cards
-        const characterNames = Array.from(document.querySelectorAll('.character-name'))
+        // Get all character names from character portraits or gallery
+        let characterNames = [];
+
+        // Try to get names from character portraits in storyboard
+        const portraitNames = Array.from(document.querySelectorAll('.character-mini-name'))
             .map(el => el.textContent.trim())
             .filter(name => name.length > 0);
 
-        if (!characterNames.length) return;
+        // Also try character names from selection page
+        const selectionNames = Array.from(document.querySelectorAll('.character-name'))
+            .map(el => el.textContent.trim())
+            .filter(name => name.length > 0);
+
+        // Combine both sources
+        characterNames = [...new Set([...portraitNames, ...selectionNames])];
+
+        if (!characterNames.length) {
+            console.log('No character names found for highlighting');
+            return;
+        }
+
+        console.log('Found character names for highlighting:', characterNames);
 
         // Replace character names with highlighted versions
         let contentHtml = storyContent.innerHTML;
         characterNames.forEach(name => {
-            const regex = new RegExp(`\\b${name}\\b`, 'gi');
+            // Escape special regex characters in the name
+            const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`\\b${escapedName}\\b`, 'gi');
             contentHtml = contentHtml.replace(regex, match => {
                 return `<span class="character-highlight">${match}</span>`;
             });
         });
 
         storyContent.innerHTML = contentHtml;
-    },
-
-    /**
-     * Update the hidden input with selected character IDs
-     */
-    updateSelectedImagesInput() {
-        const selectedCheckboxes = document.querySelectorAll('.character-checkbox:checked');
-        const selectedIds = Array.from(selectedCheckboxes).map(checkbox => checkbox.value);
-
-        const selectedImagesInput = document.querySelector('input[name="selected_images"]');
-        if (selectedImagesInput) {
-            selectedImagesInput.value = JSON.stringify(selectedIds);
-        }
-
-        // Show/hide selected characters container based on selection
-        const selectedImagesContainer = document.querySelector('.selected-characters-container');
-        if (selectedImagesContainer) {
-            if (document.querySelectorAll('.character-checkbox:checked').length > 0) {
-                selectedImagesContainer.style.display = 'block';
-            } else {
-                selectedImagesContainer.style.display = 'none';
-            }
-        }
-    },
-
-    /**
-     * Fetches a random character from the server
-     * @returns {Promise} - Promise resolving to character data
-     */
-    fetchRandomCharacter() {
-        return fetch('/api/random_character')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch random character: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                // The API is returning the character data directly at the top level
-                return data;
-            });
+        console.log('Character highlighting complete');
     }
 };
 
-// Export for ES module use
-export default CharacterManager;
+// Export for module systems
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = CharacterManager;
+}
 
-// Initialize on page load if we're not in an ES module context
+// For browser use, attach to window object
 if (typeof window !== 'undefined') {
     // Only assign to window if not already defined
     if (!window.CharacterManager) {
         window.CharacterManager = CharacterManager;
     }
-
-    // Auto-initialize on DOM loaded if not being imported as a module
-    // and if this script is loaded directly (not via import)
-    if (!window.isModuleImported && document.currentScript && document.currentScript.src.includes('CharacterManager.js')) {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => CharacterManager.initialize());
-        } else {
-            CharacterManager.initialize();
-        }
-    }
 }
-/**
- * Character Manager Module
- * Handles character selection, highlighting, and related functionality
- */
-const CharacterManager = {
-    characters: [],
-    selectedCharacter: null,
-
-    // Method using initialize() name for consistency with other modules
-    initialize() {
-        console.log('Character manager initialized');
-        this.highlightCharactersInStory();
-        return this;
-    },
-
-    // Alias to initialize() for backward compatibility
-    init() {
-        return this.initialize();
-    },
-
-    highlightCharactersInStory() {
-        console.log('Highlighting characters in story');
-        const storyContent = document.querySelector('.story-content');
-        if (!storyContent) {
-            console.log('No story content found');
-            return;
-        }
-
-        // Character highlighting logic here
-        // This would typically find character names in the story text and wrap them
-        // with highlighting elements
-    },
-
-    selectCharacter(characterId) {
-        this.selectedCharacter = characterId;
-        // Handle character selection UI updates
-    }
-};
-
-export default CharacterManager;

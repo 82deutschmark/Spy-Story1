@@ -9,71 +9,87 @@ import PaymentManager from './modules/PaymentManager.js';
 import NotebookManager from './modules/NotebookManager.js';
 import UserProgressManager from './modules/UserProgressManager.js';
 
-// Make modules available globally
-window.UIUtils = UIUtils;
-window.CharacterManager = CharacterManager;
-window.EventHandlers = EventHandlers;
-window.PaymentManager = PaymentManager;
-window.NotebookManager = NotebookManager;
-window.UserProgressManager = UserProgressManager;
+// Set flag to indicate we're importing modules
+window.isModuleImported = true;
 
-// Initialize all modules when DOM is ready
+// Wait for DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Initializing modules...');
+    console.log('DOM fully loaded - initializing application');
 
-    // Set flag to indicate modules are being imported by main.js
-    window.isModuleImported = true;
-
-    try {
-        // Initialize UI utilities first (as other modules may depend on it)
-        if (UIUtils) {
-            // UIUtils typically has no initialization method
+    // Initialize modules
+    if (window.EventHandlers && typeof window.EventHandlers.initialize === 'function') {
+        try {
+            console.log('Initializing EventHandlers module');
+            window.EventHandlers.initialize();
+        } catch (error) {
+            console.error('Error initializing EventHandlers:', error);
         }
-
-        // Initialize character manager
-        if (CharacterManager && typeof CharacterManager.initialize === 'function') {
-            CharacterManager.initialize();
-        }
-
-        // Initialize event handlers
-        if (EventHandlers && typeof EventHandlers.initialize === 'function') {
-            EventHandlers.initialize();
-        }
-
-        // Initialize payment manager
-        if (PaymentManager && typeof PaymentManager.initialize === 'function') {
-            PaymentManager.initialize();
-        }
-
-        // Initialize notebook manager if present in the DOM
-        if (NotebookManager) {
-            try {
-                const notebookElement = document.querySelector('.notebook-container');
-                if (notebookElement) {
-                    if (typeof NotebookManager.initialize === 'function') {
-                        NotebookManager.initialize();
-                    } else if (typeof NotebookManager.init === 'function') {
-                        NotebookManager.init();
-                    }
-                } else {
-                    console.log('Notebook elements not found in the DOM, skipping initialization');
-                }
-            } catch (error) {
-                console.error('Error initializing Notebook manager:', error);
-            }
-        }
-
-        // Initialize user progress manager
-        if (UserProgressManager && typeof UserProgressManager.initialize === 'function') {
-            UserProgressManager.initialize();
-        }
-
-        console.log('Modules loaded successfully');
-    } catch (error) {
-        console.error('Error initializing modules:', error);
     }
+
+    if (window.CharacterManager && typeof window.CharacterManager.initialize === 'function') {
+        try {
+            console.log('Initializing CharacterManager module');
+            window.CharacterManager.initialize();
+        } catch (error) {
+            console.error('Error initializing CharacterManager:', error);
+        }
+    }
+
+    if (window.PaymentManager && typeof window.PaymentManager.initialize === 'function') {
+        try {
+            console.log('Initializing PaymentManager module');
+            // PaymentManager is initialized inside EventHandlers
+            // window.PaymentManager.initialize();
+        } catch (error) {
+            console.error('Error initializing PaymentManager:', error);
+        }
+    }
+
+    if (window.UserProgressManager && typeof window.UserProgressManager.initialize === 'function') {
+        try {
+            console.log('Initializing UserProgressManager module');
+            window.UserProgressManager.initialize();
+        } catch (error) {
+            console.error('Error initializing UserProgressManager:', error);
+        }
+    }
+
+    if (window.NotebookManager && typeof window.NotebookManager.initialize === 'function') {
+        try {
+            console.log('Initializing NotebookManager module');
+            window.NotebookManager.initialize();
+        } catch (error) {
+            console.error('Error initializing NotebookManager:', error);
+        }
+    }
+
+    // Setup any global event listeners that aren't in EventHandlers
+    setupGlobalListeners();
 });
 
+/**
+ * Setup global event listeners
+ */
+function setupGlobalListeners() {
+    // Back to top button
+    const backToTopBtn = document.getElementById('back-to-top');
+    if (backToTopBtn) {
+        window.onscroll = function() {
+            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+                backToTopBtn.style.display = 'block';
+            } else {
+                backToTopBtn.style.display = 'none';
+            }
+        };
+
+        backToTopBtn.addEventListener('click', function() {
+            document.body.scrollTop = 0; // For Safari
+            document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+        });
+    }
+
+    // Other global listeners can be added here
+}
 
 // Initialize character mentions in story text
 function initializeCharacterMentions() {

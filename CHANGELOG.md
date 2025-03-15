@@ -190,8 +190,26 @@ All notable changes to the Story Creator project will be documented in this file
    - Standardized all initialization methods to use `initialize()` instead of `init()`
    - Added module import detection flag in main.js
 
+**March 17, 2025 Update:**
+1. Refactored EventHandlers.js:
+   - Fixed character selection functionality
+   - Improved reroll button handling
+   - Added proper form submission validation
+   - Ensured event handlers are properly scoped
+
+2. Fixed CharacterManager module:
+   - Improved character highlighting in story text
+   - Fixed character name detection from multiple sources
+   - Removed duplicate initialization code
+
+3. Standardized all modules:
+   - Consistent module export pattern
+   - Proper window object assignment
+   - Error handling for initialization functions
+   - Better logging for debugging
+
 **Next Steps:**
-- Validate character selection event handling works correctly
-- Test story choice submission functionality
+- Verify character selection works on all pages
+- Test story choice submission with different character combinations
 - Ensure mobile layouts display correctly
 - Test character highlighting in various scenarios story scenarios

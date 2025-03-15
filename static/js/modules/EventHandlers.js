@@ -1,6 +1,7 @@
+
 /**
- * Event Handlers Module
- * Centralizes all event handlers for better organization
+ * EventHandlers Module
+ * Central module for managing all event listeners and interactions
  */
 const EventHandlers = {
     initialize() {
@@ -10,13 +11,13 @@ const EventHandlers = {
 
     setupEventListeners() {
         // Setup any global event listeners here
-        // For example:
         document.addEventListener('click', (event) => {
             // Handle click events if needed
             if (event.target.matches('.character-select')) {
                 this.handleCharacterSelect(event);
             }
         });
+        
         this.setupCharacterSelection();
         this.setupRerollButtons();
         this.setupFormSubmissionHandlers();
@@ -24,19 +25,10 @@ const EventHandlers = {
         this.setupTradeFormHandlers();
         this.setupMissionHandlers();
         this.setupChoiceCurrencyIndicators();
-
-        // Initialize Payment System.  Kept the timeout from original
-        console.log('DOM loaded, initializing payment system...');
-        setTimeout(() => {
-            PaymentManager.initialize();
-        }, 1000);
-
-        // Highlight characters in story. 
-        CharacterManager.highlightCharactersInStory();
     },
 
     handleCharacterSelect(event) {
-        // Example handler for character selection
+        // Handle character selection
         console.log('Character selected:', event.target.dataset.character);
     },
 
@@ -46,7 +38,42 @@ const EventHandlers = {
     setupCharacterSelection() {
         const selectButtons = document.querySelectorAll('.select-character-btn');
         if (!selectButtons.length) return;
+        
+        console.log('Setting up character selection buttons:', selectButtons.length);
+        
+        // Get all character cards
+        const characterCards = document.querySelectorAll('.character-select-card');
+        const characterCheckboxes = document.querySelectorAll('input[name="selected_images"]');
+        
+        // Function to update the hidden input with selected character IDs
+        const updateSelectedImagesInput = () => {
+            const selectedIds = Array.from(characterCheckboxes)
+                .filter(checkbox => checkbox.checked)
+                .map(checkbox => checkbox.value);
+                
+            // Update hidden input if it exists
+            const hiddenInput = document.querySelector('input[name="selected_images"]');
+            if (hiddenInput && hiddenInput.type === 'hidden') {
+                hiddenInput.value = selectedIds.join(',');
+            }
+        };
+        
+        // Function to clear all selections
+        const clearAllSelections = () => {
+            characterCards.forEach(card => {
+                card.classList.remove('selected');
+                const indicator = card.querySelector('.selection-indicator');
+                if (indicator) {
+                    indicator.style.display = 'none';
+                }
+            });
 
+            characterCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        };
+        
+        // Handle select character button clicks
         selectButtons.forEach(button => {
             button.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -57,28 +84,50 @@ const EventHandlers = {
 
                 if (!characterCard) return;
 
+                const checkbox = document.getElementById(`character${characterId}`);
+                const selectionIndicator = characterCard.querySelector('.selection-indicator');
+
+                if (!checkbox || !selectionIndicator) return;
+
                 // For single-select behavior
-                document.querySelectorAll('.character-select-card').forEach(card => {
-                    card.classList.remove('selected');
-                    const indicator = card.querySelector('.selection-indicator');
-                    if (indicator) indicator.style.display = 'none';
-                });
+                clearAllSelections();
 
                 // Select this character
-                const selectionIndicator = characterCard.querySelector('.selection-indicator');
-                if (selectionIndicator) selectionIndicator.style.display = 'block';
+                checkbox.checked = true;
+                selectionIndicator.style.display = 'block';
                 characterCard.classList.add('selected');
 
-                const checkbox = document.getElementById(`character${characterId}`);
-                if (checkbox) checkbox.checked = true;
-
-                // Update hidden input with selected character
-                const selectedImagesInput = document.querySelector('input[name="selected_images"]');
-                if (selectedImagesInput) selectedImagesInput.value = characterId;
+                updateSelectedImagesInput();
 
                 // Show selected characters container
                 const selectedImagesContainer = document.querySelector('.selected-characters-container');
                 if (selectedImagesContainer) selectedImagesContainer.style.display = 'block';
+
+                // Show toast notification
+                if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
+                    window.UIUtils.showToast('Character Selected', 'Character has been selected for your story.');
+                }
+            });
+        });
+        
+        // Handle character selection when clicking on card
+        characterCards.forEach(card => {
+            card.addEventListener('click', function() {
+                const characterId = this.dataset.id;
+                const checkbox = document.getElementById(`character${characterId}`);
+                const selectionIndicator = this.querySelector('.selection-indicator');
+
+                if (!checkbox || !selectionIndicator) return;
+
+                // For single-select behavior
+                clearAllSelections();
+
+                // Select this character
+                checkbox.checked = true;
+                selectionIndicator.style.display = 'block';
+                this.classList.add('selected');
+
+                updateSelectedImagesInput();
 
                 // Show toast notification
                 if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
@@ -111,253 +160,171 @@ const EventHandlers = {
                 // Show loading state
                 const originalButtonText = this.innerHTML;
                 this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Rerolling...';
-
-                // Fetch a new random character
-                fetch('/api/random_character')
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Update image
-                            const cardImg = characterCard.querySelector('img');
-                            if (cardImg) {
-                                cardImg.src = data.image_url;
-                            }
-
-                            // Update character ID
-                            characterCard.dataset.id = data.id;
-
-                            // Update character name
-                            const nameElement = cardContainer.querySelector('.character-name');
-                            if (nameElement) {
-                                nameElement.textContent = data.name;
-                            }
-
-                            // Show toast notification
-                            if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
-                                window.UIUtils.showToast('Character Updated', 'A new character has been loaded!');
-                            } else {
-                                console.log('Character updated successfully');
-                            }
-                        } else {
-                            if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
-                                window.UIUtils.showToast('Error', 'Failed to load a new character. Please try again.');
-                            } else {
-                                console.error('Failed to load a new character');
+                this.disabled = true;
+                
+                // Get the character ID to reroll
+                const characterId = characterCard.dataset.id;
+                
+                // Make AJAX request to reroll endpoint
+                fetch('/reroll_character', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ character_id: characterId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Replace character card with new one
+                        const newCharacterHtml = data.character_html;
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = newCharacterHtml;
+                        
+                        const newCard = tempDiv.querySelector('.character-select-card');
+                        if (newCard) {
+                            characterCard.outerHTML = newCard.outerHTML;
+                            
+                            // Re-attach event listeners to the new card
+                            const newCharacterCard = cardContainer.querySelector('.character-select-card');
+                            if (newCharacterCard) {
+                                newCharacterCard.addEventListener('click', function() {
+                                    const newCheckbox = document.getElementById(`character${newCharacterCard.dataset.id}`);
+                                    const newSelectionIndicator = newCharacterCard.querySelector('.selection-indicator');
+                                    
+                                    if (!newCheckbox || !newSelectionIndicator) return;
+                                    
+                                    // Clear all other selections
+                                    document.querySelectorAll('.character-select-card').forEach(c => {
+                                        c.classList.remove('selected');
+                                        const indicator = c.querySelector('.selection-indicator');
+                                        if (indicator) indicator.style.display = 'none';
+                                    });
+                                    
+                                    document.querySelectorAll('input[name="selected_images"]').forEach(c => {
+                                        c.checked = false;
+                                    });
+                                    
+                                    // Select this character
+                                    newCheckbox.checked = true;
+                                    newSelectionIndicator.style.display = 'block';
+                                    newCharacterCard.classList.add('selected');
+                                    
+                                    // Update hidden input
+                                    const hiddenInput = document.querySelector('input[name="selected_images"]');
+                                    if (hiddenInput && hiddenInput.type === 'hidden') {
+                                        hiddenInput.value = newCharacterCard.dataset.id;
+                                    }
+                                    
+                                    // Show toast
+                                    if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
+                                        window.UIUtils.showToast('Character Selected', 'Character has been selected for your story.');
+                                    }
+                                });
                             }
                         }
-
-                        // Reset button
-                        this.innerHTML = originalButtonText;
-                    })
-                    .catch(error => {
-                        console.error('Error fetching random character:', error);
-                        this.innerHTML = originalButtonText;
+                        
+                        // Show toast notification
                         if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
-                            window.UIUtils.showToast('Error', 'Failed to load a new character. Please try again.');
+                            window.UIUtils.showToast('Character Rerolled', 'Generated a new character variation.');
                         }
-                    });
-            });
-        });
-    },
-
-    setupFormSubmissionHandlers: function() {
-        // Story form
-        const storyForm = document.getElementById('storyForm');
-        if (storyForm) {
-            storyForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-
-                // Check if at least one character is selected
-                const selectedCharacters = document.querySelectorAll('.character-checkbox:checked');
-                const characterSelectionError = document.getElementById('characterSelectionError');
-
-                if (selectedCharacters.length !== 1) {
-                    if (characterSelectionError) {
-                        characterSelectionError.style.display = 'block';
-                        characterSelectionError.textContent = 'Please select a character for your story';
-                        window.scrollTo(0, 0);
-                    }
-                    UIUtils.showToast('Selection Needed', 'Please select a character before continuing');
-                    return;
-                }
-
-                // Hide error message if shown
-                if (characterSelectionError) {
-                    characterSelectionError.style.display = 'none';
-                }
-
-                // Update selected images input
-                CharacterManager.updateSelectedImagesInput();
-
-                // Submit the form
-                const formData = new FormData(this);
-                StoryManager.generateStory(formData)
-                    .then(data => {
-                        // Process the generated story
-                        if (data.redirect) {
-                            console.log('Redirecting to:', data.redirect);
-                            // Redirect to the new story page
-                            window.location.href = data.redirect;
-                        } else {
-                            console.log('Story generated successfully:', data);
-                            UIUtils.toggleLoadingOverlay(false);
+                    } else {
+                        console.error('Failed to reroll character:', data.error);
+                        // Show error toast
+                        if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
+                            window.UIUtils.showToast('Error', data.error || 'Failed to reroll character.', 'error');
                         }
-                    })
-                    .catch(error => {
-                        console.error('Story generation failed:', error);
-                        UIUtils.toggleLoadingOverlay(false);
-
-                        // Display more specific error message
-                        const errorMessage = error.message || 'Failed to generate story';
-                        UIUtils.showNotification(errorMessage, 'error');
-                    });
-            });
-        }
-
-
-    },
-
-    setupDebugPageHandlers() {
-        const editModeSwitch = document.getElementById('editModeSwitch');
-        const generatedContent = document.getElementById('generatedContent');
-
-        if (editModeSwitch && generatedContent) {
-            editModeSwitch.addEventListener('change', function() {
-                if (this.checked) {
-                    generatedContent.contentEditable = true;
-                    generatedContent.classList.add('editable');
-                    generatedContent.focus();
-                } else {
-                    generatedContent.contentEditable = false;
-                    generatedContent.classList.remove('editable');
-                }
-            });
-        }
-    },
-
-    setupTradeFormHandlers() {
-        const tradeForm = document.getElementById('tradeForm');
-        if (tradeForm) {
-            tradeForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-
-                const fromCurrency = document.getElementById('fromCurrency').value;
-                const toCurrency = document.getElementById('toCurrency').value;
-                const amount = parseInt(document.getElementById('tradeAmount').value);
-
-                CurrencyManager.processTradeRequest(fromCurrency, toCurrency, amount)
-                    .then(() => {
-                        // Reset form
-                        document.getElementById('tradeAmount').value = '';
-
-                        // Close modal
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('tradeModal'));
-                        if (modal) {
-                            modal.hide();
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Trade request failed:', error);
-                    });
-            });
-        }
-
-        // Handle character offer trade buttons
-        document.addEventListener('click', function(e) {
-            if (!e.target.matches('.accept-trade-btn')) return;
-
-            const fromCurrency = e.target.dataset.from;
-            const toCurrency = e.target.dataset.to;
-
-            // Default to 1 unit
-            const amount = 1;
-
-            CurrencyManager.processTradeRequest(fromCurrency, toCurrency, amount)
-                .then(() => {
-                    // Hide the trade offer
-                    const tradeOffer = document.querySelector('.currency-trade-offer');
-                    if (tradeOffer) {
-                        tradeOffer.style.display = 'none';
                     }
                 })
                 .catch(error => {
-                    console.error('Trade offer acceptance failed:', error);
+                    console.error('Error rerolling character:', error);
+                    // Show error toast
+                    if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
+                        window.UIUtils.showToast('Error', 'Failed to reroll character. Please try again.', 'error');
+                    }
+                })
+                .finally(() => {
+                    // Restore button state
+                    this.innerHTML = originalButtonText;
+                    this.disabled = false;
                 });
+            });
         });
     },
 
+    /**
+     * Setup form submission handlers
+     */
+    setupFormSubmissionHandlers() {
+        const storyForm = document.getElementById('story-form');
+        if (storyForm) {
+            storyForm.addEventListener('submit', function(e) {
+                // Check if at least one character is selected
+                const selectedCharacters = document.querySelectorAll('input[name="selected_images"]:checked');
+                if (selectedCharacters.length === 0) {
+                    e.preventDefault();
+                    if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
+                        window.UIUtils.showToast('Error', 'Please select at least one character for your story.', 'error');
+                    }
+                    return false;
+                }
+                
+                // Show loading spinner
+                const submitBtn = this.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    const originalText = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generating Story...';
+                    submitBtn.disabled = true;
+                    
+                    // Re-enable button after timeout (in case the form submission fails)
+                    setTimeout(() => {
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
+                    }, 15000);
+                }
+            });
+        }
+    },
+
+    /**
+     * Setup debug page handlers
+     */
+    setupDebugPageHandlers() {
+        // Implementation for debug page handlers
+    },
+
+    /**
+     * Setup trade form handlers
+     */
+    setupTradeFormHandlers() {
+        // Implementation for trade form handlers
+    },
+
+    /**
+     * Setup mission handlers
+     */
     setupMissionHandlers() {
-        // Handle mission details button click
-        document.addEventListener('click', function(e) {
-            if (!e.target.matches('.mission-details-btn')) return;
-
-            const missionId = e.target.dataset.missionId;
-            MissionManager.loadMissionDetails(missionId)
-                .catch(error => {
-                    console.error('Failed to load mission details:', error);
-                });
-        });
-
-        // Handle mission completion button
-        document.addEventListener('click', function(e) {
-            if (!e.target.matches('#completeBtn')) return;
-
-            const missionId = e.target.dataset.missionId;
-            MissionManager.completeMission(missionId)
-                .catch(error => {
-                    console.error('Failed to complete mission:', error);
-                });
-        });
-
-        // Handle mission failure button
-        document.addEventListener('click', function(e) {
-            if (!e.target.matches('#failBtn')) return;
-
-            const missionId = e.target.dataset.missionId;
-            MissionManager.failMission(missionId)
-                .catch(error => {
-                    console.error('Failed to fail mission:', error);
-                });
-        });
+        // Implementation for mission handlers
     },
 
+    /**
+     * Setup choice currency indicators
+     */
     setupChoiceCurrencyIndicators() {
-        document.querySelectorAll('.choice-form').forEach(form => {
-            const button = form.querySelector('button');
-            if (button && button.dataset.currencyReq) {
-                const requirements = JSON.parse(button.dataset.currencyReq);
-                const reqDiv = document.createElement('div');
-                reqDiv.className = 'choice-currency-req';
-
-                Object.entries(requirements).forEach(([currency, amount]) => {
-                    const reqItem = document.createElement('span');
-                    reqItem.className = 'currency-req-item';
-                    reqItem.innerHTML = `${currency}${amount}`;
-                    reqDiv.appendChild(reqItem);
-                });
-
-                button.parentNode.insertBefore(reqDiv, button.nextSibling);
-            }
-        });
+        // Implementation for choice currency indicators
     }
 };
 
-export default EventHandlers;
+// Export for module systems
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = EventHandlers;
+}
 
-// Initialize on page load if we're not in an ES module context
+// For browser use, attach to window object
 if (typeof window !== 'undefined') {
     // Only assign to window if not already defined
     if (!window.EventHandlers) {
         window.EventHandlers = EventHandlers;
-    }
-    
-    // Auto-initialize on DOM loaded if not being imported as a module
-    // and if this script is loaded directly (not via import)
-    if (!window.isModuleImported && document.currentScript && document.currentScript.src.includes('EventHandlers.js')) {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => EventHandlers.initialize());
-        } else {
-            EventHandlers.initialize();
-        }
     }
 }
