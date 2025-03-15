@@ -5,11 +5,13 @@
 import UIUtils from './modules/UIUtils.js';
 import CurrencyManager from './modules/CurrencyManager.js';
 import UserProgress from './modules/UserProgress.js';
-import CharacterManager from './modules/CharacterManager.js';
 import StoryManager from './modules/StoryManager.js';
 import MissionManager from './modules/MissionManager.js';
 import PaymentManager from './modules/PaymentManager.js';
 import EventHandlers from './modules/EventHandlers.js';
+// Import CharacterManager - this will be used throughout the application
+import CharacterManager from './modules/CharacterManager.js';
+
 // Import modules - using dynamic import to ensure they load properly
 async function loadModules() {
     try {
@@ -130,14 +132,6 @@ function initializeCharacterMentions() {
     }
 }
 
-// Import all needed modules
-import { CharacterManager } from './modules/CharacterManager.js';
-import { StoryManager } from './modules/StoryManager.js';
-import { EventHandlers } from './modules/EventHandlers.js';
-import { UIUtils } from './modules/UIUtils.js';
-import { PaymentManager } from './modules/PaymentManager.js';
-import { NotebookManager } from './modules/NotebookManager.js';
-import { UserProgressManager } from './modules/UserProgressManager.js';
 
 // Function to handle loading overlay
 function showLoading() {

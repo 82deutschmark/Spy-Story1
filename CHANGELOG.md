@@ -16,6 +16,10 @@ All notable changes to the Story Creator project will be documented in this file
   - Adjustments to HTML templates to match new style requirements.
 
 ## [Unreleased]
+### Fixed
+- Fixed JavaScript error related to CharacterManager module declaration
+- Fixed character selection functionality on the index page
+- Resolved issues with duplicate module declarations in ES modules
 
 ### Fixed
 - Fixed Flask-Admin integration by updating CharacterView to properly reflect Character model attributes
