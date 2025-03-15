@@ -1,31 +1,15 @@
-/**
- * CharacterManager.js - Manages character selection and interactions
- */
+// Character Manager Module
+console.log("Initializing CharacterManager module");
 
-// Character Manager class definition
 class CharacterManager {
     constructor() {
         this.selectedCharacters = [];
-        this.charactersData = null;
         this.maxCharacters = 2;
     }
 
     initialize() {
-        console.log('CharacterManager properly initialized');
-        this.loadCharacters();
-        this.setupCharacterEvents();
+        this.setupCharacterCards();
         this.highlightCharactersInStory();
-    }
-
-    loadCharacters() {
-        console.log('Loading character data');
-        // Placeholder for loading character data -  No direct equivalent in original
-        this.setupCharacterCards(); //Using original setup method for now.
-    }
-
-    setupCharacterEvents() {
-        console.log('Setting up character event handlers');
-        this.setupCharacterCards(); //Using original setup method for now.
     }
 
     setupCharacterCards() {
@@ -35,7 +19,6 @@ class CharacterManager {
             card.addEventListener('click', (e) => this.handleCharacterSelection(e, card));
         });
     }
-
 
     handleCharacterSelection(e, card) {
         // Don't process click if coming from a button inside the card
@@ -141,9 +124,22 @@ class CharacterManager {
     }
 }
 
-// Create instance
+// Create an instance that can be imported by other modules
 const characterManager = new CharacterManager();
+console.log("Character manager initialized");
 
-// Export as ES module (named and default export)
-export { CharacterManager };
+// Export for ES modules
 export default characterManager;
+export { CharacterManager };
+
+// For CommonJS modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = characterManager;
+}
+
+// For browser use
+if (typeof window !== 'undefined') {
+    if (!window.CharacterManager) {
+        window.CharacterManager = CharacterManager;
+    }
+}

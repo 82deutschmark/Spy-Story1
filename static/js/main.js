@@ -1,114 +1,63 @@
-/**
- * Main application entry point
- */
+// Main JavaScript file
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log("DOM fully loaded - initializing application");
 
-// Track module loading state
-const moduleState = {
-    eventHandlersLoaded: false,
-    characterManagerLoaded: false,
-    paymentManagerLoaded: false,
-    uiUtilsLoaded: false
-};
-
-// Import modules
-import EventHandlers from './modules/EventHandlers.js';
-import { CharacterManager } from './modules/CharacterManager.js';
-import PaymentManager from './modules/PaymentManager.js';
-import UIUtils from './modules/UIUtils.js';
-import UserProgressManager from './modules/UserProgressManager.js';
-
-// Initialize application when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM fully loaded - initializing application');
-    initializeApplication();
-    // Check if we're on a storyboard page and save the story ID
-    const storyIdParam = new URLSearchParams(window.location.search).get('story_id');
-    if (storyIdParam) {
-        localStorage.setItem('lastStoryId', storyIdParam);
-    }
-
-    // Also initialize character highlighting if on storyboard page
-    if (document.querySelector('.story-content')) {
-        CharacterManager.highlightCharactersInStory();
-    }
-    initializeCharacterMentions();
-    setupGlobalListeners();
-});
-
-// Main initialization function
-function initializeApplication() {
     try {
-        // Initialize EventHandlers
-        if (EventHandlers && typeof EventHandlers.initialize === 'function') {
-            console.log('EventHandlers module loaded');
-            EventHandlers.initialize();
-            moduleState.eventHandlersLoaded = true;
-        } else {
-            console.error('EventHandlers module not properly loaded or missing initialize method');
+        // Import and initialize EventHandlers first
+        const eventHandlersModule = await import('./modules/EventHandlers.js');
+        console.log("EventHandlers module loaded");
+        
+        const eventHandlers = eventHandlersModule.default;
+        eventHandlers.initialize();
+        console.log("Event handlers initialized");
+
+        // Import and initialize CharacterManager after EventHandlers
+        const characterManagerModule = await import('./modules/CharacterManager.js');
+        console.log("CharacterManager module loaded");
+        
+        if (characterManagerModule.CharacterManager) {
+            const characterManager = new characterManagerModule.CharacterManager();
+            characterManager.initialize();
+        } else if (characterManagerModule.default) {
+            characterManagerModule.default.initialize();
         }
+        console.log("Character manager initialized");
 
-        // Initialize CharacterManager
-        if (CharacterManager && typeof CharacterManager.initialize === 'function') {
-            console.log('CharacterManager module loaded');
-            CharacterManager.initialize();
-            moduleState.characterManagerLoaded = true;
+        // Initialize notebook if on story page
+        const notebookElements = document.querySelectorAll('.notebook-tab, .notebook-content');
+        if (notebookElements.length > 0) {
+            const notebookModule = await import('./modules/NotebookManager.js');
+            notebookModule.default.initialize();
+            console.log("Notebook manager initialized");
         } else {
-            console.error('CharacterManager not properly loaded or missing initialize method');
+            console.log("Notebook elements not found, skipping initialization");
         }
-
-        // Initialize PaymentManager
-        if (PaymentManager && typeof PaymentManager.initialize === 'function') {
-            console.log('PaymentManager module loaded');
-            PaymentManager.initialize();
-            moduleState.paymentManagerLoaded = true;
-        } else {
-            console.error('PaymentManager not properly loaded or missing initialize method');
-        }
-
-        // Initialize UIUtils
-        if (UIUtils && typeof UIUtils.initialize === 'function') {
-            console.log('UIUtils module loaded');
-            UIUtils.initialize();
-            moduleState.uiUtilsLoaded = true;
-        } else {
-            console.error('UIUtils not properly loaded or missing initialize method');
-        }
-
-        // Initialize UserProgressManager
-        if (UserProgressManager && typeof UserProgressManager.initialize === 'function') {
-            console.log('UserProgressManager module loaded');
-            UserProgressManager.initialize();
-        } else {
-            console.error('UserProgressManager not properly loaded or missing initialize method');
-        }
-
-        // Check if all critical modules loaded
-        validateModuleLoading();
-
     } catch (error) {
         console.error('Error initializing application:', error);
     }
-}
+});
 
-// Validate all modules loaded correctly
-function validateModuleLoading() {
-    if (!moduleState.eventHandlersLoaded) {
-        console.warn('WARNING: EventHandlers module failed to initialize properly');
-    }
+// Setup payment processing if PayPal is available
+import('./modules/PaymentManager.js')
+    .then(module => {
+        // PaymentManager will initialize itself if the PayPal script is loaded
+    })
+    .catch(err => console.error("Error loading PaymentManager module:", err));
 
-    if (!moduleState.characterManagerLoaded) {
-        console.warn('WARNING: CharacterManager module failed to initialize properly');
-    }
+// Load user progress manager
+import('./modules/UserProgressManager.js')
+    .then(module => {
+        // UserProgressManager will initialize itself
+    })
+    .catch(err => console.error("Error loading UserProgressManager module:", err));
 
-    const criticalModulesLoaded = moduleState.eventHandlersLoaded && 
-                                 moduleState.characterManagerLoaded;
+// Load UI utilities
+import('./modules/UIUtils.js')
+    .then(module => {
+        // UI Utils will be available for other modules
+    })
+    .catch(err => console.error("Error loading UIUtils module:", err));
 
-    if (criticalModulesLoaded) {
-        console.log('All critical modules initialized successfully');
-    } else {
-        console.error('Some critical modules failed to initialize');
-    }
-}
 
 // Initialize character mentions in story text
 function initializeCharacterMentions() {
@@ -145,6 +94,26 @@ function initializeCharacterMentions() {
         });
     });
 }
+
+// Document this issue in the changelog
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if we're on a storyboard page and save the story ID
+    const storyIdParam = new URLSearchParams(window.location.search).get('story_id');
+    if (storyIdParam) {
+        localStorage.setItem('lastStoryId', storyIdParam);
+    }
+
+    // Also initialize character highlighting if on storyboard page
+    if (document.querySelector('.story-content')) {
+        import('./modules/CharacterManager.js')
+            .then(module => {
+                const characterManager = module.CharacterManager ? new module.CharacterManager() : module.default;
+                characterManager.highlightCharactersInStory();
+            })
+            .catch(err => console.error("Error loading CharacterManager module in DOMContentLoaded:", err));
+    }
+    initializeCharacterMentions();
+});
 
 // Setup global event listeners that aren't in EventHandlers
 function setupGlobalListeners() {
