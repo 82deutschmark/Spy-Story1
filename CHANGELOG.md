@@ -1,7 +1,20 @@
-
 # Changelog
 
 ## [Unreleased]
+### Changed
+- Consolidated CSS files by merging `characters.css` into `character.css`
+- Enhanced character styling with improved background opacity and spacing
+- Added new character highlighting and tooltip styles
+- Streamlined `index.html` to match JavaScript structure
+- Removed redundant UI elements not used by core functionality
+- Improved character selection interface with clearer structure
+- Enhanced character card layout and controls
+
+### Removed
+- Deleted redundant `characters.css` file after consolidation
+- Removed unused UI elements from landing page
+- Removed purchase modal (to be implemented later)
+
 ### Fixed
 - Updated Mission model to reference characters instead of scene_images for giver_id and target_id
 - Corrected database schema documentation to match actual implementation
@@ -117,144 +130,4 @@ All notable changes to the Story Creator project will be documented in this file
 **Changes:**
 - Created `currency` table with currency types and symbols
 - Added `currency_balances` JSON column to `user_progress` table
-- Added `currency_requirements` JSON column to `story_choice` table
-- Added default currencies: diamond (💎), pound (💷), euro (💶), yen (💴), dollar (💵)
-
-## Character Name Migration
-**File:** `migrations/add_character_name.py`
-**Date Added:** 2023
-**Purpose:** Improved character identification
-**Changes:**
-- Added `character_name` column to `image_analysis` table
-- Populated `character_name` from `analysis_result->>'name'` for existing records
-
-## Gamification System Migration
-**File:** `migrations/add_gamification.py`
-**Date Added:** 2023
-**Purpose:** Enhanced user engagement with gamification features
-**Changes:**
-- Updated `user_progress` table with new columns:
-  - `current_story_id`, `level`, `experience_points`
-  - JSON arrays for tracking plot arcs, characters, choices, and achievements
-- Created `character_evolution` table to track character development
-- Created `plot_arc` table to manage long-term story arcs
-- Added database indices for improved query performance
-
-## Mission System Migration
-**File:** `migrations/add_mission_system.py`
-**Date Added:** 2023
-**Purpose:** Added mission tracking functionality
-**Changes:**
-- Added mission arrays to `user_progress` table: `active_missions`, `completed_missions`, `failed_missions`
-- Created `mission` table for detailed mission tracking
-
-## Mission Tracking Fix
-**File:** `migrations/fix_mission_tracking.py`
-**Date Added:** 2023
-**Purpose:** Fixed issues with mission tracking
-**Changes:**
-- Ensured mission tracking arrays are properly initialized
-- Created missing missions from story data
-- Added missions to user's active missions list
-
-## Unused Tables Fix
-**File:** `migrations/fix_unused_tables.py`
-**Date Added:** 2023
-**Purpose:** Improved utilization of existing tables
-**Changes:**
-- Updated `UserProgress` records with proper initialization
-- Updated `CharacterEvolution` records with proper initialization
-- Created missing `StoryNode` records for existing stories
-- Updated `PlotArc` records with key nodes
-
-## Story Nodes Update
-**File:** `migrations/update_story_nodes.py`
-**Date Added:** 2023
-**Purpose:** Enhanced story node connections
-**Changes:**
-- Added story_id to node metadata
-- Linked story choices to next nodes
-- Connected missions to story nodes
-
-### To Do
-- Resolve remaining issues with loading animation not functioning
-- Finalize character highlighting logic
-- Improve text readability with proper panel or frame styling
-- Ensure character image sizing aligns with reference Yorkie file
-- Validate placement of choice buttons relative to story text
-
-## Debugging Progress (March 2025)
-
-### Character Selection Issues
-**Current State:**
-- Character selection functionality is broken in the storyboard interface
-- JavaScript errors occur with method naming inconsistencies
-- Main JavaScript modules are failing to initialize properly
-
-**Attempted Fixes:**
-1. Fixed method naming consistency issues:
-   - Updated `EventHandlers.js` to use `initialize()` instead of `init()`
-   - Updated `CharacterManager.js` to properly define the `initialize()` method
-
-**March 15, 2025 Update:**
-1. Standardized all module initialization methods:
-   - Implemented proper `initialize()` method in `EventHandlers.js`
-   - Updated `CharacterManager.js` to use `initialize()` instead of `init()`
-   - Updated `PaymentManager.js` to use `initialize()` instead of `init()`
-   - Fixed `main.js` to properly call initialize methods on all modules
-   - Implemented direct initialization for critical modules
-   - Fixed character highlighting in story text
-
-**Resolved Issues:**
-- Fixed "Uncaught TypeError: EventHandlers.initialize is not a function"
-- Fixed "CharacterManager.init is not a function"
-- Fixed "PaymentManager.init is not a function"
-- Fixed character highlighting in story content
-- Implemented centralized event handling for forms and interactions
-
-**March 16, 2025 Update:**
-1. Fixed module initialization issues:
-   - Prevented duplicate declaration of CharacterManager, EventHandlers, and PaymentManager
-   - Added safeguards to prevent multiple initializations of modules
-   - Standardized all initialization methods to use `initialize()` instead of `init()`
-   - Added module import detection flag in main.js
-
-**March 17, 2025 Update:**
-1. Refactored EventHandlers.js:
-   - Fixed character selection functionality
-   - Improved reroll button handling
-   - Added proper form submission validation
-   - Ensured event handlers are properly scoped
-   - Fixed module export pattern
-
-2. Fixed module import/export system:
-   - Updated main.js to use proper ES6 module imports
-   - Fixed export pattern in CharacterManager.js
-   - Fixed export pattern in EventHandlers.js
-   - Fixed export pattern in PaymentManager.js
-   - Resolved "module does not provide an export named 'default'" errors
-
-**March 18, 2025 Update:**
-1. Fixed EventHandlers module loading error:
-   - Standardized module export pattern to support both ES6 and CommonJS
-   - Added proper default exports to EventHandlers.js and CharacterManager.js
-   - Enhanced main.js to handle both named and default exports
-   - Improved error handling for module initialization
-   - Resolved "The requested module does not provide an export named 'default'" errors
-
-2. Fixed CharacterManager module:
-   - Improved character highlighting in story text
-   - Fixed character name detection from multiple sources
-   - Removed duplicate initialization code
-
-3. Standardized all modules:
-   - Consistent module export pattern
-   - Proper window object assignment
-   - Error handling for initialization functions
-   - Better logging for debugging
-
-**Next Steps:**
-- Verify character selection works on all pages
-- Test story choice submission with different character combinations
-- Ensure mobile layouts display correctly
-- Test character highlighting in various scenarios story scenarios
+- Added `
