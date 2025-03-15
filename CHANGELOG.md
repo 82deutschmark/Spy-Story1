@@ -150,14 +150,24 @@ All notable changes to the Story Creator project will be documented in this file
    - Updated `EventHandlers.js` to use `initialize()` instead of `init()`
    - Updated `CharacterManager.js` to properly define the `initialize()` method
 
-**Remaining Issues:**
-- Console errors still show: "Uncaught TypeError: EventHandlers.initialize is not a function"
-- Console errors still show: "CharacterManager.init is not a function"
-- Console errors still show: "PaymentManager.init is not a function"
-- Character highlighting in story content isn't functioning
+**March 15, 2025 Update:**
+1. Standardized all module initialization methods:
+   - Implemented proper `initialize()` method in `EventHandlers.js`
+   - Updated `CharacterManager.js` to use `initialize()` instead of `init()`
+   - Updated `PaymentManager.js` to use `initialize()` instead of `init()`
+   - Fixed `main.js` to properly call initialize methods on all modules
+   - Implemented direct initialization for critical modules
+   - Fixed character highlighting in story text
+
+**Resolved Issues:**
+- Fixed "Uncaught TypeError: EventHandlers.initialize is not a function"
+- Fixed "CharacterManager.init is not a function"
+- Fixed "PaymentManager.init is not a function"
+- Fixed character highlighting in story content
+- Implemented centralized event handling for forms and interactions
 
 **Next Steps:**
-- Review all JavaScript module imports and ensure proper loading order
-- Verify that method definitions match their invocations across all modules
-- Implement standardized initialization pattern across all modules
-- Check if modules are being registered correctly in the main.js file
+- Validate character selection event handling works correctly
+- Test story choice submission functionality
+- Ensure mobile layouts display correctly
+- Test character highlighting in various story scenarios

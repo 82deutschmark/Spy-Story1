@@ -10,6 +10,30 @@ import StoryManager from './modules/StoryManager.js';
 import MissionManager from './modules/MissionManager.js';
 import PaymentManager from './modules/PaymentManager.js';
 import EventHandlers from './modules/EventHandlers.js';
+
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOM loaded, initializing modules...");
+    loadModules();
+
+    // Also initialize the core modules that need to be available right away
+    EventHandlers.initialize();
+    CharacterManager.initialize();
+    PaymentManager.initialize();
+});
+
+// Make core modules available globally for debugging
+window.App = {
+    UI: UIUtils,
+    Currency: CurrencyManager,
+    Progress: UserProgress,
+    Character: CharacterManager,
+    Story: StoryManager,
+    Mission: MissionManager,
+    Payment: PaymentManager,
+    Events: EventHandlers
+};
+
 // Import modules - using dynamic import to ensure they load properly
 async function loadModules() {
     try {
@@ -52,25 +76,43 @@ async function loadModules() {
     }
 }
 
-// Wait for DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("DOM loaded, initializing modules...");
-    loadModules();
-});
+// Initialize character mentions in story text
+function initializeCharacterMentions() {
+    const storyContent = document.querySelector('.story-content');
+    if (!storyContent) return;
 
+    // Get all character mentions
+    const characterMentions = document.querySelectorAll('.character-mention');
 
-// Make core modules available globally for debugging
-window.App = {
-    UI: UIUtils,
-    Currency: CurrencyManager,
-    Progress: UserProgress,
-    Character: CharacterManager,
-    Story: StoryManager,
-    Mission: MissionManager,
-    Payment: PaymentManager
-};
+    // Add click event to each mention
+    characterMentions.forEach(mention => {
+        mention.addEventListener('click', function() {
+            const characterId = this.dataset.character;
+            const targetPortrait = document.querySelector(`.character-portrait-mini[data-character-name="${characterId}"]`);
 
-// Initialize the application when the DOM is loaded
+            // Remove highlight from all portraits
+            document.querySelectorAll('.character-mini-img').forEach(img => {
+                img.classList.remove('character-mini-highlight');
+            });
+
+            // Add highlight to this portrait
+            if (targetPortrait) {
+                const portraitImg = targetPortrait.querySelector('.character-mini-img');
+                portraitImg.classList.add('character-mini-highlight');
+
+                // Scroll to the portrait if needed
+                targetPortrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+                // Remove highlight after 3 seconds
+                setTimeout(() => {
+                    portraitImg.classList.remove('character-mini-highlight');
+                }, 3000);
+            }
+        });
+    });
+}
+
+// Document this issue in the changelog
 document.addEventListener('DOMContentLoaded', function() {
     // Check if we're on a storyboard page and save the story ID
     const storyIdParam = new URLSearchParams(window.location.search).get('story_id');
@@ -78,57 +120,12 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.setItem('lastStoryId', storyIdParam);
     }
 
-    EventHandlers.initialize();
-
-    // Initialize character mentions in story text
-    initializeCharacterMentions();
-
-    // Initialize character highlighting if on storyboard page
-    if (document.querySelector('.story-content') && typeof CharacterManager !== 'undefined') {
+    // Also initialize character highlighting if on storyboard page
+    if (document.querySelector('.story-content') && CharacterManager) {
         CharacterManager.highlightCharactersInStory();
     }
-
-    // Let the class initialization handle itself in their respective module files
-    // This ensures modules are loaded consistently whether imported in main.js or loaded via script tags
+    initializeCharacterMentions();
 });
-
-// Handle character mentions in story text
-function initializeCharacterMentions() {
-    // Find all character mentions in the story text
-    const characterMentions = document.querySelectorAll('.character-mention');
-    const characterThumbnails = document.querySelectorAll('.character-thumbnail');
-
-    if (characterMentions.length > 0) {
-        characterMentions.forEach(mention => {
-            // Create tooltip element for the character
-            const tooltipEl = document.createElement('div');
-            tooltipEl.className = 'character-tooltip';
-
-            // Get character name from the mention
-            const characterName = mention.getAttribute('data-character-name');
-
-            // Find matching thumbnail
-            const matchingThumbnail = Array.from(characterThumbnails).find(thumb => 
-                thumb.getAttribute('data-character-name') === characterName
-            );
-
-            if (matchingThumbnail) {
-                const thumbnailImg = matchingThumbnail.querySelector('img').cloneNode(true);
-                tooltipEl.appendChild(thumbnailImg);
-                tooltipEl.insertAdjacentHTML('beforeend', characterName);
-                mention.appendChild(tooltipEl);
-
-                // Highlight matching thumbnail when hovering over mention
-                mention.addEventListener('mouseenter', () => {
-                    matchingThumbnail.classList.add('highlight');
-                });
-                mention.addEventListener('mouseleave', () => {
-                    matchingThumbnail.classList.remove('highlight');
-                });
-            }
-        });
-    }
-}
 
 // NOTE: The following features are described in the thinking section but not fully implemented in the provided changes:
 // - "Continue Story" button in storyboard.html
