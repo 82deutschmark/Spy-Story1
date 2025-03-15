@@ -1,54 +1,57 @@
+
 /**
  * Character Management Module
  * Handles character selection, display, and highlighting in story text
  */
 import UIUtils from './UIUtils.js';
 
-// Character highlighting functionality
-document.addEventListener('DOMContentLoaded', function() {
-    // This will be called after the DOM is fully loaded
-    if (typeof CharacterManager !== 'undefined' && CharacterManager) {
-        // Only initialize if CharacterManager exists
-        CharacterManager.highlightCharactersInStory();
-    }
-});
-
-/**
- * Character Management Module
- * Handles character selection, display, and highlighting in story text
- */
-
+// Character management functionality
 const CharacterManager = {
     /**
      * Highlights character names in the story text
      */
     highlightCharactersInStory() {
-        const storyContent = document.querySelector('.story-content');
-        if (!storyContent) return;
+        console.log('Highlighting characters in story');
+        const storyContentElement = document.querySelector('.story-content');
+        if (!storyContentElement) {
+            console.log('No story content found');
+            return;
+        }
 
-        // Get all character thumbnails/portraits
+        // Get all character mini portraits to extract names
         const characterElements = document.querySelectorAll('.character-portrait-mini, .character-thumbnail');
+        const characterNames = [];
 
-        // For each character
-        characterElements.forEach(charElement => {
-            const characterName = charElement.getAttribute('data-character-name');
-            if (!characterName) return;
-
-            // Create a friendly name for display (convert from slug to display format)
-            const displayName = characterName.split('-')
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                .join(' ');
-
-            // Create a regex that matches the character name with word boundaries
-            // This ensures we only match whole words, not partial matches
-            const nameRegex = new RegExp(`\\b${displayName}\\b`, 'g');
-
-            // Replace character name with highlighted version
-            storyContent.innerHTML = storyContent.innerHTML.replace(
-                nameRegex, 
-                `<span class="character-highlight" data-character="${characterName}">${displayName}</span>`
-            );
+        characterElements.forEach(element => {
+            const name = element.getAttribute('data-character-name');
+            if (name) {
+                characterNames.push({
+                    name: name.replace(/-/g, ' '),
+                    elementName: name
+                });
+            }
         });
+
+        if (characterNames.length === 0) {
+            console.log('No character names found');
+            return;
+        }
+
+        // Sort by length (descending) to ensure longer names are processed first
+        // This prevents issues where "John Smith" might be split into "John" and "Smith"
+        characterNames.sort((a, b) => b.name.length - a.name.length);
+
+        let storyHTML = storyContentElement.innerHTML;
+        
+        // Replace character names with highlighted versions
+        characterNames.forEach(character => {
+            const regex = new RegExp(`\\b${character.name}\\b`, 'gi');
+            storyHTML = storyHTML.replace(regex, match => {
+                return `<span class="character-highlight" data-character="${character.elementName}">${match}</span>`;
+            });
+        });
+
+        storyContentElement.innerHTML = storyHTML;
 
         // Add click event listeners to highlighted characters
         const highlightedChars = document.querySelectorAll('.character-highlight');
@@ -83,46 +86,95 @@ const CharacterManager = {
      * Set up character selection
      */
     setupCharacterSelection() {
-        // Character selection functionality already handled in EventHandlers.js
-    },
-
-    /**
-     * Clears all character selections
-     */
-    clearAllSelections() {
+        // Character selection functionality
         const characterCards = document.querySelectorAll('.character-select-card');
-        const characterCheckboxes = document.querySelectorAll('.character-checkbox');
-
         characterCards.forEach(card => {
-            card.classList.remove('selected');
-            const indicator = card.querySelector('.selection-indicator');
-            if (indicator) {
-                indicator.style.display = 'none';
-            }
+            card.addEventListener('click', function() {
+                const characterId = this.getAttribute('data-id');
+                const checkbox = document.querySelector(`#character${characterId}`);
+                
+                if (checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                    this.classList.toggle('selected', checkbox.checked);
+                    const indicator = this.querySelector('.selection-indicator');
+                    if (indicator) {
+                        indicator.style.display = checkbox.checked ? 'block' : 'none';
+                    }
+                    
+                    // Update the list of selected characters
+                    CharacterManager.updateSelectedCharactersList();
+                }
+            });
         });
 
-        characterCheckboxes.forEach(checkbox => {
-            checkbox.checked = false;
+        // Handle selection buttons
+        const selectButtons = document.querySelectorAll('.select-character-btn');
+        selectButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.stopPropagation(); // Prevent card click event from firing
+                const characterId = this.getAttribute('data-character-id');
+                const checkbox = document.querySelector(`#character${characterId}`);
+                const card = document.querySelector(`.character-select-card[data-id="${characterId}"]`);
+                
+                if (checkbox && card) {
+                    checkbox.checked = !checkbox.checked;
+                    card.classList.toggle('selected', checkbox.checked);
+                    const indicator = card.querySelector('.selection-indicator');
+                    if (indicator) {
+                        indicator.style.display = checkbox.checked ? 'block' : 'none';
+                    }
+                    
+                    // Update the list of selected characters
+                    CharacterManager.updateSelectedCharactersList();
+                }
+            });
         });
     },
 
     /**
-     * Updates the hidden input values for selected images
+     * Updates the display of selected characters
      */
-    updateSelectedImagesInput() {
-        const storyForm = document.getElementById('storyForm');
-        if (!storyForm) return;
-
-        // Remove any existing hidden inputs
-        document.querySelectorAll('input[name="selected_images[]"]').forEach(el => el.remove());
-
-        // Add new hidden inputs for each selected character
-        document.querySelectorAll('.character-checkbox:checked').forEach(checkbox => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'selected_images[]';
-            input.value = checkbox.value;
-            storyForm.appendChild(input);
+    updateSelectedCharactersList() {
+        const selectedCharactersList = document.querySelector('.selected-characters-list');
+        if (!selectedCharactersList) return;
+        
+        selectedCharactersList.innerHTML = '';
+        
+        const selectedCheckboxes = document.querySelectorAll('.character-checkbox:checked');
+        selectedCheckboxes.forEach(checkbox => {
+            const characterId = checkbox.value;
+            const card = document.querySelector(`.character-select-card[data-id="${characterId}"]`);
+            if (card) {
+                const imgSrc = card.querySelector('img').src;
+                const characterName = card.closest('.character-container').querySelector('.character-name').textContent;
+                
+                const pill = document.createElement('div');
+                pill.className = 'selected-character-pill';
+                pill.innerHTML = `
+                    <img src="${imgSrc}" alt="${characterName}">
+                    <span>${characterName}</span>
+                    <button type="button" class="btn-close btn-close-white ms-2" data-character-id="${characterId}"></button>
+                `;
+                selectedCharactersList.appendChild(pill);
+                
+                // Add remove functionality
+                pill.querySelector('.btn-close').addEventListener('click', function() {
+                    const characterId = this.getAttribute('data-character-id');
+                    const checkbox = document.querySelector(`#character${characterId}`);
+                    const card = document.querySelector(`.character-select-card[data-id="${characterId}"]`);
+                    
+                    if (checkbox && card) {
+                        checkbox.checked = false;
+                        card.classList.remove('selected');
+                        const indicator = card.querySelector('.selection-indicator');
+                        if (indicator) {
+                            indicator.style.display = 'none';
+                        }
+                        
+                        CharacterManager.updateSelectedCharactersList();
+                    }
+                });
+            }
         });
 
         // Show/hide selected characters container based on selection
@@ -161,12 +213,9 @@ const CharacterManager = {
 // Export for ES module use
 export default CharacterManager;
 
-// Initialize on page load if we're not in an ES module context
-if (typeof window !== 'undefined') {
-    window.CharacterManager = CharacterManager;
-    document.addEventListener('DOMContentLoaded', () => {
-        if (CharacterManager && CharacterManager.initialize) {
-            CharacterManager.initialize();
-        }
-    });
-}
+// Initialize character highlighting when DOM is loaded if we're on the storyboard page
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.querySelector('.story-content')) {
+        CharacterManager.highlightCharactersInStory();
+    }
+});
