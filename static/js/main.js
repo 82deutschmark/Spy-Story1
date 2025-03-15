@@ -130,9 +130,134 @@ function initializeCharacterMentions() {
     }
 }
 
-// NOTE: The following features are described in the thinking section but not fully implemented in the provided changes:
-// - "Continue Story" button in storyboard.html
-// - "Continue Story" button in index.html
-// - continueStory method in NotebookManager.js
-// - Updated UserProgressManager.js to handle last story ID and button display
-// - Updated main.js to handle story ID storage when a story is viewed.
+// Import all needed modules
+import { CharacterManager } from './modules/CharacterManager.js';
+import { StoryManager } from './modules/StoryManager.js';
+import { EventHandlers } from './modules/EventHandlers.js';
+import { UIUtils } from './modules/UIUtils.js';
+import { PaymentManager } from './modules/PaymentManager.js';
+import { NotebookManager } from './modules/NotebookManager.js';
+import { UserProgressManager } from './modules/UserProgressManager.js';
+
+// Function to handle loading overlay
+function showLoading() {
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay) {
+        loadingOverlay.classList.add('active');
+    }
+}
+
+function hideLoading() {
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay) {
+        loadingOverlay.classList.remove('active');
+    }
+}
+
+// Function to highlight character mentions in story text
+function initCharacterHighlighting() {
+    // Find all character mentions in story text
+    const storyContent = document.querySelector('.story-content');
+    if (!storyContent) return;
+
+    // Get all character portraits
+    const characterPortraits = document.querySelectorAll('.character-portrait-mini');
+    const characterNames = Array.from(characterPortraits).map(portrait => {
+        return {
+            id: portrait.dataset.characterName,
+            name: portrait.querySelector('.character-mini-name').textContent.trim()
+        };
+    });
+
+    // Process the content to add character mentions
+    let storyText = storyContent.innerHTML;
+
+    // Add character highlighting
+    characterNames.forEach(character => {
+        const regex = new RegExp(`\\b${character.name}\\b`, 'g');
+        storyText = storyText.replace(regex, `<span class="character-mention" data-character="${character.id}">${character.name}</span>`);
+    });
+
+    // Update the story content
+    storyContent.innerHTML = storyText;
+
+    // Add click event to highlight corresponding mini-portrait
+    document.querySelectorAll('.character-mention').forEach(mention => {
+        mention.addEventListener('click', function() {
+            const characterId = this.dataset.character;
+            const targetPortrait = document.querySelector(`.character-portrait-mini[data-character-name="${characterId}"]`);
+
+            // Remove highlight from all portraits
+            document.querySelectorAll('.character-mini-img').forEach(img => {
+                img.classList.remove('character-mini-highlight');
+            });
+
+            // Add highlight to this portrait
+            if (targetPortrait) {
+                const portraitImg = targetPortrait.querySelector('.character-mini-img');
+                portraitImg.classList.add('character-mini-highlight');
+
+                // Scroll to the portrait if needed
+                targetPortrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+                // Remove highlight after 3 seconds
+                setTimeout(() => {
+                    portraitImg.classList.remove('character-mini-highlight');
+                }, 3000);
+            }
+        });
+    });
+}
+
+// When DOM is fully loaded, initialize all components
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM loaded, initializing modules...");
+
+    // Initialize character manager
+    CharacterManager.init();
+
+    // Initialize event handlers with loading handlers
+    EventHandlers.init({
+        showLoading: showLoading,
+        hideLoading: hideLoading
+    });
+
+    // Initialize notebook if elements exist in the page
+    if (document.querySelector('.notebook-container')) {
+        NotebookManager.init();
+    } else {
+        console.log("Notebook elements not found in the DOM, skipping initialization");
+    }
+
+    // Initialize user progress
+    UserProgressManager.init();
+
+    // Initialize character highlighting
+    initCharacterHighlighting();
+
+    // Hide loading when page is ready
+    setTimeout(hideLoading, 500);
+
+    console.log("Modules loaded successfully");
+});
+
+// Initialize payment system separately
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM loaded, initializing payment system...");
+
+    // Initialize payment manager
+    PaymentManager.init();
+
+    console.log("Payment system initialized");
+});
+
+// Add form submission handlers to show loading
+document.addEventListener('DOMContentLoaded', function() {
+    const choiceForms = document.querySelectorAll('.choice-form');
+
+    choiceForms.forEach(form => {
+        form.addEventListener('submit', function() {
+            showLoading();
+        });
+    });
+});
