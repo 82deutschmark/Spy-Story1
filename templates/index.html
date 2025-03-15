@@ -20,12 +20,14 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/agent.css') }}">
 </head>
-<body>
-    <!-- User Progress Button removed -->
-
+<body class="spy-theme">
     {% if background_image %}
-    <img src="{{ background_image }}" class="story-background" alt="Story Background">
+    <div class="story-background-container">
+        <img src="{{ background_image }}" class="story-background" alt="Story Background">
+        <div class="background-overlay"></div>
+    </div>
     {% endif %}
+
     <div class="container mt-5">
         <div class="row justify-content-center">
             <div class="col-md-10">

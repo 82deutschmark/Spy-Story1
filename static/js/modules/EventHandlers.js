@@ -1,183 +1,3 @@
-// Character Selection Module
-class CharacterSelector {
-    constructor() {
-        this.selectedCharacters = new Set();
-    }
-
-    clearAllSelections() {
-        document.querySelectorAll('.character-select-card').forEach(card => {
-            card.classList.remove('selected');
-            const indicator = card.querySelector('.selection-indicator');
-            if (indicator) indicator.style.display = 'none';
-        });
-        document.querySelectorAll('.character-checkbox').forEach(checkbox => {
-            checkbox.checked = false;
-        });
-        this.selectedCharacters.clear();
-    }
-
-    updateSelectedImagesInput() {
-        const selectedCharacters = Array.from(this.selectedCharacters);
-        const hiddenInput = document.querySelector('input[name="selected_images"]');
-        if (hiddenInput) {
-            hiddenInput.value = JSON.stringify(selectedCharacters);
-        }
-    }
-
-    handleCharacterSelect(characterId) {
-        const characterCard = document.querySelector(`.character-select-card[data-id="${characterId}"]`);
-        const checkbox = document.getElementById(`character${characterId}`);
-        const selectionIndicator = characterCard?.querySelector('.selection-indicator');
-
-        if (!characterCard || !checkbox || !selectionIndicator) {
-            console.error('Required elements not found for character:', characterId);
-            return false;
-        }
-
-        this.clearAllSelections();
-        checkbox.checked = true;
-        selectionIndicator.style.display = 'block';
-        characterCard.classList.add('selected');
-        this.selectedCharacters.add(characterId);
-        this.updateSelectedImagesInput();
-
-        const selectedImagesContainer = document.querySelector('.selected-characters-container');
-        if (selectedImagesContainer) {
-            selectedImagesContainer.style.display = 'block';
-        }
-
-        return true;
-    }
-
-    initialize() {
-        // Setup character selection buttons
-        document.querySelectorAll('.select-character-btn').forEach(button => {
-            const newButton = button.cloneNode(true);
-            button.parentNode.replaceChild(newButton, button);
-
-            newButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const characterId = newButton.dataset.characterId;
-                if (this.handleCharacterSelect(characterId)) {
-                    window.showToast?.('Character Selected', 'Character has been selected for your story.');
-                }
-            });
-        });
-
-        // Setup character card clicks
-        document.querySelectorAll('.character-select-card').forEach(card => {
-            const newCard = card.cloneNode(true);
-            card.parentNode.replaceChild(newCard, card);
-
-            newCard.addEventListener('click', (e) => {
-                if (!e.target.closest('button')) {
-                    const characterId = newCard.dataset.id;
-                    const selectButton = newCard.querySelector(`.select-character-btn[data-character-id="${characterId}"]`);
-                    selectButton?.click();
-                }
-            });
-        });
-    }
-}
-
-// Character Reroll Module
-class CharacterReroller {
-    async rerollCharacter(characterId, container, button) {
-        const originalButtonText = button.innerHTML;
-        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Rerolling...';
-        button.disabled = true;
-
-        try {
-            const response = await fetch('/reroll_character', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({ character_id: characterId })
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            if (data.success) {
-                this.updateCharacterUI(container, data);
-                window.showToast?.('Character Updated', 'A new character has been loaded!');
-            } else {
-                throw new Error(data.error || 'Failed to reroll character');
-            }
-        } catch (error) {
-            console.error('Failed to reroll character:', error);
-            window.showToast?.('Error', 'Failed to load a new character. Please try again.');
-        } finally {
-            button.innerHTML = originalButtonText;
-            button.disabled = false;
-        }
-    }
-
-    updateCharacterUI(container, data) {
-        // Update image
-        const cardImg = container.querySelector('.character-select-card img');
-        if (cardImg) cardImg.src = data.image_url;
-
-        // Update character ID
-        const characterCard = container.querySelector('.character-select-card');
-        if (characterCard) characterCard.dataset.id = data.id;
-
-        // Update character name
-        const nameElement = container.querySelector('.character-name');
-        if (nameElement) nameElement.textContent = data.name;
-
-        // Update traits
-        const traitsContainer = container.querySelector('.character-traits-list');
-        if (traitsContainer) {
-            traitsContainer.innerHTML = '';
-            data.character_traits?.forEach(trait => {
-                const traitBadge = document.createElement('span');
-                traitBadge.className = 'trait-badge';
-                traitBadge.textContent = trait;
-                traitsContainer.appendChild(traitBadge);
-            });
-        }
-
-        // Update select button and checkbox
-        const selectBtn = container.querySelector('.select-character-btn');
-        if (selectBtn) selectBtn.dataset.characterId = data.id;
-
-        const checkbox = container.querySelector('.character-checkbox');
-        if (checkbox) {
-            checkbox.value = data.id;
-            checkbox.id = `character${data.id}`;
-        }
-    }
-
-    initialize() {
-        document.querySelectorAll('.reroll-btn').forEach(button => {
-            const newButton = button.cloneNode(true);
-            button.parentNode.replaceChild(newButton, button);
-
-            newButton.addEventListener('click', async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-
-                const container = newButton.closest('.character-container');
-                const characterCard = container?.querySelector('.character-select-card');
-                const characterId = characterCard?.dataset.id;
-
-                if (!container || !characterCard || !characterId) {
-                    console.error('Required elements not found for reroll');
-                    return;
-                }
-
-                await this.rerollCharacter(characterId, container, newButton);
-            });
-        });
-    }
-}
-
 // Form Submission Module
 class StoryFormHandler {
     constructor() {
@@ -246,6 +66,10 @@ class StoryFormHandler {
                 body: formData
             });
 
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             const data = await response.json();
             if (data.success) {
                 window.updateLoadingPercent?.(loadingPercent, 100);
@@ -270,29 +94,52 @@ class StoryFormHandler {
     }
 }
 
-// Main EventHandlers Module - export as both default and named export
-export const EventHandlers = {
-    CharacterSelector,
-    CharacterReroller,
-    StoryFormHandler,
-    async initialize() {
-        console.log('Initializing event handlers');
+// Event Handlers Module
+class EventHandlers {
+    constructor() {
+        this.initialized = false;
+        this.characterManager = null;
+        this.storyFormHandler = null;
+    }
+
+    static async initialize() {
+        if (this.initialized) {
+            console.log("EventHandlers already initialized");
+            return;
+        }
+
+        console.log("Initializing EventHandlers");
+        
         try {
-            const characterSelector = new this.CharacterSelector();
-            const characterReroller = new this.CharacterReroller();
-            const storyFormHandler = new this.StoryFormHandler();
+            // Import and initialize CharacterManager
+            const { CharacterManager, default: characterManager } = await import('./CharacterManager.js');
+            
+            // Use existing instance or create new one
+            this.characterManager = characterManager || new CharacterManager();
+            await this.characterManager.initialize();
+            console.log("CharacterManager initialized through EventHandlers");
 
-            characterSelector.initialize();
-            characterReroller.initialize();
-            storyFormHandler.initialize();
+            // Initialize StoryFormHandler
+            this.storyFormHandler = new StoryFormHandler();
+            this.storyFormHandler.initialize();
+            console.log("StoryFormHandler initialized");
 
-            console.log('Event handlers initialized successfully');
-        } catch (error) {
-            console.error('Error initializing event handlers:', error);
-            throw error;
+            this.initialized = true;
+            console.log("EventHandlers initialization complete");
+        } catch (err) {
+            console.error("Error initializing modules:", err);
+            throw err;
         }
     }
-};
 
-// Export as default as well
+    static getCharacterManager() {
+        return this.characterManager;
+    }
+
+    static getStoryFormHandler() {
+        return this.storyFormHandler;
+    }
+}
+
+// Export the EventHandlers class
 export default EventHandlers; 
