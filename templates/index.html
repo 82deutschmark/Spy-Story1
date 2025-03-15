@@ -35,20 +35,19 @@
                     <h1 class="display-4 text-light mb-2">
                         <i class="fas fa-user-secret me-2"></i>Global Espionage
                     </h1>
-                    <p class="lead text-light">Choose a character to begin your espionage adventure</p>
+                    <p class="lead text-light">Choose your agent to begin your mission</p>
                 </div>
 
-                <!-- Error Display - Required by EventHandlers.js -->
+                <!-- Error Display -->
                 <div class="alert alert-danger" id="characterSelectionError" style="display: none;"></div>
 
-                <!-- Main Form - Required by EventHandlers.js -->
+                <!-- Main Form -->
                 <form id="storyForm" method="POST" action="{{ url_for('main.generate_story_route') }}">
-                    <!-- Character Selection Grid - Required by EventHandlers.js -->
+                    <!-- Character Selection Grid -->
                     <div class="characters-grid">
                         <div class="row g-4">
                             {% for img in images %}
                             <div class="col-md-6">
-                                <!-- Character Card - Structure required by EventHandlers.js -->
                                 <div class="character-container">
                                     <div class="character-select-card" data-id="{{ img.id }}">
                                         <img class="card-img" src="{{ img.image_url }}" alt="{{ img.name }}">
@@ -71,9 +70,9 @@
                                                 <button type="button" class="select-character-btn" data-character-id="{{ img.id }}">
                                                     <i class="fas fa-check-circle"></i> Select
                                                 </button>
-                                                <input type="radio" class="character-checkbox" name="selectedCharacter" value="{{ img.id }}" id="character{{ img.id }}">
                                             </div>
                                         </div>
+                                        <input type="radio" class="character-checkbox" name="selectedCharacter" value="{{ img.id }}" id="character{{ img.id }}">
                                     </div>
                                 </div>
                             </div>
@@ -81,18 +80,13 @@
                         </div>
                     </div>
 
-                    <!-- Hidden Input - Required by EventHandlers.js -->
-                    <input type="hidden" id="selectedImages" name="selected_images" value="">
+                    <!-- Hidden Input for Selected Characters -->
+                    <input type="hidden" name="selected_images" value="">
 
-                    <!-- Selected Characters Container - Required by EventHandlers.js -->
-                    <div class="selected-characters-container mt-4" style="display: none;">
-                        <div class="selected-characters-list"></div>
-                    </div>
-
-                    <!-- Submit Button - Required by EventHandlers.js -->
+                    <!-- Submit Button -->
                     <div class="text-center mt-4">
                         <button type="submit" id="generateStoryBtn" class="btn btn-primary btn-lg">
-                            <i class="fas fa-book-open me-2"></i>Begin Your Story
+                            <i class="fas fa-book-open me-2"></i>Begin Your Mission
                         </button>
                     </div>
                 </form>
@@ -100,7 +94,7 @@
         </div>
     </div>
 
-    <!-- Toast Container - Required by UIUtils.js -->
+    <!-- Toast Container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3">
         <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="toast-header">

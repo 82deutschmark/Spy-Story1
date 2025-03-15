@@ -1,6 +1,41 @@
 // Main JavaScript file
 import { EventHandlers } from './modules/EventHandlers.js';
 
+// Loading overlay functions
+function createLoadingOverlay(message = 'Generating Story...') {
+    const overlay = document.createElement('div');
+    overlay.className = 'loading-overlay';
+    overlay.innerHTML = `
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-percentage">0%</div>
+            <div class="loading-message">${message}</div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.style.display = 'flex';
+    return overlay.querySelector('.loading-percentage');
+}
+
+function updateLoadingPercent(element, percent) {
+    element.textContent = `${Math.round(percent)}%`;
+}
+
+function removeLoadingOverlay(overlay) {
+    overlay.closest('.loading-overlay').remove();
+}
+
+// Toast notification function
+function showToast(title, message) {
+    const toastEl = document.getElementById('notificationToast');
+    if (toastEl) {
+        const toast = new bootstrap.Toast(toastEl);
+        document.getElementById('toastTitle').textContent = title;
+        document.getElementById('toastMessage').textContent = message;
+        toast.show();
+    }
+}
+
 // Wait for both DOM and FLASK_CONFIG to be ready
 async function initializeApplication() {
     try {
@@ -102,9 +137,6 @@ function showErrorMessage(error) {
     }
 }
 
-// Start initialization when DOM is ready
-document.addEventListener('DOMContentLoaded', initializeApplication);
-
 // Initialize character mentions in story text
 function initializeCharacterMentions() {
     try {
@@ -141,9 +173,11 @@ function initializeCharacterMentions() {
     }
 }
 
-// Initialize story-related features
+// Start initialization when DOM is ready
 document.addEventListener('DOMContentLoaded', async function() {
     try {
+        await initializeApplication();
+
         const storyIdParam = new URLSearchParams(window.location.search).get('story_id');
         if (storyIdParam) {
             localStorage.setItem('lastStoryId', storyIdParam);
@@ -159,8 +193,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             initializeCharacterMentions();
         }
+
+        // Setup global event listeners
+        setupGlobalListeners();
     } catch (error) {
-        console.error("Error initializing story features:", error);
+        console.error("Error during initialization:", error);
+        showErrorMessage(error);
     }
 });
 
@@ -182,6 +220,10 @@ function setupGlobalListeners() {
             document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
         });
     }
-
-    // Other global listeners can be added here
 }
+
+// Make utility functions available globally
+window.createLoadingOverlay = createLoadingOverlay;
+window.updateLoadingPercent = updateLoadingPercent;
+window.removeLoadingOverlay = removeLoadingOverlay;
+window.showToast = showToast;
