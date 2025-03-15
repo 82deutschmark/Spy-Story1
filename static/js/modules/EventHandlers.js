@@ -6,7 +6,14 @@ export const EventHandlers = {
     async initialize() {
         console.log('Initializing event handlers');
         try {
-            await this.setupEventListeners();
+            const characterSelector = new CharacterSelector();
+            const characterReroller = new CharacterReroller();
+            const storyFormHandler = new StoryFormHandler();
+
+            characterSelector.initialize();
+            characterReroller.initialize();
+            storyFormHandler.initialize();
+
             console.log('Event handlers initialized successfully');
         } catch (error) {
             console.error('Error initializing event handlers:', error);

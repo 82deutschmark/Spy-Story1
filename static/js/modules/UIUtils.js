@@ -2,7 +2,7 @@
  * UI Utilities Module
  * Handles UI interactions like overlays, notifications and toasts
  */
-export default {
+export const UIUtils = {
     /**
      * Creates a loading overlay on the page
      * @param {string} message - Optional message to display
@@ -14,35 +14,37 @@ export default {
 
         // Create overlay elements
         const overlay = document.createElement('div');
-        overlay.classList.add('loading-overlay');
-        overlay.id = 'loadingOverlay';
-
+        overlay.className = 'loading-overlay';
+        
+        const content = document.createElement('div');
+        content.className = 'loading-content';
+        
         const spinner = document.createElement('div');
-        spinner.classList.add('loading-spinner');
-
+        spinner.className = 'spinner-border text-light';
+        spinner.setAttribute('role', 'status');
+        
         const messageElement = document.createElement('div');
-        messageElement.classList.add('loading-message');
+        messageElement.className = 'loading-message';
         messageElement.textContent = message;
-
+        
         const progressContainer = document.createElement('div');
-        progressContainer.classList.add('loading-progress-container');
-
+        progressContainer.className = 'progress mt-3';
+        progressContainer.style.width = '200px';
+        
         const progressBar = document.createElement('div');
-        progressBar.classList.add('loading-progress-bar');
-        progressBar.id = 'loadingProgressBar';
+        progressBar.className = 'progress-bar';
+        progressBar.setAttribute('role', 'progressbar');
         progressBar.style.width = '0%';
-
+        
         progressContainer.appendChild(progressBar);
-
-        // Assemble the overlay
-        overlay.appendChild(spinner);
-        overlay.appendChild(messageElement);
-        overlay.appendChild(progressContainer);
-
+        content.appendChild(spinner);
+        content.appendChild(messageElement);
+        content.appendChild(progressContainer);
+        overlay.appendChild(content);
+        
         // Add to document
         document.body.appendChild(overlay);
-
-        return overlay;
+        return progressBar;
     },
 
     /**
@@ -86,12 +88,16 @@ export default {
      * @param {string} message - Toast message content
      */
     showToast(title, message) {
-        const toastEl = document.getElementById('notificationToast');
-        if (toastEl) {
-            const toast = new bootstrap.Toast(toastEl);
-            document.getElementById('toastTitle').textContent = title;
-            document.getElementById('toastMessage').textContent = message;
-            toast.show();
+        const toast = document.getElementById('notificationToast');
+        const toastTitle = document.getElementById('toastTitle');
+        const toastMessage = document.getElementById('toastMessage');
+        
+        if (toast && toastTitle && toastMessage) {
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+            
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
         }
     },
 
@@ -104,3 +110,5 @@ export default {
         this.showToast(title, message);
     }
 };
+
+export default UIUtils;

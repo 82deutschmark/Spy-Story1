@@ -1,5 +1,6 @@
 // Main JavaScript file
 import { EventHandlers } from './modules/EventHandlers.js';
+import { UIUtils } from './modules/UIUtils.js';
 
 // Loading overlay functions
 function createLoadingOverlay(message = 'Generating Story...') {
@@ -223,7 +224,17 @@ function setupGlobalListeners() {
 }
 
 // Make utility functions available globally
-window.createLoadingOverlay = createLoadingOverlay;
-window.updateLoadingPercent = updateLoadingPercent;
-window.removeLoadingOverlay = removeLoadingOverlay;
-window.showToast = showToast;
+window.createLoadingOverlay = UIUtils.createLoadingOverlay;
+window.updateLoadingPercent = UIUtils.updateLoadingPercent;
+window.removeLoadingOverlay = UIUtils.removeLoadingOverlay;
+window.showToast = UIUtils.showToast;
+
+// Initialize event handlers when DOM is ready
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        await EventHandlers.initialize();
+    } catch (error) {
+        console.error('Failed to initialize application:', error);
+        UIUtils.showToast('Error', 'Failed to initialize application. Please refresh the page.');
+    }
+});
