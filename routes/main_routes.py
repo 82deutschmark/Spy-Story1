@@ -536,6 +536,13 @@ def make_choice():
 
                     # Create new evolution record if needed
                     if not char_evolution:
+                        # Verify character exists in characters table
+                        from models.character_data import Character
+                        character_exists = Character.query.get(char_id)
+                        if not character_exists:
+                            logger.error(f"Failed to create evolution record: Character with ID {char_id} not found in characters table")
+                            continue
+                            
                         char_evolution = CharacterEvolution(
                             user_id=user_progress.user_id,
                             character_id=char_id,
