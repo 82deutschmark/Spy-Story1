@@ -1,4 +1,3 @@
-
 import os
 import logging
 from flask import Flask
@@ -27,10 +26,10 @@ def create_app():
         "pool_recycle": 300,
         "pool_pre_ping": True,
     }
-    
+
     # Initialize Bootstrap
     Bootstrap(app)
-    
+
     # Initialize database
     db.init_app(app)
 
@@ -42,13 +41,13 @@ def create_app():
             "allow_headers": ["Content-Type", "Authorization"]
         }
     })
-    
+
     # Add request logger middleware first
     from middleware.request_logger import RequestLoggerMiddleware
     # We need to register the before_request and after_request hooks directly with Flask
     # instead of trying to wrap the WSGI app
     middleware = RequestLoggerMiddleware(app)
-    
+
     # Apply ProxyFix middleware
     app.wsgi_app = ProxyFix(app.wsgi_app)
 
@@ -64,7 +63,7 @@ def create_app():
         from routes.api_routes import api_bp
         from api.unity_routes import unity_api
         from api.game_api import game_api
-        
+
         # Register blueprints
         app.register_blueprint(main_bp)
         app.register_blueprint(debug_bp, url_prefix='/debug')

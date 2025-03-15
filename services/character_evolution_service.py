@@ -23,6 +23,13 @@ def evolve_character_traits(char_evolution_id: int, story_context: str) -> bool:
         if not char_evolution:
             logger.error(f"[Evolve] Character evolution record {char_evolution_id} not found.")
             return False
+            
+        # Verify character exists in characters table
+        from models.character_data import Character
+        character = Character.query.get(char_evolution.character_id)
+        if not character:
+            logger.error(f"[Evolve] Character with ID {char_evolution.character_id} not found in characters table.")
+            return False
 
         # Ensure evolution_log is a list
         if not isinstance(char_evolution.evolution_log, list):
