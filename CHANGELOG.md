@@ -216,24 +216,8 @@ All notable changes to the Story Creator project will be documented in this file
    - Error handling for initialization functions
    - Better logging for debugging
 
-**March 18, 2025 Update:**
-1. Fixed module import/export patterns:
-   - Updated main.js to correctly import and use named exports
-   - Added global window assignments for backward compatibility
-   - Improved module initialization error handling
-
-2. Fixed reroll functionality:
-   - Added missing reroll_character endpoint to main_routes.py
-   - Fixed reroll button event handler in EventHandlers.js
-   - Added proper character card replacement logic
-
-3. Fixed character selection:
-   - Improved character selection card event handling
-   - Fixed checkbox state management for form submission
-   - Added proper selection indicator display
-
 **Next Steps:**
 - Verify character selection works on all pages
 - Test story choice submission with different character combinations
 - Ensure mobile layouts display correctly
-- Test character highlighting in various scenarios
+- Test character highlighting in various scenarios story scenarios
