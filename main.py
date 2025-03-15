@@ -15,7 +15,9 @@ logger = logging.getLogger(__name__)
 
 def create_app():
     """Create and configure the Flask application"""
-    app = Flask(__name__)
+    app = Flask(__name__, 
+                static_url_path='/static',
+                static_folder='static')
 
     # Load configuration
     app_config = get_config()
@@ -26,7 +28,11 @@ def create_app():
         "pool_recycle": 300,
         "pool_pre_ping": True,
     }
-
+    
+    # Configure static files
+    app.config['STATIC_FOLDER'] = 'static'
+    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Disable caching during development
+    
     # Initialize Bootstrap
     Bootstrap(app)
 
@@ -78,7 +84,6 @@ def create_app():
         init_admin(app)
 
     # Ensure JS modules are served with correct MIME type
-    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
     import mimetypes
     mimetypes.add_type('application/javascript', '.js')
 
