@@ -1,4 +1,3 @@
-
 # Database Schema Documentation
 
 ## Overview
@@ -142,8 +141,8 @@ This document outlines all database tables in our project, their relationships, 
 - `id`: Primary key
 - `user_id`: User assigned to the mission
 - `title`, `description`: Mission details
-- `giver_id`: Character who gave the mission
-- `target_id`: Character who is the target
+- `giver_id`: ID of the character who gave the mission
+- `target_id`: ID of the character who is the target
 - `objective`: Mission objective
 - `status`: Mission status (active, completed, failed)
 - `difficulty`: Mission difficulty (easy, medium, hard)

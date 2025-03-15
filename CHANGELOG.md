@@ -2,6 +2,16 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Updated Mission model to reference characters instead of scene_images for giver_id and target_id
+- Corrected database schema documentation to match actual implementation
+
+## Previous Changes
+
+
+# Changelog
+
+## [Unreleased]
 ### Changed
 - Major refactoring of routes structure, migrated from monolithic routes.py to blueprint architecture
 - Fixed JavaScript module export in CharacterManager.js
@@ -223,6 +233,14 @@ All notable changes to the Story Creator project will be documented in this file
    - Fixed export pattern in EventHandlers.js
    - Fixed export pattern in PaymentManager.js
    - Resolved "module does not provide an export named 'default'" errors
+
+**March 18, 2025 Update:**
+1. Fixed EventHandlers module loading error:
+   - Standardized module export pattern to support both ES6 and CommonJS
+   - Added proper default exports to EventHandlers.js and CharacterManager.js
+   - Enhanced main.js to handle both named and default exports
+   - Improved error handling for module initialization
+   - Resolved "The requested module does not provide an export named 'default'" errors
 
 2. Fixed CharacterManager module:
    - Improved character highlighting in story text
