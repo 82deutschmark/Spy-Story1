@@ -1,4 +1,3 @@
-
 /**
  * Notebook Management Module
  * Handles displaying and updating user progress information
@@ -13,91 +12,132 @@ class NotebookManager {
         this.continueStoryButton = null;
         this.isOpen = false;
         this.lastStoryId = null;
+        this.initialized = false;
     }
 
-    initialize() {
-        // Initialize notebook elements
-        this.notebookElement = document.getElementById('notebookSidebar');
-        this.toggleButton = document.getElementById('toggleNotebookBtn');
-        this.closeButton = document.getElementById('closeNotebookBtn');
-        this.continueStoryButton = document.getElementById('continueStoryBtn');
+    async initialize() {
+        try {
+            if (this.initialized) {
+                console.log("NotebookManager already initialized");
+                return;
+            }
 
-        // Get last story ID from local storage
-        this.lastStoryId = localStorage.getItem('lastStoryId');
+            console.log("Initializing NotebookManager");
 
-        if (this.toggleButton && this.notebookElement) {
-            this.setupEventListeners();
-            console.log("Notebook manager initialized");
-        } else {
-            console.log("Notebook elements not found in the DOM, skipping initialization");
+            // Initialize notebook elements
+            this.notebookElement = document.getElementById('notebookSidebar');
+            this.toggleButton = document.getElementById('toggleNotebookBtn');
+            this.closeButton = document.getElementById('closeNotebookBtn');
+            this.continueStoryButton = document.getElementById('continueStoryBtn');
+
+            // Get last story ID from local storage
+            this.lastStoryId = localStorage.getItem('lastStoryId');
+
+            if (this.toggleButton && this.notebookElement) {
+                await this.setupEventListeners();
+                this.initialized = true;
+                console.log("NotebookManager initialized successfully");
+            } else {
+                console.log("Notebook elements not found in the DOM, skipping initialization");
+            }
+        } catch (error) {
+            console.error("Error initializing NotebookManager:", error);
+            throw error;
         }
     }
 
-    setupEventListeners() {
-        // Toggle notebook visibility
-        if (this.toggleButton) {
-            this.toggleButton.addEventListener('click', () => this.toggleNotebook());
-        }
+    async setupEventListeners() {
+        try {
+            // Toggle notebook visibility
+            if (this.toggleButton) {
+                this.toggleButton.addEventListener('click', () => this.toggleNotebook());
+            }
 
-        // Close notebook
-        if (this.closeButton) {
-            this.closeButton.addEventListener('click', () => this.closeNotebook());
-        }
+            // Close notebook
+            if (this.closeButton) {
+                this.closeButton.addEventListener('click', () => this.closeNotebook());
+            }
 
-        // Continue story button
-        if (this.continueStoryButton) {
-            this.continueStoryButton.addEventListener('click', () => this.continueLastStory());
+            // Continue story button
+            if (this.continueStoryButton) {
+                this.continueStoryButton.addEventListener('click', () => this.continueLastStory());
+            }
+
+            console.log("NotebookManager event listeners set up");
+        } catch (error) {
+            console.error("Error setting up NotebookManager event listeners:", error);
+            throw error;
         }
     }
 
     toggleNotebook() {
-        if (!this.notebookElement) return;
-        
-        this.isOpen = !this.isOpen;
-        if (this.isOpen) {
-            this.notebookElement.classList.add('open');
-        } else {
-            this.notebookElement.classList.remove('open');
+        try {
+            if (!this.notebookElement) {
+                console.warn("Notebook element not found");
+                return;
+            }
+            
+            this.isOpen = !this.isOpen;
+            if (this.isOpen) {
+                this.notebookElement.classList.add('open');
+            } else {
+                this.notebookElement.classList.remove('open');
+            }
+        } catch (error) {
+            console.error("Error toggling notebook:", error);
         }
     }
 
     closeNotebook() {
-        if (!this.notebookElement) return;
-        
-        this.isOpen = false;
-        this.notebookElement.classList.remove('open');
-    }
-
-    continueLastStory() {
-        if (this.lastStoryId) {
-            window.location.href = `/story/${this.lastStoryId}`;
+        try {
+            if (!this.notebookElement) {
+                console.warn("Notebook element not found");
+                return;
+            }
+            
+            this.isOpen = false;
+            this.notebookElement.classList.remove('open');
+        } catch (error) {
+            console.error("Error closing notebook:", error);
         }
     }
 
-    updateNotebookData(userData) {
-        // Update notebook data with user progress
-        // This is a placeholder for future implementation
-        console.log("Updating notebook data:", userData);
+    async continueLastStory() {
+        try {
+            if (!this.lastStoryId) {
+                console.warn("No last story ID found");
+                return;
+            }
+
+            window.location.href = `/story/${this.lastStoryId}`;
+        } catch (error) {
+            console.error("Error continuing last story:", error);
+        }
+    }
+
+    async updateNotebookData(userData) {
+        try {
+            if (!userData) {
+                throw new Error("No user data provided");
+            }
+
+            // Update notebook data with user progress
+            console.log("Updating notebook data:", userData);
+
+            // Implementation will be added in the future
+        } catch (error) {
+            console.error("Error updating notebook data:", error);
+            throw error;
+        }
     }
 }
 
 // Export the NotebookManager class as default
 export default NotebookManager;
 
-// For backwards compatibility
+// Remove the automatic initialization since it's now handled by main.js
 if (typeof window !== 'undefined') {
-    // Make NotebookManager available globally
+    // Make NotebookManager available globally for debugging
     window.NotebookManager = NotebookManager;
-    
-    // Initialize the notebook manager when the DOM is loaded
-    document.addEventListener('DOMContentLoaded', () => {
-        try {
-            const notebookManager = new NotebookManager();
-            notebookManager.initialize();
-            // Store instance globally for debugging
-            window.notebookManagerInstance = notebookManager;
-        } catch (error) {
-            console.error('Error initializing NotebookManager:', error);
-        }
-    });
 }
+
