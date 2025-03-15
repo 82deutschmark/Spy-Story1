@@ -1,95 +1,67 @@
-/**
- * Main entry point for the application
- * Imports all modules and initializes the application
- */
-import UIUtils from './modules/UIUtils.js';
-import { CharacterManager } from './modules/CharacterManager.js';
-import { EventHandlers } from './modules/EventHandlers.js';
-import { PaymentManager } from './modules/PaymentManager.js';
-import NotebookManager from './modules/NotebookManager.js';
-import UserProgressManager from './modules/UserProgressManager.js';
-
-// Set flag to indicate we're importing modules
-window.isModuleImported = true;
-
-// Wait for DOM to be fully loaded
+// Main JavaScript file
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM fully loaded - initializing application');
+    console.log("DOM fully loaded - initializing application");
 
-    // Initialize modules
-    if (window.EventHandlers && typeof window.EventHandlers.initialize === 'function') {
-        try {
-            console.log('Initializing EventHandlers module');
-            window.EventHandlers.initialize();
-        } catch (error) {
-            console.error('Error initializing EventHandlers:', error);
-        }
-    }
+    // Import modules
+    import('./modules/EventHandlers.js')
+        .then(module => {
+            console.log("Initializing EventHandlers module");
+            module.default.initialize();
+            console.log("Event handlers initialized");
+        })
+        .catch(err => console.error("Error loading EventHandlers module:", err));
 
-    if (window.CharacterManager && typeof window.CharacterManager.initialize === 'function') {
-        try {
-            console.log('Initializing CharacterManager module');
-            window.CharacterManager.initialize();
-        } catch (error) {
-            console.error('Error initializing CharacterManager:', error);
-        }
-    }
+    // Setup character selection
+    const characterCards = document.querySelectorAll('.character-card');
+    console.log("Setting up character selection buttons:", characterCards.length);
 
-    if (window.PaymentManager && typeof window.PaymentManager.initialize === 'function') {
-        try {
-            console.log('Initializing PaymentManager module');
-            // PaymentManager is initialized inside EventHandlers
-            // window.PaymentManager.initialize();
-        } catch (error) {
-            console.error('Error initializing PaymentManager:', error);
-        }
-    }
+    // Setup reroll buttons
+    const rerollButtons = document.querySelectorAll('.reroll-btn');
+    console.log("Setting up reroll buttons:", rerollButtons.length);
 
-    if (window.UserProgressManager && typeof window.UserProgressManager.initialize === 'function') {
-        try {
-            console.log('Initializing UserProgressManager module');
-            window.UserProgressManager.initialize();
-        } catch (error) {
-            console.error('Error initializing UserProgressManager:', error);
-        }
-    }
+    // Initialize character manager
+    import('./modules/CharacterManager.js')
+        .then(module => {
+            console.log("Initializing CharacterManager module");
+            const characterManager = module.CharacterManager ? new module.CharacterManager() : module.default;
+            characterManager.initialize();
+        })
+        .catch(err => console.error("Error loading CharacterManager module:", err));
 
-    if (window.NotebookManager && typeof window.NotebookManager.initialize === 'function') {
-        try {
-            console.log('Initializing NotebookManager module');
-            window.NotebookManager.initialize();
-        } catch (error) {
-            console.error('Error initializing NotebookManager:', error);
-        }
-    }
-
-    // Setup any global event listeners that aren't in EventHandlers
-    setupGlobalListeners();
+    // Initialize notebook if on the story page
+    import('./modules/NotebookManager.js')
+        .then(module => {
+            const notebookElements = document.querySelectorAll('.notebook-tab, .notebook-content');
+            if (notebookElements.length > 0) {
+                module.default.initialize();
+            } else {
+                console.log("Notebook elements not found in the DOM, skipping initialization");
+            }
+        })
+        .catch(err => console.error("Error loading NotebookManager module:", err));
 });
 
-/**
- * Setup global event listeners
- */
-function setupGlobalListeners() {
-    // Back to top button
-    const backToTopBtn = document.getElementById('back-to-top');
-    if (backToTopBtn) {
-        window.onscroll = function() {
-            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
-                backToTopBtn.style.display = 'block';
-            } else {
-                backToTopBtn.style.display = 'none';
-            }
-        };
+// Setup payment processing if PayPal is available
+import('./modules/PaymentManager.js')
+    .then(module => {
+        // PaymentManager will initialize itself if the PayPal script is loaded
+    })
+    .catch(err => console.error("Error loading PaymentManager module:", err));
 
-        backToTopBtn.addEventListener('click', function() {
-            document.body.scrollTop = 0; // For Safari
-            document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
-        });
-    }
+// Load user progress manager
+import('./modules/UserProgressManager.js')
+    .then(module => {
+        // UserProgressManager will initialize itself
+    })
+    .catch(err => console.error("Error loading UserProgressManager module:", err));
 
-    // Other global listeners can be added here
-}
+// Load UI utilities
+import('./modules/UIUtils.js')
+    .then(module => {
+        // UI Utils will be available for other modules
+    })
+    .catch(err => console.error("Error loading UIUtils module:", err));
+
 
 // Initialize character mentions in story text
 function initializeCharacterMentions() {
@@ -136,18 +108,35 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Also initialize character highlighting if on storyboard page
-    if (document.querySelector('.story-content') && CharacterManager) {
-        CharacterManager.highlightCharactersInStory();
+    if (document.querySelector('.story-content')) {
+        import('./modules/CharacterManager.js')
+            .then(module => {
+                const characterManager = module.CharacterManager ? new module.CharacterManager() : module.default;
+                characterManager.highlightCharactersInStory();
+            })
+            .catch(err => console.error("Error loading CharacterManager module in DOMContentLoaded:", err));
     }
     initializeCharacterMentions();
 });
 
-// Export for possible import in other modules
-export default {
-    UIUtils,
-    CharacterManager,
-    EventHandlers,
-    PaymentManager,
-    NotebookManager,
-    UserProgressManager
-};
+// Setup global event listeners that aren't in EventHandlers
+function setupGlobalListeners() {
+    // Back to top button
+    const backToTopBtn = document.getElementById('back-to-top');
+    if (backToTopBtn) {
+        window.onscroll = function() {
+            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+                backToTopBtn.style.display = 'block';
+            } else {
+                backToTopBtn.style.display = 'none';
+            }
+        };
+
+        backToTopBtn.addEventListener('click', function() {
+            document.body.scrollTop = 0; // For Safari
+            document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+        });
+    }
+
+    // Other global listeners can be added here
+}

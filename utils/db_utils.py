@@ -1,10 +1,72 @@
 import logging
 from typing import List, Dict, Any, Optional, Tuple, Union
+from flask import session
+import uuid
+
 from database import db
-from models import Character, SceneImages, StoryGeneration, UserProgress, Transaction
+from models import Character, SceneImages, StoryGeneration, Transaction #UserProgress moved to edited code
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+def get_or_create_user_progress(user_id=None, protagonist_name=None):
+    """
+    Get or create user progress record for the current session.
+    Uses user_id from session and protagonist_name for identification.
+    """
+    if not user_id and 'user_id' not in session:
+        session['user_id'] = str(uuid.uuid4())
+        logger.debug(f"Created new user session with ID: {session['user_id']}")
+        user_id = session['user_id']
+    elif not user_id:
+        user_id = session['user_id']
+
+    # Find user by user_id first
+    user_progress = UserProgress.query.filter_by(user_id=user_id).first()
+
+    # If no user found and protagonist name is provided, try to find by protagonist name
+    if not user_progress and protagonist_name:
+        # Find user progress with matching protagonist name from game_state
+        user_progress = UserProgress.query.filter(
+            UserProgress.game_state.has_key('protagonist_name')
+        ).filter(
+            UserProgress.game_state['protagonist_name'].astext == protagonist_name
+        ).first()
+
+        # If found by protagonist name, update the user_id to the session user_id
+        if user_progress:
+            logger.info(f"Found user progress by protagonist name: {protagonist_name}")
+            # Update user_id to match current session
+            user_progress.user_id = user_id
+            db.session.commit()
+
+    # If still no user progress, create a new one
+    if not user_progress:
+        logger.debug(f"Creating new user progress for ID: {user_id}")
+        user_progress = UserProgress(
+            user_id=user_id,
+            currency_balances={
+                "💎": 500,  # Diamonds
+                "💷": 5000,  # Pounds
+                "💶": 5000,  # Euros
+                "💴": 5000,  # Yen
+                "💵": 5000,  # Dollars
+            }
+        )
+
+        # If protagonist name is provided, add it to game_state
+        if protagonist_name:
+            if not user_progress.game_state:
+                user_progress.game_state = {}
+            user_progress.game_state['protagonist_name'] = protagonist_name
+
+        db.session.add(user_progress)
+        db.session.commit()
+        logger.debug(f"Created user progress with initial balances: {user_progress.currency_balances}")
+    else:
+        logger.debug(f"Found existing user progress for ID: {user_id}")
+
+    return user_progress
 
 def safe_commit() -> bool:
     """
@@ -20,78 +82,6 @@ def safe_commit() -> bool:
         db.session.rollback()
         logger.error(f"Database commit error: {str(e)}")
         return False
-
-def get_or_create_user_progress(user_id: str, protagonist_name: str = None) -> UserProgress:
-    """Get or create user progress record for a given user ID
-
-    This is the central function for getting user progress, used by all routes.
-    It handles looking up users by protagonist name if needed.
-
-    Args:
-        user_id: The unique user ID from the session
-        protagonist_name: Optional protagonist name to use for identification
-
-    Returns:
-        UserProgress object for the user
-    """
-    user_progress = None
-
-    # First try to find by session ID
-    user_progress = UserProgress.query.filter_by(user_id=user_id).first()
-
-    # If protagonist name provided and no user found by session ID, try finding by name
-    if protagonist_name and (not user_progress or not user_progress.game_state or 
-                          user_progress.game_state.get("protagonist_name") != protagonist_name):
-        # Look in the game_state JSONB field for protagonist_name
-        existing_user = UserProgress.query.filter(
-            UserProgress.game_state.contains({"protagonist_name": protagonist_name})
-        ).first()
-
-        if existing_user and existing_user.id != (user_progress.id if user_progress else None):
-            logger.info(f"Found existing user by protagonist name: {protagonist_name}")
-            # Update the user_id to match the current session
-            # This allows the user to continue their story on a different device/browser
-            existing_user.user_id = user_id
-            if safe_commit():
-                return existing_user
-
-    # If still no user progress found, create a new one
-    if not user_progress:
-        logger.debug(f"Creating new user progress for ID: {user_id}")
-
-        # Initialize game_state with protagonist name if provided
-        game_state = {}
-        if protagonist_name:
-            game_state["protagonist_name"] = protagonist_name
-
-        user_progress = UserProgress(
-            user_id=user_id,
-            currency_balances={
-                "💎": 500,  # Diamonds
-                "💷": 5000,  # Pounds
-                "💶": 5000,  # Euros
-                "💴": 5000,  # Yen
-                "💵": 5000,  # Dollars
-            },
-            choice_history=[],           # Use choice_history instead of choices_made
-            completed_plot_arcs=[],      # Use completed_plot_arcs instead of completed_stories
-            active_plot_arcs=[],         # Initialize active_plot_arcs
-            game_state=game_state        # Set game_state with protagonist name if available
-        )
-        db.session.add(user_progress)
-        safe_commit()
-        logger.debug(f"Created user progress with initial balances: {user_progress.currency_balances}")
-    else:
-        logger.debug(f"Found existing user progress for ID: {user_id}")
-
-        # Update protagonist name in game_state if provided and different from current
-        if protagonist_name:
-            if not user_progress.game_state:
-                user_progress.game_state = {}
-            user_progress.game_state["protagonist_name"] = protagonist_name
-            safe_commit()
-
-    return user_progress
 
 def record_currency_transaction(
     user_id: str,
@@ -219,7 +209,7 @@ def delete_entity(entity_type: str, entity_id: int) -> Tuple[bool, str]:
                 return True, f"Character {entity_id} deleted successfully"
             else:
                 return False, f"Error deleting character {entity_id}"
-                
+
         elif entity_type == 'scene':
             scene = SceneImages.query.get(entity_id)
             if not scene:

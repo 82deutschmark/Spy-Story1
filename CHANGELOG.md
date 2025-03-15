@@ -1,6 +1,17 @@
 
 # Changelog
 
+## [Unreleased]
+### Changed
+- Major refactoring of routes structure, migrated from monolithic routes.py to blueprint architecture
+- Fixed JavaScript module export in CharacterManager.js
+- Moved get_or_create_user_progress function to utils/db_utils.py
+
+## [Previous Updates]
+
+
+# Changelog
+
 ## [1.0.1] - 2025-03-15
 
 ### Fixed
