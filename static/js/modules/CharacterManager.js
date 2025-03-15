@@ -1,8 +1,7 @@
-
 // Character Manager Module
 console.log("Initializing CharacterManager module");
 
-export class CharacterManager {
+class CharacterManager {
     constructor() {
         this.selectedCharacters = [];
         this.maxCharacters = 2;
@@ -27,7 +26,7 @@ export class CharacterManager {
 
         const characterId = card.dataset.id;
         const isSelected = card.classList.contains('selected');
-        
+
         if (isSelected) {
             // Deselect character
             card.classList.remove('selected');
@@ -39,12 +38,12 @@ export class CharacterManager {
                 const oldestId = this.selectedCharacters.shift();
                 document.querySelector(`.character-card[data-id="${oldestId}"]`)?.classList.remove('selected');
             }
-            
+
             // Select character
             card.classList.add('selected');
             this.selectedCharacters.push(characterId);
         }
-        
+
         // Update hidden form field with selected characters
         this.updateSelectedCharactersField();
     }
@@ -58,7 +57,7 @@ export class CharacterManager {
 
     rerollCharacter(characterId) {
         console.log(`Rerolling character ${characterId}`);
-        
+
         fetch('/reroll_character', {
             method: 'POST',
             headers: {
@@ -72,13 +71,13 @@ export class CharacterManager {
             if (data.success) {
                 const cardContainer = document.querySelector(`.character-card[data-id="${characterId}"]`).parentNode;
                 cardContainer.innerHTML = data.character_html;
-                
+
                 // Re-bind click event for new card
                 const newCard = cardContainer.querySelector('.character-card');
                 if (newCard) {
                     newCard.addEventListener('click', (e) => this.handleCharacterSelection(e, newCard));
                 }
-                
+
                 // Rebind reroll button
                 const rerollBtn = cardContainer.querySelector('.reroll-btn');
                 if (rerollBtn) {
@@ -129,5 +128,18 @@ export class CharacterManager {
 const characterManager = new CharacterManager();
 console.log("Character manager initialized");
 
-// Export the instance as default and named export
+// Export for ES modules
 export default characterManager;
+export { CharacterManager };
+
+// For CommonJS modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = characterManager;
+}
+
+// For browser use
+if (typeof window !== 'undefined') {
+    if (!window.CharacterManager) {
+        window.CharacterManager = CharacterManager;
+    }
+}

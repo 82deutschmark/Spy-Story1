@@ -2,7 +2,7 @@
  * EventHandlers Module
  * Central module for managing all event listeners and interactions
  */
-export const EventHandlers = {
+const EventHandlers = {
     initialize() {
         console.log('Initializing event handlers');
         this.setupEventListeners();
@@ -223,6 +223,11 @@ export const EventHandlers = {
 };
 
 // Export for module systems
+// Export for ES modules
+export default EventHandlers;
+export { EventHandlers };
+
+// For CommonJS modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = EventHandlers;
 }
