@@ -10,6 +10,7 @@
 - Restored direct DOM manipulation for reroll behavior matching original implementation
 - Simplified reroll button functionality to match the original working implementation
 - Fixed module import pattern using named exports
+- Fixed syntax error in main_routes.py (missing proper try-except block closure)
 
 - Fixed reroll character functionality by adding the missing `/reroll_character` endpoint
 - Fixed Character selection forms to properly collect selected character IDs

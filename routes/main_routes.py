@@ -459,56 +459,6 @@ def make_choice():
             if not success:
                 return jsonify({'error': 'Failed to process currency transaction'}), 500
 
-@main_bp.route('/reroll_character', methods=['POST'])
-def reroll_character():
-    """Return a new random character to replace an existing one"""
-    try:
-        data = request.json
-        character_id = data.get('character_id')
-        
-        if not character_id:
-            logger.error("No character ID provided for reroll")
-            return jsonify({'error': 'No character ID provided'}), 400
-            
-        # Get a random character from the characters table
-        new_character = Character.query.filter(Character.id != character_id)\
-            .filter(Character.character_name.isnot(None))\
-            .order_by(db.func.random()).first()
-            
-        if not new_character:
-            logger.error("No alternative characters found for reroll")
-            return jsonify({'error': 'No alternative characters found'}), 404
-            
-        # Prepare character data
-        role = new_character.character_role or 'neutral'
-        if role.lower() not in ['villain', 'neutral', 'mission-giver', 'undetermined']:
-            role = 'neutral'
-            
-        char_data = {
-            'id': new_character.id,
-            'image_url': new_character.image_url,
-            'name': new_character.character_name,
-            'story': new_character.description or '',
-            'character_traits': new_character.character_traits or [],
-            'plot_lines': new_character.plot_lines or [],
-            'character_role': role
-        }
-        
-        # Generate HTML for the new character
-        character_html = render_template('partials/character_card.html', 
-                                         img=char_data, 
-                                         index=0)
-        
-        return jsonify({
-            'success': True,
-            'character': char_data,
-            'character_html': character_html
-        })
-    except Exception as e:
-        logger.error(f"Error rerolling character: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
-
-
             # Record the choice
             if story_id and node_id:
                 user_progress.record_choice(
@@ -592,7 +542,7 @@ def reroll_character():
                         if not character_exists:
                             logger.error(f"Failed to create evolution record: Character with ID {char_id} not found in characters table")
                             continue
-                            
+
                         char_evolution = CharacterEvolution(
                             user_id=user_progress.user_id,
                             character_id=char_id,
@@ -614,4 +564,54 @@ def reroll_character():
 
     except Exception as e:
         logger.error(f"Error processing choice: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@main_bp.route('/reroll_character', methods=['POST'])
+def reroll_character():
+    """Return a new random character to replace an existing one"""
+    try:
+        data = request.json
+        character_id = data.get('character_id')
+
+        if not character_id:
+            logger.error("No character ID provided for reroll")
+            return jsonify({'error': 'No character ID provided'}), 400
+
+        # Get a random character from the characters table
+        new_character = Character.query.filter(Character.id != character_id)\
+            .filter(Character.character_name.isnot(None))\
+            .order_by(db.func.random()).first()
+
+        if not new_character:
+            logger.error("No alternative characters found for reroll")
+            return jsonify({'error': 'No alternative characters found'}), 404
+
+        # Prepare character data
+        role = new_character.character_role or 'neutral'
+        if role.lower() not in ['villain', 'neutral', 'mission-giver', 'undetermined']:
+            role = 'neutral'
+
+        char_data = {
+            'id': new_character.id,
+            'image_url': new_character.image_url,
+            'name': new_character.character_name,
+            'story': new_character.description or '',
+            'character_traits': new_character.character_traits or [],
+            'plot_lines': new_character.plot_lines or [],
+            'character_role': role
+        }
+
+        # Generate HTML for the new character
+        character_html = render_template('partials/character_card.html', 
+                                         img=char_data, 
+                                         index=0)
+
+        return jsonify({
+            'success': True,
+            'character': char_data,
+            'character_html': character_html
+        })
+    except Exception as e:
+        logger.error(f"Error rerolling character: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
