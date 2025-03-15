@@ -221,7 +221,7 @@ export default {
                     .catch(error => {
                         console.error('Story generation failed:', error);
                         UIUtils.toggleLoadingOverlay(false);
-                        
+
                         // Display more specific error message
                         const errorMessage = error.message || 'Failed to generate story';
                         UIUtils.showNotification(errorMessage, 'error');
@@ -378,13 +378,37 @@ export default {
         });
     },
 
+    /**
+     * Sets up choice form submission handlers
+     */
     setupChoiceSubmission() {
+        // Using a flag to track if an event handler is already set up
+        if (this._choiceSubmissionInitialized) {
+            console.log("Choice submission handlers already initialized, skipping");
+            return;
+        }
+
+        // Set the flag to prevent duplicate initialization
+        this._choiceSubmissionInitialized = true;
+
         // Delegate event listener for choice forms
         document.addEventListener('submit', function(event) {
             const choiceForm = event.target.closest('.choice-form');
             if (!choiceForm) return; // Not a choice form
 
             event.preventDefault();
+
+            // Prevent double submission
+            const submitButton = choiceForm.querySelector('button[type="submit"]');
+            if (submitButton && submitButton.disabled) {
+                console.log("Submission already in progress, ignoring duplicate");
+                return;
+            }
+
+            // Disable the button to prevent multiple submissions
+            if (submitButton) {
+                submitButton.disabled = true;
+            }
 
             // Create loading overlay
             const loadingOverlay = UIUtils.createLoadingOverlay('Continuing your adventure...');
@@ -408,6 +432,10 @@ export default {
                 if (loadingOverlay) {
                     loadingOverlay.remove();
                 }
+                // Re-enable the button if submission fails
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
                 UIUtils.showToast('Error', 'Missing required story parameters. Please try again.');
                 return;
             }
@@ -422,6 +450,14 @@ export default {
                         window.location.href = response.redirect;
                     } else {
                         console.log('Story response:', response);
+                    }
+                    // Re-enable the button after successful submission
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                    }
+                    clearInterval(progressInterval);
+                    if (loadingOverlay) {
+                        loadingOverlay.remove();
                     }
                 })
                 .catch(error => {
@@ -438,6 +474,14 @@ export default {
                         setTimeout(() => {
                             alert('Please ensure you have selected at least one character and all story parameters (conflict, setting, narrative style, and mood).');
                         }, 500);
+                    }
+                    // Re-enable the button after failed submission
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                    }
+                    clearInterval(progressInterval);
+                    if (loadingOverlay) {
+                        loadingOverlay.remove();
                     }
                 });
         });
