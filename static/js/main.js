@@ -1,57 +1,40 @@
 // Main JavaScript file
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     console.log("DOM fully loaded - initializing application");
 
-    // Import modules
-    import('./modules/EventHandlers.js')
-        .then(module => {
-            console.log("Initializing EventHandlers module");
-            // Try both default and named export
-            const handlers = module.default || module.EventHandlers;
-            if (handlers && typeof handlers.initialize === 'function') {
-                handlers.initialize();
-                console.log("Event handlers initialized");
-            } else {
-                console.error("EventHandlers module loaded but initialize method not found");
-            }
-        })
-        .catch(err => console.error("Error loading EventHandlers module:", err));
+    try {
+        // Import and initialize EventHandlers first
+        const eventHandlersModule = await import('./modules/EventHandlers.js');
+        console.log("EventHandlers module loaded");
+        
+        const eventHandlers = eventHandlersModule.default;
+        eventHandlers.initialize();
+        console.log("Event handlers initialized");
 
-    // Setup character selection
-    const characterCards = document.querySelectorAll('.character-card');
-    console.log("Setting up character selection buttons:", characterCards.length);
+        // Import and initialize CharacterManager after EventHandlers
+        const characterManagerModule = await import('./modules/CharacterManager.js');
+        console.log("CharacterManager module loaded");
+        
+        if (characterManagerModule.CharacterManager) {
+            const characterManager = new characterManagerModule.CharacterManager();
+            characterManager.initialize();
+        } else if (characterManagerModule.default) {
+            characterManagerModule.default.initialize();
+        }
+        console.log("Character manager initialized");
 
-    // Setup reroll buttons
-    const rerollButtons = document.querySelectorAll('.reroll-btn');
-    console.log("Setting up reroll buttons:", rerollButtons.length);
-
-    // Initialize character manager
-    import('./modules/CharacterManager.js')
-        .then(module => {
-            console.log("Initializing CharacterManager module");
-            // Try both default and named export
-            const CharacterManagerClass = module.default || module.CharacterManager;
-            if (CharacterManagerClass) {
-                const characterManager = new CharacterManagerClass();
-                characterManager.initialize();
-                console.log("Character manager initialized");
-            } else {
-                console.error("CharacterManager module loaded but class not found");
-            }
-        })
-        .catch(err => console.error("Error loading CharacterManager module:", err));
-
-    // Initialize notebook if on the story page
-    import('./modules/NotebookManager.js')
-        .then(module => {
-            const notebookElements = document.querySelectorAll('.notebook-tab, .notebook-content');
-            if (notebookElements.length > 0) {
-                module.default.initialize();
-            } else {
-                console.log("Notebook elements not found in the DOM, skipping initialization");
-            }
-        })
-        .catch(err => console.error("Error loading NotebookManager module:", err));
+        // Initialize notebook if on story page
+        const notebookElements = document.querySelectorAll('.notebook-tab, .notebook-content');
+        if (notebookElements.length > 0) {
+            const notebookModule = await import('./modules/NotebookManager.js');
+            notebookModule.default.initialize();
+            console.log("Notebook manager initialized");
+        } else {
+            console.log("Notebook elements not found, skipping initialization");
+        }
+    } catch (error) {
+        console.error('Error initializing application:', error);
+    }
 });
 
 // Setup payment processing if PayPal is available
