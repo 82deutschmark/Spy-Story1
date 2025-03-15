@@ -103,13 +103,19 @@ export default CharacterManager;
 
 // Initialize on page load if we're not in an ES module context
 if (typeof window !== 'undefined') {
-    window.CharacterManager = CharacterManager;
+    // Only assign to window if not already defined
+    if (!window.CharacterManager) {
+        window.CharacterManager = CharacterManager;
+    }
 
     // Auto-initialize on DOM loaded if not being imported as a module
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => CharacterManager.initialize());
-    } else {
-        CharacterManager.initialize();
+    // and if this script is loaded directly (not via import)
+    if (!window.isModuleImported && document.currentScript && document.currentScript.src.includes('CharacterManager.js')) {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => CharacterManager.initialize());
+        } else {
+            CharacterManager.initialize();
+        }
     }
 }
 /**
@@ -139,7 +145,7 @@ const CharacterManager = {
             console.log('No story content found');
             return;
         }
-        
+
         // Character highlighting logic here
         // This would typically find character names in the story text and wrap them
         // with highlighting elements

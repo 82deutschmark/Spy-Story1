@@ -346,12 +346,18 @@ export default EventHandlers;
 
 // Initialize on page load if we're not in an ES module context
 if (typeof window !== 'undefined') {
-    window.EventHandlers = EventHandlers;
-
+    // Only assign to window if not already defined
+    if (!window.EventHandlers) {
+        window.EventHandlers = EventHandlers;
+    }
+    
     // Auto-initialize on DOM loaded if not being imported as a module
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => EventHandlers.initialize());
-    } else {
-        EventHandlers.initialize();
+    // and if this script is loaded directly (not via import)
+    if (!window.isModuleImported && document.currentScript && document.currentScript.src.includes('EventHandlers.js')) {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => EventHandlers.initialize());
+        } else {
+            EventHandlers.initialize();
+        }
     }
 }
