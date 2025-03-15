@@ -106,121 +106,37 @@
                         <hr class="my-4">
 
                         <!-- Character Selection Section -->
-                        <h3 class="card-title mb-4 text-dark">
-                            <i class="fas fa-user me-2"></i>Select a Character
-                        </h3>
+                        <div class="alert alert-danger" id="characterSelectionError" style="display: none;"></div>
 
-                        <h4 class="text-dark text-center mb-4">Choose a Character (Select One)</h4>
-                        <div class="characters-grid mb-4">
-                            <div class="row justify-content-center">
-                                {% for img in images %}
-                                <div class="col-md-5 mb-4">
-                                    <div class="character-container">
-                                        <div class="character-select-card" data-id="{{ img.id }}">
-                                            <img src="{{ img.image_url }}" class="card-img" alt="{{ img.name }}">
-                                            <div class="selection-indicator position-absolute top-0 end-0 m-2 bg-primary text-white rounded-circle p-2" style="display: none;">
-                                                <i class="fas fa-check"></i>
-                                            </div>
-                                        </div>
-                                        <div class="character-info-box">
-                                            <h3 class="character-name">{{ img.name }}</h3>
-                                            <div class="character-traits-list">
-                                                {% if img.character_traits %}
-                                                    {% for trait in img.character_traits %}
-                                                    <span class="trait-badge">{{ trait }}</span>
-                                                    {% endfor %}
-                                                {% endif %}
-                                            </div>
-                                            <div class="character-controls d-flex justify-content-between align-items-center">
-                                                <button type="button" class="reroll-btn" data-card-index="{{ loop.index0 }}">
-                                                    <i class="fas fa-dice me-1"></i> Reroll Character
-                                                </button>
-                                                <button type="button" class="select-character-btn" data-character-id="{{ img.id }}">
-                                                    <i class="fas fa-check-circle me-1"></i> Select Character
-                                                </button>
-                                                <input type="radio" class="character-checkbox d-none" name="selectedCharacter" value="{{ img.id }}" id="character{{ img.id }}">
-                                            </div>
-                                        </div>
+                        <form id="storyForm" method="POST" action="{{ url_for('main.generate_story_route') }}">
+                            <h3 class="card-title mb-4 text-dark">
+                                <i class="fas fa-user me-2"></i>Select a Character
+                            </h3>
+
+                            <h4 class="text-dark text-center mb-4">Choose a Character (Select One)</h4>
+                            <div class="characters-grid mb-4">
+                                <div class="row justify-content-center">
+                                    {% for img in images %}
+                                    <div class="col-md-5 mb-4">
+                                        {% include 'partials/character_card.html' %}
                                     </div>
+                                    {% endfor %}
                                 </div>
-                                {% endfor %}
                             </div>
-                        </div>
 
-                        <form id="story-form" method="POST" action="{{ url_for('main.generate_story_route') }}">
-                            <input type="hidden" name="selected_images" value="">
-                            <div class="selected-characters-container mb-3" style="display: none;">
+                            <!-- Hidden input for selected images -->
+                            <input type="hidden" id="selectedImages" name="selected_images" value="">
+
+                            <!-- Container for selected characters -->
+                            <div class="selected-characters-container" style="display: none;">
                                 <h4>Selected Characters:</h4>
-                                <div class="selected-characters-list d-flex flex-wrap"></div>
+                                <div class="selected-characters-list"></div>
                             </div>
 
-                            <div class="accordion" id="storyOptionsAccordion">
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header" id="storyOptionsHeading">
-                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
-                                                data-bs-target="#storyOptionsCollapse" aria-expanded="false" aria-controls="storyOptionsCollapse">
-                                            <i class="fas fa-sliders-h me-2"></i>Customize Story Options (Optional)
-                                        </button>
-                                    </h2>
-                                    <div id="storyOptionsCollapse" class="accordion-collapse collapse" aria-labelledby="storyOptionsHeading">
-                                        <div class="accordion-body">
-                                            <h4>Story Options</h4>
-                                            <div class="row mb-3">
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Conflict:</label>
-                                                    <select class="form-select" name="conflict">
-                                                        {% for emoji, name in story_options.conflicts %}
-                                                        <option value="{{ name }}">{{ emoji }} {{ name }}</option>
-                                                        {% endfor %}
-                                                    </select>
-                                                    <div class="form-text">Or specify your own:</div>
-                                                    <input type="text" class="form-control mt-1" name="custom_conflict" placeholder="Custom conflict...">
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Setting:</label>
-                                                    <select class="form-select" name="setting">
-                                                        {% for emoji, name in story_options.settings %}
-                                                        <option value="{{ name }}">{{ emoji }} {{ name }}</option>
-                                                        {% endfor %}
-                                                    </select>
-                                                    <div class="form-text">Or specify your own:</div>
-                                                    <input type="text" class="form-control mt-1" name="custom_setting" placeholder="Custom setting...">
-                                                </div>
-                                            </div>
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Narrative Style:</label>
-                                                    <select class="form-select" name="narrative_style">
-                                                        {% for emoji, name in story_options.narrative_styles %}
-                                                        <option value="{{ name }}">{{ emoji }} {{ name }}</option>
-                                                        {% endfor %}
-                                                    </select>
-                                                    <div class="form-text">Or specify your own:</div>
-                                                    <input type="text" class="form-control mt-1" name="custom_narrative" placeholder="Custom narrative style...">
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Mood:</label>
-                                                    <select class="form-select" name="mood">
-                                                        {% for emoji, name in story_options.moods %}
-                                                        <option value="{{ name }}">{{ emoji }} {{ name }}</option>
-                                                        {% endfor %}
-                                                    </select>
-                                                    <div class="form-text">Or specify your own:</div>
-                                                    <input type="text" class="form-control mt-1" name="custom_mood" placeholder="Custom mood...">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div id="characterSelectionError" class="alert alert-danger mt-3" style="display: none;">
-                                Please select exactly 3 characters for your story.
-                            </div>
-
+                            <!-- Story generation button -->
                             <div class="text-center mt-4">
-                                <button type="submit" class="btn btn-primary btn-lg" id="generateStoryBtn">
-                                    <i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure
+                                <button type="submit" id="generateStoryBtn" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-book-open me-2"></i>Generate Story
                                 </button>
                             </div>
                         </form>
