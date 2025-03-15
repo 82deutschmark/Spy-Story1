@@ -2,6 +2,16 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Updated Mission model to reference characters instead of scene_images for giver_id and target_id
+- Corrected database schema documentation to match actual implementation
+
+## Previous Changes
+
+
+# Changelog
+
+## [Unreleased]
 ### Changed
 - Major refactoring of routes structure, migrated from monolithic routes.py to blueprint architecture
 - Fixed JavaScript module export in CharacterManager.js
