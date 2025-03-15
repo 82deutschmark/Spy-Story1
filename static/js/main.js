@@ -1,14 +1,14 @@
 // Main JavaScript file
+import { EventHandlers } from './modules/EventHandlers.js';
+
 document.addEventListener('DOMContentLoaded', async function() {
     console.log("DOM fully loaded - initializing application");
 
     try {
         // Import and initialize EventHandlers first
-        const eventHandlersModule = await import('./modules/EventHandlers.js');
         console.log("EventHandlers module loaded");
         
-        const eventHandlers = eventHandlersModule.default;
-        eventHandlers.initialize();
+        EventHandlers.initialize();
         console.log("Event handlers initialized");
 
         // Import and initialize CharacterManager after EventHandlers
