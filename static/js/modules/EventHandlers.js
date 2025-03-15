@@ -89,7 +89,7 @@ class CharacterReroller {
         button.disabled = true;
 
         try {
-            const response = await fetch('/api/reroll_character', {
+            const response = await fetch('/reroll_character', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
