@@ -1,0 +1,19 @@
+/*
+ * DEPRECATED: This file is deprecated and will be removed in a future update.
+ * All character styles have been moved to character.css
+ * Please use the new character.css file instead.
+ * Date: 2024
+ */
+
+/* Character Component Styles */
+
+/* Character Card */
+.character-card {
+  background-color: #fff;
+  border-radius: 15px;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* ... rest of the old CSS ... */ 
