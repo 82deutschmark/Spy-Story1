@@ -211,9 +211,9 @@ const CharacterManager = {
 };
 
 // Add init method for backwards compatibility
-CharacterManager.init = function() {
-    console.log('Character manager init called (compatibility method)');
-    return this.initialize();
+CharacterManager.initialize = function() {
+    console.log('Character manager initialized');
+    this.setupCharacterSelection();
 };
 
 // Export for ES module use

@@ -523,7 +523,7 @@ export default {
      * @param {Function} options.showLoading - Function to show loading overlay
      * @param {Function} options.hideLoading - Function to hide loading overlay
      */
-    init: function(options = {}) {
+    initialize: function(options = {}) {
         // Set loading handlers if provided
         if (options.showLoading) this.loadingHandlers.showLoading = options.showLoading;
         if (options.hideLoading) this.loadingHandlers.hideLoading = options.hideLoading;
