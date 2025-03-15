@@ -173,7 +173,12 @@ export const EventHandlers = {
                     },
                     body: JSON.stringify({ character_id: characterId }),
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok: ' + response.status);
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
                         // Get the new character HTML and replace the old card
@@ -181,9 +186,25 @@ export const EventHandlers = {
                         const tempDiv = document.createElement('div');
                         tempDiv.innerHTML = newCharacterHtml;
                         
-                        const newCard = tempDiv.querySelector('.character-select-card');
-                        if (newCard) {
-                            characterCard.outerHTML = newCard.outerHTML;
+                        // Replace the entire character container
+                        if (tempDiv.firstChild) {
+                            cardContainer.outerHTML = tempDiv.innerHTML;
+                            
+                            // Reinitialize event handlers for the new card
+                            const newCard = document.querySelector(`.character-select-card[data-id="${data.character.id}"]`);
+                            if (newCard) {
+                                // Reinitialize character selection events
+                                const selectBtn = newCard.closest('.character-container').querySelector('.select-character-btn');
+                                if (selectBtn) {
+                                    selectBtn.addEventListener('click', this.handleCharacterSelect);
+                                }
+                                
+                                // Reinitialize reroll button
+                                const newRerollBtn = newCard.closest('.character-container').querySelector('.reroll-btn');
+                                if (newRerollBtn) {
+                                    newRerollBtn.addEventListener('click', this.setupRerollButtons);
+                                }
+                            }
                             
                             // Show toast notification
                             if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
@@ -198,15 +219,18 @@ export const EventHandlers = {
                     }
                 })
                 .catch(error => {
-                    console.error('Error fetching random character:', error);
+                    console.error('Failed to reroll character:', error.message);
                     if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
                         window.UIUtils.showToast('Error', 'Failed to load a new character. Please try again.', 'error');
                     }
                 })
                 .finally(() => {
-                    // Reset button
-                    this.innerHTML = originalButtonText;
-                    this.disabled = false;
+                    // Reset button if it still exists
+                    const btn = document.querySelector(`.reroll-btn[data-card-index="${this.dataset.cardIndex}"]`);
+                    if (btn) {
+                        btn.innerHTML = originalButtonText;
+                        btn.disabled = false;
+                    }
                 });
             });
         });

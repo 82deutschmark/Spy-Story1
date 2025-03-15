@@ -11,6 +11,11 @@
 - Simplified reroll button functionality to match the original working implementation
 - Fixed module import pattern using named exports
 
+- Fixed reroll character functionality by adding the missing `/reroll_character` endpoint
+- Fixed Character selection forms to properly collect selected character IDs
+- Fixed reroll button event handling and error management
+
+
 ## [1.0.0] - 2025-03-01
 
 ### Added
