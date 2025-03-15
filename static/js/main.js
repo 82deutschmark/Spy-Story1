@@ -3,78 +3,72 @@
  * Imports all modules and initializes the application
  */
 import UIUtils from './modules/UIUtils.js';
-import CurrencyManager from './modules/CurrencyManager.js';
-import UserProgress from './modules/UserProgress.js';
 import CharacterManager from './modules/CharacterManager.js';
-import StoryManager from './modules/StoryManager.js';
-import MissionManager from './modules/MissionManager.js';
-import PaymentManager from './modules/PaymentManager.js';
 import EventHandlers from './modules/EventHandlers.js';
+import PaymentManager from './modules/PaymentManager.js';
+import NotebookManager from './modules/NotebookManager.js';
+import UserProgressManager from './modules/UserProgressManager.js';
 
-// Wait for DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("DOM loaded, initializing modules...");
-    loadModules();
+// Make modules available globally
+window.UIUtils = UIUtils;
+window.CharacterManager = CharacterManager;
+window.EventHandlers = EventHandlers;
+window.PaymentManager = PaymentManager;
+window.NotebookManager = NotebookManager;
+window.UserProgressManager = UserProgressManager;
 
-    // Also initialize the core modules that need to be available right away
-    EventHandlers.initialize();
-    CharacterManager.initialize();
-    PaymentManager.initialize();
+// Initialize all modules when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing modules...');
+
+    try {
+        // Initialize UI utilities first (as other modules may depend on it)
+        if (UIUtils) {
+            // UIUtils typically has no initialization method
+        }
+
+        // Initialize character manager
+        if (CharacterManager && typeof CharacterManager.initialize === 'function') {
+            CharacterManager.initialize();
+        }
+
+        // Initialize event handlers
+        if (EventHandlers && typeof EventHandlers.initialize === 'function') {
+            EventHandlers.initialize();
+        }
+
+        // Initialize notebook manager if notebook elements exist
+        const notebookElements = document.querySelector('.notebook-container');
+        if (notebookElements) {
+            if (NotebookManager && typeof NotebookManager.initialize === 'function') {
+                NotebookManager.initialize();
+            }
+        } else {
+            console.log('Notebook elements not found in the DOM, skipping initialization');
+        }
+
+        // Initialize user progress manager
+        if (UserProgressManager && typeof UserProgressManager.initialize === 'function') {
+            UserProgressManager.initialize();
+        }
+
+        console.log('Modules loaded successfully');
+    } catch (error) {
+        console.error('Error initializing modules:', error);
+    }
 });
 
-// Make core modules available globally for debugging
-window.App = {
-    UI: UIUtils,
-    Currency: CurrencyManager,
-    Progress: UserProgress,
-    Character: CharacterManager,
-    Story: StoryManager,
-    Mission: MissionManager,
-    Payment: PaymentManager,
-    Events: EventHandlers
-};
-
-// Import modules - using dynamic import to ensure they load properly
-async function loadModules() {
+// Initialize payment system separately (as it may have different loading requirements)
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing payment system...');
     try {
-        // Load NotebookManager if the module exists
-        try {
-            const NotebookManagerModule = await import('./modules/NotebookManager.js');
-            // Check if default export exists
-            if (NotebookManagerModule.default) {
-                const NotebookManager = NotebookManagerModule.default;
-
-                if (document.querySelector('.notebook-accordion') || document.querySelector('.notebook-container')) {
-                    const notebookManager = new NotebookManager();
-                    notebookManager.initialize();
-                    window.notebookManagerInstance = notebookManager;
-                } else {
-                    console.log("Notebook elements not found in the DOM, skipping initialization");
-                }
-            } else {
-                console.log("NotebookManager module loaded but doesn't have a default export");
-            }
-        } catch (notebookError) {
-            console.log("NotebookManager module not available or error:", notebookError.message);
+        if (PaymentManager && typeof PaymentManager.initialize === 'function') {
+            PaymentManager.initialize();
         }
-
-        // Load UserProgressManager
-        try {
-            const UserProgressManagerModule = await import('./modules/UserProgressManager.js');
-            const UserProgressManager = UserProgressManagerModule.default;
-
-            const userProgressManager = new UserProgressManager();
-            userProgressManager.initialize();
-            window.userProgressManagerInstance = userProgressManager;
-        } catch (progressError) {
-            console.error("Error initializing UserProgressManager:", progressError);
-        }
-
-        console.log("Modules loaded successfully");
     } catch (error) {
-        console.error("Error loading modules:", error);
+        console.error('Error initializing payment system:', error);
     }
-}
+});
 
 // Initialize character mentions in story text
 function initializeCharacterMentions() {
@@ -127,9 +121,12 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeCharacterMentions();
 });
 
-// NOTE: The following features are described in the thinking section but not fully implemented in the provided changes:
-// - "Continue Story" button in storyboard.html
-// - "Continue Story" button in index.html
-// - continueStory method in NotebookManager.js
-// - Updated UserProgressManager.js to handle last story ID and button display
-// - Updated main.js to handle story ID storage when a story is viewed.
+// Export for possible import in other modules
+export default {
+    UIUtils,
+    CharacterManager,
+    EventHandlers,
+    PaymentManager,
+    NotebookManager,
+    UserProgressManager
+};

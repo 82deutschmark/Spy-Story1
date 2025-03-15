@@ -1,3 +1,20 @@
+
+# Changelog
+
+## [1.0.1] - 2025-03-15
+
+### Fixed
+- Fixed reroll button functionality in character selection screen
+- Improved module initialization in main.js
+- Fixed character manager and event handlers interaction
+- Restored direct DOM manipulation for reroll behavior matching original implementation
+
+## [1.0.0] - 2025-03-01
+
+### Added
+- Initial release
+
+
 # Changelog
 
 All notable changes to the Story Creator project will be documented in this file.
