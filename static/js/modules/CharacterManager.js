@@ -119,7 +119,7 @@ class CharacterManager {
         try {
             console.log(`Rerolling character ${characterId}`);
 
-            const response = await fetch('/api/reroll_character', {
+            const response = await fetch('/reroll_character', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
