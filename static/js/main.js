@@ -3,64 +3,102 @@ import { EventHandlers } from './modules/EventHandlers.js';
 
 // Wait for both DOM and FLASK_CONFIG to be ready
 async function initializeApplication() {
-    if (!window.FLASK_CONFIG) {
-        console.error('FLASK_CONFIG not found. Make sure it is properly initialized in the HTML template.');
-        return;
-    }
-
-    console.log("Initializing application with config:", window.FLASK_CONFIG);
-
     try {
+        // Check for FLASK_CONFIG
+        if (!window.FLASK_CONFIG) {
+            throw new Error('FLASK_CONFIG not found. Make sure it is properly initialized in the HTML template.');
+        }
+
+        console.log("Initializing application with config:", window.FLASK_CONFIG);
+
         // Initialize EventHandlers
+        if (!EventHandlers) {
+            throw new Error('EventHandlers module not found');
+        }
         console.log("Initializing EventHandlers");
-        EventHandlers.initialize();
+        await EventHandlers.initialize();
 
         // Initialize CharacterManager
-        console.log("Loading CharacterManager");
-        const characterManagerModule = await import('./modules/CharacterManager.js');
-        const CharacterManager = characterManagerModule.default || characterManagerModule.CharacterManager;
-        
-        if (CharacterManager) {
-            const manager = new CharacterManager();
+        try {
+            console.log("Loading CharacterManager");
+            const { CharacterManager, default: characterManager } = await import('./modules/CharacterManager.js');
+            
+            if (!characterManager && !CharacterManager) {
+                throw new Error('CharacterManager module not found');
+            }
+
+            // Use the singleton instance if available, otherwise create a new instance
+            const manager = characterManager || new CharacterManager();
             await manager.initialize();
             console.log("CharacterManager initialized");
+        } catch (err) {
+            console.error("Error initializing CharacterManager:", err);
+            // Continue initialization - non-critical error
         }
 
         // Initialize Notebook if elements exist
         const notebookElements = document.querySelectorAll('.notebook-tab, .notebook-content');
         if (notebookElements.length > 0) {
-            console.log("Loading NotebookManager");
-            const notebookModule = await import('./modules/NotebookManager.js');
-            await notebookModule.default.initialize();
-            console.log("NotebookManager initialized");
+            try {
+                console.log("Loading NotebookManager");
+                const NotebookManager = (await import('./modules/NotebookManager.js')).default;
+                
+                if (!NotebookManager) {
+                    throw new Error('NotebookManager module not found');
+                }
+
+                const notebookManager = new NotebookManager();
+                await notebookManager.initialize();
+                console.log("NotebookManager initialized");
+            } catch (err) {
+                console.error("Error initializing NotebookManager:", err);
+                // Continue initialization - non-critical error
+            }
         }
 
-        // Initialize PaymentManager
-        try {
-            const paymentModule = await import('./modules/PaymentManager.js');
-            if (paymentModule.default) {
-                await paymentModule.default.initialize();
-                console.log("PaymentManager initialized");
-            }
-        } catch (err) {
-            console.warn("PaymentManager not loaded:", err.message);
-        }
-
-        // Initialize UserProgressManager
-        try {
-            const progressModule = await import('./modules/UserProgressManager.js');
-            if (progressModule.default) {
-                await progressModule.default.initialize();
-                console.log("UserProgressManager initialized");
-            }
-        } catch (err) {
-            console.warn("UserProgressManager not loaded:", err.message);
-        }
+        // Initialize optional modules
+        await initializeOptionalModules();
 
         console.log("Application initialization complete");
     } catch (error) {
-        console.error('Error during application initialization:', error);
-        // You might want to show a user-friendly error message here
+        console.error('Critical error during application initialization:', error);
+        showErrorMessage(error);
+    }
+}
+
+// Initialize optional modules
+async function initializeOptionalModules() {
+    // Payment Manager
+    try {
+        const PaymentManager = (await import('./modules/PaymentManager.js')).default;
+        if (PaymentManager) {
+            const paymentManager = new PaymentManager();
+            await paymentManager.initialize();
+            console.log("PaymentManager initialized");
+        }
+    } catch (err) {
+        console.warn("PaymentManager not loaded:", err.message);
+    }
+
+    // User Progress Manager
+    try {
+        const UserProgressManager = (await import('./modules/UserProgressManager.js')).default;
+        if (UserProgressManager) {
+            const progressManager = new UserProgressManager();
+            await progressManager.initialize();
+            console.log("UserProgressManager initialized");
+        }
+    } catch (err) {
+        console.warn("UserProgressManager not loaded:", err.message);
+    }
+}
+
+// Show error message to user
+function showErrorMessage(error) {
+    const errorDiv = document.getElementById('characterSelectionError');
+    if (errorDiv) {
+        errorDiv.textContent = 'An error occurred while loading the application. Please refresh the page or contact support if the problem persists.';
+        errorDiv.style.display = 'block';
     }
 }
 
@@ -69,58 +107,61 @@ document.addEventListener('DOMContentLoaded', initializeApplication);
 
 // Initialize character mentions in story text
 function initializeCharacterMentions() {
-    const storyContent = document.querySelector('.story-content');
-    if (!storyContent) return;
+    try {
+        const storyContent = document.querySelector('.story-content');
+        if (!storyContent) {
+            console.log("No story content found for character mentions");
+            return;
+        }
 
-    // Get all character mentions
-    const characterMentions = document.querySelectorAll('.character-mention');
+        const characterMentions = document.querySelectorAll('.character-mention');
+        characterMentions.forEach(mention => {
+            mention.addEventListener('click', function() {
+                const characterId = this.dataset.character;
+                const targetPortrait = document.querySelector(`.character-portrait-mini[data-character-name="${characterId}"]`);
 
-    // Add click event to each mention
-    characterMentions.forEach(mention => {
-        mention.addEventListener('click', function() {
-            const characterId = this.dataset.character;
-            const targetPortrait = document.querySelector(`.character-portrait-mini[data-character-name="${characterId}"]`);
+                document.querySelectorAll('.character-mini-img').forEach(img => {
+                    img.classList.remove('character-mini-highlight');
+                });
 
-            // Remove highlight from all portraits
-            document.querySelectorAll('.character-mini-img').forEach(img => {
-                img.classList.remove('character-mini-highlight');
+                if (targetPortrait) {
+                    const portraitImg = targetPortrait.querySelector('.character-mini-img');
+                    portraitImg.classList.add('character-mini-highlight');
+                    targetPortrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    setTimeout(() => {
+                        portraitImg.classList.remove('character-mini-highlight');
+                    }, 3000);
+                }
             });
-
-            // Add highlight to this portrait
-            if (targetPortrait) {
-                const portraitImg = targetPortrait.querySelector('.character-mini-img');
-                portraitImg.classList.add('character-mini-highlight');
-
-                // Scroll to the portrait if needed
-                targetPortrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-                // Remove highlight after 3 seconds
-                setTimeout(() => {
-                    portraitImg.classList.remove('character-mini-highlight');
-                }, 3000);
-            }
         });
-    });
+
+        console.log(`Initialized ${characterMentions.length} character mentions`);
+    } catch (error) {
+        console.error("Error initializing character mentions:", error);
+    }
 }
 
-// Document this issue in the changelog
-document.addEventListener('DOMContentLoaded', function() {
-    // Check if we're on a storyboard page and save the story ID
-    const storyIdParam = new URLSearchParams(window.location.search).get('story_id');
-    if (storyIdParam) {
-        localStorage.setItem('lastStoryId', storyIdParam);
-    }
+// Initialize story-related features
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        const storyIdParam = new URLSearchParams(window.location.search).get('story_id');
+        if (storyIdParam) {
+            localStorage.setItem('lastStoryId', storyIdParam);
+        }
 
-    // Also initialize character highlighting if on storyboard page
-    if (document.querySelector('.story-content')) {
-        import('./modules/CharacterManager.js')
-            .then(module => {
-                const characterManager = module.CharacterManager ? new module.CharacterManager() : module.default;
-                characterManager.highlightCharactersInStory();
-            })
-            .catch(err => console.error("Error loading CharacterManager module in DOMContentLoaded:", err));
+        if (document.querySelector('.story-content')) {
+            const { CharacterManager, default: characterManager } = await import('./modules/CharacterManager.js');
+            const manager = characterManager || new CharacterManager();
+            
+            if (manager) {
+                await manager.highlightCharactersInStory();
+            }
+            
+            initializeCharacterMentions();
+        }
+    } catch (error) {
+        console.error("Error initializing story features:", error);
     }
-    initializeCharacterMentions();
 });
 
 // Setup global event listeners that aren't in EventHandlers
