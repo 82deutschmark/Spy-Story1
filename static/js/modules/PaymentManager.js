@@ -3,7 +3,7 @@
  * Payment Manager Module
  * Handles in-game currency, transactions, and payments
  */
-const PaymentManager = {
+export const PaymentManager = {
     /**
      * Initialize payment manager
      */
