@@ -1,27 +1,17 @@
 /**
  * Event Handlers Module
- * Centralizes event handling for various UI components
+ * Centralizes all event handlers for better organization
  */
-import UIUtils from './UIUtils.js';
-import CurrencyManager from './CurrencyManager.js';
-import CharacterManager from './CharacterManager.js';
-import StoryManager from './StoryManager.js';
-import MissionManager from './MissionManager.js';
-import PaymentManager from './PaymentManager.js';
-
-export default {
-    /**
-     * Initialize all event handlers
-     */
+const EventHandlers = {
     initialize() {
         console.log('Event handlers initialized');
-        this.initCharacterSelection();
-        this.initStoryChoices();
-        this.setupFormSubmissionHandlers(); // Retained from original
-        this.setupDebugPageHandlers(); // Retained from original
-        this.setupTradeFormHandlers(); // Retained from original
-        this.setupMissionHandlers(); // Retained from original
-        this.setupChoiceCurrencyIndicators();// Retained from original
+        this.setupCharacterSelection();
+        this.setupRerollButtons();
+        this.setupFormSubmissionHandlers(); 
+        this.setupDebugPageHandlers(); 
+        this.setupTradeFormHandlers(); 
+        this.setupMissionHandlers(); 
+        this.setupChoiceCurrencyIndicators();
 
         // Initialize Payment System.  Kept the timeout from original
         console.log('DOM loaded, initializing payment system...');
@@ -29,89 +19,17 @@ export default {
             PaymentManager.initialize();
         }, 1000);
 
-
-        // Highlight characters in story. Retained from original
+        // Highlight characters in story. 
         CharacterManager.highlightCharactersInStory();
-
-        // Check radio buttons on page load to restore selection state. Retained from original.  This is now redundant due to initCharacterSelection, but keeping for completeness.
-        const characterCheckboxes = document.querySelectorAll('.character-checkbox');
-        const characterCards = document.querySelectorAll('.character-select-card');
-
-        if (characterCheckboxes && characterCheckboxes.length > 0 && characterCards && characterCards.length > 0) {
-            characterCheckboxes.forEach((checkbox, index) => {
-                if (checkbox.checked && index < characterCards.length) {
-                    characterCards[index].classList.add('selected');
-                    const indicator = characterCards[index].querySelector('.selection-indicator');
-                    if (indicator) {
-                        indicator.style.display = 'block';
-                    }
-                }
-            });
-        }
     },
 
     /**
-     * Initialize character selection event handlers
+     * Setup character selection buttons
      */
-    initCharacterSelection() {
-        // Character selection elements
-        const characterCards = document.querySelectorAll('.character-select-card');
-        const characterCheckboxes = document.querySelectorAll('.character-checkbox');
-        const storyForm = document.getElementById('storyForm');
-        const characterSelectionError = document.getElementById('characterSelectionError');
-
-        if (!characterCards.length) return;
-
-        // Handle character selection when clicking on card
-        characterCards.forEach(card => {
-            card.addEventListener('click', function() {
-                const characterId = this.dataset.id;
-                const checkbox = document.getElementById(`character${characterId}`);
-                const selectionIndicator = this.querySelector('.selection-indicator');
-
-                if (!checkbox || !selectionIndicator) return;
-
-                // For single-select behavior
-                // Clear all selections first
-                characterCards.forEach(c => {
-                    c.classList.remove('selected');
-                    const indicator = c.querySelector('.selection-indicator');
-                    if (indicator) {
-                        indicator.style.display = 'none';
-                    }
-                });
-
-                characterCheckboxes.forEach(cb => {
-                    cb.checked = false;
-                });
-
-                // Select this character
-                checkbox.checked = true;
-                selectionIndicator.style.display = 'block';
-                this.classList.add('selected');
-
-                // Update hidden input fields if needed
-                if (storyForm) {
-                    // Remove any existing hidden inputs
-                    document.querySelectorAll('input[name="selected_images[]"]').forEach(el => el.remove());
-
-                    // Add new hidden input for the selected character
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'selected_images[]';
-                    input.value = checkbox.value;
-                    storyForm.appendChild(input);
-                }
-
-                // Show toast notification if UIUtils is available
-                if (window.App && window.App.UI) {
-                    window.App.UI.showToast('Character Selected', 'Character has been selected for your story.');
-                }
-            });
-        });
-
-        // Handle select character button clicks
+    setupCharacterSelection() {
         const selectButtons = document.querySelectorAll('.select-character-btn');
+        if (!selectButtons.length) return;
+
         selectButtons.forEach(button => {
             button.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -122,94 +40,110 @@ export default {
 
                 if (!characterCard) return;
 
-                // Trigger the click event on the card
-                characterCard.click();
-            });
-        });
-    },
+                // For single-select behavior
+                document.querySelectorAll('.character-select-card').forEach(card => {
+                    card.classList.remove('selected');
+                    const indicator = card.querySelector('.selection-indicator');
+                    if (indicator) indicator.style.display = 'none';
+                });
 
-    /**
-     * Initialize story choice event handlers
-     */
-    initStoryChoices() {
-        // Story choice form submission - use delegated event handling to prevent duplicates
-        document.addEventListener('submit', function(e) {
-            // Only process choice forms
-            if (!e.target.classList.contains('choice-form')) return;
+                // Select this character
+                const selectionIndicator = characterCard.querySelector('.selection-indicator');
+                if (selectionIndicator) selectionIndicator.style.display = 'block';
+                characterCard.classList.add('selected');
 
-            e.preventDefault();
-            const form = e.target;
-            const btn = form.querySelector('button');
+                const checkbox = document.getElementById(`character${characterId}`);
+                if (checkbox) checkbox.checked = true;
 
-            // Prevent double-submission
-            if (btn.disabled) return;
+                // Update hidden input with selected character
+                const selectedImagesInput = document.querySelector('input[name="selected_images"]');
+                if (selectedImagesInput) selectedImagesInput.value = characterId;
 
-            btn.disabled = true;
-            btn.classList.add('loading');
+                // Show selected characters container
+                const selectedImagesContainer = document.querySelector('.selected-characters-container');
+                if (selectedImagesContainer) selectedImagesContainer.style.display = 'block';
 
-            // Use UIUtils if available for loading overlay
-            let loadingPercent;
-            if (window.App && window.App.UI) {
-                loadingPercent = window.App.UI.createLoadingOverlay('Continuing your story...');
-            }
-
-            let progress = 0;
-            const progressInterval = setInterval(() => {
-                if (progress < 90) {
-                    progress += 5;
-                    if (window.App && window.App.UI && loadingPercent) {
-                        window.App.UI.updateLoadingPercent(loadingPercent, progress);
-                    }
-                }
-            }, 500);
-
-            // Submit the form
-            const formData = new FormData(form);
-            fetch(form.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                clearInterval(progressInterval);
-
-                if (data.success && data.redirect) {
-                    if (window.App && window.App.UI && loadingPercent) {
-                        window.App.UI.updateLoadingPercent(loadingPercent, 100);
-                    }
-                    setTimeout(() => {
-                        window.location.href = data.redirect;
-                    }, 500);
-                } else {
-                    throw new Error(data.error || 'Failed to continue story');
-                }
-            })
-            .catch(error => {
-                console.error('Story continuation error:', error);
-
-                if (window.App && window.App.UI) {
-                    window.App.UI.showToast('Error', error.message || 'Failed to continue the story');
-                }
-
-                btn.disabled = false;
-                btn.classList.remove('loading');
-                clearInterval(progressInterval);
-
-                if (loadingPercent) {
-                    const overlay = loadingPercent.closest('.loading-overlay');
-                    if (overlay) overlay.remove();
+                // Show toast notification
+                if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
+                    window.UIUtils.showToast('Character Selected', 'Character has been selected for your story.');
                 }
             });
         });
     },
 
     /**
-     * Sets up form submission handlers
+     * Setup reroll buttons for characters
      */
-    setupFormSubmissionHandlers() {
+    setupRerollButtons() {
+        const rerollButtons = document.querySelectorAll('.reroll-btn');
+        if (!rerollButtons.length) return;
+
+        console.log('Setting up reroll buttons:', rerollButtons.length);
+
+        rerollButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const cardContainer = this.closest('.character-container');
+                if (!cardContainer) return;
+
+                const characterCard = cardContainer.querySelector('.character-select-card');
+                if (!characterCard) return;
+
+                // Show loading state
+                const originalButtonText = this.innerHTML;
+                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Rerolling...';
+
+                // Fetch a new random character
+                fetch('/api/random_character')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update image
+                            const cardImg = characterCard.querySelector('img');
+                            if (cardImg) {
+                                cardImg.src = data.image_url;
+                            }
+
+                            // Update character ID
+                            characterCard.dataset.id = data.id;
+
+                            // Update character name
+                            const nameElement = cardContainer.querySelector('.character-name');
+                            if (nameElement) {
+                                nameElement.textContent = data.name;
+                            }
+
+                            // Show toast notification
+                            if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
+                                window.UIUtils.showToast('Character Updated', 'A new character has been loaded!');
+                            } else {
+                                console.log('Character updated successfully');
+                            }
+                        } else {
+                            if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
+                                window.UIUtils.showToast('Error', 'Failed to load a new character. Please try again.');
+                            } else {
+                                console.error('Failed to load a new character');
+                            }
+                        }
+
+                        // Reset button
+                        this.innerHTML = originalButtonText;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching random character:', error);
+                        this.innerHTML = originalButtonText;
+                        if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
+                            window.UIUtils.showToast('Error', 'Failed to load a new character. Please try again.');
+                        }
+                    });
+            });
+        });
+    },
+
+    setupFormSubmissionHandlers: function() {
         // Story form
         const storyForm = document.getElementById('storyForm');
         if (storyForm) {
@@ -264,23 +198,8 @@ export default {
         }
 
 
-        // Story choice form submission - use delegated event handling to prevent duplicates.  This is now redundant, kept for completeness
-        document.addEventListener('submit', function(e) {
-            // Only process choice forms
-            if (!e.target.classList.contains('choice-form')) return;
-            e.preventDefault();
-
-            // Use the new processChoice function
-            this.processChoice(e.target)
-                .catch(error => {
-                    console.error('Choice processing failed:', error);
-                });
-        }.bind(this)); //bind this to the event listener
     },
 
-    /**
-     * Sets up debug page handlers
-     */
     setupDebugPageHandlers() {
         const editModeSwitch = document.getElementById('editModeSwitch');
         const generatedContent = document.getElementById('generatedContent');
@@ -299,9 +218,6 @@ export default {
         }
     },
 
-    /**
-     * Sets up trade form handlers
-     */
     setupTradeFormHandlers() {
         const tradeForm = document.getElementById('tradeForm');
         if (tradeForm) {
@@ -353,9 +269,6 @@ export default {
         });
     },
 
-    /**
-     * Sets up mission-related handlers
-     */
     setupMissionHandlers() {
         // Handle mission details button click
         document.addEventListener('click', function(e) {
@@ -391,9 +304,6 @@ export default {
         });
     },
 
-    /**
-     * Sets up choice currency indicators
-     */
     setupChoiceCurrencyIndicators() {
         document.querySelectorAll('.choice-form').forEach(form => {
             const button = form.querySelector('button');
@@ -414,146 +324,21 @@ export default {
         });
     },
 
-    /**
-     * Sets up choice form submission handlers. This is now redundant, kept for completeness
-     */
-    setupChoiceSubmission() {
-        // Using a flag to track if an event handler is already set up
-        if (this._choiceSubmissionInitialized) {
-            console.log("Choice submission handlers already initialized, skipping");
-            return;
-        }
+    //initStoryChoices and other redundant methods removed
 
-        // Set the flag to prevent duplicate initialization
-        this._choiceSubmissionInitialized = true;
-
-        // Delegate event listener for choice forms
-        document.addEventListener('submit', function(event) {
-            const choiceForm = event.target.closest('.choice-form');
-            if (!choiceForm) return; // Not a choice form
-
-            event.preventDefault();
-
-            // Prevent double submission
-            const submitButton = choiceForm.querySelector('button[type="submit"]');
-            if (submitButton && submitButton.disabled) {
-                console.log("Submission already in progress, ignoring duplicate");
-                return;
-            }
-
-            // Disable the button to prevent multiple submissions
-            if (submitButton) {
-                submitButton.disabled = true;
-            }
-
-            // Create loading overlay
-            const loadingOverlay = UIUtils.createLoadingOverlay('Continuing your adventure...');
-            const loadingPercent = loadingOverlay.querySelector('.loading-percent');
-
-            let progress = 0;
-            const progressInterval = setInterval(() => {
-                if (progress < 90) {
-                    progress += 5;
-                    UIUtils.updateLoadingPercent(loadingPercent, progress);
-                }
-            }, 500);
-
-            // Validate form data before submitting
-            const formData = new FormData(choiceForm);
-            const previousChoice = formData.get('previous_choice');
-            const storyContext = formData.get('story_context');
-
-            if (!previousChoice || !storyContext) {
-                clearInterval(progressInterval);
-                if (loadingOverlay) {
-                    loadingOverlay.remove();
-                }
-                // Re-enable the button if submission fails
-                if (submitButton) {
-                    submitButton.disabled = false;
-                }
-                UIUtils.showToast('Error', 'Missing required story parameters. Please try again.');
-                return;
-            }
-
-            // Generate next part of the story
-            StoryManager.generateStory(formData)
-                .then(response => {
-                    // Hide the loading overlay
-                    UIUtils.toggleLoadingOverlay(false);
-                    // Redirect to the storyboard page
-                    if (response.redirect) {
-                        window.location.href = response.redirect;
-                    } else {
-                        console.log('Story response:', response);
-                    }
-                    // Re-enable the button after successful submission
-                    if (submitButton) {
-                        submitButton.disabled = false;
-                    }
-                    clearInterval(progressInterval);
-                    if (loadingOverlay) {
-                        loadingOverlay.remove();
-                    }
-                })
-                .catch(error => {
-                    // Hide the loading overlay
-                    UIUtils.toggleLoadingOverlay(false);
-                    console.error('Story generation failed:', error);
-
-                    // Display more specific error message
-                    const errorMessage = error.message || 'Failed to generate story';
-                    UIUtils.showNotification(errorMessage, 'error');
-
-                    // If the error is about missing parameters, help the user
-                    if (errorMessage.includes('Missing required')) {
-                        setTimeout(() => {
-                            alert('Please ensure you have selected at least one character and all story parameters (conflict, setting, narrative style, and mood).');
-                        }, 500);
-                    }
-                    // Re-enable the button after failed submission
-                    if (submitButton) {
-                        submitButton.disabled = false;
-                    }
-                    clearInterval(progressInterval);
-                    if (loadingOverlay) {
-                        loadingOverlay.remove();
-                    }
-                });
-        });
-    },
-
-    async processChoice(choice) {
-        try {
-            console.log("Processing choice: ", choice);
-
-            // Process the choice
-            const response = await StoryManager.processChoice(choice);
-
-            // Validate response before updating UI
-            if (!response || (typeof response === 'string' && response.trim() === '')) {
-                throw new Error("Empty response received from server");
-            }
-
-            console.log("Choice processing successful, response:", response);
-
-            // Update the UI with the new story
-            updateStoryboard(response);
-        } catch (error) {
-            console.error("Choice processing failed: ", error);
-            showError("Error processing choice: " + (error.message || "Unknown error"));
-        }
-    }
 };
 
-// Placeholder functions - replace with actual implementations
-function updateStoryboard(response) {
-    //Implement your update logic here
-    console.log("Updating storyboard with:", response);
-}
+// Export for ES module use
+export default EventHandlers;
 
-function showError(message) {
-    //Implement your error handling here
-    console.error(message);
-    alert(message);
+// Initialize on page load if we're not in an ES module context
+if (typeof window !== 'undefined') {
+    window.EventHandlers = EventHandlers;
+
+    // Auto-initialize on DOM loaded if not being imported as a module
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => EventHandlers.initialize());
+    } else {
+        EventHandlers.initialize();
+    }
 }
