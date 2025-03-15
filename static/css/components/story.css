@@ -26,7 +26,6 @@
   position: relative;
   overflow-y: auto;
   max-height: 60vh;
-  margin-bottom: 2rem;
 }
 
 /* Story container */
@@ -67,39 +66,11 @@
 .story-content-container {
   position: relative;
   z-index: 1;
-  background: rgba(255, 255, 255, 0.75);
-  border-radius: 15px;
-  padding: 1.5rem;
-  width: 100%;
-  margin: auto;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
-.story-content-panel {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.9);
   border-radius: 10px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-}
-
-.story-content {
-  font-size: 1.05rem;
-  line-height: 1.7;
-  color: #333;
-}
-
-.character-mention {
-  color: #8B5CF6;
-  font-weight: 500;
-  cursor: pointer;
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
-}
-
-.character-mention:hover {
-  color: #6B46C1;
+  padding: 1rem;
+  width: 95%;
+  margin: auto;
 }
 
 .choice-btn {

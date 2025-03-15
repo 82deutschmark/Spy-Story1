@@ -196,16 +196,7 @@ export default {
                         throw error;
                     });
                 }
-                
-                try {
-                    return response.json().catch(error => {
-                        console.error("Error parsing JSON in response:", error);
-                        throw new Error("Failed to parse server response. Please try again.");
-                    });
-                } catch (error) {
-                    console.error("Error handling response:", error);
-                    throw new Error("Problem with server response. Please try again.");
-                }
+                return response.json();
             })
             .then(data => {
                 if (!data.success) {

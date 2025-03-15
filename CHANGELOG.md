@@ -1,26 +1,7 @@
-
-# Changelog
-
-## [Unreleased]
-### Fixed
-- Fixed JavaScript architecture inconsistencies between modules
-- Standardized initialization methods across JavaScript modules
-- Added null checks and compatibility methods to prevent errors
-- Fixed character selection on index page
-
-## Previous Changes
-
 # Changelog
 
 All notable changes to the Story Creator project will be documented in this file.
 
-## [Latest Updates]
-- Fixed storyboard page styling and functionality:
-  - Added loading animation during story transitions
-  - Improved character highlighting in story text
-  - Enhanced text readability with semi-transparent background panel
-  - Optimized character image sizing and display
-  - Fixed choice button display and positioning
 
 - Enhanced storyboard page styling for dynamically generated pages:
   - Improved styling for story buttons and content area.
@@ -28,10 +9,6 @@ All notable changes to the Story Creator project will be documented in this file
   - Adjustments to HTML templates to match new style requirements.
 
 ## [Unreleased]
-### Fixed
-- Fixed JavaScript error related to CharacterManager module declaration
-- Fixed character selection functionality on the index page
-- Resolved issues with duplicate module declarations in ES modules
 
 ### Fixed
 - Fixed Flask-Admin integration by updating CharacterView to properly reflect Character model attributes
