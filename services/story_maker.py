@@ -313,7 +313,7 @@ If this is the beginning of a story, ensure:
 1. IMPORTANT: The story MUST begin with a detailed mission briefing scene where a mission-giver character assigns a mission to the player with these components:
    - A clear, specific objective (steal a prototype, sabotage a weapons system, infiltrate a secure facility, etc.)
    - A compelling target character who has the 'villain' role with detailed background
-   - A substantial reward in one of the game currencies (💵, 💷, 💶, 💴)
+   - A reward in one of the game currencies (💵, 💷, 💶, 💴)
    - A deadline with serious consequences for failure
    - Detailed mission parameters, challenges, and potential complications
    - IMPORTANT: The mission giver should have a complex attitude - they reluctantly task you with missions while expressing doubts about your reliability, referencing your past failures or unprofessional methods, yet acknowledging your unique skills
@@ -406,7 +406,7 @@ Format as JSON with:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages,
-            temperature=0.95,  # Ranges from 0 to 2, higher creates weirder responses, 1.4 is unusable, 1.05 is a little odd, 0.1 is very dull 
+            temperature=0.45,  # Ranges from 0 to 2, higher creates weirder responses, 1.4 is unusable, 1.05 is a little odd, 0.1 is very dull 
             max_tokens=14000,    # Increased token limit for longer responses
             response_format={"type": "json_object"}  # Force JSON response format
         )
