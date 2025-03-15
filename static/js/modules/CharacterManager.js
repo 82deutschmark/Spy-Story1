@@ -112,3 +112,43 @@ if (typeof window !== 'undefined') {
         CharacterManager.initialize();
     }
 }
+/**
+ * Character Manager Module
+ * Handles character selection, highlighting, and related functionality
+ */
+const CharacterManager = {
+    characters: [],
+    selectedCharacter: null,
+
+    // Method using initialize() name for consistency with other modules
+    initialize() {
+        console.log('Character manager initialized');
+        this.highlightCharactersInStory();
+        return this;
+    },
+
+    // Alias to initialize() for backward compatibility
+    init() {
+        return this.initialize();
+    },
+
+    highlightCharactersInStory() {
+        console.log('Highlighting characters in story');
+        const storyContent = document.querySelector('.story-content');
+        if (!storyContent) {
+            console.log('No story content found');
+            return;
+        }
+        
+        // Character highlighting logic here
+        // This would typically find character names in the story text and wrap them
+        // with highlighting elements
+    },
+
+    selectCharacter(characterId) {
+        this.selectedCharacter = characterId;
+        // Handle character selection UI updates
+    }
+};
+
+export default CharacterManager;

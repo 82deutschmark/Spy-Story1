@@ -5,12 +5,24 @@
 const EventHandlers = {
     initialize() {
         console.log('Event handlers initialized');
+        this.setupEventListeners();
+    },
+
+    setupEventListeners() {
+        // Setup any global event listeners here
+        // For example:
+        document.addEventListener('click', (event) => {
+            // Handle click events if needed
+            if (event.target.matches('.character-select')) {
+                this.handleCharacterSelect(event);
+            }
+        });
         this.setupCharacterSelection();
         this.setupRerollButtons();
-        this.setupFormSubmissionHandlers(); 
-        this.setupDebugPageHandlers(); 
-        this.setupTradeFormHandlers(); 
-        this.setupMissionHandlers(); 
+        this.setupFormSubmissionHandlers();
+        this.setupDebugPageHandlers();
+        this.setupTradeFormHandlers();
+        this.setupMissionHandlers();
         this.setupChoiceCurrencyIndicators();
 
         // Initialize Payment System.  Kept the timeout from original
@@ -21,6 +33,11 @@ const EventHandlers = {
 
         // Highlight characters in story. 
         CharacterManager.highlightCharactersInStory();
+    },
+
+    handleCharacterSelect(event) {
+        // Example handler for character selection
+        console.log('Character selected:', event.target.dataset.character);
     },
 
     /**
@@ -322,13 +339,9 @@ const EventHandlers = {
                 button.parentNode.insertBefore(reqDiv, button.nextSibling);
             }
         });
-    },
-
-    //initStoryChoices and other redundant methods removed
-
+    }
 };
 
-// Export for ES module use
 export default EventHandlers;
 
 // Initialize on page load if we're not in an ES module context

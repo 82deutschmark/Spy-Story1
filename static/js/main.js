@@ -28,28 +28,57 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Initialize character manager
-        if (CharacterManager && typeof CharacterManager.initialize === 'function') {
-            CharacterManager.initialize();
+        if (CharacterManager) {
+            if (typeof CharacterManager.initialize === 'function') {
+                CharacterManager.initialize();
+            } else if (typeof CharacterManager.init === 'function') {
+                CharacterManager.init();
+            }
         }
 
         // Initialize event handlers
-        if (EventHandlers && typeof EventHandlers.initialize === 'function') {
-            EventHandlers.initialize();
+        if (EventHandlers) {
+            if (typeof EventHandlers.initialize === 'function') {
+                EventHandlers.initialize();
+            } else if (typeof EventHandlers.init === 'function') {
+                EventHandlers.init();
+            }
         }
 
-        // Initialize notebook manager if notebook elements exist
-        const notebookElements = document.querySelector('.notebook-container');
-        if (notebookElements) {
-            if (NotebookManager && typeof NotebookManager.initialize === 'function') {
-                NotebookManager.initialize();
+        // Initialize payment manager
+        if (PaymentManager) {
+            if (typeof PaymentManager.initialize === 'function') {
+                PaymentManager.initialize();
+            } else if (typeof PaymentManager.init === 'function') {
+                PaymentManager.init();
             }
-        } else {
-            console.log('Notebook elements not found in the DOM, skipping initialization');
+        }
+
+        // Initialize notebook manager if present in the DOM
+        if (NotebookManager) {
+            try {
+                const notebookElement = document.querySelector('.notebook-container');
+                if (notebookElement) {
+                    if (typeof NotebookManager.initialize === 'function') {
+                        NotebookManager.initialize();
+                    } else if (typeof NotebookManager.init === 'function') {
+                        NotebookManager.init();
+                    }
+                } else {
+                    console.log('Notebook elements not found in the DOM, skipping initialization');
+                }
+            } catch (error) {
+                console.error('Error initializing Notebook manager:', error);
+            }
         }
 
         // Initialize user progress manager
-        if (UserProgressManager && typeof UserProgressManager.initialize === 'function') {
-            UserProgressManager.initialize();
+        if (UserProgressManager) {
+            if (typeof UserProgressManager.initialize === 'function') {
+                UserProgressManager.initialize();
+            } else if (typeof UserProgressManager.init === 'function') {
+                UserProgressManager.init();
+            }
         }
 
         console.log('Modules loaded successfully');
@@ -58,17 +87,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Initialize payment system separately (as it may have different loading requirements)
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, initializing payment system...');
-    try {
-        if (PaymentManager && typeof PaymentManager.initialize === 'function') {
-            PaymentManager.initialize();
-        }
-    } catch (error) {
-        console.error('Error initializing payment system:', error);
-    }
-});
 
 // Initialize character mentions in story text
 function initializeCharacterMentions() {
