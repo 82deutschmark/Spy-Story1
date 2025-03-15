@@ -1,91 +1,128 @@
-### This is the template for the index page. It is the first page that the user sees when they visit the website.
-### It allows the user to select a character and begin their mission.
-
-
-
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
+
+<script type="module" src="/static/js/main.js"></script>
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agent Onboarding - Global Espionage</title>
-    
-    <!-- Third-party CSS -->
+    <title>Choose Your Own Adventure</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <!-- Application CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/character.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/agent.css') }}">
 </head>
-<body class="spy-theme">
-    {% if background_image %}
-    <div class="background-overlay" style="background-image: url('{{ background_image }}')"></div>
-    {% endif %}
+<body>
+    <!-- User Progress Button removed -->
 
-    <div class="container py-4">
+    {% if background_image %}
+    <img src="{{ background_image }}" class="story-background" alt="Story Background">
+    {% endif %}
+    <div class="container mt-5">
         <div class="row justify-content-center">
-            <div class="col-lg-10">
-                <!-- Header Section -->
+            <div class="col-md-10">
                 <div class="text-center mb-4">
-                    <h1 class="display-4 text-light mb-2">
-                        <i class="fas fa-user-secret me-2"></i>Welcome New Agent
-                    </h1>
-                    <p class="lead text-light">Create your agent profile to begin your espionage career</p>
+                    <i class="fas fa-book-open story-icon"></i>
+                    <h1 class="display-4">Global Espionage</h1>
+
+                    <p class="lead">Create a seductive, high-stakes adventure with your chosen characters</p>
                 </div>
 
-                <!-- Error Display -->
-                <div class="alert alert-danger" id="characterSelectionError" style="display: none;"></div>
-
-                <!-- Main Form -->
-                <form id="storyForm" method="POST" action="{{ url_for('main.generate_story_route') }}">
-                    <!-- Agent Information Section -->
-                    <div class="card mb-4 bg-dark text-light border-light">
-                        <div class="card-body">
-                            <h3 class="card-title mb-3">Your Agent Profile</h3>
-                            <div class="row g-3">
-                                <div class="col-md-8">
-                                    <label for="protagonist_name" class="form-label">Agent Name</label>
-                                    <input type="text" class="form-control" id="protagonist_name" name="protagonist_name" required 
-                                           placeholder="Enter your codename">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Gender</label>
-                                    <div class="d-flex gap-3">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="protagonist_gender" id="genderMale" value="male" required>
-                                            <label class="form-check-label" for="genderMale">Male</label>
+                <div class="card shadow-lg mb-4">
+                    <div class="card-body">
+                        <!-- Agent Login Section -->
+                        <div class="agent-login-section mb-4">
+                            <h3 class="card-title text-dark">
+                                <i class="fas fa-user-secret me-2"></i>Agent Login
+                            </h3>
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <div class="agent-profile-form">
+                                        <div class="mb-3">
+                                            <label for="protagonistName" class="form-label">Agent Codename</label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="protagonistName" name="protagonist_name" placeholder="Enter agent codename">
+                                                <button class="btn btn-outline-primary" type="button" id="loadAgentBtn">
+                                                    <i class="fas fa-search me-1"></i> Load Agent
+                                                </button>
+                                            </div>
+                                            <div class="form-text">Enter a name you've used before to continue that story</div>
                                         </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="protagonist_gender" id="genderFemale" value="female">
-                                            <label class="form-check-label" for="genderFemale">Female</label>
+                                        <div class="mb-3">
+                                            <label for="protagonistGender" class="form-label">Agent Gender</label>
+                                            <select class="form-select" id="protagonistGender" name="protagonist_gender">
+                                                <option value="">Select gender</option>
+                                                <option value="male">Male</option>
+                                                <option value="female">Female</option>
+                                                <option value="non-binary">Non-binary</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="notebook-preview">
+                                        <div class="card">
+                                            <div class="card-header bg-dark text-white">
+                                                <h5 class="mb-0"><i class="fas fa-book me-2"></i>Agent's Notebook</h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <div id="agent-details-placeholder">
+                                                    <p class="text-muted">Your agent's notebook will track:</p>
+                                                    <ul class="notebook-features">
+                                                        <li><i class="fas fa-user-circle me-2"></i>Agent level and experience</li>
+                                                        <li><i class="fas fa-coins me-2"></i>Currency balances</li>
+                                                        <li><i class="fas fa-tasks me-2"></i>Active missions</li>
+                                                        <li><i class="fas fa-users me-2"></i>Character relationships</li>
+                                                    </ul>
+                                                </div>
+                                                <div id="agent-details" style="display: none;">
+                                                    <div class="agent-stats mb-3">
+                                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                                            <span class="agent-level">Level: <span id="agent-level">1</span></span>
+                                                            <span class="agent-xp">XP: <span id="agent-xp">0</span></span>
+                                                        </div>
+                                                        <div class="progress" style="height: 10px;">
+                                                            <div id="agent-xp-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="currency-display mb-3">
+                                                        <h6>Currency:</h6>
+                                                        <div id="agent-currency" class="d-flex flex-wrap gap-2"></div>
+                                                    </div>
+                                                    <div id="continue-story-container" class="mt-3" style="display: none;">
+                                                        <button id="continueStoryBtn" class="btn btn-primary btn-sm w-100">
+                                                            <i class="fas fa-book-reader me-2"></i>Continue Your Adventure
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Character Selection Header -->
-                    <div class="text-center mb-4">
-                        <h2 class="text-light">Select Your First Contact</h2>
-                        <p class="text-light">Choose a character who will guide you through your first mission</p>
-                    </div>
+                        <hr class="my-4">
 
-                    <!-- Character Selection Grid -->
-                    <div class="characters-grid">
-                        <div class="row g-4">
-                            {% for img in images %}
-                            <div class="col-md-6">
-                                <div class="character-container">
-                                    <div class="character-select-card" data-id="{{ img.id }}">
-                                        <img class="card-img" src="{{ img.image_url }}" alt="{{ img.name }}">
-                                        <div class="selection-indicator">
-                                            <i class="fas fa-check"></i>
+                        <!-- Character Selection Section -->
+                        <h3 class="card-title mb-4 text-dark">
+                            <i class="fas fa-user me-2"></i>Select a Character
+                        </h3>
+
+                        <h4 class="text-dark text-center mb-4">Choose a Character (Select One)</h4>
+                        <div class="characters-grid mb-4">
+                            <div class="row justify-content-center">
+                                {% for img in images %}
+                                <div class="col-md-5 mb-4">
+                                    <div class="character-container">
+                                        <div class="character-select-card" data-id="{{ img.id }}">
+                                            <img src="{{ img.image_url }}" class="card-img" alt="{{ img.name }}">
+                                            <div class="selection-indicator position-absolute top-0 end-0 m-2 bg-primary text-white rounded-circle p-2" style="display: none;">
+                                                <i class="fas fa-check"></i>
+                                            </div>
                                         </div>
                                         <div class="character-info-box">
-                                            <div class="character-name">{{ img.name }}</div>
+                                            <h3 class="character-name">{{ img.name }}</h3>
                                             <div class="character-traits-list">
                                                 {% if img.character_traits %}
                                                     {% for trait in img.character_traits %}
@@ -93,58 +130,196 @@
                                                     {% endfor %}
                                                 {% endif %}
                                             </div>
-                                            <div class="character-controls">
+                                            <div class="character-controls d-flex justify-content-between align-items-center">
                                                 <button type="button" class="reroll-btn" data-card-index="{{ loop.index0 }}">
-                                                    <i class="fas fa-dice"></i> Reroll
+                                                    <i class="fas fa-dice me-1"></i> Reroll Character
                                                 </button>
                                                 <button type="button" class="select-character-btn" data-character-id="{{ img.id }}">
-                                                    <i class="fas fa-check-circle"></i> Select
+                                                    <i class="fas fa-check-circle me-1"></i> Select Character
                                                 </button>
+                                                <input type="radio" class="character-checkbox d-none" name="selectedCharacter" value="{{ img.id }}" id="character{{ img.id }}">
                                             </div>
                                         </div>
-                                        <input type="radio" class="character-checkbox" name="selectedCharacter" value="{{ img.id }}" id="character{{ img.id }}">
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <form id="storyForm" method="POST" action="{{ url_for('main.generate_story_route') }}">
+                            <div class="selected-characters-container mb-3" style="display: none;">
+                                <h4>Selected Characters:</h4>
+                                <div class="selected-characters-list d-flex flex-wrap"></div>
+                            </div>
+
+                            <div class="accordion" id="storyOptionsAccordion">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="storyOptionsHeading">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                                data-bs-target="#storyOptionsCollapse" aria-expanded="false" aria-controls="storyOptionsCollapse">
+                                            <i class="fas fa-sliders-h me-2"></i>Customize Story Options (Optional)
+                                        </button>
+                                    </h2>
+                                    <div id="storyOptionsCollapse" class="accordion-collapse collapse" aria-labelledby="storyOptionsHeading">
+                                        <div class="accordion-body">
+                                            <h4>Story Options</h4>
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Conflict:</label>
+                                                    <select class="form-select" name="conflict">
+                                                        {% for emoji, name in story_options.conflicts %}
+                                                        <option value="{{ name }}">{{ emoji }} {{ name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                    <div class="form-text">Or specify your own:</div>
+                                                    <input type="text" class="form-control mt-1" name="custom_conflict" placeholder="Custom conflict...">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Setting:</label>
+                                                    <select class="form-select" name="setting">
+                                                        {% for emoji, name in story_options.settings %}
+                                                        <option value="{{ name }}">{{ emoji }} {{ name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                    <div class="form-text">Or specify your own:</div>
+                                                    <input type="text" class="form-control mt-1" name="custom_setting" placeholder="Custom setting...">
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Narrative Style:</label>
+                                                    <select class="form-select" name="narrative_style">
+                                                        {% for emoji, name in story_options.narrative_styles %}
+                                                        <option value="{{ name }}">{{ emoji }} {{ name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                    <div class="form-text">Or specify your own:</div>
+                                                    <input type="text" class="form-control mt-1" name="custom_narrative" placeholder="Custom narrative style...">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Mood:</label>
+                                                    <select class="form-select" name="mood">
+                                                        {% for emoji, name in story_options.moods %}
+                                                        <option value="{{ name }}">{{ emoji }} {{ name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                    <div class="form-text">Or specify your own:</div>
+                                                    <input type="text" class="form-control mt-1" name="custom_mood" placeholder="Custom mood...">
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            {% endfor %}
-                        </div>
-                    </div>
 
-                    <!-- Loading Spinner -->
-                    <div id="loadingSpinner" class="text-center mt-4" style="display: none;">
-                        <div class="spinner-border text-light" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="text-light mt-2">Creating your agent profile and generating your first mission...</p>
-                    </div>
+                            <div id="characterSelectionError" class="alert alert-danger mt-3" style="display: none;">
+                                Please select exactly 3 characters for your story.
+                            </div>
 
-                    <!-- Submit Button -->
-                    <div class="text-center mt-4">
-                        <button type="submit" id="generateStoryBtn" class="btn btn-primary btn-lg">
-                            <i class="fas fa-user-plus me-2"></i>Begin Your Career
-                        </button>
+                            <div class="text-center mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg" id="generateStoryBtn">
+                                    <i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                </form>
+                </div>
+
+                <!-- Debug Link -->
+                <div class="text-center mt-4 mb-5">
+                    <a href="{{ url_for('debug.debug_dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-bug me-2"></i>Debug Tools
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Toast Container -->
+    <!-- Purchase Modal -->
+    <div class="modal fade" id="purchaseModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Purchase Diamonds 💎</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="diamond-packages">
+                        <button class="btn btn-outline-primary diamond-package" data-amount="100" data-price="1">
+                            100 💎 for $1
+                        </button>
+                        <button class="btn btn-outline-primary diamond-package" data-amount="500" data-price="4">
+                            500 💎 for $4
+                        </button>
+                        <button class="btn btn-outline-primary diamond-package" data-amount="1000" data-price="7">
+                            1000 💎 for $7
+                        </button>
+                    </div>
+                    <div class="mt-3">
+                        <button class="btn btn-primary w-100 disabled">Currency Purchase Coming Soon</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trade Modal -->
+
+    <!-- User Progress Modal removed -->
+
+    <div class="modal fade" id="tradeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Trade Currencies</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="tradeForm">
+                        <div class="mb-3">
+                            <label class="form-label">From Currency</label>
+                            <select class="form-select" id="fromCurrency">
+                                <option value="💎">💎 Diamonds</option>
+                                <option value="💷">💷 Pounds</option>
+                                <option value="💶">💶 Euros</option>
+                                <option value="💴">💴 Yen</option>
+                                <option value="💵">💵 Dollars</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Amount</label>
+                            <input type="number" class="form-control" id="tradeAmount" min="1">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">To Currency</label>
+                            <select class="form-select" id="toCurrency">
+                                <option value="💎">💎 Diamonds</option>
+                                <option value="💷">💷 Pounds</option>
+                                <option value="💶">💶 Euros</option>
+                                <option value="💴">💴 Yen</option>
+                                <option value="💵">💵 Dollars</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Trade</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notification -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3">
         <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="toast-header">
+                <i class="fas fa-info-circle me-2"></i>
                 <strong class="me-auto" id="toastTitle">Notification</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
             <div class="toast-body" id="toastMessage"></div>
         </div>
     </div>
 
-    <!-- Load JavaScript dependencies in correct order -->
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <!-- Scripts at the bottom of the body -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Load application JavaScript last -->
-    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
