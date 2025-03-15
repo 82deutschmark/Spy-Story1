@@ -5,6 +5,10 @@
 export const EventHandlers = {
     initialize() {
         console.log('Initializing event handlers');
+        this.setupEventListeners();
+    },
+
+    setupEventListeners() {
         this.setupCharacterSelection();
         this.setupRerollButtons();
         this.setupFormSubmissionHandlers();
@@ -13,8 +17,8 @@ export const EventHandlers = {
     setupCharacterSelection() {
         console.log('Setting up character selection');
         const selectButtons = document.querySelectorAll('.select-character-btn');
-
-        // Function to clear all selections
+        
+        // Clear existing selections
         const clearAllSelections = () => {
             document.querySelectorAll('.character-select-card').forEach(card => {
                 card.classList.remove('selected');
@@ -26,13 +30,13 @@ export const EventHandlers = {
             });
         };
 
-        // Function to update hidden input with selected images
+        // Update hidden input with selected character
         const updateSelectedImagesInput = () => {
-            const selectedIds = Array.from(document.querySelectorAll('.character-checkbox:checked'))
+            const selectedCharacters = Array.from(document.querySelectorAll('.character-checkbox:checked'))
                 .map(checkbox => checkbox.value);
-            const hiddenInput = document.querySelector('#selectedImages');
+            const hiddenInput = document.querySelector('input[name="selected_images"]');
             if (hiddenInput) {
-                hiddenInput.value = JSON.stringify(selectedIds);
+                hiddenInput.value = JSON.stringify(selectedCharacters);
             }
         };
 
@@ -46,15 +50,14 @@ export const EventHandlers = {
                 e.stopPropagation();
 
                 const characterId = this.dataset.characterId;
-                const characterContainer = this.closest('.character-container');
-                
-                if (!characterContainer) {
-                    console.error('Character container not found:', characterId);
+                const characterCard = document.querySelector(`.character-select-card[data-id="${characterId}"]`);
+
+                if (!characterCard) {
+                    console.error('Character card not found:', characterId);
                     return;
                 }
 
-                const characterCard = characterContainer.querySelector('.character-select-card');
-                const checkbox = characterContainer.querySelector('.character-checkbox');
+                const checkbox = document.getElementById(`character${characterId}`);
                 const selectionIndicator = characterCard.querySelector('.selection-indicator');
 
                 if (!checkbox || !selectionIndicator) {
@@ -100,13 +103,13 @@ export const EventHandlers = {
                 e.preventDefault();
                 e.stopPropagation();
 
-                const characterContainer = this.closest('.character-container');
-                if (!characterContainer) {
+                const cardContainer = this.closest('.character-container');
+                if (!cardContainer) {
                     console.error('Character container not found');
                     return;
                 }
 
-                const characterCard = characterContainer.querySelector('.character-select-card');
+                const characterCard = cardContainer.querySelector('.character-select-card');
                 if (!characterCard) {
                     console.error('Character card not found');
                     return;
@@ -123,74 +126,45 @@ export const EventHandlers = {
                 this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Rerolling...';
                 this.disabled = true;
 
-                // Make the API call to reroll the character
                 fetch('/reroll_character', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
                     },
                     body: JSON.stringify({ character_id: characterId })
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok: ' + response.status);
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    if (data.success) {
-                        // Update the character card with new data
-                        const cardImg = characterCard.querySelector('img');
-                        if (cardImg) {
-                            cardImg.src = data.image_url;
-                            cardImg.alt = data.name;
-                        }
-
-                        // Update character ID
-                        characterCard.dataset.id = data.id;
-
-                        // Update character name
-                        const nameElement = characterContainer.querySelector('.character-name');
-                        if (nameElement) {
-                            nameElement.textContent = data.name;
-                        }
-
-                        // Update traits
-                        const traitsContainer = characterContainer.querySelector('.character-traits-list');
-                        if (traitsContainer && data.character_traits) {
-                            traitsContainer.innerHTML = data.character_traits
-                                .map(trait => `<span class="trait-badge">${trait}</span>`)
-                                .join('');
-                        }
-
-                        // Update select button and checkbox
-                        const selectBtn = characterContainer.querySelector('.select-character-btn');
-                        if (selectBtn) {
-                            selectBtn.dataset.characterId = data.id;
-                        }
-
-                        const checkbox = characterContainer.querySelector('.character-checkbox');
-                        if (checkbox) {
-                            checkbox.value = data.id;
-                            checkbox.id = `character${data.id}`;
-                        }
+                    if (data.success && data.character_html) {
+                        // Replace the entire character container with new HTML
+                        cardContainer.outerHTML = data.character_html;
+                        
+                        // Reinitialize event handlers for the new card
+                        EventHandlers.setupCharacterSelection();
+                        EventHandlers.setupRerollButtons();
 
                         // Show success notification
                         if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
                             window.UIUtils.showToast('Character Updated', 'A new character has been loaded!');
                         }
                     } else {
-                        if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
-                            window.UIUtils.showToast('Error', data.error || 'Failed to load a new character');
-                        }
+                        throw new Error(data.error || 'Failed to reroll character');
                     }
                 })
                 .catch(error => {
-                    console.error('Error rerolling character:', error);
-                    if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
-                        window.UIUtils.showToast('Error', 'Failed to load a new character. Please try again.');
-                    }
-                })
-                .finally(() => {
+                    console.error('Failed to reroll character:', error);
                     // Reset button state
                     this.innerHTML = originalButtonText;
                     this.disabled = false;
+
+                    if (window.UIUtils && typeof window.UIUtils.showToast === 'function') {
+                        window.UIUtils.showToast('Error', 'Failed to load a new character. Please try again.', 'error');
+                    }
                 });
             });
         });
