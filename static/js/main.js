@@ -1,5 +1,5 @@
 // Main JavaScript file
-import { EventHandlers } from './modules/EventHandlers.js';
+import EventHandlers from './modules/EventHandlers.js';  // Only import the default export
 import { UIUtils } from './modules/UIUtils.js';
 
 // Make utility functions available globally using the existing implementation
