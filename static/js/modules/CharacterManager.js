@@ -2,7 +2,7 @@
  * Character Manager Module
  * Handles character selection, highlighting, and related functionality
  */
-const CharacterManager = {
+export const CharacterManager = {
     /**
      * Initialize character manager
      */

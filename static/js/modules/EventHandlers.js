@@ -3,7 +3,7 @@
  * EventHandlers Module
  * Central module for managing all event listeners and interactions
  */
-const EventHandlers = {
+export const EventHandlers = {
     initialize() {
         console.log('Event handlers initialized');
         this.setupEventListeners();
