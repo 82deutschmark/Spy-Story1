@@ -2,6 +2,13 @@
 
 All notable changes to the Story Creator project will be documented in this file.
 
+## [Latest Updates]
+- Fixed storyboard page styling and functionality:
+  - Added loading animation during story transitions
+  - Improved character highlighting in story text
+  - Enhanced text readability with semi-transparent background panel
+  - Optimized character image sizing and display
+  - Fixed choice button display and positioning
 
 - Enhanced storyboard page styling for dynamically generated pages:
   - Improved styling for story buttons and content area.

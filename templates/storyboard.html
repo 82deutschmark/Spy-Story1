@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -10,6 +11,11 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 </head>
 <body class="storyboard-body">
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading your adventure...</div>
+    </div>
+
     {% if background_image %}
     <div class="story-background-container">
         <img src="{{ background_image }}" class="story-background" alt="Story Background">
@@ -55,18 +61,20 @@
                 <h1 class="story-title">{{ story.title }}</h1>
                 <p class="story-subtitle">
                     {% if story.setting %}
-                        A spy thriller in {{ story.setting }}
+                        A story set in {{ story.setting }}
                     {% elif story.conflict %}
                         {{ story.conflict }}
                     {% else %}
-                        International Spy Network: 2070
+                        An exciting adventure
                     {% endif %}
                 </p>
             </div>
 
             <div class="story-scroll-container">
-                <div class="story-content">
-                    {{ story.story | safe }}
+                <div class="story-content-panel">
+                    <div class="story-content">
+                        {{ story.story | safe }}
+                    </div>
                 </div>
 
                 <!-- Choices -->
@@ -100,11 +108,6 @@
                     </form>
                     {% endfor %}
                 </div>
-            </div>
-
-            <!-- Navigation -->
-            <div class="navigation-area">
-                <!-- Home button removed -->
             </div>
         </div>
     </div>

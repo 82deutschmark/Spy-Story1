@@ -10,6 +10,12 @@ import MissionManager from './MissionManager.js';
 import PaymentManager from './PaymentManager.js';
 
 export default {
+    // Store loading handlers
+    loadingHandlers: {
+        showLoading: () => {},
+        hideLoading: () => {}
+    },
+
     /**
      * Sets up all event handlers for the application
      */
@@ -513,10 +519,38 @@ export default {
 
     /**
      * Initializes the application
+     * @param {Object} options - Configuration options
+     * @param {Function} options.showLoading - Function to show loading overlay
+     * @param {Function} options.hideLoading - Function to hide loading overlay
      */
-    initialize() {
-        // Set up all event handlers
-        this.setupEventHandlers();
+    init: function(options = {}) {
+        // Set loading handlers if provided
+        if (options.showLoading) this.loadingHandlers.showLoading = options.showLoading;
+        if (options.hideLoading) this.loadingHandlers.hideLoading = options.hideLoading;
+
+        // Add event listeners for choice buttons
+        document.addEventListener('submit', function(e) {
+            if (!e.target.classList.contains('choice-form')) return;
+            e.preventDefault();
+
+            // Show loading animation
+            EventHandlers.loadingHandlers.showLoading();
+
+            // Process the choice
+            processChoice(e.target)
+                .then(() => {
+                    // Hide loading on success
+                    EventHandlers.loadingHandlers.hideLoading();
+                })
+                .catch(error => {
+                    console.error('Choice processing failed:', error);
+                    // Hide loading on error
+                    EventHandlers.loadingHandlers.hideLoading();
+
+                    // Show error message to user
+                    alert("An error occurred while processing your choice. Please try again.");
+                });
+        });
 
         // Highlight characters in story
         CharacterManager.highlightCharactersInStory();
