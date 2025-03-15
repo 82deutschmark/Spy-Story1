@@ -270,8 +270,8 @@ class StoryFormHandler {
     }
 }
 
-// Main EventHandlers Module
-const EventHandlers = {
+// Main EventHandlers Module - export as both default and named export
+export const EventHandlers = {
     CharacterSelector,
     CharacterReroller,
     StoryFormHandler,
@@ -294,4 +294,5 @@ const EventHandlers = {
     }
 };
 
+// Export as default as well
 export default EventHandlers; 
