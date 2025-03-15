@@ -37,106 +37,11 @@ function showToast(title, message) {
     }
 }
 
-// Wait for both DOM and FLASK_CONFIG to be ready
-async function initializeApplication() {
-    try {
-        // Check for FLASK_CONFIG
-        if (!window.FLASK_CONFIG) {
-            throw new Error('FLASK_CONFIG not found. Make sure it is properly initialized in the HTML template.');
-        }
-
-        console.log("Initializing application with config:", window.FLASK_CONFIG);
-
-        // Initialize EventHandlers
-        if (!EventHandlers) {
-            throw new Error('EventHandlers module not found');
-        }
-        console.log("Initializing EventHandlers");
-        await EventHandlers.initialize();
-
-        // Initialize CharacterManager
-        try {
-            console.log("Loading CharacterManager");
-            const { CharacterManager, default: characterManager } = await import('./modules/CharacterManager.js');
-            
-            if (!characterManager && !CharacterManager) {
-                throw new Error('CharacterManager module not found');
-            }
-
-            // Use the singleton instance if available, otherwise create a new instance
-            const manager = characterManager || new CharacterManager();
-            await manager.initialize();
-            console.log("CharacterManager initialized");
-        } catch (err) {
-            console.error("Error initializing CharacterManager:", err);
-            // Continue initialization - non-critical error
-        }
-
-        // Initialize Notebook if elements exist
-        const notebookElements = document.querySelectorAll('.notebook-tab, .notebook-content');
-        if (notebookElements.length > 0) {
-            try {
-                console.log("Loading NotebookManager");
-                const NotebookManager = (await import('./modules/NotebookManager.js')).default;
-                
-                if (!NotebookManager) {
-                    throw new Error('NotebookManager module not found');
-                }
-
-                const notebookManager = new NotebookManager();
-                await notebookManager.initialize();
-                console.log("NotebookManager initialized");
-            } catch (err) {
-                console.error("Error initializing NotebookManager:", err);
-                // Continue initialization - non-critical error
-            }
-        }
-
-        // Initialize optional modules
-        await initializeOptionalModules();
-
-        console.log("Application initialization complete");
-    } catch (error) {
-        console.error('Critical error during application initialization:', error);
-        showErrorMessage(error);
-    }
-}
-
-// Initialize optional modules
-async function initializeOptionalModules() {
-    // Payment Manager
-    try {
-        const PaymentManager = (await import('./modules/PaymentManager.js')).default;
-        if (PaymentManager) {
-            const paymentManager = new PaymentManager();
-            await paymentManager.initialize();
-            console.log("PaymentManager initialized");
-        }
-    } catch (err) {
-        console.warn("PaymentManager not loaded:", err.message);
-    }
-
-    // User Progress Manager
-    try {
-        const UserProgressManager = (await import('./modules/UserProgressManager.js')).default;
-        if (UserProgressManager) {
-            const progressManager = new UserProgressManager();
-            await progressManager.initialize();
-            console.log("UserProgressManager initialized");
-        }
-    } catch (err) {
-        console.warn("UserProgressManager not loaded:", err.message);
-    }
-}
-
-// Show error message to user
-function showErrorMessage(error) {
-    const errorDiv = document.getElementById('characterSelectionError');
-    if (errorDiv) {
-        errorDiv.textContent = 'An error occurred while loading the application. Please refresh the page or contact support if the problem persists.';
-        errorDiv.style.display = 'block';
-    }
-}
+// Make utility functions available globally
+window.createLoadingOverlay = UIUtils.createLoadingOverlay;
+window.updateLoadingPercent = UIUtils.updateLoadingPercent;
+window.removeLoadingOverlay = UIUtils.removeLoadingOverlay;
+window.showToast = UIUtils.showToast;
 
 // Initialize character mentions in story text
 function initializeCharacterMentions() {
@@ -174,35 +79,6 @@ function initializeCharacterMentions() {
     }
 }
 
-// Start initialization when DOM is ready
-document.addEventListener('DOMContentLoaded', async function() {
-    try {
-        await initializeApplication();
-
-        const storyIdParam = new URLSearchParams(window.location.search).get('story_id');
-        if (storyIdParam) {
-            localStorage.setItem('lastStoryId', storyIdParam);
-        }
-
-        if (document.querySelector('.story-content')) {
-            const { CharacterManager, default: characterManager } = await import('./modules/CharacterManager.js');
-            const manager = characterManager || new CharacterManager();
-            
-            if (manager) {
-                await manager.highlightCharactersInStory();
-            }
-            
-            initializeCharacterMentions();
-        }
-
-        // Setup global event listeners
-        setupGlobalListeners();
-    } catch (error) {
-        console.error("Error during initialization:", error);
-        showErrorMessage(error);
-    }
-});
-
 // Setup global event listeners that aren't in EventHandlers
 function setupGlobalListeners() {
     // Back to top button
@@ -223,18 +99,95 @@ function setupGlobalListeners() {
     }
 }
 
-// Make utility functions available globally
-window.createLoadingOverlay = UIUtils.createLoadingOverlay;
-window.updateLoadingPercent = UIUtils.updateLoadingPercent;
-window.removeLoadingOverlay = UIUtils.removeLoadingOverlay;
-window.showToast = UIUtils.showToast;
-
-// Initialize event handlers when DOM is ready
-document.addEventListener('DOMContentLoaded', async () => {
+// Initialize optional modules
+async function initializeOptionalModules() {
+    // Payment Manager
     try {
-        await EventHandlers.initialize();
-    } catch (error) {
-        console.error('Failed to initialize application:', error);
-        UIUtils.showToast('Error', 'Failed to initialize application. Please refresh the page.');
+        const PaymentManager = (await import('./modules/PaymentManager.js')).default;
+        if (PaymentManager) {
+            const paymentManager = new PaymentManager();
+            await paymentManager.initialize();
+            console.log("PaymentManager initialized");
+        }
+    } catch (err) {
+        console.warn("PaymentManager not loaded:", err.message);
     }
-});
+
+    // User Progress Manager
+    try {
+        const UserProgressManager = (await import('./modules/UserProgressManager.js')).default;
+        if (UserProgressManager) {
+            const progressManager = new UserProgressManager();
+            await progressManager.initialize();
+            console.log("UserProgressManager initialized");
+        }
+    } catch (err) {
+        console.warn("UserProgressManager not loaded:", err.message);
+    }
+}
+
+// Main initialization
+async function initializeApplication() {
+    try {
+        // Check for FLASK_CONFIG
+        if (!window.FLASK_CONFIG) {
+            throw new Error('FLASK_CONFIG not found. Make sure it is properly initialized in the HTML template.');
+        }
+
+        console.log("Initializing application with config:", window.FLASK_CONFIG);
+
+        // Initialize EventHandlers
+        await EventHandlers.initialize();
+
+        // Initialize CharacterManager if needed
+        try {
+            const { CharacterManager, default: characterManager } = await import('./modules/CharacterManager.js');
+            const manager = characterManager || new CharacterManager();
+            await manager.initialize();
+            console.log("CharacterManager initialized");
+
+            // Initialize character highlighting if on story page
+            if (document.querySelector('.story-content')) {
+                await manager.highlightCharactersInStory();
+                initializeCharacterMentions();
+            }
+        } catch (err) {
+            console.error("Error initializing CharacterManager:", err);
+            // Continue initialization - non-critical error
+        }
+
+        // Initialize Notebook if elements exist
+        const notebookElements = document.querySelectorAll('.notebook-tab, .notebook-content');
+        if (notebookElements.length > 0) {
+            try {
+                const NotebookManager = (await import('./modules/NotebookManager.js')).default;
+                const notebookManager = new NotebookManager();
+                await notebookManager.initialize();
+                console.log("NotebookManager initialized");
+            } catch (err) {
+                console.error("Error initializing NotebookManager:", err);
+                // Continue initialization - non-critical error
+            }
+        }
+
+        // Initialize optional modules
+        await initializeOptionalModules();
+
+        // Setup global event listeners
+        setupGlobalListeners();
+
+        // Store story ID if present
+        const storyIdParam = new URLSearchParams(window.location.search).get('story_id');
+        if (storyIdParam) {
+            localStorage.setItem('lastStoryId', storyIdParam);
+        }
+
+        console.log("Application initialization complete");
+    } catch (error) {
+        console.error('Critical error during application initialization:', error);
+        UIUtils.showToast('Error', 'An error occurred while loading the application. Please refresh the page or contact support if the problem persists.');
+    }
+}
+
+// Start initialization when DOM is ready
+document.addEventListener('DOMContentLoaded', initializeApplication);
