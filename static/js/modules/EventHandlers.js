@@ -271,13 +271,16 @@ class StoryFormHandler {
 }
 
 // Main EventHandlers Module
-export const EventHandlers = {
+const EventHandlers = {
+    CharacterSelector,
+    CharacterReroller,
+    StoryFormHandler,
     async initialize() {
         console.log('Initializing event handlers');
         try {
-            const characterSelector = new CharacterSelector();
-            const characterReroller = new CharacterReroller();
-            const storyFormHandler = new StoryFormHandler();
+            const characterSelector = new this.CharacterSelector();
+            const characterReroller = new this.CharacterReroller();
+            const storyFormHandler = new this.StoryFormHandler();
 
             characterSelector.initialize();
             characterReroller.initialize();

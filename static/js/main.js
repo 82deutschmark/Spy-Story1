@@ -2,8 +2,9 @@
 import { EventHandlers } from './modules/EventHandlers.js';
 import { UIUtils } from './modules/UIUtils.js';
 
-// Loading overlay functions
-function createLoadingOverlay(message = 'Generating Story...') {
+// Make utility functions available globally using the existing implementation
+// We'll keep the current implementation since it might be used by other code
+window.createLoadingOverlay = function(message = 'Generating Story...') {
     const overlay = document.createElement('div');
     overlay.className = 'loading-overlay';
     overlay.innerHTML = `
@@ -16,18 +17,17 @@ function createLoadingOverlay(message = 'Generating Story...') {
     document.body.appendChild(overlay);
     overlay.style.display = 'flex';
     return overlay.querySelector('.loading-percentage');
-}
+};
 
-function updateLoadingPercent(element, percent) {
+window.updateLoadingPercent = function(element, percent) {
     element.textContent = `${Math.round(percent)}%`;
-}
+};
 
-function removeLoadingOverlay(overlay) {
+window.removeLoadingOverlay = function(overlay) {
     overlay.closest('.loading-overlay').remove();
-}
+};
 
-// Toast notification function
-function showToast(title, message) {
+window.showToast = function(title, message) {
     const toastEl = document.getElementById('notificationToast');
     if (toastEl) {
         const toast = new bootstrap.Toast(toastEl);
@@ -35,13 +35,7 @@ function showToast(title, message) {
         document.getElementById('toastMessage').textContent = message;
         toast.show();
     }
-}
-
-// Make utility functions available globally
-window.createLoadingOverlay = UIUtils.createLoadingOverlay;
-window.updateLoadingPercent = UIUtils.updateLoadingPercent;
-window.removeLoadingOverlay = UIUtils.removeLoadingOverlay;
-window.showToast = UIUtils.showToast;
+};
 
 // Initialize character mentions in story text
 function initializeCharacterMentions() {
@@ -185,7 +179,7 @@ async function initializeApplication() {
         console.log("Application initialization complete");
     } catch (error) {
         console.error('Critical error during application initialization:', error);
-        UIUtils.showToast('Error', 'An error occurred while loading the application. Please refresh the page or contact support if the problem persists.');
+        window.showToast('Error', 'An error occurred while loading the application. Please refresh the page or contact support if the problem persists.');
     }
 }
 
