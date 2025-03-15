@@ -136,42 +136,50 @@ document.addEventListener('DOMContentLoaded', function() {
             e.stopPropagation();
 
             const cardContainer = this.closest('.character-container');
-
             if (!cardContainer) return;
 
             const characterCard = cardContainer.querySelector('.character-select-card');
-
             if (!characterCard) return;
+
+            const characterId = characterCard.dataset.id;
+            if (!characterId) return;
 
             // Show loading state
             this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Rerolling...';
 
             // Fetch a new random character
-            fetch('/api/random_character')
+            fetch('/reroll_character', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ character_id: characterId })
+            })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         // Update image
                         const cardImg = characterCard.querySelector('img');
                         if (cardImg) {
-                            cardImg.src = data.image_url;
+                            cardImg.src = data.character.image_url;
                         }
 
                         // Update character ID
-                        characterCard.dataset.id = data.id;
+                        characterCard.dataset.id = data.character.id;
 
                         // Update character name
                         const nameElement = cardContainer.querySelector('.character-name');
                         if (nameElement) {
-                            nameElement.textContent = data.name;
+                            nameElement.textContent = data.character.name;
                         }
 
                         // Update traits
                         const traitsContainer = cardContainer.querySelector('.character-traits-list');
                         if (traitsContainer) {
                             traitsContainer.innerHTML = '';
-                            if (data.character_traits && data.character_traits.length > 0) {
-                                data.character_traits.forEach(trait => {
+                            if (data.character.character_traits && data.character.character_traits.length > 0) {
+                                data.character.character_traits.forEach(trait => {
                                     const traitBadge = document.createElement('span');
                                     traitBadge.className = 'trait-badge';
                                     traitBadge.textContent = trait;
@@ -183,14 +191,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Update select button data attribute
                         const selectBtn = cardContainer.querySelector('.select-character-btn');
                         if (selectBtn) {
-                            selectBtn.dataset.characterId = data.id;
+                            selectBtn.dataset.characterId = data.character.id;
                         }
 
                         // Update hidden input
                         const checkbox = cardContainer.querySelector('.character-checkbox');
                         if (checkbox) {
-                            checkbox.value = data.id;
-                            checkbox.id = `character${data.id}`;
+                            checkbox.value = data.character.id;
+                            checkbox.id = `character${data.character.id}`;
                         }
 
                         // Show toast notification

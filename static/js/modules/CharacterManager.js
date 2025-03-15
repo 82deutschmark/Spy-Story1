@@ -4,7 +4,7 @@ console.log("Initializing CharacterManager module");
 class CharacterManager {
     constructor() {
         this.selectedCharacters = [];
-        this.maxCharacters = 1; // Changed to 1 for single selection
+        this.maxCharacters = 1; // Single selection mode
         this.initialized = false;
     }
 
@@ -16,10 +16,14 @@ class CharacterManager {
             }
 
             console.log("Setting up CharacterManager");
-            await Promise.all([
-                this.setupCharacterCards(),
-                this.highlightCharactersInStory()
-            ]);
+            
+            // Setup character cards and buttons
+            await this.setupCharacterInteractions();
+            
+            // Initialize character highlighting if on story page
+            if (document.querySelector('.story-content')) {
+                await this.highlightCharactersInStory();
+            }
 
             this.initialized = true;
             console.log("CharacterManager initialization complete");
@@ -29,42 +33,55 @@ class CharacterManager {
         }
     }
 
-    async setupCharacterCards() {
+    async setupCharacterInteractions() {
         try {
-            console.log("Setting up character cards");
-            const characterCards = document.querySelectorAll('.character-select-card');
-            
-            if (characterCards.length === 0) {
-                console.log("No character cards found");
-                return;
-            }
+            console.log("Setting up character interactions");
 
-            characterCards.forEach(card => {
-                // Remove existing listeners to prevent duplicates
-                const newCard = card.cloneNode(true);
-                card.parentNode.replaceChild(newCard, card);
-                newCard.addEventListener('click', (e) => this.handleCharacterSelection(e, newCard));
+            // Setup character cards
+            document.querySelectorAll('.character-select-card').forEach(card => {
+                // Handle card clicks (except buttons)
+                card.addEventListener('click', (e) => {
+                    if (!e.target.closest('button')) {
+                        this.handleCharacterSelection(card);
+                    }
+                });
+
+                // Setup select button
+                const selectBtn = card.querySelector('.select-character-btn');
+                if (selectBtn) {
+                    selectBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this.handleCharacterSelection(card);
+                    });
+                }
+
+                // Setup reroll button
+                const rerollBtn = card.querySelector('.reroll-btn');
+                if (rerollBtn) {
+                    rerollBtn.addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        await this.handleCharacterReroll(card, rerollBtn);
+                    });
+                }
             });
 
-            console.log(`Set up ${characterCards.length} character cards`);
+            console.log("Character interactions setup complete");
         } catch (error) {
-            console.error("Error setting up character cards:", error);
+            console.error("Error setting up character interactions:", error);
             throw error;
         }
     }
 
-    handleCharacterSelection(e, card) {
+    handleCharacterSelection(card) {
         try {
-            // Don't process click if coming from a button inside the card
-            if (e.target.closest('button')) return;
-
             const characterId = card.dataset.id;
             if (!characterId) {
                 console.error("Character card missing data-id attribute");
                 return;
             }
 
-            const isSelected = card.classList.contains('selected');
             const checkbox = document.getElementById(`character${characterId}`);
             const selectionIndicator = card.querySelector('.selection-indicator');
 
@@ -73,35 +90,43 @@ class CharacterManager {
                 return;
             }
 
-            // Clear all selections first (for single select)
-            document.querySelectorAll('.character-select-card').forEach(otherCard => {
-                otherCard.classList.remove('selected');
-                const indicator = otherCard.querySelector('.selection-indicator');
-                if (indicator) {
-                    indicator.style.display = 'none';
-                }
-                const otherCheckbox = document.getElementById(`character${otherCard.dataset.id}`);
-                if (otherCheckbox) {
-                    otherCheckbox.checked = false;
-                }
-            });
+            // Clear all selections first (single select mode)
+            this.clearAllSelections();
 
-            if (!isSelected) {
-                // Select this character
-                card.classList.add('selected');
-                selectionIndicator.style.display = 'block';
-                checkbox.checked = true;
-                this.selectedCharacters = [characterId];
+            // Select this character
+            card.classList.add('selected');
+            selectionIndicator.style.display = 'block';
+            checkbox.checked = true;
+            this.selectedCharacters = [characterId];
 
-                if (window.showToast) {
-                    window.showToast('Character Selected', 'Character has been selected for your story.');
-                }
-            }
-
+            // Update hidden input
             this.updateSelectedCharactersField();
+
+            // Show toast notification
+            if (window.showToast) {
+                window.showToast('Character Selected', 'Character has been selected for your story.');
+            }
         } catch (error) {
             console.error("Error handling character selection:", error);
+            if (window.showToast) {
+                window.showToast('Error', 'Failed to select character. Please try again.');
+            }
         }
+    }
+
+    clearAllSelections() {
+        document.querySelectorAll('.character-select-card').forEach(card => {
+            card.classList.remove('selected');
+            const indicator = card.querySelector('.selection-indicator');
+            if (indicator) {
+                indicator.style.display = 'none';
+            }
+            const checkbox = document.getElementById(`character${card.dataset.id}`);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+        });
+        this.selectedCharacters = [];
     }
 
     updateSelectedCharactersField() {
@@ -115,10 +140,19 @@ class CharacterManager {
         }
     }
 
-    async rerollCharacter(characterId) {
-        try {
-            console.log(`Rerolling character ${characterId}`);
+    async handleCharacterReroll(card, button) {
+        const characterId = card.dataset.id;
+        if (!characterId) {
+            console.error("Character ID not found");
+            return;
+        }
 
+        // Show loading state
+        const originalButtonText = button.innerHTML;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Rerolling...';
+        button.disabled = true;
+
+        try {
             const response = await fetch('/reroll_character', {
                 method: 'POST',
                 headers: {
@@ -137,72 +171,78 @@ class CharacterManager {
                 throw new Error(data.error || 'Failed to reroll character');
             }
 
-            const cardContainer = document.querySelector(`.character-select-card[data-id="${characterId}"]`)?.parentNode;
-            if (!cardContainer) {
-                throw new Error(`Character card container not found for ID: ${characterId}`);
-            }
-
-            // Update the card with new character data
-            const card = cardContainer.querySelector('.character-select-card');
-            if (card) {
-                // Update image
-                const cardImg = card.querySelector('img');
-                if (cardImg) {
-                    cardImg.src = data.image_url;
-                }
-
-                // Update character ID
-                card.dataset.id = data.id;
-
-                // Update character name
-                const nameElement = card.querySelector('.character-name');
-                if (nameElement) {
-                    nameElement.textContent = data.name;
-                }
-
-                // Update traits
-                const traitsContainer = card.querySelector('.character-traits-list');
-                if (traitsContainer) {
-                    traitsContainer.innerHTML = '';
-                    if (data.character_traits && data.character_traits.length > 0) {
-                        data.character_traits.forEach(trait => {
-                            const traitBadge = document.createElement('span');
-                            traitBadge.className = 'trait-badge';
-                            traitBadge.textContent = trait;
-                            traitsContainer.appendChild(traitBadge);
-                        });
-                    }
-                }
-
-                // Update checkbox
-                const checkbox = card.querySelector('.character-checkbox');
-                if (checkbox) {
-                    checkbox.value = data.id;
-                    checkbox.id = `character${data.id}`;
-                }
-
-                // Update select button
-                const selectBtn = card.querySelector('.select-character-btn');
-                if (selectBtn) {
-                    selectBtn.dataset.characterId = data.id;
-                }
-            }
+            // Update card with new character data
+            await this.updateCharacterCard(card, data.character);
 
             if (window.showToast) {
                 window.showToast('Character Updated', 'A new character has been loaded!');
             }
-
-            console.log(`Successfully rerolled character ${characterId}`);
         } catch (error) {
             console.error('Failed to reroll character:', error);
             if (window.showToast) {
                 window.showToast('Error', 'Failed to reroll character. Please try again.');
             }
+        } finally {
+            button.innerHTML = originalButtonText;
+            button.disabled = false;
+        }
+    }
+
+    async updateCharacterCard(card, characterData) {
+        try {
+            // Update image
+            const cardImg = card.querySelector('img');
+            if (cardImg) {
+                cardImg.src = characterData.image_url;
+            }
+
+            // Update character ID
+            card.dataset.id = characterData.id;
+
+            // Update character name
+            const nameElement = card.querySelector('.character-name');
+            if (nameElement) {
+                nameElement.textContent = characterData.name;
+            }
+
+            // Update traits
+            const traitsContainer = card.querySelector('.character-traits-list');
+            if (traitsContainer) {
+                traitsContainer.innerHTML = '';
+                if (characterData.character_traits?.length > 0) {
+                    characterData.character_traits.forEach(trait => {
+                        const traitBadge = document.createElement('span');
+                        traitBadge.className = 'trait-badge';
+                        traitBadge.textContent = trait;
+                        traitsContainer.appendChild(traitBadge);
+                    });
+                }
+            }
+
+            // Update checkbox
+            const checkbox = card.querySelector('.character-checkbox');
+            if (checkbox) {
+                checkbox.value = characterData.id;
+                checkbox.id = `character${characterData.id}`;
+            }
+
+            // Update select button
+            const selectBtn = card.querySelector('.select-character-btn');
+            if (selectBtn) {
+                selectBtn.dataset.characterId = characterData.id;
+            }
+
+            // If this character was selected, update the selection state
+            if (this.selectedCharacters.includes(characterData.id.toString())) {
+                this.handleCharacterSelection(card);
+            }
+        } catch (error) {
+            console.error("Error updating character card:", error);
             throw error;
         }
     }
 
-    highlightCharactersInStory() {
+    async highlightCharactersInStory() {
         try {
             console.log("Highlighting characters in story");
             const storyContent = document.querySelector('.story-content');
