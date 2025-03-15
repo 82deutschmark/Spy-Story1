@@ -16,8 +16,11 @@ const CharacterManager = {
      */
     initialize() {
         console.log('Character manager initialized');
-        this.setupCharacterSelection();
-        this.highlightCharactersInStory();
+
+        // If we're on a storyboard page, highlight characters in story text
+        if (document.querySelector('.story-content')) {
+            this.highlightCharactersInStory();
+        }
     },
 
     /**
@@ -105,51 +108,7 @@ const CharacterManager = {
      * Set up character selection
      */
     setupCharacterSelection() {
-        // Handle select character button clicks
-        const selectButtons = document.querySelectorAll('.select-character-btn');
-        selectButtons.forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-
-                const characterId = this.dataset.characterId;
-                const characterCard = document.querySelector(`.character-select-card[data-id="${characterId}"]`);
-
-                if (!characterCard) return;
-
-                const checkbox = document.getElementById(`character${characterId}`);
-                const selectionIndicator = characterCard.querySelector('.selection-indicator');
-
-                if (!checkbox || !selectionIndicator) return;
-
-                // Clear all previous selections
-                document.querySelectorAll('.character-select-card').forEach(card => {
-                    card.classList.remove('selected');
-                    const indicator = card.querySelector('.selection-indicator');
-                    if (indicator) indicator.style.display = 'none';
-                });
-
-                document.querySelectorAll('.character-checkbox').forEach(cb => {
-                    cb.checked = false;
-                });
-
-                // Select this character
-                checkbox.checked = true;
-                selectionIndicator.style.display = 'block';
-                characterCard.classList.add('selected');
-
-                // Update hidden input for selected image
-                const selectedImagesInput = document.getElementById('selectedImagesInput');
-                if (selectedImagesInput) {
-                    selectedImagesInput.value = JSON.stringify([characterId]);
-                }
-
-                // Show toast notification if UIUtils is available
-                if (typeof UIUtils !== 'undefined' && UIUtils.showToast) {
-                    UIUtils.showToast('Character Selected', 'Character has been selected for your story.');
-                }
-            });
-        });
+        // Character selection functionality already handled in EventHandlers.js
     },
 
     /**
@@ -203,72 +162,10 @@ const CharacterManager = {
     },
 
     /**
-     * Fetches a random character to replace existing one
-     * @param {string|number} cardIndex - The index of the card to update
-     * @param {HTMLElement} buttonElement - The button that was clicked
-     * @returns {Promise<boolean>} - Whether the fetch was successful
-     */
-    fetchRandomCharacter(cardIndex, buttonElement) {
-        return fetch('/api/random_character')
-            .then(response => response.json())
-            .then(data => {
-                if (!data || !data.id) {
-                    return false;
-                }
-
-                // Find the card container to update
-                const cardContainer = buttonElement.closest('.character-container');
-                if (!cardContainer) return false;
-
-                // Update the character card content with new character data
-                const characterCard = cardContainer.querySelector('.character-select-card');
-                if (characterCard) {
-                    characterCard.dataset.id = data.id;
-
-                    // Update image
-                    const imgElement = characterCard.querySelector('img');
-                    if (imgElement && data.image_url) {
-                        imgElement.src = data.image_url;
-                    }
-
-                    // Update name and description if present
-                    const nameElement = characterCard.querySelector('.character-name');
-                    if (nameElement && data.name) {
-                        nameElement.textContent = data.name;
-                    }
-
-                    const descElement = characterCard.querySelector('.character-description');
-                    if (descElement && data.description) {
-                        descElement.textContent = data.description;
-                    }
-
-                    // Update select button's data-character-id
-                    const selectButton = cardContainer.querySelector('.select-character-btn');
-                    if (selectButton) {
-                        selectButton.dataset.characterId = data.id;
-                    }
-
-                    // Update checkbox
-                    const checkbox = cardContainer.querySelector('input[type="radio"]');
-                    if (checkbox) {
-                        checkbox.value = data.id;
-                        checkbox.id = `character${data.id}`;
-                    }
-                }
-
-                return true;
-            })
-            .catch(error => {
-                console.error('Error fetching random character:', error);
-                return false;
-            });
-    },
-
-    /**
      * Fetches a random character from the server
      * @returns {Promise} - Promise resolving to character data
      */
-    fetchRandomCharacterOld() {
+    fetchRandomCharacter() {
         return fetch('/api/random_character')
             .then(response => {
                 if (!response.ok) {
