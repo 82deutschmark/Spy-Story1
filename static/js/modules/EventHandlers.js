@@ -235,7 +235,8 @@ export default {
             if (!e.target.classList.contains('choice-form')) return;
             e.preventDefault();
 
-            StoryManager.processChoice(e.target)
+            // Use the new processChoice function
+            processChoice(e.target)
                 .catch(error => {
                     console.error('Choice processing failed:', error);
                 });
@@ -486,6 +487,29 @@ export default {
                 });
         });
     },
+
+    async processChoice(choice) {
+        try {
+            console.log("Processing choice: ", choice);
+
+            // Process the choice
+            const response = await StoryManager.processChoice(choice);
+
+            // Validate response before updating UI
+            if (!response || (typeof response === 'string' && response.trim() === '')) {
+                throw new Error("Empty response received from server");
+            }
+
+            console.log("Choice processing successful, response:", response);
+
+            // Update the UI with the new story
+            updateStoryboard(response);
+        } catch (error) {
+            console.error("Choice processing failed: ", error);
+            showError("Error processing choice: " + (error.message || "Unknown error"));
+        }
+    },
+
 
     /**
      * Initializes the application

@@ -23,7 +23,7 @@ def evolve_character_traits(char_evolution_id: int, story_context: str) -> bool:
         if not char_evolution:
             logger.error(f"[Evolve] Character evolution record {char_evolution_id} not found.")
             return False
-            
+
         # Verify character exists in characters table
         from models.character_data import Character
         character = Character.query.get(char_evolution.character_id)
@@ -122,3 +122,14 @@ def update_character_relationships(
         logger.error(f"[Relationships] Error updating character relationships: {str(e)}", exc_info=True)
         db.session.rollback()
         return False
+
+def create_character_evolution(user_id, character_id, story_id, role=None, traits=None):
+    """Create a new character evolution record"""
+    if not character_id:
+        raise ValueError("Missing required character_id")
+
+    # Check if character exists using the Character model
+    from models.character import Character
+    character = Character.query.get(character_id)
+    if not character:
+        raise ValueError(f"Character with ID {character_id} not found")

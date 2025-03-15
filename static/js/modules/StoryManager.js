@@ -188,6 +188,12 @@ export default {
                             throw new Error(errorMessage);
                         }
                         throw new Error(data.error || 'Failed to process choice');
+                    }).catch(error => {
+                        if (error instanceof SyntaxError) {
+                            console.error("Error parsing JSON response:", error);
+                            throw new Error("Invalid JSON response received from server.");
+                        }
+                        throw error;
                     });
                 }
                 return response.json();
