@@ -413,48 +413,6 @@ export default {
             }
         });
     },
-    
-    /**
-     * Initializes reroll button handlers
-     */
-    setupRerollButtons() {
-        const rerollButtons = document.querySelectorAll('.reroll-btn');
-        if (!rerollButtons.length) return;
-        
-        console.log('Setting up reroll buttons:', rerollButtons.length);
-        
-        rerollButtons.forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const originalText = this.innerHTML;
-                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-                
-                if (CharacterManager && typeof CharacterManager.fetchRandomCharacter === 'function') {
-                    const cardIndex = this.dataset.cardIndex;
-                    CharacterManager.fetchRandomCharacter(cardIndex, this)
-                        .then(success => {
-                            this.innerHTML = originalText;
-                            if (success) {
-                                UIUtils.showToast('Character Updated', 'A new character has been loaded!');
-                            } else {
-                                UIUtils.showToast('Error', 'Failed to load a new character. Please try again.');
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error fetching random character:', error);
-                            this.innerHTML = originalText;
-                            UIUtils.showToast('Error', 'Failed to load a new character. Please try again.');
-                        });
-                } else {
-                    console.error('CharacterManager not available or missing fetchRandomCharacter method');
-                    this.innerHTML = originalText;
-                    UIUtils.showToast('Error', 'Character reroll functionality unavailable');
-                }
-            });
-        });
-    },
 
     /**
      * Sets up choice form submission handlers. This is now redundant, kept for completeness

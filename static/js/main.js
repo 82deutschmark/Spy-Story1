@@ -114,46 +114,17 @@ function initializeCharacterMentions() {
 
 // Document this issue in the changelog
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, initializing modules...');
-    
-    // Initialize event handlers first
-    if (typeof EventHandlers !== 'undefined') {
-        EventHandlers.initialize();
-        console.log('Event handlers initialized');
-    }
-    
-    // Initialize CharacterManager
-    if (typeof CharacterManager !== 'undefined') {
-        CharacterManager.initialize();
-    }
-    
-    // Initialize PaymentManager
-    if (typeof PaymentManager !== 'undefined') {
-        PaymentManager.initialize();
-    }
-    
-    // Initialize NotebookManager if available
-    if (typeof NotebookManager !== 'undefined') {
-        NotebookManager.initialize();
-    }
-    
-    // Initialize UserProgressManager
-    if (typeof UserProgressManager !== 'undefined') {
-        UserProgressManager.initialize();
-    }
-    
     // Check if we're on a storyboard page and save the story ID
     const storyIdParam = new URLSearchParams(window.location.search).get('story_id');
     if (storyIdParam) {
         localStorage.setItem('lastStoryId', storyIdParam);
     }
-    
-    // Initialize character mentions in text
-    if (typeof initializeCharacterMentions === 'function') {
-        initializeCharacterMentions();
+
+    // Also initialize character highlighting if on storyboard page
+    if (document.querySelector('.story-content') && CharacterManager) {
+        CharacterManager.highlightCharactersInStory();
     }
-    
-    console.log('Modules loaded successfully');
+    initializeCharacterMentions();
 });
 
 // NOTE: The following features are described in the thinking section but not fully implemented in the provided changes:

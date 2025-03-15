@@ -1,3 +1,4 @@
+
 /**
  * Payment Manager Module
  * Handles in-game currency and payment functionality
@@ -34,11 +35,11 @@ export default {
             pkg.addEventListener('click', () => {
                 const amount = pkg.dataset.amount;
                 const price = pkg.dataset.price;
-
+                
                 console.log(`Selected package: ${amount} diamonds for $${price}`);
                 // Here would be the actual payment processing
                 // For now, just show a message
-
+                
                 if (window.App && window.App.UI) {
                     window.App.UI.showToast('Coming Soon', 'Currency purchases will be available soon.');
                 }
@@ -55,33 +56,33 @@ export default {
 
         tradeForm.addEventListener('submit', (e) => {
             e.preventDefault();
-
+            
             const fromCurrency = document.getElementById('fromCurrency').value;
             const toCurrency = document.getElementById('toCurrency').value;
             const amount = document.getElementById('tradeAmount').value;
-
+            
             if (fromCurrency === toCurrency) {
                 if (window.App && window.App.UI) {
                     window.App.UI.showToast('Error', 'Cannot trade the same currency');
                 }
                 return;
             }
-
+            
             if (!amount || amount < 1) {
                 if (window.App && window.App.UI) {
                     window.App.UI.showToast('Error', 'Please enter a valid amount');
                 }
                 return;
             }
-
+            
             console.log(`Trading ${amount} ${fromCurrency} for ${toCurrency}`);
             // Here would be the actual trade processing
             // For now, just show a success message
-
+            
             if (window.App && window.App.UI) {
                 window.App.UI.showToast('Trade Successful', `Traded ${amount} ${fromCurrency} for ${toCurrency}`);
             }
-
+            
             // Close modal if it exists
             const modal = document.getElementById('tradeModal');
             if (modal) {

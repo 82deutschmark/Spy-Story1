@@ -159,20 +159,12 @@ All notable changes to the Story Creator project will be documented in this file
    - Implemented direct initialization for critical modules
    - Fixed character highlighting in story text
 
-2. Fixed character interaction functionality:
-   - Implemented character reroll functionality in `CharacterManager.js`
-   - Added reroll button event handling in `EventHandlers.js`
-   - Added character selection functionality with proper UI updates
-   - Standardized error handling for API requests
-
 **Resolved Issues:**
 - Fixed "Uncaught TypeError: EventHandlers.initialize is not a function"
 - Fixed "CharacterManager.init is not a function"
 - Fixed "PaymentManager.init is not a function"
 - Fixed character highlighting in story content
 - Implemented centralized event handling for forms and interactions
-- Fixed reroll button functionality
-- Fixed character selection UI feedback
 
 **Next Steps:**
 - Validate character selection event handling works correctly
