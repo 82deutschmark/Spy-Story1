@@ -1,4 +1,6 @@
 // Form Submission Module
+import { CharacterManager } from './CharacterManager.js';
+
 class StoryFormHandler {
     constructor() {
         this.progress = 0;
@@ -43,21 +45,20 @@ class StoryFormHandler {
             window.removeLoadingOverlay?.(loadingPercent);
         }
         button.disabled = false;
-        button.innerHTML = '<i class="fas fa-book-open me-2"></i>Begin Your Story';
+        button.innerHTML = '<i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure';
     }
 
     async handleSubmit(form, e) {
         e.preventDefault();
-
-        const selectedCharacters = document.querySelectorAll('.character-checkbox:checked');
-        if (selectedCharacters.length !== 1) {
-            this.showError('Please select a character for your story');
+        
+        const selectedCharacter = document.querySelector('input[name="selectedCharacter"]:checked');
+        if (!selectedCharacter) {
+            this.showError('Please select a character to begin your adventure.');
             return;
         }
 
-        this.hideError();
-        const generateStoryBtn = document.getElementById('generateStoryBtn');
-        const loadingPercent = this.startLoadingAnimation(generateStoryBtn);
+        const submitButton = form.querySelector('#generateStoryBtn');
+        const loadingPercent = this.startLoadingAnimation(submitButton);
 
         try {
             const formData = new FormData(form);
@@ -67,29 +68,26 @@ class StoryFormHandler {
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error('Failed to generate story');
             }
 
-            const data = await response.json();
-            if (data.success) {
-                window.updateLoadingPercent?.(loadingPercent, 100);
-                setTimeout(() => {
-                    window.location.href = data.redirect_url;
-                }, 500);
+            const result = await response.json();
+            if (result.redirect_url) {
+                window.location.href = result.redirect_url;
             } else {
-                throw new Error(data.error || 'Failed to generate story');
+                throw new Error('No redirect URL in response');
             }
         } catch (error) {
-            console.error('Error:', error);
-            window.showToast?.('Error', 'Failed to generate story. Please try again.');
-            this.stopLoadingAnimation(generateStoryBtn, loadingPercent);
+            console.error('Error submitting form:', error);
+            window.showToast('Error', 'Failed to generate story. Please try again.');
+            this.stopLoadingAnimation(submitButton, loadingPercent);
         }
     }
 
     initialize() {
-        const storyForm = document.querySelector('#storyForm');
-        if (storyForm) {
-            storyForm.addEventListener('submit', this.handleSubmit.bind(this, storyForm));
+        const form = document.getElementById('storyForm');
+        if (form) {
+            form.addEventListener('submit', this.handleSubmit.bind(this));
         }
     }
 }
@@ -97,47 +95,37 @@ class StoryFormHandler {
 // Event Handlers Module
 class EventHandlers {
     constructor() {
-        this.initialized = false;
         this.characterManager = null;
         this.storyFormHandler = null;
     }
 
     static async initialize() {
-        if (this.initialized) {
-            console.log("EventHandlers already initialized");
-            return;
-        }
-
-        console.log("Initializing EventHandlers");
-        
         try {
-            // Import and initialize CharacterManager
-            const { CharacterManager, default: characterManager } = await import('./CharacterManager.js');
+            console.log("Initializing EventHandlers");
             
-            // Use existing instance or create new one
-            this.characterManager = characterManager || new CharacterManager();
-            await this.characterManager.initialize();
-            console.log("CharacterManager initialized through EventHandlers");
-
+            // Initialize CharacterManager
+            const characterManager = new CharacterManager();
+            await characterManager.initialize();
+            EventHandlers.characterManager = characterManager;
+            
             // Initialize StoryFormHandler
-            this.storyFormHandler = new StoryFormHandler();
-            this.storyFormHandler.initialize();
-            console.log("StoryFormHandler initialized");
+            const storyFormHandler = new StoryFormHandler();
+            storyFormHandler.initialize();
+            EventHandlers.storyFormHandler = storyFormHandler;
 
-            this.initialized = true;
             console.log("EventHandlers initialization complete");
-        } catch (err) {
-            console.error("Error initializing modules:", err);
-            throw err;
+        } catch (error) {
+            console.error("Error in EventHandlers initialization:", error);
+            throw error;
         }
     }
 
     static getCharacterManager() {
-        return this.characterManager;
+        return EventHandlers.characterManager;
     }
 
     static getStoryFormHandler() {
-        return this.storyFormHandler;
+        return EventHandlers.storyFormHandler;
     }
 }
 

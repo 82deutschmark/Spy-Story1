@@ -3,8 +3,8 @@
 :root {
     --primary-color: #00ff00;  /* Matrix green */
     --accent-color: #ff3e3e;   /* Warning red */
-    --dark-bg: #121212;        /* Near black */
-    --card-bg: rgba(22, 22, 22, 0.9);
+    --dark-bg: #faf9f9;        
+    --card-bg: rgba(247, 241, 241, 0.85);  /* Slightly more transparent */
     --text-color: #e0e0e0;
     --border-color: #2a2a2a;
     --glow-green: rgba(0, 255, 0, 0.2);
@@ -22,7 +22,7 @@ body {
 }
 
 .spy-theme {
-    background-color: var(--dark-bg);
+    background-color: transparent;  /* Changed to transparent */
     min-height: 100vh;
     position: relative;
 }
@@ -34,7 +34,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 0;
+    z-index: -1;  /* Changed to be behind content */
     overflow: hidden;
 }
 
@@ -42,7 +42,7 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: 0.35;
+    opacity: 0.6;  /* Increased opacity */
 }
 
 /* Background Overlay */
@@ -53,27 +53,31 @@ body {
     width: 100%;
     height: 100%;
     background: linear-gradient(
-        rgba(0, 0, 0, 0.85),
-        rgba(0, 0, 0, 0.9)
+        to bottom,
+        rgba(18, 18, 18, 0.7) 0%,
+        rgba(18, 18, 18, 0.5) 50%,
+        rgba(18, 18, 18, 0.7) 100%
     );
-    z-index: 1;
+    z-index: 0;
 }
 
-/* Main Content */
+/* Content Container */
 .container {
     position: relative;
-    z-index: 2;
+    z-index: 1;
+    padding: 2rem;
 }
 
 /* Card Styling */
 .card {
-    background: var(--card-bg);
+    background-color: var(--card-bg);
     border: 1px solid var(--border-color);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(5px);
 }
 
 .card-body {
-    color: var(--text-color);
+    padding: 2rem;
 }
 
 /* Character Selection */
@@ -82,77 +86,111 @@ body {
 }
 
 .character-container {
+    position: relative;
     margin-bottom: 2rem;
+    transition: transform 0.3s ease;
+}
+
+.character-container:hover {
+    transform: translateY(-5px);
 }
 
 .character-select-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    overflow: hidden;
-    transition: all 0.3s ease;
     position: relative;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    border-radius: 15px;
+    overflow: hidden;
+    background: var(--card-bg);
+    border: 2px solid var(--border-color);
+    transition: all 0.3s ease;
+    cursor: pointer;
 }
 
 .character-select-card:hover {
-    transform: translateY(-5px);
     border-color: var(--primary-color);
-    box-shadow: 0 8px 30px var(--glow-green);
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
 }
 
 .character-select-card img {
     width: 100%;
-    height: 300px;
+    height: 400px;
     object-fit: cover;
-    filter: grayscale(20%);
-    transition: filter 0.3s ease;
+    transition: transform 0.3s ease;
 }
 
 .character-select-card:hover img {
-    filter: grayscale(0%);
+    transform: scale(1.05);
 }
 
 .character-info-box {
-    background: var(--card-bg);
     padding: 1.5rem;
+    background: var(--card-bg);
     border-top: 1px solid var(--border-color);
 }
 
 .character-name {
-    color: var(--primary-color);
-    font-size: 1.4rem;
-    font-weight: bold;
+    font-size: 1.5rem;
     margin-bottom: 1rem;
-    text-shadow: 0 0 10px var(--glow-green);
+    color: var(--text-color);
+    text-align: center;
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
 }
 
 .character-traits-list {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .trait-badge {
     background: rgba(0, 255, 0, 0.1);
-    color: var(--primary-color);
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
+    color: var(--text-color);
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
     font-size: 0.9rem;
-    border: 1px solid var(--primary-color);
+    border: 1px solid rgba(0, 255, 0, 0.2);
     transition: all 0.3s ease;
+    cursor: default;
 }
 
 .trait-badge:hover {
-    background: var(--primary-color);
-    color: var(--dark-bg);
+    background: rgba(0, 255, 0, 0.2);
+    transform: translateY(-2px);
 }
 
 .character-controls {
     display: flex;
+    justify-content: space-between;
     gap: 1rem;
-    margin-top: 1.5rem;
+    margin-top: 1rem;
+}
+
+.reroll-btn, .select-character-btn {
+    flex: 1;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    background: rgba(0, 255, 0, 0.1);
+    color: var(--text-color);
+    border: 1px solid rgba(0, 255, 0, 0.2);
+}
+
+.reroll-btn:hover {
+    background: rgba(255, 62, 62, 0.2);
+    transform: translateY(-2px);
+}
+
+.select-character-btn:hover {
+    background: rgba(0, 255, 0, 0.3);
+    transform: translateY(-2px);
+}
+
+.character-select-card.selected {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
 }
 
 .selection-indicator {
@@ -164,91 +202,82 @@ body {
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 0 15px var(--glow-green);
-}
-
-.character-select-card.selected {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 30px var(--glow-green);
+    opacity: 0;
+    transform: scale(0);
+    transition: all 0.3s ease;
 }
 
 .character-select-card.selected .selection-indicator {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
     display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
 }
 
-/* Buttons */
-.btn {
-    font-family: 'Courier New', monospace;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: bold;
-    padding: 0.75rem 1.5rem;
-    transition: all 0.3s ease;
-    border-radius: 4px;
-}
-
-.btn-primary {
-    background-color: transparent;
-    border: 2px solid var(--primary-color);
-    color: var(--primary-color);
-}
-
-.btn-primary:hover {
-    background-color: var(--primary-color);
-    color: var(--dark-bg);
-    box-shadow: 0 0 20px var(--glow-green);
-    transform: translateY(-2px);
-}
-
-.reroll-btn, .select-character-btn {
-    background: transparent;
-    border: 1px solid var(--border-color);
-    color: var(--text-color);
-    padding: 0.5rem 1rem;
-    flex: 1;
-    transition: all 0.3s ease;
-}
-
-.reroll-btn:hover {
-    border-color: var(--accent-color);
-    color: var(--accent-color);
-    box-shadow: 0 0 15px var(--glow-red);
-}
-
-.select-character-btn:hover {
-    border-color: var(--primary-color);
-    color: var(--primary-color);
-    box-shadow: 0 0 15px var(--glow-green);
-}
-
-/* Toast Notifications */
-.toast {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
+.loading-content {
+    text-align: center;
     color: var(--text-color);
 }
 
-.toast-header {
-    background: rgba(0, 0, 0, 0.3);
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(0, 255, 0, 0.3);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-percentage {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
     color: var(--primary-color);
-    border-bottom: 1px solid var(--border-color);
+}
+
+.loading-message {
+    font-size: 1.1rem;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
     .character-select-card img {
-        height: 250px;
+        height: 300px;
     }
-    
+
     .character-controls {
         flex-direction: column;
     }
-    
-    .btn {
+
+    .reroll-btn, .select-character-btn {
         width: 100%;
-        margin-bottom: 0.5rem;
+    }
+
+    .character-name {
+        font-size: 1.2rem;
+    }
+
+    .trait-badge {
+        font-size: 0.8rem;
     }
 }

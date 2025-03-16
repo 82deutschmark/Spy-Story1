@@ -1,9 +1,8 @@
 // Main JavaScript file
-import EventHandlers from './modules/EventHandlers.js';  // Only import the default export
+import EventHandlers from './modules/EventHandlers.js';
 import { UIUtils } from './modules/UIUtils.js';
 
-// Make utility functions available globally using the existing implementation
-// We'll keep the current implementation since it might be used by other code
+// Initialize loading overlay functions
 window.createLoadingOverlay = function(message = 'Generating Story...') {
     const overlay = document.createElement('div');
     overlay.className = 'loading-overlay';
@@ -20,11 +19,18 @@ window.createLoadingOverlay = function(message = 'Generating Story...') {
 };
 
 window.updateLoadingPercent = function(element, percent) {
-    element.textContent = `${Math.round(percent)}%`;
+    if (element) {
+        element.textContent = `${Math.round(percent)}%`;
+    }
 };
 
 window.removeLoadingOverlay = function(overlay) {
-    overlay.closest('.loading-overlay').remove();
+    if (overlay) {
+        const parent = overlay.closest('.loading-overlay');
+        if (parent) {
+            parent.remove();
+        }
+    }
 };
 
 window.showToast = function(title, message) {
@@ -73,7 +79,7 @@ function initializeCharacterMentions() {
     }
 }
 
-// Setup global event listeners that aren't in EventHandlers
+// Setup global event listeners
 function setupGlobalListeners() {
     // Back to top button
     const backToTopBtn = document.getElementById('back-to-top');
@@ -93,67 +99,28 @@ function setupGlobalListeners() {
     }
 }
 
-// Initialize optional modules
-async function initializeOptionalModules() {
-    // User Progress Manager
-    try {
-        const UserProgressManager = (await import('./modules/UserProgressManager.js')).default;
-        if (UserProgressManager) {
-            const progressManager = new UserProgressManager();
-            await progressManager.initialize();
-            console.log("UserProgressManager initialized");
-        }
-    } catch (err) {
-        console.warn("UserProgressManager not loaded:", err.message);
-    }
-}
-
 // Main initialization
 async function initializeApplication() {
     try {
         // Check for FLASK_CONFIG
         if (!window.FLASK_CONFIG) {
-            throw new Error('FLASK_CONFIG not found. Make sure it is properly initialized in the HTML template.');
+            console.warn('FLASK_CONFIG not found. Using default configuration.');
+            window.FLASK_CONFIG = {
+                staticUrl: '/static/',
+                apiBaseUrl: '/api'
+            };
         }
 
         console.log("Initializing application with config:", window.FLASK_CONFIG);
 
-        // Initialize EventHandlers
+        // Initialize EventHandlers first
         await EventHandlers.initialize();
+        console.log("EventHandlers initialized");
 
-        // Initialize CharacterManager if needed
-        try {
-            const { CharacterManager, default: characterManager } = await import('./modules/CharacterManager.js');
-            const manager = characterManager || new CharacterManager();
-            await manager.initialize();
-            console.log("CharacterManager initialized");
-
-            // Initialize character highlighting if on story page
-            if (document.querySelector('.story-content')) {
-                await manager.highlightCharactersInStory();
-                initializeCharacterMentions();
-            }
-        } catch (err) {
-            console.error("Error initializing CharacterManager:", err);
-            // Continue initialization - non-critical error
+        // Initialize character highlighting if on story page
+        if (document.querySelector('.story-content')) {
+            initializeCharacterMentions();
         }
-
-        // Initialize Notebook if elements exist
-        const notebookElements = document.querySelectorAll('.notebook-tab, .notebook-content');
-        if (notebookElements.length > 0) {
-            try {
-                const NotebookManager = (await import('./modules/NotebookManager.js')).default;
-                const notebookManager = new NotebookManager();
-                await notebookManager.initialize();
-                console.log("NotebookManager initialized");
-            } catch (err) {
-                console.error("Error initializing NotebookManager:", err);
-                // Continue initialization - non-critical error
-            }
-        }
-
-        // Initialize optional modules
-        await initializeOptionalModules();
 
         // Setup global event listeners
         setupGlobalListeners();
