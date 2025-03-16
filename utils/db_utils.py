@@ -124,7 +124,7 @@ def get_or_create_user_progress(user_id=None, protagonist_name=None):
         user_progress = UserProgress(
             user_id=user_id,
             currency_balances={
-                "💎": 500,  # Diamonds
+                "💎": 550,  # Diamonds
                 "💷": 5000,  # Pounds
                 "💶": 5000,  # Euros
                 "💴": 5000,  # Yen

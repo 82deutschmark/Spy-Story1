@@ -1,4 +1,3 @@
-
 import logging
 from typing import List, Dict, Any, Optional
 
@@ -59,7 +58,7 @@ class OpenAIContextManager:
             # No system message, just keep the most recent ones
             self.messages = self.messages[-max_messages:]
             
-    def process_function_calling(self, client, model: str = "gpt-4o", tools: Optional[List] = None, 
+    def process_function_calling(self, client, model: str = "gpt-4o-mini", tools: Optional[List] = None, 
                                  temperature: float = 0.7) -> Dict[str, Any]:
         """
         Handle a complete conversation flow with function calling

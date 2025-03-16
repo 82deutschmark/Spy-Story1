@@ -14,7 +14,6 @@ This application allows users to generate interactive stories featuring images f
 - **Multi-Character Support**: Select multiple characters to include in your adventures
 - **Story Customization**: Set conflict, setting, narrative style, and mood
 - **Interactive Choices**: Make decisions that affect the story's outcome
-- **Image Analysis**: Upload character/scene images for AI analysis 
 - **Gamification System**: Earn experience points, level up, and track relationships with characters
 - **Virtual Currency**: Earn and spend various currencies (💎, 💵, 💷, 💶, 💴) on story choices
 - **Plot Arcs**: Track active and completed story arcs across multiple sessions
@@ -24,6 +23,25 @@ This application allows users to generate interactive stories featuring images f
 - **Character Evolution**: Enhanced character development through story interactions
 
 ## Recent Improvements
+
+- **Code Cleanup and Consistency**:
+  - Removed deprecated OpenAI service (`openai_service.py`) to reduce confusion and technical debt
+  - Updated all model references to consistently use "gpt-4o-mini" across the codebase
+  - Standardized module-level documentation across service files
+  - Removed outdated image analysis references from documentation
+  - Updated environment variable logging to be more specific about model requirements
+
+- **Documentation Improvements**:
+  - Added comprehensive documentation for all core model files
+  - Enhanced module-level documentation with consistent format and style
+  - Added detailed database schema documentation
+  - Improved relationship and dependency documentation
+  - Added usage guidelines and notes for all major components
+  - Enhanced type information and validation rules
+  - Added side effect documentation for all methods
+  - Updated setup instructions to clarify API key usage
+  - Standardized module-level documentation across service files
+  - Removed outdated image analysis references from documentation
 
 - **Enhanced Security**: Removed debug interface access from main UI for better security
 - **Enhanced Story Generation**: Our narrative engine now creates more detailed, lengthy story segments with improved character development, continuity, and plot progression
@@ -230,7 +248,7 @@ This application allows users to generate interactive stories featuring images f
 
 - **Backend**: Flask, PostgreSQL, SQLAlchemy
 - **Frontend**: HTML, CSS, JavaScript, Bootstrap
-- **AI Services**: OpenAI's API (GPT-4o for story generation and image analysis)
+- **AI Services**: gpt-4o-mini for story generation
 
 ## Setup Instructions
 
@@ -252,7 +270,7 @@ LOG_LEVEL=DEBUG
 OPENAI_API_KEY=your_openai_api_key  # Get this from https://platform.openai.com/account/api-keys
 ```
 
-The OpenAI API key is required for story generation and character analysis. The application uses GPT-4o for generating interactive narratives and analyzing character/scene images. Make sure to:
+The OpenAI API key is required for story generation. The application uses gpt-4o-mini for generating interactive narratives. Make sure to:
 1. Keep your API key secure and never commit it to version control
 2. Use environment variables or secure secrets management in production
 3. Monitor your API usage to stay within your quota
@@ -322,7 +340,6 @@ The OpenAI API key is required for story generation and character analysis. The 
   - `plot.py`: Plot arcs and narrative progression
 - `migrations/`: Database migration scripts
 - `services/`: 
-  - `openai_service.py`: OpenAI API integration
   - `story_maker.py`: Story generation logic
   - `mission_generator.py`: Mission creation and tracking
   - `character_evolution_service.py`: Character development tracking
@@ -344,10 +361,9 @@ The OpenAI API key is required for story generation and character analysis. The 
 
 ### AI Prompts Location
 
-The application uses two main AI prompts:
+The application uses one main AI prompt:
 
 1. **Story Generation Prompt** - Located in `services/story_maker.py` in the `generate_story()` function
-2. **Artwork Analysis Prompt** - Located in `services/openai_service.py` in the `analyze_artwork()` function
 
 ## Character Universe
 
@@ -390,7 +406,6 @@ The story universe is set in a high-stakes, sexy dramatic international world of
 
 ## Credits
 
-- OpenAI for GPT-4o
 - Bootstrap for UI framework
 
 ## License

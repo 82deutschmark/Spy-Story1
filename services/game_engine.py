@@ -1,3 +1,38 @@
+"""
+Game Engine for Spy Story Game
+===========================
+
+This module serves as the core game engine for the spy story game, orchestrating:
+1. Story progression and branching
+2. Mission management
+3. Character interactions
+4. Game state tracking
+5. Currency and resource management
+
+The engine maintains game consistency and provides the main interface for:
+- Starting new stories
+- Processing player choices
+- Managing mission states
+- Tracking player progress
+- Handling character relationships
+
+Key Components:
+-------------
+- GameState: Tracks current game state for each player
+- GameEngine: Provides core game logic and state transitions
+- Story Generation: Creates dynamic, branching narratives
+- Mission System: Manages spy missions and objectives
+- Character System: Handles character interactions and evolution
+
+Dependencies:
+-----------
+- Database models (UserProgress, StoryGeneration, etc.)
+- Story generation service
+- Mission management service
+- Character evolution system
+- Currency management system
+"""
+
 import os
 import logging
 import json
@@ -12,14 +47,32 @@ logger = logging.getLogger(__name__)
 
 # Add debug log for OpenAI API key presence
 if os.environ.get("OPENAI_API_KEY"):
-    logger.info("OpenAI API key is present in environment")
+    logger.info("OpenAI API key is present for gpt-4o-mini")
 else:
-    logger.warning("OpenAI API key is missing from environment")
+    logger.warning("OpenAI API key is missing - required for gpt-4o-mini story generation")
 
 class GameState:
-    """Represents the current state of the game for a user"""
+    """
+    Represents the current state of a player's game session.
+    
+    This class maintains:
+    1. Current story progress
+    2. Active missions
+    3. Character relationships
+    4. Player resources and currencies
+    5. Story choices and consequences
+    
+    The state is persisted in the database and can be reloaded
+    between sessions to maintain game continuity.
+    """
 
     def __init__(self, user_id: str):
+        """
+        Initialize game state for a player.
+        
+        Args:
+            user_id (str): Unique identifier for the player
+        """
         self.user_id = user_id
         self.user_progress = self._load_user_progress()
         self.current_story = None
@@ -28,7 +81,15 @@ class GameState:
         self.reload_state()
 
     def _load_user_progress(self) -> UserProgress:
-        """Load or create user progress record"""
+        """
+        Load or create user progress record from database.
+        
+        Returns:
+            UserProgress: Player's progress record
+            
+        Note:
+            Creates a new progress record if none exists
+        """
         user_progress = UserProgress.query.filter_by(user_id=self.user_id).first()
         if not user_progress:
             logger.info(f"Creating new user progress for {self.user_id}")
@@ -38,7 +99,19 @@ class GameState:
         return user_progress
 
     def reload_state(self):
-        """Reload current game state from database"""
+        """
+        Refresh game state from database.
+        
+        Updates:
+        - Current story
+        - Story node
+        - Active missions
+        - Character relationships
+        - Player resources
+        
+        Raises:
+            Exception: If state reload fails
+        """
         try:
             # Refresh user progress
             db.session.refresh(self.user_progress)
@@ -62,11 +135,34 @@ class GameState:
             raise
 
 class GameEngine:
-    """Core game engine that handles game logic and state transitions"""
+    """
+    Core game engine that manages game logic and state transitions.
+    
+    This class provides the main interface for:
+    1. Starting new spy stories
+    2. Processing player choices
+    3. Managing mission states
+    4. Handling character interactions
+    5. Tracking game progression
+    
+    The engine ensures consistency between:
+    - Story progression
+    - Mission objectives
+    - Character relationships
+    - Player resources
+    """
 
     @staticmethod
     def get_game_state(user_id: str) -> GameState:
-        """Get current game state for a user"""
+        """
+        Retrieve current game state for a player.
+        
+        Args:
+            user_id (str): Player's unique identifier
+            
+        Returns:
+            GameState: Current state of the player's game
+        """
         return GameState(user_id)
 
     @staticmethod
@@ -82,7 +178,34 @@ class GameEngine:
         custom_narrative: Optional[str] = None,
         custom_mood: Optional[str] = None
     ) -> Tuple[Dict[str, Any], GameState]:
-        """Start a new story for the user with the given parameters"""
+        """
+        Initialize a new spy story with the given parameters.
+        
+        This function:
+        1. Generates a new story branch
+        2. Creates initial story node
+        3. Sets up mission objectives
+        4. Establishes character relationships
+        5. Initializes story choices
+        
+        Args:
+            user_id (str): Player's unique identifier
+            conflict (str): Main story conflict type
+            setting (str): Story location/environment
+            narrative_style (str): Storytelling style
+            mood (str): Story atmosphere
+            character_id (Optional[int]): Key character to include
+            custom_conflict (Optional[str]): Custom conflict override
+            custom_setting (Optional[str]): Custom setting override
+            custom_narrative (Optional[str]): Custom narrative style
+            custom_mood (Optional[str]): Custom mood override
+            
+        Returns:
+            Tuple[Dict[str, Any], GameState]: Story data and updated game state
+            
+        Raises:
+            Exception: If story creation fails
+        """
         logger.info(f"Starting new story for user {user_id} with character_id {character_id}")
 
         try:
@@ -191,7 +314,27 @@ class GameEngine:
         choice_id: int,
         custom_choice_text: Optional[str] = None
     ) -> Tuple[Dict[str, Any], GameState]:
-        """Process a user choice and advance the story"""
+        """
+        Process a player's story choice and advance the game.
+        
+        This function:
+        1. Validates choice requirements
+        2. Applies choice consequences
+        3. Generates story continuation
+        4. Updates character relationships
+        5. Modifies mission progress
+        
+        Args:
+            user_id (str): Player's unique identifier
+            choice_id (int): Selected choice ID
+            custom_choice_text (Optional[str]): Custom choice text
+            
+        Returns:
+            Tuple[Dict[str, Any], GameState]: New story state and game state
+            
+        Raises:
+            ValueError: If choice is invalid or requirements not met
+        """
         logger.info(f"Processing choice {choice_id} for user {user_id}")
         
         # Load game state

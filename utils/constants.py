@@ -1,4 +1,3 @@
-
 """
 Constants and configuration values for the application.
 Centralizing these values makes them easier to maintain and update.
@@ -70,7 +69,7 @@ CHARACTER_ROLE_MAPPING = {
 }
 
 # OpenAI
-DEFAULT_OPENAI_MODEL = "gpt-4o"
+DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 DEFAULT_TEMPERATURE = 0.7
 DEFAULT_MAX_TOKENS = 2000
 

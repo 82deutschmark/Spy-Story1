@@ -23,6 +23,9 @@
  * -------------
  * - 💎 Diamonds: Premium currency
  * - 💵 Cash: Standard currency
+ * - 💷 Pounds: British currency
+ * - 💶 Euros: European currency
+ * - 💴 Yen: Japanese currency
  * - 🎭 Story Points: Narrative currency
  * 
  * Required DOM Elements:
