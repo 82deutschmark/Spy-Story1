@@ -1,3 +1,39 @@
+"""
+Character Evolution Service for Spy Story Game
+===========================================
+
+This module manages the dynamic evolution of characters in the spy story game,
+handling character relationships, trait development, and story-driven changes.
+It ensures characters feel alive and responsive to player actions and story events.
+
+Key Features:
+------------
+- Dynamic character trait evolution based on story events
+- Complex relationship network management
+- Character role progression tracking
+- Story-driven personality development
+- Interaction history logging
+
+The service ensures:
+1. Characters evolve meaningfully based on story choices
+2. Relationships between characters are realistic and consequential
+3. Character development affects future missions and story options
+4. All changes are properly tracked and persisted
+
+Character Roles:
+-------------
+- villain: Antagonist characters
+- neutral: Supporting characters
+- mission-giver: Quest/mission providers
+- undetermined: Role not yet assigned
+
+Dependencies:
+------------
+- Database models (CharacterEvolution, Character)
+- Story progression system
+- Mission system for character roles
+"""
+
 import logging
 from datetime import datetime
 from typing import Dict, Any
@@ -9,14 +45,24 @@ logger = logging.getLogger(__name__)
 
 def evolve_character_traits(char_evolution_id: int, story_context: str) -> bool:
     """
-    Update character traits based on the story context.
+    Evolve a character's traits based on story events and player interactions.
+    
+    This function:
+    1. Updates character traits based on story decisions
+    2. Logs character development history
+    3. Ensures consistent character progression
+    4. Maintains character authenticity in the spy narrative
 
     Args:
-        char_evolution_id (int): ID of the character evolution record.
-        story_context (str): Text describing the current story context.
+        char_evolution_id (int): ID of the character evolution record
+        story_context (str): Recent story events affecting the character
 
     Returns:
-        bool: True if update was successful, False otherwise.
+        bool: True if character evolution was successful
+
+    Example:
+        >>> evolve_character_traits(42, "Agent showed mercy to the target")
+        True  # Character might become more compassionate
     """
     try:
         char_evolution = CharacterEvolution.query.get(char_evolution_id)
@@ -63,16 +109,33 @@ def update_character_relationships(
     relationship_changes: Dict[str, Dict[str, Any]]
 ) -> bool:
     """
-    Update relationship network between characters.
+    Update the complex web of relationships between characters in the spy story.
+    
+    This function manages:
+    1. Bilateral relationship changes (both characters are affected)
+    2. Relationship strength tracking (-10 to 10 scale)
+    3. Impact on future story options and missions
+    4. Relationship history logging
 
     Args:
-        user_id (int): User ID.
-        story_id (int): Current story ID.
-        protagonist_id (int): Character ID of the protagonist.
-        relationship_changes (dict): Dict mapping character IDs to relationship change values.
+        user_id (int): ID of the player
+        story_id (int): Current story segment ID
+        protagonist_id (int): Player character's ID
+        relationship_changes (dict): Mapping of character IDs to relationship changes:
+            {
+                "character_id": {
+                    "strength": float,  # -10 to 10 scale
+                    "inverse_strength": Optional[float],  # How they feel about protagonist
+                }
+            }
 
     Returns:
-        bool: True if relationships were updated successfully, False otherwise.
+        bool: True if relationships were successfully updated
+
+    Example:
+        >>> changes = {"42": {"strength": 5}}  # Positive relationship change
+        >>> update_character_relationships(1, 1, 1, changes)
+        True  # Character 42 becomes more friendly
     """
     try:
         char_evolutions = CharacterEvolution.query.filter_by(
@@ -84,13 +147,12 @@ def update_character_relationships(
         logger.debug(f"[Relationships] Found {len(char_map)} character evolution records for user {user_id}, story {story_id}.")
 
         # Helper to update both sides of the relationship
-        def _update_relationship(from_ce, to_id, rel_type, strength):
+        def _update_relationship(from_ce, to_id, strength):
             from_ce.add_relationship(
                 target_character_id=to_id,
-                relationship_type=rel_type,
                 strength=strength
             )
-            logger.debug(f"[Relationships] Updated {from_ce.character_id} -> {to_id} with type '{rel_type}' and strength {strength}.")
+            logger.debug(f"[Relationships] Updated {from_ce.character_id} -> {to_id} with strength {strength}.")
 
         # Update relationships
         for target_id, change_data in relationship_changes.items():
@@ -101,18 +163,16 @@ def update_character_relationships(
             target_ce = char_map[target_id]
 
             # Get relationship details
-            rel_type = change_data.get('type', 'neutral')
-            strength = change_data.get('amount', 0)
+            strength = change_data.get('strength', 0)
 
             # Update relationship from protagonist to target
             if str(protagonist_id) in char_map:
                 protag_ce = char_map[str(protagonist_id)]
-                _update_relationship(protag_ce, target_id, rel_type, strength)
+                _update_relationship(protag_ce, target_id, strength)
 
             # Update relationship from target to protagonist (may be different)
-            inverse_strength = change_data.get('inverse_amount', strength)
-            inverse_type = change_data.get('inverse_type', rel_type)
-            _update_relationship(target_ce, protagonist_id, inverse_type, inverse_strength)
+            inverse_strength = change_data.get('inverse_strength', strength)
+            _update_relationship(target_ce, protagonist_id, inverse_strength)
 
         db.session.commit()
         logger.info(f"[Relationships] Successfully updated relationships for user {user_id}, story {story_id}.")
@@ -123,8 +183,29 @@ def update_character_relationships(
         db.session.rollback()
         return False
 
-def create_character_evolution(user_id, character_id, story_id, role=None, traits=None):
-    """Create a new character evolution record"""
+def create_character_evolution(user_id: int, character_id: int, story_id: int, role: str = None, traits: Dict[str, Any] = None):
+    """
+    Initialize character evolution tracking for a new character in the story.
+    
+    This function:
+    1. Sets up initial character state
+    2. Establishes baseline relationships
+    3. Initializes trait tracking
+    4. Prepares evolution history logging
+
+    Args:
+        user_id (int): ID of the player
+        character_id (int): ID of the character to track
+        story_id (int): Current story segment ID
+        role (str, optional): Initial character role ('villain', 'neutral', 'mission-giver', 'undetermined')
+        traits (Dict[str, Any], optional): Initial character traits and values
+
+    Returns:
+        CharacterEvolution: New character evolution record
+
+    Raises:
+        ValueError: If character_id is invalid or character doesn't exist
+    """
     if not character_id:
         raise ValueError("Missing required character_id")
 

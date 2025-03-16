@@ -1,3 +1,31 @@
+"""
+Mission Generator for Spy Story Game
+==================================
+
+This module handles the creation and management of spy missions, a core gameplay element
+that drives the narrative and player progression. It generates missions from story content,
+manages mission states, and handles rewards.
+
+Key Features:
+------------
+- Mission extraction from story text
+- Dynamic mission generation with varying difficulty
+- Mission progress tracking
+- Reward calculation and distribution
+- Character relationship integration (mission givers and targets)
+
+The module ensures missions are:
+1. Narratively consistent with the story
+2. Balanced in terms of difficulty and rewards
+3. Integrated with character relationships
+4. Properly tracked in user progress
+
+Dependencies:
+------------
+- Database models (Mission, UserProgress, StoryGeneration)
+- Scene image handling for character integration
+- Currency system for rewards
+"""
 
 import logging
 import re
@@ -12,29 +40,40 @@ logger = logging.getLogger(__name__)
 
 # Mission difficulty levels with their corresponding reward multipliers
 DIFFICULTY_LEVELS = {
-    'easy': 1.0,
-    'medium': 2.0,
-    'hard': 3.5
+    'easy': 1.0,    # Standard missions, good for new players
+    'medium': 2.0,  # More complex missions with higher stakes
+    'hard': 3.5     # High-risk, high-reward missions
 }
 
 # Base reward amounts for different currencies
 BASE_REWARDS = {
-    '💎': 1,      # Diamonds are valuable
-    '💵': 1500,   # Dollars
-    '💷': 1400,   # Pounds
-    '💶': 1450,   # Euros
-    '💴': 150000  # Yen
+    '💎': 1,      # Diamonds - premium currency
+    '💵': 1500,   # Dollars - standard US currency
+    '💷': 1400,   # Pounds - UK operations
+    '💶': 1450,   # Euros - European missions
+    '💴': 150000  # Yen - Asian operations
 }
 
 def extract_mission_details(story_text: str) -> Optional[Dict[str, Any]]:
     """
-    Extract mission giver, target, objective, and reward from a story.
+    Extract mission details from generated story text using advanced pattern matching.
+    Identifies key mission elements like the giver, target, objective, and rewards.
     
     Args:
-        story_text (str): The story text to parse
+        story_text (str): The story text containing mission information
         
     Returns:
-        Optional[Dict[str, Any]]: Dictionary with extracted mission details or None if extraction failed
+        Optional[Dict[str, Any]]: Dictionary containing:
+            - giver: Name of the mission-giving character
+            - target: Primary mission target or opponent
+            - objective: Clear mission goal
+            - reward_amount: Numerical reward value
+            - reward_currency: Currency symbol for reward
+            
+    Example:
+        >>> details = extract_mission_details("Agent Smith of MI6 needs you to infiltrate Dr. Evil's plans...")
+        >>> print(details['giver'])
+        'Smith'
     """
     try:
         # Example regex patterns (can be expanded/adjusted based on story format)
@@ -73,15 +112,21 @@ def extract_mission_details(story_text: str) -> Optional[Dict[str, Any]]:
 
 def create_mission_from_story(user_id: str, story_text: str, story_id: Optional[int] = None) -> Optional[Mission]:
     """
-    Take story text, extract mission details, and create a mission.
+    Creates a structured mission from story content, integrating it with game systems.
+    
+    This function:
+    1. Extracts mission details from story
+    2. Links mission to relevant characters
+    3. Sets appropriate difficulty and rewards
+    4. Integrates with user progress tracking
     
     Args:
-        user_id (str): ID of the user
-        story_text (str): Text of the story containing mission details
-        story_id (Optional[int]): ID of the related story
+        user_id (str): ID of the player
+        story_text (str): Generated story text containing mission details
+        story_id (Optional[int]): ID of the related story segment
         
     Returns:
-        Optional[Mission]: Created Mission object or None if creation failed
+        Optional[Mission]: Fully configured mission object ready for gameplay
     """
     details = extract_mission_details(story_text)
     if not details:
@@ -166,14 +211,20 @@ def create_mission_from_story(user_id: str, story_text: str, story_id: Optional[
 
 def generate_mission(user_id: str, story_id: Optional[int] = None) -> Optional[Mission]:
     """
-    Generate a new mission for the user based on story content if available
+    Generate a new mission either from story content or dynamically.
+    
+    This is a core gameplay function that:
+    1. Creates missions from story content when available
+    2. Ensures proper character relationships (givers/targets)
+    3. Balances difficulty and rewards
+    4. Integrates with user progression
     
     Args:
-        user_id (str): ID of the user
-        story_id (Optional[int]): ID of a specific story to use
+        user_id (str): ID of the player
+        story_id (Optional[int]): Specific story to base mission on
         
     Returns:
-        Optional[Mission]: Created Mission object or None if creation failed
+        Optional[Mission]: New mission ready for player assignment
     """
     try:
         # If story_id is provided, try to extract mission from that story

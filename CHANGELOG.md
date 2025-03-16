@@ -59,6 +59,24 @@
 - Improved logging configuration for better debugging and monitoring
 - Improved API key handling in story_maker service
 
+### Added
+- Comprehensive documentation for all core model files:
+  - config.py: Application configuration management
+  - models/stories.py: Story generation and management
+  - models/character_data.py: Character data and attributes
+  - models/missions.py: Mission system and tracking
+  - models/currency.py: Currency and transaction system
+  - models/achievements.py: Achievement system
+  - models/plot.py: Plot arc management
+  - models/user.py: User progress and state management
+- Detailed module-level documentation including:
+  - Key features and components
+  - Database schema details
+  - Usage guidelines and notes
+  - Relationship explanations
+  - Side effect documentation
+  - Type information and validation rules
+
 ## Previous Changes
 
 

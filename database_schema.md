@@ -10,9 +10,16 @@ This document outlines all database tables in our project, their relationships, 
 **Usage**: Defines currency types that users can earn and spend
 **Key Fields**:
 - `id`: Primary key
-- `name`: Currency name (e.g., "diamond", "pound")
-- `symbol`: Currency symbol (e.g., "💎", "💷")
+- `name`: Currency name (e.g., "diamond", "pound", "euro", "yen", "dollar")
+- `symbol`: Currency symbol (e.g., "💎", "💷", "💶", "💴", "💵")
 - `created_at`: Timestamp of creation
+
+**Supported Currencies**:
+- 💎 Diamonds: Premium currency
+- 💵 Dollars: Standard US currency
+- 💷 Pounds: British currency
+- 💶 Euros: European currency
+- 💴 Yen: Japanese currency
 
 ### 2. Transaction
 **Purpose**: Tracks all currency transactions

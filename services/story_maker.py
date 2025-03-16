@@ -105,32 +105,32 @@ STORY_OPTIONS = {
         ("🧠", "Mind control experiment")
     ],
     "settings": [
-        ("🗼", "Paris Office"),
+        ("🗼", "Paris and Monaco"),
         ("🏝️", "Private Island"),
-        ("🏙️", "Dubai Mega-Skyscraper"),
+        ("🏙️", "Dubai"),
         ("🚢", "Luxury Cruise Liner"),
         ("❄️", "Arctic Research Base"),
-        ("🏰", "Monaco Casino"),
-        ("🏜️", "Sahara Desert Compound"),
+        ("🏰", "Moscow"),
+        ("🏜️", "New York City"),
         ("🌋", "Volcanic Lair")
     ],
     "narrative_styles": [
-        ("😎", "Gen Z Teenage Drama"),
-        ("🔥", "Steamy romance novel"),
-        ("🤪", "Absurdist comedy"),
-        ("🎭", "Melodramatic soap opera"),
-        ("🎬", "High-budget action movie"),
-        ("🤵", "Classic Bond film")
+        ("😎", "Tell the story like a bored Gen Z Teenager"),
+        ("🔥", "Tell the story like a Steamy romance novel"),
+        ("🤪", "Tell the story like an Absurdist wacky comedy"),
+        ("🎭", "Tell the story like a Surreal hallucination"),
+        ("🎬", "Tell the story like a High-budget action movie"),
+        ("🤵", "Tell the story like a Classic Bond film")
     ],
     "moods": [
-        ("🍸", "Sexy and seductive"),
-        ("💥", "Explosive and chaotic"),
-        ("😂", "Ridiculously over-the-top"),
-        ("😱", "Suspenseful and betrayal-filled"),
-        ("🌟", "Glamorous and extravagant"),
-        ("🥂", "Party-focused hedonism"),
-        ("🔫", "Action-packed gunfights"),
-        ("🕶️", "Cool and stylish")
+        ("🍸", "Make sure that the mood is Sexy and seductive"),
+        ("💥", "Make sure that the mood is Explosive and chaotic"),
+        ("😂", "Make sure that the mood is Light and funny with Ridiculously over-the-top plot twists"),
+        ("😱", "Make sure that the mood is Suspenseful and betrayal-filled"),
+        ("🌟", "Make sure that the mood is Oscar worthy performances and over-acting by the cast"),
+        ("🥂", "Make sure that the mood is Party-focused hedonism"),
+        ("🔫", "Make sure that the mood is Action-packed gunfights"),
+        ("🕶️", "Make sure that the mood is Cool and stylish")
     ]
 }
 
@@ -227,7 +227,7 @@ where betrayal, romance, and action are common themes. The game tracks character
 currency balances, and mission progress.
 
 NARRATIVE STYLE GUIDELINES:
-1. Create LENGTHY, DETAILED story segments (at least 800-1000 words) with rich descriptions
+1. Create LENGTHY, DETAILED story segments (at least 1400-2000 words) with rich descriptions
 2. Use vivid sensory details, atmospheric descriptions, and character development
 3. Each segment should advance the plot significantly with unexpected twists or revelations
 4. Include multiple scenes within each story segment when appropriate
@@ -276,18 +276,22 @@ Mood: {final_mood}
 WORLD BACKGROUND:
 This is set in the high-stakes, sexy, dramatic international world of business, espionage, luxury, and parties. {protagonist_info}
 The world is mostly as we know it, but features advanced technology like neural implants, satellite surveillance networks, and experimental weapons. Many villains control vast global empires with private armies and cutting-edge technology.
-The world faces multiple crises - climate catastrophes, economic collapse, political instability, and secret wars between shadow organizations. You believe the only way to save it is to party hard, seduce strategic contacts, and undertake James Bond-style missions with elaborate infiltrations, thrilling chase sequences, and intense gunfights.
+The world faces multiple crises - climate catastrophes, economic collapse, political instability, and secret wars between shadow organizations.
+To save the world and complete missions and earn money, the protagonist must party hard, seduce strategic contacts, and undertake James Bond-style missions with elaborate infiltrations, thrilling chase sequences, and intense gunfights.
 
 IMPORTANT NARRATIVE REQUIREMENTS:
 1. Write a SUBSTANTIAL narrative (at least 1800-2000 words) with multiple scenes when appropriate, if this is a continuation, meaningfully advance the plot based on previous choices, events, and character traits.
-2. Include vivid descriptions of locations, characters, and actions
+2. Include vivid descriptions of locations and actions
 3. Feature realistic dialogue that reveals character motivations and relationships
 4. Incorporate sensory details that bring the setting to life
 5. Stay true to the requested narrative style and mood, with a focus on layered storytelling and dynamic character interactions across story segments
 6. Freely incorporate unusual elements and themes to create a unique and engaging story.
 7. Avoid using unescaped special characters (like " or \\) within JSON strings.
 8. Avoid reusing scenarios, dialogue patterns, or narrative structures from previous segments, but maintain continuity.
-9. Each choice should lead to significantly different narrative paths
+9. Each choice should lead to significantly different narrative paths, only one of which should advance the mission.
+10. The protagonist should be tempted by the allure of the other two choices to advance a story arc. 
+11. Make sure that mostcharacters enter the story mainly by the protagonist seeking them out, avoid random encounters.
+12. Characters marked as "villains" should be difficult for the protagonist to locate without help from other characters.
 
 Generate an engaging, detailed story segment with 3 distinct choices that offer meaningful narrative branches."""
 
