@@ -79,25 +79,34 @@ export class CharacterManager {
             return;
         }
 
-        // Deselect all other cards
+        // Deselect all other cards and hide their selection indicators
         document.querySelectorAll('.character-container').forEach(otherContainer => {
             if (otherContainer !== container) {
                 const otherCard = otherContainer.querySelector('.character-select-card');
                 const otherCheckbox = otherContainer.querySelector('.character-checkbox');
+                const otherIndicator = otherCard?.querySelector('.selection-indicator');
                 if (otherCard) otherCard.classList.remove('selected');
                 if (otherCheckbox) otherCheckbox.checked = false;
+                if (otherIndicator) otherIndicator.style.display = 'none';
             }
         });
 
-        // Always select the clicked card (no toggle)
+        // Always select the clicked card
         card.classList.add('selected');
         checkbox.checked = true;
 
-        // Update selected characters array and hidden input
+        // Update selected characters array
         this.selectedCharacters = [characterId];
-        const selectedImagesInput = document.querySelector('input[name="selected_images"]');
-        if (selectedImagesInput) {
-            selectedImagesInput.value = characterId; // Just set the single ID directly
+        
+        // Update all selected_images inputs (there might be multiple in choice forms)
+        document.querySelectorAll('input[name="selected_images"]').forEach(input => {
+            input.value = characterId;
+        });
+
+        // Show visual feedback
+        const selectionIndicator = card.querySelector('.selection-indicator');
+        if (selectionIndicator) {
+            selectionIndicator.style.display = 'block';
         }
         
         // Show/hide error message
@@ -106,11 +115,11 @@ export class CharacterManager {
             errorElement.style.display = 'none';
         }
 
-        // Show visual feedback
-        const selectionIndicator = card.querySelector('.selection-indicator');
-        if (selectionIndicator) {
-            selectionIndicator.style.display = 'block';
-        }
+        console.log('Character selected:', {
+            characterId,
+            selectedCharacters: this.selectedCharacters,
+            formValue: document.querySelector('input[name="selected_images"]')?.value
+        });
     }
 
     async handleCharacterReroll(e, container) {

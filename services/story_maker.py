@@ -1,4 +1,3 @@
-
 import os
 import json
 import logging
@@ -10,13 +9,8 @@ import re
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Get OpenAI API key from environment variables
-api_key = os.environ.get("OPENAI_API_KEY")
-if not api_key:
-    logger.warning("OpenAI API key not found in environment variables")
-
-# Initialize OpenAI client
-client = OpenAI(api_key=api_key)
+# Initialize OpenAI client with the new API key
+client = OpenAI(api_key="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")
 
 # Default story options
 STORY_OPTIONS = {
@@ -133,10 +127,6 @@ def generate_story(
     """Generate a story based on selected or custom parameters and character info"""
     logger.info("Entering generate_story function with parameters:")
     logger.info(f"Conflict: {conflict}, Setting: {setting}, Character: {character_info.get('name') if character_info else 'None'}")
-
-    if not api_key:
-        logger.error("OpenAI API key not found. Please add it to your environment variables.")
-        raise ValueError("OpenAI API key not found. Please add it to your environment variables.")
 
     try:
         # Get final values, using custom if provided
@@ -402,12 +392,12 @@ Format as JSON with:
 
         logger.debug(f"Sending messages to OpenAI: {json.dumps(messages, indent=2)}")
 
-        # Make the OpenAI API call with response_format parameter - increased token limit and adjusted temperature
+        # Make the OpenAI API call with response_format parameter
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o-mini",  # Using the newest model
             messages=messages,
-            temperature=0.35,  # Ranges from 0 to 2, higher creates weirder responses, 1.4 is unusable, 1.05 is a little odd, 0.1 is very dull 
-            max_tokens=14000,    # Increased token limit for longer responses
+            temperature=0.7,  # Original temperature
+            max_tokens=14000,  # Original token limit
             response_format={"type": "json_object"}  # Force JSON response format
         )
 

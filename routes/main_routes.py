@@ -189,7 +189,8 @@ def generate_story_route():
             custom_choice = data.get('custom_choice', '')
         else:
             data = request.form
-            selected_character_ids = request.form.getlist('selected_images[]')
+            # Handle both array and single value for selected_images
+            selected_character_ids = data.getlist('selected_images[]') or [data.get('selected_images')] if data.get('selected_images') else []
             protagonist_gender = request.form.get('protagonist_gender')
             protagonist_name = request.form.get('protagonist_name')
             custom_choice = data.get('custom_choice', '')
@@ -431,11 +432,11 @@ def generate_story_route():
 
     except Exception as e:
         logger.error(f"Error generating story: {str(e)}", exc_info=True)
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'error': str(e)}), 500
-        else:
-            flash('Error generating story: ' + str(e), 'error')
-            return redirect(url_for('main.index'))
+        # Always return JSON response for errors
+        error_message = str(e)
+        if "Failed to generate story:" in error_message:
+            error_message = error_message.split("Failed to generate story:", 1)[1].strip()
+        return jsonify({'error': error_message}), 500
 
 @main_bp.route('/make_choice', methods=['POST'])
 def make_choice():
