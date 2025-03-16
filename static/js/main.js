@@ -9,50 +9,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         await initializeApplication();
     } catch (error) {
         console.error("Error during initialization:", error);
-        window.showToast?.('Error', 'Failed to initialize application. Please refresh the page.');
+        UIUtils.showToast('Error', 'Failed to initialize application. Please refresh the page.');
     }
 });
-
-// Initialize loading overlay functions
-window.createLoadingOverlay = function(message = 'Generating Story...') {
-    const overlay = document.createElement('div');
-    overlay.className = 'loading-overlay';
-    overlay.innerHTML = `
-        <div class="loading-content">
-            <div class="loading-spinner"></div>
-            <div class="loading-percentage">0%</div>
-            <div class="loading-message">${message}</div>
-        </div>
-    `;
-    document.body.appendChild(overlay);
-    overlay.style.display = 'flex';
-    return overlay.querySelector('.loading-percentage');
-};
-
-window.updateLoadingPercent = function(element, percent) {
-    if (element) {
-        element.textContent = `${Math.round(percent)}%`;
-    }
-};
-
-window.removeLoadingOverlay = function(overlay) {
-    if (overlay) {
-        const parent = overlay.closest('.loading-overlay');
-        if (parent) {
-            parent.remove();
-        }
-    }
-};
-
-window.showToast = function(title, message) {
-    const toastEl = document.getElementById('notificationToast');
-    if (toastEl) {
-        const toast = new bootstrap.Toast(toastEl);
-        document.getElementById('toastTitle').textContent = title;
-        document.getElementById('toastMessage').textContent = message;
-        toast.show();
-    }
-};
 
 // Initialize character mentions in story text
 function initializeCharacterMentions() {
@@ -172,6 +131,6 @@ async function initializeApplication() {
         console.log("Application initialization complete");
     } catch (error) {
         console.error('Critical error during application initialization:', error);
-        window.showToast('Error', 'An error occurred while loading the application. Please refresh the page or contact support if the problem persists.');
+        UIUtils.showToast('Error', 'An error occurred while loading the application. Please refresh the page or contact support if the problem persists.');
     }
 }
