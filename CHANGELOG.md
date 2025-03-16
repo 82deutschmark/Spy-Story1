@@ -11,6 +11,19 @@
 - Enhanced character card layout and controls
 - Added detailed logging to application startup and request handling
 - Made user progress initialization optional to improve homepage performance
+- Updated OpenAI API key handling and configuration
+- Upgraded OpenAI client to use latest API version
+- Enhanced error handling for OpenAI API authentication
+- Consolidated loading animation handling in StoryFormHandler to support both initial story generation and choice submissions
+- Enhanced loading animation with context-specific messages for different actions
+- Improved button state management during loading states
+- Streamlined event handler code by removing redundant implementations
+- Improved storyboard layout by separating choice buttons from story content:
+  - Moved choices container outside of story scroll container
+  - Reduced story scroll container height to accommodate choices
+  - Added visual separator between story text and choices
+  - Enhanced choice button styling with better hover effects
+  - Improved mobile responsiveness for both story and choice sections
 
 ### Removed
 - Deleted the redundant `characters.css` file after consolidation
@@ -37,6 +50,9 @@
 - Fixed event binding in StoryFormHandler to prevent undefined event errors
 - Improved error message display with toast notifications
 - Fixed character selection handling in form submission
+- Fixed loading animation not appearing when clicking choice buttons on the storyboard page
+- Improved loading state feedback with proper button text preservation
+- Enhanced error handling during story generation and choice submissions
 
 ### Security
 - Removed the admin interface and debug endpoints to reduce the attack surface

@@ -6,51 +6,30 @@ export const UIUtils = {
     /**
      * Creates a loading overlay on the page
      * @param {string} message - Optional message to display
-     * @return {HTMLElement} - The created overlay element
+     * @return {HTMLElement} - The loading percentage element
      */
     createLoadingOverlay(message = 'Loading...') {
         // Remove any existing overlay first
         this.removeLoadingOverlay();
 
-        // Create overlay elements
         const overlay = document.createElement('div');
         overlay.className = 'loading-overlay';
-        
-        const content = document.createElement('div');
-        content.className = 'loading-content';
-        
-        const spinner = document.createElement('div');
-        spinner.className = 'spinner-border text-light';
-        spinner.setAttribute('role', 'status');
-        
-        const messageElement = document.createElement('div');
-        messageElement.className = 'loading-message';
-        messageElement.textContent = message;
-        
-        const progressContainer = document.createElement('div');
-        progressContainer.className = 'progress mt-3';
-        progressContainer.style.width = '200px';
-        
-        const progressBar = document.createElement('div');
-        progressBar.className = 'progress-bar';
-        progressBar.setAttribute('role', 'progressbar');
-        progressBar.style.width = '0%';
-        
-        progressContainer.appendChild(progressBar);
-        content.appendChild(spinner);
-        content.appendChild(messageElement);
-        content.appendChild(progressContainer);
-        overlay.appendChild(content);
-        
-        // Add to document
+        overlay.innerHTML = `
+            <div class="loading-content">
+                <div class="loading-spinner"></div>
+                <div class="loading-percentage">0%</div>
+                <div class="loading-message">${message}</div>
+            </div>
+        `;
         document.body.appendChild(overlay);
-        return progressBar;
+        overlay.style.display = 'flex';
+        return overlay.querySelector('.loading-percentage');
     },
 
     /**
-     * Updates the loading percentage display
-     * @param {HTMLElement} element - The percentage element
-     * @param {number} percent - Percentage to display
+     * Updates the loading percentage
+     * @param {HTMLElement} element - The loading percentage element
+     * @param {number} percent - The percentage to display
      */
     updateLoadingPercent(element, percent) {
         if (element) {
@@ -59,45 +38,28 @@ export const UIUtils = {
     },
 
     /**
-     * Updates the loading progress bar
-     * @param {number} percent - Progress percentage (0-100)
-     */
-    updateLoadingPercent(percent) {
-        const progressBar = document.getElementById('loadingProgressBar');
-        if (progressBar) {
-            progressBar.style.width = `${percent}%`;
-        }
-    },
-
-    /**
      * Removes the loading overlay
+     * @param {HTMLElement} element - Any element within the overlay
      */
-    removeLoadingOverlay() {
-        const overlay = document.getElementById('loadingOverlay');
+    removeLoadingOverlay(element) {
+        const overlay = element ? element.closest('.loading-overlay') : document.querySelector('.loading-overlay');
         if (overlay) {
-            overlay.classList.add('fadeout');
-            setTimeout(() => {
-                overlay.remove();
-            }, 500); // Allow time for animation
+            overlay.remove();
         }
     },
 
     /**
      * Shows a toast notification
      * @param {string} title - Toast title
-     * @param {string} message - Toast message content
+     * @param {string} message - Toast message
      */
     showToast(title, message) {
-        const toast = document.getElementById('notificationToast');
-        const toastTitle = document.getElementById('toastTitle');
-        const toastMessage = document.getElementById('toastMessage');
-        
-        if (toast && toastTitle && toastMessage) {
-            toastTitle.textContent = title;
-            toastMessage.textContent = message;
-            
-            const bsToast = new bootstrap.Toast(toast);
-            bsToast.show();
+        const toastEl = document.getElementById('notificationToast');
+        if (toastEl) {
+            const toast = new bootstrap.Toast(toastEl);
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+            toast.show();
         }
     },
 
@@ -111,4 +73,5 @@ export const UIUtils = {
     }
 };
 
+// Export a default instance
 export default UIUtils;

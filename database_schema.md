@@ -27,38 +27,38 @@ This document outlines all database tables in our project, their relationships, 
 - `story_node_id`: Reference to the story node where transaction occurred
 - `created_at`: Timestamp of transaction
 
-### 3. ImageAnalysis
-**Purpose**: Stores analyzed images and their metadata
-**Usage**: Contains character and scene images for stories
-**Key Fields**:
-- `id`: Primary key
-- `image_url`: URL to the image
-- `image_type`: Type of image ('character', 'scene', etc.)
-- `analysis_result`: JSON with analysis details
-- `name`: Name of the image/character
-- `character_name`: Name of the character (for character images)
-- `character_traits`, `personality_traits`: Character attributes
-- `backstory`, `description`: Character background and description
-- `character_role`: Role of character (undetermined, villain, neutral, mission-giver)
-- `potential_plot_lines`: Potential story arcs for this character
-- `setting_description`: Description of the setting (for scene images)
-- `story_fit`: How well the image fits with the story
-- `dramatic_moments`: Key dramatic moments for this character/scene
-- `created_at`: Timestamp of creation
-
-### 4. Characters
-**Purpose**: Stores dedicated character data
-**Usage**: Provides a streamlined model for character information
+### 3. Character
+**Purpose**: Stores core character information
+**Usage**: Central model for character data used in stories
 **Key Fields**:
 - `id`: Primary key
 - `image_url`: URL to the character image
 - `character_name`: Name of the character
 - `character_traits`: JSON with character traits
-- `character_role`: Role of the character
+- `character_role`: Role of the character (undetermined, villain, neutral, mission-giver)
 - `plot_lines`: JSON with potential plot lines
 - `backstory`: Character backstory
 - `description`: Character description
 - `created_at`, `updated_at`: Timestamps for creation and updates
+
+### 4. SceneImages
+**Purpose**: Stores scene images and their metadata
+**Usage**: Contains background and location images for stories
+**Key Fields**:
+- `id`: Primary key
+- `image_url`: URL to the image
+- `image_width`, `image_height`: Image dimensions
+- `image_format`: Format of the image
+- `image_size_bytes`: Size of the image
+- `image_type`: Type of image (default: 'scene')
+- `analysis_result`: JSON with analysis details
+- `name`: Name of the scene
+- `scene_type`: Type of scene
+- `setting`: Scene setting
+- `setting_description`: Detailed description of the setting
+- `story_fit`: How the scene fits in stories (JSON)
+- `dramatic_moments`: Potential dramatic moments (JSON)
+- `created_at`: Timestamp of creation
 
 ### 5. StoryGeneration
 **Purpose**: Stores main story information
@@ -70,7 +70,10 @@ This document outlines all database tables in our project, their relationships, 
 - `narrative_style`: Style of the narrative
 - `mood`: Story mood
 - `generated_story`: JSON with story content
-- Relationship with `images` through `story_images` association table
+- `created_at`: Timestamp of creation
+**Relationships**:
+- Many-to-many with `SceneImages` through `story_images` table
+- Many-to-many with `Character` through `story_characters` table
 
 ### 6. StoryNode
 **Purpose**: Individual nodes in the story branching tree
@@ -78,7 +81,7 @@ This document outlines all database tables in our project, their relationships, 
 **Key Fields**:
 - `id`: Primary key
 - `narrative_text`: Text content of this story node
-- `image_id`: Associated image
+- `character_id`: Reference to associated character
 - `is_endpoint`: Whether this node is an endpoint
 - `parent_node_id`: Reference to parent node (self-referential)
 - `achievement_id`: Achievement unlocked at this node
@@ -96,6 +99,7 @@ This document outlines all database tables in our project, their relationships, 
 - `next_node_id`: Destination node when choice is selected
 - `currency_requirements`: Currencies needed to select this choice (JSON)
 - `choice_metadata`: Additional metadata for this choice (JSON)
+- `created_at`: Creation timestamp
 
 ### 8. UserProgress
 **Purpose**: Tracks user progress through stories
@@ -117,6 +121,7 @@ This document outlines all database tables in our project, their relationships, 
 - `active_plot_arcs`: Array of active plot arc IDs (JSON)
 - `completed_plot_arcs`: Array of completed plot arc IDs (JSON)
 - `game_state`: General game state information (JSON)
+- `last_updated`: Last update timestamp
 
 ### 9. CharacterEvolution
 **Purpose**: Tracks how characters evolve through user's story
@@ -124,7 +129,7 @@ This document outlines all database tables in our project, their relationships, 
 **Key Fields**:
 - `id`: Primary key
 - `user_id`: User associated with this evolution
-- `character_id`: Reference to character image
+- `character_id`: Reference to Character model
 - `story_id`: Associated story
 - `status`: Character status (active, deceased, etc.)
 - `role`: Character role (protagonist, antagonist, etc.)
@@ -161,8 +166,9 @@ This document outlines all database tables in our project, their relationships, 
 - `id`: Primary key
 - `name`: Achievement name
 - `description`: Achievement description
-- `criteria`: Unlock conditions
+- `criteria`: Unlock conditions (JSON)
 - `points`: Points awarded for completion
+- `created_at`: Creation timestamp
 
 ### 12. PlotArc
 **Purpose**: Tracks story plot arcs
@@ -188,20 +194,23 @@ This document outlines all database tables in our project, their relationships, 
 - `id`: Primary key
 - `name`: Instruction name
 - `prompt_template`: Template for AI prompts
-- `parameters`: Additional parameters for AI
+- `parameters`: Additional parameters for AI (JSON)
+- `created_at`: Creation timestamp
 
 ## Key Relationships
-- `StoryGeneration` ↔ `ImageAnalysis`: Many-to-many through `story_images`
+- `StoryGeneration` ↔ `SceneImages`: Many-to-many through `story_images`
+- `StoryGeneration` ↔ `Character`: Many-to-many through `story_characters`
 - `StoryNode` → `StoryNode`: Self-referential parent-child relationship
 - `StoryNode` → `StoryChoice`: One-to-many (node has many choices)
 - `StoryChoice` → `StoryNode`: Many-to-one (choice leads to next node)
+- `StoryNode` → `Character`: Many-to-one (node features character)
 - `UserProgress` → `StoryNode`: User's current position in story
 - `UserProgress` → `StoryGeneration`: User's current story
 - `UserProgress` → `Transaction`: User's transaction history
 - `StoryNode` → `Achievement`: Achievement unlocked at node
-- `CharacterEvolution` → `ImageAnalysis`: Character being evolved
+- `CharacterEvolution` → `Character`: Character being evolved
 - `CharacterEvolution` → `StoryGeneration`: Story context for evolution
-- `Mission` → `ImageAnalysis`: Relationships with giver and target characters
+- `Mission` → `Character`: Relationships with giver and target characters
 - `Mission` → `StoryGeneration`: Story context for mission
 
 ## Usage Patterns
@@ -212,3 +221,5 @@ This document outlines all database tables in our project, their relationships, 
 5. Missions and achievements provide goals and rewards to drive user engagement
 6. Plot arcs connect multiple story nodes into coherent narrative threads
 7. Currency system enables monetization and resource management gameplay
+8. Characters and scenes are managed separately through dedicated models
+9. Story generation uses both characters and scenes to create rich narratives

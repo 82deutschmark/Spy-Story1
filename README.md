@@ -29,6 +29,11 @@ This application allows users to generate interactive stories featuring images f
 - **Enhanced Story Generation**: Our narrative engine now creates more detailed, lengthy story segments with improved character development, continuity, and plot progression
 - **Detailed Prompts**: Stories now feature richer environmental descriptions, more sophisticated dialogue, and better integration of character traits
 - **Improved Continuity**: Better handling of story context between segments ensures a cohesive narrative experience
+- **Enhanced User Feedback**: 
+  - Improved loading animations across all story interactions
+  - Context-specific loading messages for different actions
+  - Better visual feedback during story generation and choice selection
+  - Preserved button states and text during loading operations
 - **Recent Bug Fixes**:
   - Fixed API blueprint import error in routes system
   - Corrected middleware integration for request logging
@@ -237,13 +242,20 @@ This application allows users to generate interactive stories featuring images f
 
 ### Environment Variables
 
-Set up the following environment variables:
+Set up the following environment variables in a `.env` file at the root of your project:
 
 ```
 DATABASE_URL=postgresql://username:password@localhost/dbname
-OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 SESSION_SECRET=your_session_secret
+FLASK_ENV=development
+LOG_LEVEL=DEBUG
+OPENAI_API_KEY=your_openai_api_key  # Get this from https://platform.openai.com/account/api-keys
 ```
+
+The OpenAI API key is required for story generation and character analysis. The application uses GPT-4o for generating interactive narratives and analyzing character/scene images. Make sure to:
+1. Keep your API key secure and never commit it to version control
+2. Use environment variables or secure secrets management in production
+3. Monitor your API usage to stay within your quota
 
 ### Installation
 
