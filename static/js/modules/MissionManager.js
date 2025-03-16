@@ -1,3 +1,62 @@
+/**
+ * MissionManager.js - Mission and Quest Management
+ * ==========================================
+ * 
+ * !!! IMPORTANT - READ BEFORE MODIFYING !!!
+ * This module manages all mission-related functionality including
+ * tracking, updates, and completion logic.
+ * 
+ * Key Features:
+ * ------------
+ * - Mission state tracking
+ * - Objective validation
+ * - Reward distribution
+ * - Mission UI updates
+ * 
+ * Dependencies:
+ * -----------
+ * - EventHandlers: For event coordination
+ * - UIUtils: For mission feedback
+ * - CurrencyManager: For rewards
+ * - StoryManager: For narrative integration
+ * 
+ * Mission Types:
+ * ------------
+ * - Main Story Missions
+ * - Side Quests
+ * - Character-specific Missions
+ * - Time-limited Events
+ * 
+ * Required DOM Elements:
+ * -------------------
+ * - '.mission-log': Mission tracking display
+ * - '.objective-list': Mission objectives
+ * - '.mission-reward': Reward displays
+ * - '.mission-status': Progress indicators
+ * 
+ * Integration Points:
+ * -----------------
+ * - Story progression system
+ * - Character relationship system
+ * - Achievement tracking
+ * - Reward distribution
+ * 
+ * Usage Guidelines:
+ * ---------------
+ * 1. ALWAYS validate mission state
+ * 2. Maintain mission dependencies
+ * 3. Handle mission branching properly
+ * 4. Track all mission attempts
+ * 
+ * Mission Flow:
+ * -----------
+ * 1. Mission acceptance
+ * 2. Objective tracking
+ * 3. Progress validation
+ * 4. Completion verification
+ * 5. Reward distribution
+ * 6. State update
+ */
 
 /**
  * Mission Management Module

@@ -1,5 +1,80 @@
+"""
+validation_utils.py - Input Validation Utilities
+==========================================
+
+!!! IMPORTANT - READ BEFORE MODIFYING !!!
+This module provides critical validation functions used throughout the application.
+Changes here affect data integrity and security across all features.
+
+Key Features:
+------------
+- Story parameter validation
+- Character data validation
+- Currency requirement validation
+- String length validation
+- Mission parameter validation
+- User input sanitization
+
+Validation Types:
+--------------
+1. Story Parameters:
+   - Conflict type
+   - Setting
+   - Narrative style
+   - Mood
+   - Custom inputs
+
+2. Character Data:
+   - Name format
+   - Role validation
+   - Trait validation
+   - Image requirements
+
+3. Currency:
+   - Amount ranges
+   - Currency types
+   - Transaction limits
+
+4. Text Content:
+   - Length limits
+   - Format requirements
+   - Sanitization rules
+
+Usage Guidelines:
+---------------
+1. ALWAYS validate before database operations
+2. Use appropriate validation type
+3. Handle validation errors gracefully
+4. Maintain security standards
+5. Log validation failures
+
+Return Format:
+-----------
+{
+    'is_valid': bool,
+    'errors': List[str],
+    'sanitized_data': Dict (optional)
+}
+
+Integration Points:
+----------------
+- Story generation system
+- Character management
+- Currency transactions
+- User input processing
+- API request validation
+
+Security Notes:
+------------
+1. Sanitize all user input
+2. Validate data types strictly
+3. Check for injection attempts
+4. Maintain length limits
+5. Log suspicious patterns
+"""
 
 import re
+import logging
 from typing import Dict, Any, List, Optional, Tuple
 
 def validate_string_length(

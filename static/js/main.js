@@ -1,3 +1,39 @@
+/**
+ * main.js - Application Entry Point
+ * ================================
+ * 
+ * !!! IMPORTANT - READ BEFORE MODIFYING !!!
+ * This is the primary entry point for the entire application.
+ * It orchestrates the initialization of all core modules.
+ * 
+ * Key Dependencies:
+ * ----------------
+ * - EventHandlers: Core event management and form handling
+ * - UIUtils: UI interaction utilities
+ * - initializeCharacterMentions: Character highlighting in story text
+ * 
+ * Initialization Order:
+ * -------------------
+ * 1. FLASK_CONFIG validation and setup
+ * 2. EventHandlers initialization
+ * 3. Character mentions setup (if on story page)
+ * 4. Global event listeners
+ * 5. Story ID management
+ * 
+ * Integration Points:
+ * -----------------
+ * - DOM Elements: Requires '.story-content' for character mentions
+ * - URL Parameters: Handles 'story_id' parameter
+ * - Local Storage: Manages 'lastStoryId' and configuration
+ * 
+ * Usage Guidelines:
+ * ---------------
+ * 1. NEVER modify the initialization order
+ * 2. ALWAYS maintain the FLASK_CONFIG structure
+ * 3. Any new global features must be initialized AFTER EventHandlers
+ * 4. Keep the DOMContentLoaded event handler clean and organized
+ */
+
 // Main JavaScript file
 import EventHandlers from '/static/js/modules/EventHandlers.js';
 import { UIUtils } from '/static/js/modules/UIUtils.js';

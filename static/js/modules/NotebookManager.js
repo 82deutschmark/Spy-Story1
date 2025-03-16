@@ -1,4 +1,47 @@
 /**
+ * NotebookManager.js - Story Progress and Notes Management
+ * ===================================================
+ * 
+ * !!! IMPORTANT - READ BEFORE MODIFYING !!!
+ * This module manages the notebook interface for tracking story
+ * progress, character notes, and mission information.
+ * 
+ * Key Features:
+ * ------------
+ * - Notebook visibility toggling
+ * - Story continuation handling
+ * - Progress tracking
+ * - Note management
+ * 
+ * Dependencies:
+ * -----------
+ * - EventHandlers: For event coordination
+ * - UIUtils: For UI feedback
+ * - LocalStorage: For progress persistence
+ * 
+ * Required DOM Elements:
+ * -------------------
+ * - Toggle button for notebook visibility
+ * - Close button for notebook
+ * - Continue story button
+ * - Notebook content container
+ * 
+ * Usage Guidelines:
+ * ---------------
+ * 1. ALWAYS handle notebook state persistence
+ * 2. Maintain clean event listener management
+ * 3. Coordinate with story progression system
+ * 4. Handle mobile/responsive layouts properly
+ * 
+ * State Management:
+ * --------------
+ * - Notebook visibility state
+ * - Current story progress
+ * - User notes and annotations
+ * - Last accessed story position
+ */
+
+/**
  * Notebook Management Module
  * Handles displaying and updating user progress information
  */
