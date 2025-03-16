@@ -1,6 +1,17 @@
 // Main JavaScript file
-import EventHandlers from './modules/EventHandlers.js';
-import { UIUtils } from './modules/UIUtils.js';
+import EventHandlers from '/static/js/modules/EventHandlers.js';
+import { UIUtils } from '/static/js/modules/UIUtils.js';
+
+// Wait for DOM content and modules to load
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        console.log("DOM Content Loaded, initializing application...");
+        await initializeApplication();
+    } catch (error) {
+        console.error("Error during initialization:", error);
+        window.showToast?.('Error', 'Failed to initialize application. Please refresh the page.');
+    }
+});
 
 // Initialize loading overlay functions
 window.createLoadingOverlay = function(message = 'Generating Story...') {
@@ -137,6 +148,3 @@ async function initializeApplication() {
         window.showToast('Error', 'An error occurred while loading the application. Please refresh the page or contact support if the problem persists.');
     }
 }
-
-// Start initialization when DOM is ready
-document.addEventListener('DOMContentLoaded', initializeApplication);

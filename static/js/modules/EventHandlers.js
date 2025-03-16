@@ -1,5 +1,5 @@
 // Form Submission Module
-import { CharacterManager } from './CharacterManager.js';
+import { CharacterManager } from '/static/js/modules/CharacterManager.js';
 
 class StoryFormHandler {
     constructor() {
@@ -94,19 +94,20 @@ class StoryFormHandler {
 
 // Event Handlers Module
 class EventHandlers {
-    constructor() {
-        this.characterManager = null;
-        this.storyFormHandler = null;
-    }
+    static characterManager = null;
+    static storyFormHandler = null;
 
     static async initialize() {
         try {
             console.log("Initializing EventHandlers");
             
-            // Initialize CharacterManager
-            const characterManager = new CharacterManager();
-            await characterManager.initialize();
-            EventHandlers.characterManager = characterManager;
+            // Initialize CharacterManager if we have character containers
+            if (document.querySelector('.character-container')) {
+                console.log("Found character containers, initializing CharacterManager");
+                const characterManager = new CharacterManager();
+                await characterManager.initialize();
+                EventHandlers.characterManager = characterManager;
+            }
             
             // Initialize StoryFormHandler
             const storyFormHandler = new StoryFormHandler();

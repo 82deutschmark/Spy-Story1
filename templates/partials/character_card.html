@@ -5,7 +5,9 @@
         <div class="selection-indicator" style="display: none;">
             <i class="fas fa-check"></i>
         </div>
-        <div class="character-name">{{ img.name }}</div>
+    </div>
+    <div class="character-info-box">
+        <h3 class="character-name">{{ img.name }}</h3>
         <div class="character-traits-list">
             {% if img.character_traits %}
                 {% for trait in img.character_traits %}
