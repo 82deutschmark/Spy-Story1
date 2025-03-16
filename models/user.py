@@ -1,3 +1,57 @@
+"""
+user.py - User Progress and State Management
+=======================================
+
+This module defines the UserProgress model for tracking all aspects of a user's
+progress and state in the interactive spy story system. It manages game progression,
+currency, relationships, and achievements.
+
+Key Features:
+-----------
+1. Story progression tracking
+2. Currency and transaction management
+3. Character relationship system
+4. Experience and leveling system
+5. Mission and plot arc tracking
+6. Achievement management
+7. Choice history recording
+
+Database Schema:
+-------------
+Table: user_progress
+- Primary key: id
+- Required fields: user_id
+- Foreign keys: current_node_id, current_story_id
+- Progress tracking: level, experience_points, choice_history
+- Game state: achievements_earned, game_state
+- Plot tracking: active_plot_arcs, completed_plot_arcs
+- Mission tracking: active/completed/failed_missions
+- Character tracking: encountered_characters
+- Currency tracking: currency_balances
+
+Currency Types:
+------------
+- 💎 Diamonds: Premium currency (500 starting)
+- 💷 Pounds: British currency (5000 starting)
+- 💶 Euros: European currency (5000 starting)
+- 💴 Yen: Japanese currency (5000 starting)
+- 💵 Dollars: US currency (5000 starting)
+
+Leveling System:
+-------------
+- Experience points determine level
+- Level = 1 + sqrt(xp/100)
+- Level-up bonus: 50 * new_level in Euros
+- Experience awarded for various actions
+
+Usage Notes:
+----------
+1. Always use transaction methods for currency changes
+2. Track character relationships through encounters
+3. Maintain proper story node connections
+4. Handle mission state transitions properly
+5. Record all choices for history tracking
+"""
 
 import logging
 from datetime import datetime
@@ -8,7 +62,37 @@ from sqlalchemy.dialects.postgresql import JSONB
 logger = logging.getLogger(__name__)
 
 class UserProgress(db.Model):
-    """Model for tracking user progress in stories"""
+    """
+    Model for tracking comprehensive user progress and state.
+    
+    This model serves as the central repository for all user-related state
+    and progress in the game, including story progression, currency,
+    relationships, and achievements.
+    
+    Attributes:
+        id (int): Primary key
+        user_id (str): Unique user identifier
+        current_node_id (int): Current story node ID
+        current_story_id (int): Current story ID
+        level (int): User's game level [default: 1]
+        experience_points (int): XP for leveling [default: 0]
+        last_updated (datetime): Last state update timestamp
+        choice_history (JSONB): Array of user's choices
+        achievements_earned (JSONB): Array of earned achievements
+        game_state (JSONB): Additional state data
+        active_plot_arcs (JSONB): Active plot arc IDs
+        completed_plot_arcs (JSONB): Completed plot arc IDs
+        active_missions (JSONB): Active mission IDs
+        completed_missions (JSONB): Completed mission IDs
+        failed_missions (JSONB): Failed mission IDs
+        encountered_characters (JSONB): Character relationship data
+        currency_balances (JSONB): Currency amounts by type
+        
+    Relationships:
+        current_node (StoryNode): Current position in story
+        current_story (StoryGeneration): Current story
+        transactions (Transaction): Currency transactions
+    """
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(255), nullable=False, unique=True)
     current_node_id = db.Column(db.Integer, db.ForeignKey('story_node.id', ondelete='SET NULL'))
@@ -41,20 +125,25 @@ class UserProgress(db.Model):
         "💵": 5000,  # Dollars
     })
 
-    # Relationship with current node
+    # Relationships
     current_node = db.relationship('StoryNode')
-    
-    # Relationship with current story
     current_story = db.relationship('StoryGeneration')
-
-    # Add relationship with transactions
     transactions = db.relationship('Transaction', 
                                 primaryjoin="UserProgress.user_id == foreign(Transaction.user_id)",
                                 lazy='dynamic',
                                 cascade="all, delete-orphan")
 
     def can_afford(self, currency_requirements):
-        """Check if user has enough currency for given requirements"""
+        """
+        Check if user has sufficient currency for given requirements.
+        
+        Args:
+            currency_requirements (dict): Required currency amounts
+                                       {currency_symbol: amount}
+        
+        Returns:
+            bool: True if user can afford all requirements
+        """
         if not currency_requirements:
             return True
 
@@ -66,7 +155,23 @@ class UserProgress(db.Model):
         return True
 
     def spend_currency(self, currency_requirements, transaction_type, description, story_node_id=None):
-        """Spend currency and record transaction"""
+        """
+        Spend currency and record the transaction.
+        
+        Args:
+            currency_requirements (dict): Required currency amounts
+            transaction_type (str): Type of transaction
+            description (str): Transaction description
+            story_node_id (int, optional): Associated story node
+            
+        Returns:
+            bool: True if transaction successful
+            
+        Side Effects:
+            - Updates currency balances
+            - Creates transaction record
+            - Commits database changes
+        """
         if not self.can_afford(currency_requirements):
             logger.warning(f"User {self.user_id} attempted to spend currency they don't have")
             return False
@@ -96,7 +201,23 @@ class UserProgress(db.Model):
             return False
             
     def add_currency(self, currency, amount, transaction_type, description):
-        """Add currency and record transaction"""
+        """
+        Add currency and record the transaction.
+        
+        Args:
+            currency (str): Currency symbol to add
+            amount (int): Amount to add
+            transaction_type (str): Type of transaction
+            description (str): Transaction description
+            
+        Returns:
+            bool: True if transaction successful
+            
+        Side Effects:
+            - Updates currency balance
+            - Creates transaction record
+            - Commits database changes
+        """
         try:
             # Update balance
             self.currency_balances[currency] = self.currency_balances.get(currency, 0) + amount
@@ -120,7 +241,23 @@ class UserProgress(db.Model):
             return False
             
     def record_choice(self, choice_text, choice_id, node_id, story_id):
-        """Record a story choice in the user's history"""
+        """
+        Record a story choice in the user's history.
+        
+        Args:
+            choice_text (str): Text of the choice made
+            choice_id (str): ID of the choice
+            node_id (int): Story node ID
+            story_id (int): Story ID
+            
+        Returns:
+            bool: True if choice recorded successfully
+            
+        Side Effects:
+            - Updates choice history
+            - Updates current node and story
+            - Commits database changes
+        """
         if not self.choice_history:
             self.choice_history = []
             
@@ -139,7 +276,22 @@ class UserProgress(db.Model):
         return True
         
     def encounter_character(self, character_id, character_name, initial_relationship=0):
-        """Record character encounter and initialize or update relationship"""
+        """
+        Record or update a character encounter.
+        
+        Args:
+            character_id (int): ID of encountered character
+            character_name (str): Name of character
+            initial_relationship (int): Starting relationship value
+            
+        Returns:
+            bool: True if encounter recorded successfully
+            
+        Side Effects:
+            - Updates encountered_characters
+            - Initializes or updates relationship data
+            - Commits database changes
+        """
         if not self.encountered_characters:
             self.encountered_characters = {}
             
@@ -161,7 +313,22 @@ class UserProgress(db.Model):
         return True
         
     def change_character_relationship(self, character_id, change_amount, reason=None):
-        """Change relationship level with a character"""
+        """
+        Change relationship level with a character.
+        
+        Args:
+            character_id (int): ID of character
+            change_amount (int): Amount to change relationship by
+            reason (str, optional): Reason for change
+            
+        Returns:
+            bool: True if relationship updated successfully
+            
+        Side Effects:
+            - Updates relationship level
+            - Records change in relationship history
+            - Commits database changes
+        """
         if not self.encountered_characters or str(character_id) not in self.encountered_characters:
             logger.warning(f"User {self.user_id} tried to change relationship with unknown character {character_id}")
             return False
@@ -184,7 +351,26 @@ class UserProgress(db.Model):
         return True
         
     def add_experience_points(self, points, reason=None):
-        """Add experience points and handle leveling up"""
+        """
+        Add experience points and handle leveling up.
+        
+        Args:
+            points (int): Experience points to add
+            reason (str, optional): Reason for XP gain
+            
+        Returns:
+            bool: True if user leveled up
+            
+        Side Effects:
+            - Updates experience points
+            - May increase level
+            - Awards level-up bonus if applicable
+            - Commits database changes
+            
+        Notes:
+            Level calculation: level = 1 + sqrt(xp/100)
+            Level-up bonus: 50 * new_level in Euros
+        """
         self.experience_points += points
         
         # Simple leveling formula: level = 1 + sqrt(xp/100)

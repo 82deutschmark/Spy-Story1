@@ -1,3 +1,79 @@
+"""
+story_maker.py - Story Generation Service
+=====================================
+
+!!! IMPORTANT - READ BEFORE MODIFYING !!!
+This module is the core story generation engine that creates and manages
+interactive narratives using AI. Changes here affect the entire story experience.
+
+Key Features:
+------------
+- Story generation using OpenAI
+- Choice generation and validation
+- Character integration
+- Mission creation
+- Plot arc management
+- Story continuation logic
+
+Dependencies:
+-----------
+- OpenAI API: For story generation
+- Database Models:
+  * Character: Character information
+  * StoryGeneration: Story storage
+  * PlotArc: Story progression
+  * Mission: Mission management
+- Utility Services:
+  * validation_utils: Input validation
+  * currency_utils: Transaction handling
+
+Story Structure:
+-------------
+{
+    'title': str,
+    'story': str,
+    'choices': List[{
+        'text': str,
+        'consequence': str,
+        'currency_requirements': Dict[str, int],
+        'mission_impact': str,
+        'type': str
+    }],
+    'mission': {
+        'title': str,
+        'description': str,
+        'objective': str,
+        'reward': Dict[str, int],
+        'deadline': str
+    },
+    'characters': List[str]
+}
+
+Integration Points:
+----------------
+- OpenAI API configuration
+- Character database
+- Story progression system
+- Mission management
+- Currency system
+
+Usage Guidelines:
+---------------
+1. ALWAYS validate AI responses
+2. Maintain story continuity
+3. Handle character relationships
+4. Process currency requirements
+5. Track mission progress
+
+Error Handling:
+------------
+1. API failures
+2. Invalid story formats
+3. Character mismatches
+4. Mission conflicts
+5. Currency validation
+"""
+
 import os
 import json
 import logging
