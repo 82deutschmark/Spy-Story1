@@ -31,10 +31,17 @@
 - Verified reroll functionality is working correctly with proper JSON responses and character data
 - Fixed homepage 500 error caused by debug dashboard references
 - Added proper error template for handling server errors gracefully
+- Fixed story generation by properly handling API key in story_maker.py
+- Fixed form submission error handling in EventHandlers.js
+- Added proper AJAX request handling for story generation errors
+- Fixed event binding in StoryFormHandler to prevent undefined event errors
+- Improved error message display with toast notifications
+- Fixed character selection handling in form submission
 
 ### Security
 - Removed the admin interface and debug endpoints to reduce the attack surface
 - Improved logging configuration for better debugging and monitoring
+- Improved API key handling in story_maker service
 
 ## Previous Changes
 

@@ -5,6 +5,7 @@ class StoryFormHandler {
     constructor() {
         this.progress = 0;
         this.progressInterval = null;
+        this.handleSubmit = this.handleSubmit.bind(this);
     }
 
     showError(message) {
@@ -51,35 +52,55 @@ class StoryFormHandler {
     async handleSubmit(form, e) {
         e.preventDefault();
         
-        const selectedCharacter = document.querySelector('input[name="selectedCharacter"]:checked');
-        if (!selectedCharacter) {
+        const selectedImagesInput = form.querySelector('input[name="selected_images"]');
+        
+        if (!selectedImagesInput || !selectedImagesInput.value) {
             this.showError('Please select a character to begin your adventure.');
             return;
         }
+
+        // Create a new FormData instance
+        const formData = new FormData(form);
+        
+        // Remove any existing selected_images entries
+        formData.delete('selected_images');
+        // Add the selected character ID as an array entry
+        formData.append('selected_images[]', selectedImagesInput.value);
 
         const submitButton = form.querySelector('#generateStoryBtn');
         const loadingPercent = this.startLoadingAnimation(submitButton);
 
         try {
-            const formData = new FormData(form);
+            console.log('Submitting form with data:', {
+                selectedImages: formData.getAll('selected_images[]')
+            });
+
             const response = await fetch(form.action, {
                 method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
                 body: formData
             });
 
+            // Always try to parse JSON response first
+            const result = await response.json().catch(() => ({ error: 'Failed to parse server response' }));
+
             if (!response.ok) {
-                throw new Error('Failed to generate story');
+                throw new Error(result.error || 'Failed to generate story');
             }
 
-            const result = await response.json();
             if (result.redirect_url) {
                 window.location.href = result.redirect_url;
+            } else if (result.error) {
+                throw new Error(result.error);
             } else {
                 throw new Error('No redirect URL in response');
             }
         } catch (error) {
             console.error('Error submitting form:', error);
-            window.showToast('Error', 'Failed to generate story. Please try again.');
+            window.showToast('Error', error.message || 'Failed to generate story. Please try again.');
             this.stopLoadingAnimation(submitButton, loadingPercent);
         }
     }
@@ -87,7 +108,7 @@ class StoryFormHandler {
     initialize() {
         const form = document.getElementById('storyForm');
         if (form) {
-            form.addEventListener('submit', this.handleSubmit.bind(this));
+            form.addEventListener('submit', this.handleSubmit);
         }
     }
 }
