@@ -1,7 +1,85 @@
+"""
+db_utils.py - Database Utility Functions
+===================================
+
+!!! IMPORTANT - READ BEFORE MODIFYING !!!
+This module provides critical database operations and utilities.
+Changes here affect data integrity and persistence across all features.
+
+Key Features:
+------------
+- User progress management
+- Transaction processing
+- Character data operations
+- Story state persistence
+- Mission tracking
+- Relationship management
+
+Database Models:
+-------------
+- UserProgress: User state and progress
+- Character: Character information
+- StoryGeneration: Story content
+- Transaction: Currency operations
+- PlotArc: Story progression
+- Mission: Mission tracking
+- CharacterEvolution: Character development
+
+Operation Types:
+-------------
+1. User Operations:
+   - Progress tracking
+   - State management
+   - Session handling
+
+2. Story Operations:
+   - Content storage
+   - State persistence
+   - Choice tracking
+
+3. Character Operations:
+   - Data management
+   - Relationship tracking
+   - Evolution handling
+
+Usage Guidelines:
+---------------
+1. ALWAYS use transactions
+2. Handle concurrent access
+3. Validate before writes
+4. Maintain referential integrity
+5. Log database operations
+
+Error Handling:
+------------
+1. Connection failures
+2. Transaction rollbacks
+3. Constraint violations
+4. Deadlock detection
+5. Timeout handling
+
+Integration Points:
+----------------
+- SQLAlchemy ORM
+- Flask application
+- Story generation
+- User management
+- Mission system
+
+Performance Notes:
+---------------
+1. Use appropriate indexes
+2. Optimize queries
+3. Handle large datasets
+4. Manage connection pool
+5. Monitor query times
+"""
+
 import logging
 from typing import List, Dict, Any, Optional, Tuple, Union
 from flask import session
 import uuid
+from sqlalchemy.exc import SQLAlchemyError
 
 from database import db
 from models import Character, SceneImages, StoryGeneration, Transaction, UserProgress #UserProgress added here

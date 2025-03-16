@@ -1,3 +1,66 @@
+"""
+main.py - Primary Application Entry Point
+=======================================
+
+!!! IMPORTANT - READ BEFORE MODIFYING !!!
+This is the core application initialization file that sets up all Flask
+components, middleware, and database connections.
+
+Key Features:
+------------
+- Flask application creation and configuration
+- Database initialization
+- Blueprint registration
+- Middleware setup
+- Static file configuration
+- Error handling
+
+Dependencies:
+-----------
+- Flask: Web framework
+- SQLAlchemy: Database ORM
+- Bootstrap: UI framework
+- CORS: Cross-origin handling
+- ProxyFix: Proxy middleware
+- Custom middleware and utilities
+
+Configuration:
+------------
+- Environment variables (loaded via config.py)
+- Database settings
+- Static file settings
+- CORS policies
+- Logging configuration
+
+Initialization Order:
+------------------
+1. Load environment configuration
+2. Create Flask application
+3. Initialize database
+4. Setup Bootstrap
+5. Configure CORS
+6. Add middleware
+7. Register error handlers
+8. Register blueprints
+9. Create database tables
+
+Usage Guidelines:
+---------------
+1. NEVER modify initialization order
+2. ALWAYS maintain proper error handling
+3. Keep middleware chain consistent
+4. Preserve blueprint registration order
+5. Maintain database connection settings
+
+Integration Points:
+----------------
+- Database models
+- Route blueprints
+- Error handlers
+- Static file serving
+- API endpoints
+"""
+
 import os
 import logging
 from flask import Flask

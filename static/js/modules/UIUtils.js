@@ -1,4 +1,50 @@
 /**
+ * UIUtils.js - UI Utility Functions Module
+ * ======================================
+ * 
+ * !!! IMPORTANT - READ BEFORE MODIFYING !!!
+ * This module provides core UI functionality used throughout the application.
+ * Many components depend on these utilities for consistent UI behavior.
+ * 
+ * Key Features:
+ * ------------
+ * - Loading overlays and animations
+ * - Toast notifications
+ * - Loading percentage displays
+ * - General UI notifications
+ * 
+ * Integration Points:
+ * -----------------
+ * - DOM Elements: Creates and manages overlay elements
+ * - Bootstrap: Uses Bootstrap toast components
+ * - CSS Dependencies: Requires loading-related CSS classes
+ * 
+ * Usage Guidelines:
+ * ---------------
+ * 1. ALWAYS clean up UI elements after use (especially overlays)
+ * 2. Maintain consistent styling with existing UI components
+ * 3. Keep toast messages concise and user-friendly
+ * 4. Ensure proper error state handling in UI feedback
+ * 
+ * Common Usage Patterns:
+ * -------------------
+ * 1. Loading States:
+ *    ```js
+ *    const loadingEl = UIUtils.createLoadingOverlay('Loading...');
+ *    try {
+ *      // async operation
+ *    } finally {
+ *      UIUtils.removeLoadingOverlay(loadingEl);
+ *    }
+ *    ```
+ * 
+ * 2. Notifications:
+ *    ```js
+ *    UIUtils.showToast('Success', 'Operation completed');
+ *    ```
+ */
+
+/**
  * UI Utilities Module
  * Handles UI interactions like overlays, notifications and toasts
  */

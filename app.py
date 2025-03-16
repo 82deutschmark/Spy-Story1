@@ -1,3 +1,63 @@
+"""
+app.py - Flask Application Factory
+==============================
+
+!!! IMPORTANT - READ BEFORE MODIFYING !!!
+This module provides the Flask application factory pattern implementation.
+It creates and configures the Flask application instance.
+
+Key Features:
+------------
+- Application factory pattern
+- Configuration loading
+- Database initialization
+- Blueprint registration
+- Session management
+- JavaScript configuration injection
+
+Dependencies:
+-----------
+- Flask: Web framework
+- SQLAlchemy: Database ORM
+- python-dotenv: Environment loading
+- Custom configurations and utilities
+
+Configuration Sources:
+-------------------
+1. Environment variables (.env)
+2. Configuration classes (config.py)
+3. Session configuration
+4. Database settings
+
+Required Environment Variables:
+---------------------------
+- SESSION_SECRET: Session encryption key
+- FLASK_ENV: Application environment
+- DATABASE_URL: Database connection string
+- LOG_LEVEL: Logging configuration
+
+Usage Guidelines:
+---------------
+1. ALWAYS use create_app() for application creation
+2. Maintain proper configuration loading
+3. Keep session management secure
+4. Handle database initialization properly
+
+Integration Points:
+----------------
+- Database models and initialization
+- Route blueprints
+- Configuration system
+- Frontend JavaScript configuration
+
+Security Notes:
+------------
+1. Session secret must be properly set
+2. Database credentials must be secure
+3. Debug mode must be disabled in production
+4. Proper CORS configuration required
+"""
+
 from flask import Flask, session
 from config import get_config
 from database import db, init_db

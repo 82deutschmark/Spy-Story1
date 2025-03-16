@@ -1,4 +1,56 @@
 /**
+ * StoryManager.js - Story Generation and Flow Control
+ * ===============================================
+ * 
+ * !!! IMPORTANT - READ BEFORE MODIFYING !!!
+ * This module manages the core story generation and progression logic.
+ * It coordinates with multiple systems to create and advance the narrative.
+ * 
+ * Key Features:
+ * ------------
+ * - Story generation and continuation
+ * - Choice processing and validation
+ * - Story state management
+ * - Character integration in narratives
+ * 
+ * Dependencies:
+ * -----------
+ * - EventHandlers: For event coordination
+ * - UIUtils: For loading states and feedback
+ * - CharacterManager: For character information
+ * - NotebookManager: For progress tracking
+ * 
+ * Required DOM Elements:
+ * -------------------
+ * - '.story-content': Main story text container
+ * - '.choice-container': Choice options display
+ * - '.story-form': Story generation form
+ * - '.character-mention': Character highlighting
+ * 
+ * Integration Points:
+ * -----------------
+ * - Flask API endpoints for story generation
+ * - Character system for narrative integration
+ * - Progress tracking system
+ * - Currency system for choices
+ * 
+ * Usage Guidelines:
+ * ---------------
+ * 1. ALWAYS maintain story state consistency
+ * 2. Handle all API responses appropriately
+ * 3. Coordinate character mentions with text
+ * 4. Preserve story context during transitions
+ * 
+ * Story Flow:
+ * ----------
+ * 1. Initial story generation
+ * 2. Choice presentation
+ * 3. Choice processing
+ * 4. Story continuation
+ * 5. State persistence
+ */
+
+/**
  * Story Generation Module
  * Handles story generation and choice processing
  */

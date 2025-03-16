@@ -1,4 +1,74 @@
 /**
+ * UserProgressManager.js - Agent Progress and State Management
+ * ====================================================
+ * 
+ * !!! IMPORTANT - READ BEFORE MODIFYING !!!
+ * This module manages agent-specific state, progress, and persistence.
+ * It coordinates user data across multiple game systems.
+ * 
+ * Key Features:
+ * ------------
+ * - Agent data loading and persistence
+ * - Progress tracking and updates
+ * - Currency management
+ * - Experience and level tracking
+ * - Story continuation handling
+ * 
+ * Dependencies:
+ * -----------
+ * - LocalStorage: For agent data persistence
+ * - Bootstrap: For UI components and toasts
+ * - FontAwesome: For notification icons
+ * - API Endpoints: For server-side data sync
+ * 
+ * Required DOM Elements:
+ * -------------------
+ * - '#protagonistName': Agent codename input
+ * - '#loadAgentBtn': Agent data load trigger
+ * - '#agent-details': Agent info display
+ * - '#agent-details-placeholder': Loading state
+ * - '.toast-container': Notification display
+ * 
+ * Data Structure:
+ * -------------
+ * userData: {
+ *   level: number,
+ *   experience_points: number,
+ *   currency_balances: {
+ *     "💎": number,
+ *     "💵": number,
+ *     ...
+ *   },
+ *   active_missions: string[],
+ *   completed_plot_arcs: string[],
+ *   choice_history: Object[],
+ *   encountered_characters: Object
+ * }
+ * 
+ * Integration Points:
+ * -----------------
+ * - Story system for progress tracking
+ * - Currency system for balances
+ * - Mission system for active missions
+ * - Character system for relationships
+ * 
+ * Usage Guidelines:
+ * ---------------
+ * 1. ALWAYS initialize before use
+ * 2. Handle loading states appropriately
+ * 3. Validate data before updates
+ * 4. Maintain proper error handling
+ * 
+ * State Management:
+ * --------------
+ * 1. Check localStorage for existing agent
+ * 2. Load or create agent data
+ * 3. Update UI components
+ * 4. Handle story continuation
+ * 5. Manage notifications
+ */
+
+/**
  * Module for handling user progress, including agent login and progress
  */
 class UserProgressManager {

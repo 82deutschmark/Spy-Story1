@@ -1,3 +1,45 @@
+/**
+ * CharacterManager.js - Character Selection and Management
+ * ===================================================
+ * 
+ * !!! IMPORTANT - READ BEFORE MODIFYING !!!
+ * This module manages all character-related functionality including
+ * selection, state management, and UI interactions.
+ * 
+ * Key Features:
+ * ------------
+ * - Character selection and deselection
+ * - Character state management
+ * - Character UI updates
+ * - Integration with story generation
+ * 
+ * Dependencies:
+ * -----------
+ * - EventHandlers: For event coordination
+ * - UIUtils: For UI feedback
+ * - DOM Elements: Character cards and containers
+ * 
+ * Required DOM Structure:
+ * --------------------
+ * - '.character-select-card': Character selection cards
+ * - '.character-container': Container for character elements
+ * - '.selection-indicator': Visual indicator for selection
+ * - '[data-id]': Character identification
+ * 
+ * Usage Guidelines:
+ * ---------------
+ * 1. ALWAYS initialize through EventHandlers.initialize()
+ * 2. Maintain character selection state consistency
+ * 3. Handle character UI updates atomically
+ * 4. Coordinate with form submission handlers
+ * 
+ * Integration Requirements:
+ * ----------------------
+ * 1. Character cards must follow the template structure
+ * 2. Selection state must persist during form submissions
+ * 3. Character data must be properly formatted for API calls
+ */
+
 // Character Manager Module
 console.log("Initializing CharacterManager module");
 
