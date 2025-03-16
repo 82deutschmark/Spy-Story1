@@ -63,8 +63,35 @@ function initializeCharacterMentions() {
             return;
         }
 
-        const characterMentions = document.querySelectorAll('.character-mention');
-        characterMentions.forEach(mention => {
+        // Get all character names from the mini-portraits
+        const characterPortraits = document.querySelectorAll('.character-portrait-mini');
+        const characterNames = Array.from(characterPortraits).map(portrait => {
+            return {
+                name: portrait.querySelector('.character-mini-name').textContent.trim(),
+                image: portrait.querySelector('img').src,
+                element: portrait
+            };
+        });
+
+        // Sort names by length (longest first) to avoid partial matches
+        characterNames.sort((a, b) => b.name.length - a.name.length);
+
+        // Get the story text
+        let storyText = storyContent.innerHTML;
+
+        // Replace character names with highlighted spans
+        characterNames.forEach(character => {
+            const regex = new RegExp(`\\b${character.name}\\b`, 'gi');
+            storyText = storyText.replace(regex, match => {
+                return `<span class="character-mention" data-character="${character.name.toLowerCase().replace(/\s/g, '-')}">${match}<span class="character-tooltip"><img src="${character.image}" alt="${match}"><div>${match}</div></span></span>`;
+            });
+        });
+
+        // Update the story content
+        storyContent.innerHTML = storyText;
+
+        // Add click event to highlight corresponding mini-portrait
+        document.querySelectorAll('.character-mention').forEach(mention => {
             mention.addEventListener('click', function() {
                 const characterId = this.dataset.character;
                 const targetPortrait = document.querySelector(`.character-portrait-mini[data-character-name="${characterId}"]`);
@@ -84,7 +111,7 @@ function initializeCharacterMentions() {
             });
         });
 
-        console.log(`Initialized ${characterMentions.length} character mentions`);
+        console.log(`Initialized ${characterNames.length} character mentions`);
     } catch (error) {
         console.error("Error initializing character mentions:", error);
     }

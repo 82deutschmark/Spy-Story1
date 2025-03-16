@@ -241,7 +241,7 @@ Set up the following environment variables:
 
 ```
 DATABASE_URL=postgresql://username:password@localhost/dbname
-OPENAI_API_KEY=your_openai_api_key
+OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 SESSION_SECRET=your_session_secret
 ```
 

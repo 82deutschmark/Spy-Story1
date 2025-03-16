@@ -9,8 +9,12 @@ import re
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Initialize OpenAI client with the new API key
-client = OpenAI(api_key="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")
+# Initialize OpenAI client with the API key from environment variables
+if not os.environ.get("OPENAI_API_KEY"):
+    logger.warning("OPENAI_API_KEY not found in environment variables")
+    raise ValueError("OpenAI API key is required but not found in environment variables")
+
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 # Default story options
 STORY_OPTIONS = {

@@ -1,9 +1,15 @@
 from flask import Flask, session
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
-
-# Import statements as suggested by changes
+from config import get_config
 from database import db, init_db
+from routes import register_routes
+import logging
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mydatabase.db' # Replace with your database URI
@@ -45,11 +51,43 @@ def index():
     return f"User progress: {user_progress.progress}"
 
 
+def create_app():
+    """Create and configure the Flask application"""
+    app = Flask(__name__)
+    
+    # Load configuration
+    config = get_config()
+    app.config.from_object(config)
+    
+    # Configure logging
+    logging.basicConfig(level=app.config['LOG_LEVEL'])
+    
+    # Initialize extensions
+    db.init_app(app)
+    
+    # Register routes
+    register_routes(app)
+    
+    # Add FLASK_CONFIG to JavaScript
+    @app.context_processor
+    def inject_flask_config():
+        return {
+            'FLASK_CONFIG': {
+                'staticUrl': '/static/',
+                'apiBaseUrl': '/api',
+                'env': os.environ.get('FLASK_ENV', 'development'),
+                'debug': app.config['DEBUG']
+            }
+        }
+    
+    return app
+
 if __name__ == '__main__':
     # Initialize database as suggested by changes
     with app.app_context():
         init_db(app)
-    app.run(debug=True)
+    app = create_app()
+    app.run(debug=app.config['DEBUG'])
 
 # Dummy database.py file
 # database.py
