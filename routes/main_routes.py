@@ -57,37 +57,48 @@ def get_random_scene_background():
 @main_bp.route('/')
 def index():
     """Main page showing character selection and story options"""
-    story_options = get_story_options()
-    background_image = get_random_scene_background()
-    user_progress = get_or_create_user_progress()
+    try:
+        story_options = get_story_options()
+        background_image = get_random_scene_background()
 
-    # Get 2 random characters for selection
-    characters = Character.query.order_by(db.func.random()).limit(2).all()
-    character_data = []
-    for char in characters:
-        # Ensure we're using standardized role values
-        role = char.character_role or 'neutral'
-        if role.lower() not in ['villain', 'neutral', 'mission-giver', 'undetermined']:
-            role = 'neutral'
+        # Get 2 random characters for selection
+        characters = Character.query.order_by(db.func.random()).limit(2).all()
+        character_data = []
+        for char in characters:
+            # Ensure we're using standardized role values
+            role = char.character_role or 'neutral'
+            if role.lower() not in ['villain', 'neutral', 'mission-giver', 'undetermined']:
+                role = 'neutral'
 
-        char_data = {
-            'id': char.id,
-            'image_url': char.image_url,
-            'name': char.character_name,
-            'story': char.description or '',
-            'character_traits': char.character_traits or [],
-            'plot_lines': char.plot_lines or [],
-            'character_role': role
-        }
-        character_data.append(char_data)
+            char_data = {
+                'id': char.id,
+                'image_url': char.image_url,
+                'name': char.character_name,
+                'story': char.description or '',
+                'character_traits': char.character_traits or [],
+                'plot_lines': char.plot_lines or [],
+                'character_role': role
+            }
+            character_data.append(char_data)
 
-    return render_template(
-        'index.html',
-        story_options=story_options,
-        images=character_data,
-        background_image=background_image,
-        user_progress=user_progress
-    )
+        # Initialize user progress only if needed (e.g., form submission)
+        user_progress = None
+        if request.args.get('init_progress'):
+            user_progress = get_or_create_user_progress()
+
+        return render_template(
+            'index.html',
+            story_options=story_options,
+            images=character_data,
+            background_image=background_image,
+            user_progress=user_progress
+        )
+    except Exception as e:
+        logger.error(f"Error in index route: {str(e)}", exc_info=True)
+        return render_template(
+            'error.html',
+            error_message="An error occurred while loading the page. Please try again."
+        )
 
 @main_bp.route('/storyboard/<int:story_id>')
 def storyboard(story_id):
@@ -571,14 +582,17 @@ def make_choice():
 def reroll_character():
     """Return a new random character to replace an existing one"""
     try:
+        logger.info("Received reroll character request")
         data = request.json
         character_id = data.get('character_id')
+        logger.info(f"Reroll request for character_id: {character_id}")
 
         if not character_id:
             logger.error("No character ID provided for reroll")
             return jsonify({'error': 'No character ID provided'}), 400
 
         # Get a random character from the characters table
+        logger.info("Querying for random character")
         new_character = Character.query.filter(Character.id != character_id)\
             .filter(Character.character_name.isnot(None))\
             .order_by(db.func.random()).first()
@@ -586,6 +600,8 @@ def reroll_character():
         if not new_character:
             logger.error("No alternative characters found for reroll")
             return jsonify({'error': 'No alternative characters found'}), 404
+
+        logger.info(f"Found new character: {new_character.id} - {new_character.character_name}")
 
         # Prepare character data
         role = new_character.character_role or 'neutral'
@@ -607,6 +623,7 @@ def reroll_character():
                                          img=char_data, 
                                          index=0)
 
+        logger.info("Successfully prepared character data and HTML")
         return jsonify({
             'success': True,
             'character': char_data,

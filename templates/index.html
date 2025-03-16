@@ -85,11 +85,12 @@
                                                         <li><i class="fas fa-users me-2"></i>Character relationships</li>
                                                     </ul>
                                                 </div>
+                                                {% if user_progress %}
                                                 <div id="agent-details" style="display: none;">
                                                     <div class="agent-stats mb-3">
                                                         <div class="d-flex justify-content-between align-items-center mb-2">
-                                                            <span class="agent-level">Level: <span id="agent-level">1</span></span>
-                                                            <span class="agent-xp">XP: <span id="agent-xp">0</span></span>
+                                                            <span class="agent-level">Level: <span id="agent-level">{{ user_progress.level }}</span></span>
+                                                            <span class="agent-xp">XP: <span id="agent-xp">{{ user_progress.experience_points }}</span></span>
                                                         </div>
                                                         <div class="progress" style="height: 10px;">
                                                             <div id="agent-xp-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
@@ -97,14 +98,21 @@
                                                     </div>
                                                     <div class="currency-display mb-3">
                                                         <h6>Currency:</h6>
-                                                        <div id="agent-currency" class="d-flex flex-wrap gap-2"></div>
+                                                        <div id="agent-currency" class="d-flex flex-wrap gap-2">
+                                                            {% for currency, amount in user_progress.currency_balances.items() %}
+                                                            <span class="badge bg-secondary">{{ currency }}: {{ amount }}</span>
+                                                            {% endfor %}
+                                                        </div>
                                                     </div>
-                                                    <div id="continue-story-container" class="mt-3" style="display: none;">
+                                                    {% if user_progress.current_story_id %}
+                                                    <div id="continue-story-container" class="mt-3">
                                                         <button id="continueStoryBtn" class="btn btn-primary btn-sm w-100">
                                                             <i class="fas fa-book-reader me-2"></i>Continue Your Adventure
                                                         </button>
                                                     </div>
+                                                    {% endif %}
                                                 </div>
+                                                {% endif %}
                                             </div>
                                         </div>
                                     </div>
@@ -237,98 +245,19 @@
                         </form>
                     </div>
                 </div>
-
-                <!-- Debug Link -->
-                <div class="text-center mt-4 mb-5">
-                    <a href="{{ url_for('debug.debug_dashboard') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-bug me-2"></i>Debug Tools
-                    </a>
-                </div>
             </div>
         </div>
     </div>
 
-    <!-- Purchase Modal -->
-    <div class="modal fade" id="purchaseModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Purchase Diamonds 💎</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="diamond-packages">
-                        <button class="btn btn-outline-primary diamond-package" data-amount="100" data-price="1">
-                            100 💎 for $1
-                        </button>
-                        <button class="btn btn-outline-primary diamond-package" data-amount="500" data-price="4">
-                            500 💎 for $4
-                        </button>
-                        <button class="btn btn-outline-primary diamond-package" data-amount="1000" data-price="7">
-                            1000 💎 for $7
-                        </button>
-                    </div>
-                    <div class="mt-3">
-                        <button class="btn btn-primary w-100 disabled">Currency Purchase Coming Soon</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Trade Modal -->
-
-    <!-- User Progress Modal removed -->
-
-    <div class="modal fade" id="tradeModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Trade Currencies</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="tradeForm">
-                        <div class="mb-3">
-                            <label class="form-label">From Currency</label>
-                            <select class="form-select" id="fromCurrency">
-                                <option value="💎">💎 Diamonds</option>
-                                <option value="💷">💷 Pounds</option>
-                                <option value="💶">💶 Euros</option>
-                                <option value="💴">💴 Yen</option>
-                                <option value="💵">💵 Dollars</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Amount</label>
-                            <input type="number" class="form-control" id="tradeAmount" min="1">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">To Currency</label>
-                            <select class="form-select" id="toCurrency">
-                                <option value="💎">💎 Diamonds</option>
-                                <option value="💷">💷 Pounds</option>
-                                <option value="💶">💶 Euros</option>
-                                <option value="💴">💴 Yen</option>
-                                <option value="💵">💵 Dollars</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Trade</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast notification -->
+    <!-- Toast for notifications -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3">
-        <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div id="notificationToast" class="toast" role="alert">
             <div class="toast-header">
-                <i class="fas fa-info-circle me-2"></i>
                 <strong class="me-auto" id="toastTitle">Notification</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
             </div>
-            <div class="toast-body" id="toastMessage"></div>
+            <div class="toast-body" id="toastMessage">
+            </div>
         </div>
     </div>
 

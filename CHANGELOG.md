@@ -9,15 +9,32 @@
 - Removed redundant UI elements not used by core functionality
 - Improved character selection interface with clearer structure
 - Enhanced character card layout and controls
+- Added detailed logging to application startup and request handling
+- Made user progress initialization optional to improve homepage performance
 
 ### Removed
-- Deleted redundant `characters.css` file after consolidation
-- Removed unused UI elements from landing page
-- Removed purchase modal (to be implemented later)
+- Deleted the redundant `characters.css` file after consolidation
+- Removed unused UI elements from the landing page
+- Removed the purchase modal (to be implemented later)
+- Removed admin and debug features for a cleaner, production-focused codebase
+- Removed the Flask-Admin dependency and related configurations
+- Removed debug routes and templates
+- Removed unnecessary `paypalrestsdk` package
+- Removed debug dashboard link and references
+- Removed trade modal and currency-related UI elements
 
 ### Fixed
-- Updated Mission model to reference characters instead of scene_images for giver_id and target_id
+- Updated the Mission model to reference characters instead of `scene_images` for `giver_id` and `target_id`
 - Corrected database schema documentation to match actual implementation
+- Enhanced error handling in the reroll character functionality
+- Improved error messages for the character reroll endpoint
+- Verified reroll functionality is working correctly with proper JSON responses and character data
+- Fixed homepage 500 error caused by debug dashboard references
+- Added proper error template for handling server errors gracefully
+
+### Security
+- Removed the admin interface and debug endpoints to reduce the attack surface
+- Improved logging configuration for better debugging and monitoring
 
 ## Previous Changes
 
@@ -129,5 +146,4 @@ All notable changes to the Story Creator project will be documented in this file
 **Purpose:** Added support for in-game currency system
 **Changes:**
 - Created `currency` table with currency types and symbols
-- Added `currency_balances` JSON column to `user_progress` table
-- Added `
+- Added `currency_balances` JSON column to `
