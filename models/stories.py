@@ -14,7 +14,6 @@ Key Components:
 
 Database Schema:
 -------------
-- story_images: Links stories to scene images
 - story_characters: Links stories to characters
 - story_generation: Main story table
 - story_node: Story segment table
@@ -22,7 +21,6 @@ Database Schema:
 
 Relationships:
 ------------
-- Stories <-> Images (Many-to-Many)
 - Stories <-> Characters (Many-to-Many)
 - Nodes -> Choices (One-to-Many)
 - Nodes -> Nodes (Self-referential/Tree structure)
@@ -39,12 +37,6 @@ Usage Notes:
 from datetime import datetime
 from .base import db
 from sqlalchemy.dialects.postgresql import JSONB
-
-# Association table for many-to-many relationship between stories and scene images
-story_images = db.Table('story_images',
-    db.Column('story_id', db.Integer, db.ForeignKey('story_generation.id'), primary_key=True),
-    db.Column('image_id', db.Integer, db.ForeignKey('scene_images.id'), primary_key=True)
-)
 
 # Association table for stories and characters
 story_characters = db.Table('story_characters',
@@ -67,7 +59,6 @@ class StoryGeneration(db.Model):
         mood (str): Emotional tone of the story
         generated_story (JSONB): Complete story text and choices
         created_at (datetime): Story creation timestamp
-        images (relationship): Associated scene images
         characters (relationship): Characters involved in the story
     """
     id = db.Column(db.Integer, primary_key=True)
@@ -77,12 +68,6 @@ class StoryGeneration(db.Model):
     mood = db.Column(db.String(255))
     generated_story = db.Column(JSONB)  # Stores the story text and choices
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # Many-to-many relationship with SceneImages
-    images = db.relationship('SceneImages', secondary=story_images,
-                           backref=db.backref('stories', lazy='dynamic'),
-                           primaryjoin="StoryGeneration.id == story_images.c.story_id",
-                           secondaryjoin="SceneImages.id == story_images.c.image_id")
 
     # Many-to-many relationship with Character
     characters = db.relationship('Character', secondary=story_characters,

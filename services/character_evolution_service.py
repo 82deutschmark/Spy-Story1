@@ -43,7 +43,7 @@ from models import CharacterEvolution
 logger = logging.getLogger(__name__)
 
 
-def evolve_character_traits(char_evolution_id: int, story_context: str) -> bool:
+def evolve_character_traits(character_evolution_id: int, story_context: str) -> bool:
     """
     Evolve a character's traits based on story events and player interactions.
     
@@ -54,7 +54,7 @@ def evolve_character_traits(char_evolution_id: int, story_context: str) -> bool:
     4. Maintains character authenticity in the spy narrative
 
     Args:
-        char_evolution_id (int): ID of the character evolution record
+        character_evolution_id (int): ID of the character evolution record
         story_context (str): Recent story events affecting the character
 
     Returns:
@@ -65,9 +65,9 @@ def evolve_character_traits(char_evolution_id: int, story_context: str) -> bool:
         True  # Character might become more compassionate
     """
     try:
-        char_evolution = CharacterEvolution.query.get(char_evolution_id)
+        char_evolution = CharacterEvolution.query.get(character_evolution_id)
         if not char_evolution:
-            logger.error(f"[Evolve] Character evolution record {char_evolution_id} not found.")
+            logger.error(f"[Evolve] Character evolution record {character_evolution_id} not found.")
             return False
 
         # Verify character exists in characters table
@@ -88,24 +88,23 @@ def evolve_character_traits(char_evolution_id: int, story_context: str) -> bool:
             "timestamp": datetime.utcnow().isoformat()
         }
         char_evolution.evolution_log.append(log_entry)
-        logger.debug(f"[Evolve] Appended to evolution_log for CharacterEvolution {char_evolution_id}: {log_entry}")
+        logger.debug(f"[Evolve] Appended to evolution_log for CharacterEvolution {character_evolution_id}: {log_entry}")
 
         # Update timestamp
         char_evolution.last_updated = datetime.utcnow()
         db.session.commit()
-        logger.info(f"[Evolve] CharacterEvolution {char_evolution_id} updated successfully.")
+        logger.info(f"[Evolve] CharacterEvolution {character_evolution_id} updated successfully.")
         return True
 
     except Exception as e:
-        logger.error(f"[Evolve] Error evolving character traits for {char_evolution_id}: {str(e)}", exc_info=True)
+        logger.error(f"[Evolve] Error evolving character traits for {character_evolution_id}: {str(e)}", exc_info=True)
         db.session.rollback()
         return False
 
 
 def update_character_relationships(
-    user_id: int,
+    user_id: int,  # The user/protagonist ID - these are always the same
     story_id: int,
-    protagonist_id: int,
     relationship_changes: Dict[str, Dict[str, Any]]
 ) -> bool:
     """
@@ -118,9 +117,8 @@ def update_character_relationships(
     4. Relationship history logging
 
     Args:
-        user_id (int): ID of the player
+        user_id (int): ID of the player/protagonist (these are always the same entity)
         story_id (int): Current story segment ID
-        protagonist_id (int): Player character's ID
         relationship_changes (dict): Mapping of character IDs to relationship changes:
             {
                 "character_id": {
@@ -134,7 +132,7 @@ def update_character_relationships(
 
     Example:
         >>> changes = {"42": {"strength": 5}}  # Positive relationship change
-        >>> update_character_relationships(1, 1, 1, changes)
+        >>> update_character_relationships(1, 1, changes)
         True  # Character 42 becomes more friendly
     """
     try:
@@ -147,32 +145,32 @@ def update_character_relationships(
         logger.debug(f"[Relationships] Found {len(char_map)} character evolution records for user {user_id}, story {story_id}.")
 
         # Helper to update both sides of the relationship
-        def _update_relationship(from_ce, to_id, strength):
+        def _update_relationship(from_ce, to_character_id, strength):
             from_ce.add_relationship(
-                target_character_id=to_id,
+                target_character_id=to_character_id,
                 strength=strength
             )
-            logger.debug(f"[Relationships] Updated {from_ce.character_id} -> {to_id} with strength {strength}.")
+            logger.debug(f"[Relationships] Updated {from_ce.character_id} -> {to_character_id} with strength {strength}.")
 
         # Update relationships
-        for target_id, change_data in relationship_changes.items():
-            if target_id not in char_map:
-                logger.warning(f"[Relationships] Target character {target_id} not found in evolution records.")
+        for target_character_id, change_data in relationship_changes.items():
+            if target_character_id not in char_map:
+                logger.warning(f"[Relationships] Target character {target_character_id} not found in evolution records.")
                 continue
 
-            target_ce = char_map[target_id]
+            target_ce = char_map[target_character_id]
 
             # Get relationship details
             strength = change_data.get('strength', 0)
 
             # Update relationship from protagonist to target
-            if str(protagonist_id) in char_map:
-                protag_ce = char_map[str(protagonist_id)]
-                _update_relationship(protag_ce, target_id, strength)
+            if str(user_id) in char_map:
+                protag_ce = char_map[str(user_id)]
+                _update_relationship(protag_ce, target_character_id, strength)
 
             # Update relationship from target to protagonist (may be different)
             inverse_strength = change_data.get('inverse_strength', strength)
-            _update_relationship(target_ce, protagonist_id, inverse_strength)
+            _update_relationship(target_ce, user_id, inverse_strength)
 
         db.session.commit()
         logger.info(f"[Relationships] Successfully updated relationships for user {user_id}, story {story_id}.")

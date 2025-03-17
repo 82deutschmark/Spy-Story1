@@ -24,6 +24,12 @@
   - Added visual separator between story text and choices
   - Enhanced choice button styling with better hover effects
   - Improved mobile responsiveness for both story and choice sections
+- Standardized terminology across codebase:
+  - Updated story_maker.py to consistently use 'setting' instead of 'location/setting'
+  - Modified game_engine.py to use 'setting' parameter instead of 'location'
+  - Updated main_routes.py to use 'setting' in story parameters and template variables
+  - Updated form fields and labels in templates to use 'setting' terminology
+  - Modified JavaScript files to use 'setting' in form handling and validation
 
 ### Removed
 - Deleted the redundant `characters.css` file after consolidation
@@ -45,7 +51,14 @@
 - Fixed homepage 500 error caused by debug dashboard references
 - Added proper error template for handling server errors gracefully
 - Fixed story generation by properly handling API key in story_maker.py
-- Fixed form submission error handling in EventHandlers.js
+- Fixed form submission error handling in EventHandlers.js:
+  - Improved validation for required story parameters
+  - Added user-friendly error messages for missing selections
+  - Fixed character selection handling in form data
+  - Enhanced error display with both toast notifications and inline messages
+  - Improved loading state management during form submission
+  - Added proper error handling for API responses
+  - Consolidated error handling for both initial story and choice forms
 - Added proper AJAX request handling for story generation errors
 - Fixed event binding in StoryFormHandler to prevent undefined event errors
 - Improved error message display with toast notifications
@@ -53,29 +66,20 @@
 - Fixed loading animation not appearing when clicking choice buttons on the storyboard page
 - Improved loading state feedback with proper button text preservation
 - Enhanced error handling during story generation and choice submissions
+- Fixed critical database relationship issue in StoryGeneration model:
+  - Removed incorrect story_images association table that was causing "Unknown PG numeric type: 3802" error
+  - Updated storyboard route to use correct story.characters relationship instead of story.images
+  - Fixed model imports in models/__init__.py to remove story_images reference
+  - Ensured proper character image handling in storyboard template
+  - Added error handling for character image loading in storyboard route
+  - Improved logging for character image processing errors
+  - Fixed database schema to properly reflect character-story relationships
+  - Updated documentation to clarify correct model relationships
 
 ### Security
 - Removed the admin interface and debug endpoints to reduce the attack surface
 - Improved logging configuration for better debugging and monitoring
 - Improved API key handling in story_maker service
-
-### Added
-- Comprehensive documentation for all core model files:
-  - config.py: Application configuration management
-  - models/stories.py: Story generation and management
-  - models/character_data.py: Character data and attributes
-  - models/missions.py: Mission system and tracking
-  - models/currency.py: Currency and transaction system
-  - models/achievements.py: Achievement system
-  - models/plot.py: Plot arc management
-  - models/user.py: User progress and state management
-- Detailed module-level documentation including:
-  - Key features and components
-  - Database schema details
-  - Usage guidelines and notes
-  - Relationship explanations
-  - Side effect documentation
-  - Type information and validation rules
 
 ## Previous Changes
 
@@ -188,3 +192,11 @@ All notable changes to the Story Creator project will be documented in this file
 **Changes:**
 - Created `currency` table with currency types and symbols
 - Added `currency_balances` JSON column to `
+
+### Fixed
+- Fixed server startup issues by correcting model imports in models/__init__.py:
+  - Removed incorrect reference to non-existent models.images module
+  - Updated imports to use correct model names (SceneImages instead of ImageAnalysis)
+  - Added missing Character model import from character_data
+  - Fixed circular import issues in model relationships
+  - Ensured all required models are properly exported in __all__

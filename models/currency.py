@@ -3,7 +3,7 @@ currency.py - Currency and Transaction Management
 ===========================================
 
 This module defines the models for managing different types of currency and
-tracking currency transactions in the interactive story system.
+tracking currency transactions in the interactive spy story system.
 
 Key Components:
 ------------
@@ -17,7 +17,6 @@ Currency Types:
 - 💵 Dollars: Standard currency
 - 💷 Pounds: British currency
 - 💶 Euros: European currency
-- 💴 Yen: Japanese currency
 
 Transaction Types:
 --------------
@@ -61,8 +60,8 @@ class Currency(db.Model):
     
     Attributes:
         id (int): Primary key
-        name (str): Currency name (e.g., "diamond", "pound", "euro", "yen")
-        symbol (str): Currency symbol (e.g., "💎", "💷", "💶", "💴")
+        name (str): Currency name (e.g., "diamond", "pound", "euro")
+        symbol (str): Currency symbol (e.g., "💎", "💷", "💶")
         created_at (datetime): Currency type creation timestamp
     
     Usage:

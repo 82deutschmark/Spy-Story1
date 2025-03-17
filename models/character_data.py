@@ -3,7 +3,7 @@ character_data.py - Character Data Model
 ====================================
 
 This module defines the base Character model for storing core character information
-and attributes in the interactive story system. Character evolution and
+and attributes in the interactive spy story system. Character evolution and
 progression are handled separately in the CharacterEvolution model (character.py).
 
 Key Features:

@@ -1,5 +1,6 @@
 import logging
 from typing import List, Dict, Any, Optional
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -138,3 +139,55 @@ class OpenAIContextManager:
         except Exception as e:
             logger.error(f"Error in process_function_calling: {str(e)}")
             raise
+
+    def generate_initial_story(
+        conflict: str,
+        setting: str,
+        narrative_style: str,
+        mood: str,
+        character_info: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Generate the initial opening of a story.
+        
+        The output will contain rich information for the game engine to parse:
+        - Characters introduced
+        - Initial mission details
+        - Story setting and atmosphere
+        - Initial choices
+        """
+        # Use OpenAIContextManager for the initial prompt
+        context_manager = OpenAIContextManager()
+        
+        # Add system message
+        context_manager.add_system_message(_build_system_message(mood, narrative_style))
+        
+        # Add story parameters
+        context_manager.add_user_message(
+            f"Create an opening story with:\n"
+            f"Conflict: {conflict}\n"
+            f"Setting: {setting}\n"
+            f"Character: {json.dumps(character_info) if character_info else 'None'}\n"
+        )
+        
+        # Get response
+        response = context_manager.process_function_calling(
+            client=client,
+            model="gpt-4o-mini",
+            temperature=0.7
+        )
+        
+        return json.loads(response.choices[0].message.content)
+
+class GameState:
+    def __init__(self, user_id: str):
+        self.user_id = user_id
+        self.user_progress = self._load_user_progress()
+        self.current_story = None
+        self.current_node = None
+        self.active_missions = []
+        self._context_manager = OpenAIContextManager()
+        self.reload_state()
+    
+    def get_context_manager(self) -> OpenAIContextManager:
+        """Get the OpenAIContextManager for this story."""
+        return self._context_manager

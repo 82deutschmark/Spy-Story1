@@ -21,7 +21,7 @@ Currency Types:
 - 💵 Cash: Standard currency
 - 💷 Pounds: British currency
 - 💶 Euros: European currency
-- 💴 Yen: Japanese currency DEPRECATED
+- 💴 Yen: Japanese currency
 
 Transaction Types:
 ---------------

@@ -1,4 +1,3 @@
-
 import logging
 from app import create_app
 from database import db
@@ -109,7 +108,7 @@ def move_scene_images():
                 image_size_bytes=img.image_size_bytes,
                 image_type='scene',
                 analysis_result=img.analysis_result,
-                name=img.name or img.character_name,
+                name=img.name,
                 scene_type=img.scene_type,
                 setting=img.setting,
                 setting_description=img.setting_description,

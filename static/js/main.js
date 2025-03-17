@@ -170,3 +170,64 @@ async function initializeApplication() {
         UIUtils.showToast('Error', 'An error occurred while loading the application. Please refresh the page or contact support if the problem persists.');
     }
 }
+
+// Story generation form handling
+document.addEventListener('DOMContentLoaded', function() {
+    const storyForm = document.querySelector('.story-form');
+    if (storyForm) {
+        // Handle custom input fields
+        const customFields = {
+            'conflict': document.getElementById('custom_conflict'),
+            'setting': document.getElementById('custom_setting'),
+            'narrative_style': document.getElementById('custom_narrative'),
+            'mood': document.getElementById('custom_mood')
+        };
+
+        // Handle select fields
+        const selectFields = {
+            'conflict': document.getElementById('conflict'),
+            'setting': document.getElementById('setting'),
+            'narrative_style': document.getElementById('narrative_style'),
+            'mood': document.getElementById('mood')
+        };
+
+        // Toggle custom input visibility based on select value
+        Object.keys(selectFields).forEach(field => {
+            const select = selectFields[field];
+            const customInput = customFields[field];
+            
+            if (select && customInput) {
+                select.addEventListener('change', function() {
+                    customInput.style.display = this.value ? 'none' : 'block';
+                });
+            }
+        });
+
+        // Form validation
+        storyForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            // Check if either select or custom input is filled for each field
+            let isValid = true;
+            Object.keys(selectFields).forEach(field => {
+                const select = selectFields[field];
+                const customInput = customFields[field];
+                
+                if (select && customInput) {
+                    if (!select.value && !customInput.value) {
+                        isValid = false;
+                        select.classList.add('is-invalid');
+                        customInput.classList.add('is-invalid');
+                    } else {
+                        select.classList.remove('is-invalid');
+                        customInput.classList.remove('is-invalid');
+                    }
+                }
+            });
+
+            if (isValid) {
+                this.submit();
+            }
+        });
+    }
+});
