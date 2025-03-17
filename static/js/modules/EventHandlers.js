@@ -107,10 +107,25 @@ class StoryFormHandler {
         );
 
         try {
+            // Ensure form has an action
+            if (!form.action) {
+                throw new Error('Form action is not set');
+            }
+
             const formData = new FormData(form);
 
-            // Only check for character selection on initial story form
+            // Validate required story parameters for initial story form
             if (!isChoiceForm) {
+                const requiredParams = ['conflict', 'setting', 'narrative_style', 'mood'];
+                const missingParams = requiredParams.filter(param => !formData.get(param));
+                
+                if (missingParams.length > 0) {
+                    const errorMessage = `Please select the following: ${missingParams.map(param => param.replace('_', ' ')).join(', ')}`;
+                    this.showError(errorMessage);
+                    this.stopLoadingAnimation(submitButton, loadingPercent, originalText);
+                    return;
+                }
+
                 const selectedCharacters = Array.from(document.querySelectorAll('.character-select-card.selected'))
                     .map(card => card.dataset.id);
 
@@ -120,12 +135,11 @@ class StoryFormHandler {
                     return;
                 }
 
-                // Clear existing selected_images and add new ones
-                const existingImages = formData.getAll('selected_images[]');
-                existingImages.forEach(() => formData.delete('selected_images[]'));
+                // Add selected characters to form data
                 selectedCharacters.forEach(id => {
                     formData.append('selected_images[]', id);
                 });
+                formData.set('selected_images', selectedCharacters[0]); // For backward compatibility
             }
 
             const response = await fetch(form.action, {
@@ -137,14 +151,10 @@ class StoryFormHandler {
                 body: formData
             });
 
-            const result = await response.json().catch(() => ({ error: 'Failed to parse server response' }));
-
-            if (!response.ok) {
-                throw new Error(result.error || 'Failed to generate story');
-            }
+            const result = await response.json();
 
             if (result.error) {
-                throw new Error(result.error);
+                throw new Error(result.error || 'Failed to generate story');
             }
 
             // Handle successful response
@@ -169,7 +179,9 @@ class StoryFormHandler {
             this.stopLoadingAnimation(submitButton, loadingPercent, originalText);
         } catch (error) {
             console.error('Error submitting form:', error);
-            UIUtils.showToast('Error', error.message || 'Failed to process your request. Please try again.');
+            const errorMessage = error.message || 'Failed to process your request. Please try again.';
+            this.showError(errorMessage);
+            UIUtils.showToast('Error', errorMessage);
             this.stopLoadingAnimation(submitButton, loadingPercent, originalText);
         }
     }
@@ -196,11 +208,8 @@ class EventHandlers {
 
     static async initialize() {
         try {
-            console.log("Initializing EventHandlers");
-            
             // Initialize CharacterManager if we have character containers
             if (document.querySelector('.character-container')) {
-                console.log("Found character containers, initializing CharacterManager");
                 const characterManager = new CharacterManager();
                 await characterManager.initialize();
                 EventHandlers.characterManager = characterManager;
@@ -210,8 +219,6 @@ class EventHandlers {
             const storyFormHandler = new StoryFormHandler();
             storyFormHandler.initialize();
             EventHandlers.storyFormHandler = storyFormHandler;
-
-            console.log("EventHandlers initialization complete");
         } catch (error) {
             console.error("Error in EventHandlers initialization:", error);
             throw error;

@@ -6,6 +6,14 @@ story_maker.py - Story Generation Service
 This module is the core story generation engine that creates and manages
 interactive narratives using AI. Changes here affect the entire story experience.
 
+!!! MODEL CONFIGURATION WARNING !!!
+DO NOT MODIFY THE MODEL CONFIGURATION (model name, tokens, temperature)
+UNLESS EXPLICITLY DIRECTED TO DO SO. The current settings are:
+- model: "gpt-4o-mini"
+- max_tokens: 14000
+- temperature: 0.7
+These settings are carefully tuned for the application's needs.
+
 Key Features:
 ------------
 - Story generation using OpenAI
@@ -13,7 +21,6 @@ Key Features:
 - Character integration
 - Mission creation
 - Plot arc management
-- Story continuation logic
 
 Dependencies:
 -----------
@@ -25,7 +32,8 @@ Dependencies:
   * Mission: Mission management
 - Utility Services:
   * validation_utils: Input validation
-  * currency_utils: Transaction handling
+  * state_manager: Game state tracking
+  * character_evolution_service: Character development
 
 Story Structure:
 -------------
@@ -35,8 +43,7 @@ Story Structure:
     'choices': List[{
         'text': str,
         'consequence': str,
-        'currency_requirements': Dict[str, int],
-        'mission_impact': str,
+        'currency_requirements': Dict[str, int],  # Required currency for each choice
         'type': str
     }],
     'mission': {
@@ -48,51 +55,41 @@ Story Structure:
     },
     'characters': List[str]
 }
-
-Integration Points:
-----------------
-- OpenAI API configuration
-- Character database
-- Story progression system
-- Mission management
-- Currency system
-
-Usage Guidelines:
----------------
-1. ALWAYS validate AI responses
-2. Maintain story continuity
-3. Handle character relationships
-4. Process currency requirements
-5. Track mission progress
-
-Error Handling:
-------------
-1. API failures
-2. Invalid story formats
-3. Character mismatches
-4. Mission conflicts
-5. Currency validation
 """
 
 import os
 import json
-import logging
 from typing import Dict, List, Tuple, Optional, Any
 from openai import OpenAI
-import random
-import re
+from services.state_manager import GameStateManager
+from services.character_evolution_service import (
+    evolve_character_traits,
+    update_character_relationships,
+    create_character_evolution
+)
+from utils.character_utils import (
+    extract_character_traits,
+    extract_plot_lines,
+    extract_character_style,
+    extract_character_name,
+    extract_character_role,
+)
+import logging
+from datetime import datetime
+from database import db
+from models import StoryGeneration, Character, PlotArc, Mission
+from utils.validation_utils import validate_story_parameters
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 # Initialize OpenAI client with the API key from environment variables
-if not os.environ.get("OPENAI_API_KEY"):
-    logger.warning("OPENAI_API_KEY not found in environment variables")
-    raise ValueError("OpenAI API key is required but not found in environment variables")
-
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-# Default story options
+# Initialize state manager
+state_manager = GameStateManager()
+
+# Story generation options
 STORY_OPTIONS = {
     "conflicts": [
         ("🤵", "Double agent exposed"),
@@ -102,7 +99,7 @@ STORY_OPTIONS = {
         ("🔍", "Assassination conspiracy"),
         ("🕵️", "Government overthrow"),
         ("🌌", "Space station takeover"),
-        ("🧠", "Mind control experiment")
+        ("🧠", "Mind control experiment"),
     ],
     "settings": [
         ("🗼", "Paris and Monaco"),
@@ -112,114 +109,43 @@ STORY_OPTIONS = {
         ("❄️", "Arctic Research Base"),
         ("🏰", "Moscow"),
         ("🏜️", "New York City"),
-        ("🌋", "Volcanic Lair")
+        ("🌋", "Volcanic Lair"),
     ],
     "narrative_styles": [
-        ("😎", "Tell the story like a bored Gen Z Teenager"),
-        ("🔥", "Tell the story like a Steamy romance novel"),
-        ("🤪", "Tell the story like an Absurdist wacky comedy"),
-        ("🎭", "Tell the story like a Surreal hallucination"),
-        ("🎬", "Tell the story like a High-budget action movie"),
-        ("🤵", "Tell the story like a Classic Bond film")
+        ("😎", "Bored Gen Z Teenager"),
+        ("🔥", "Steamy romance novel"),
+        ("🤪", "Absurdist wacky comedy"),
+        ("🎭", "Surreal hallucination"),
+        ("🎬", "High-budget action movie"),
+        ("🤵", "Classic Bond film"),
     ],
     "moods": [
-        ("🍸", "Make sure that the mood is Sexy and seductive"),
-        ("💥", "Make sure that the mood is Explosive and chaotic"),
-        ("😂", "Make sure that the mood is Light and funny with Ridiculously over-the-top plot twists"),
-        ("😱", "Make sure that the mood is Suspenseful and betrayal-filled"),
-        ("🌟", "Make sure that the mood is Oscar worthy performances and over-acting by the cast"),
-        ("🥂", "Make sure that the mood is Party-focused hedonism"),
-        ("🔫", "Make sure that the mood is Action-packed gunfights"),
-        ("🕶️", "Make sure that the mood is Cool and stylish")
-    ]
+        ("🍸", "Sexy and seductive"),
+        ("💥", "Explosive and chaotic"),
+        ("😂", "Light and funny with ridiculously over-the-top plot twists"),
+        ("😱", "Suspenseful and betrayal-filled"),
+        ("🌟", "Oscar worthy performances and over-acting by the cast"),
+        ("🥂", "Party-focused hedonism"),
+        ("🔫", "Action-packed gunfights"),
+        ("🕶️", "Gangsters and cops"),
+    ],
 }
 
+# Export the functions that should be available to other modules
+__all__ = ['generate_story', 'get_story_options']
 
-# --- Helper functions ---
 
 def get_story_options() -> Dict[str, List[Tuple[str, str]]]:
     """Return available story options for UI display"""
     return STORY_OPTIONS
 
-def extract_field(data: Dict[str, Any], field: str, alt_field: Optional[str] = None, default: Any = None):
-    """Extract a field from data with fallback to alternative field name and default value"""
-    if not data:
-        return default
-    return data.get(field) or data.get(alt_field) or default
 
-def extract_character_traits(character_data: Dict[str, Any]) -> List[str]:
-    """Extract character traits from different data structures"""
-    return extract_field(character_data, 'character_traits', 'traits', [])
-
-def extract_plot_lines(character_data: Dict[str, Any]) -> List[str]:
-    """Extract plot lines from different data structures"""
-    return extract_field(character_data, 'plot_lines', 'potential_plot_lines', [])
-
-def extract_character_style(character_data: Dict[str, Any]) -> str:
-    """Extract character visual style/description from different data structures"""
-    return extract_field(character_data, 'style', 'visual_description', '')
-
-def extract_character_name(character_data: Dict[str, Any]) -> str:
-    """Extract character name from different data structures"""
-    return extract_field(character_data, 'name', 'character_name', 'Unnamed Character')
-
-def extract_character_role(character_data: Dict[str, Any]) -> str:
-    """Extract character role from different data structures"""
-    role = extract_field(character_data, 'character_role', 'role', 'neutral')
-    
-    # Standardize the role to match our database values
-    valid_roles = ['villain', 'neutral', 'mission-giver', 'undetermined']
-    role_lower = role.lower() if role else 'neutral'
-    
-    # Map known role values to standardized versions
-    if role_lower in ['antagonist', 'villain']:
-        return 'villain'
-    elif role_lower in ['protagonist', 'hero']:
-        return 'neutral'
-    elif role_lower == 'mission giver':
-        return 'mission-giver'
-    elif role_lower in valid_roles:
-        return role_lower
-    
-    # Default for unrecognized roles
-    return 'neutral'
-
-
-# --- Main story generation ---
-
-def generate_story(
-    conflict: str,
-    setting: str,
-    narrative_style: str,
-    mood: str,
-    character_info: Optional[Dict[str, Any]] = None,
-    custom_conflict: Optional[str] = None,
-    custom_setting: Optional[str] = None,
-    custom_narrative: Optional[str] = None,
-    custom_mood: Optional[str] = None,
-    previous_choice: Optional[str] = None,
-    story_context: Optional[str] = None,
-    additional_characters: Optional[List[Dict[str, Any]]] = None,
-    protagonist_name: Optional[str] = None,
-    protagonist_gender: Optional[str] = None,
-    protagonist_level: Optional[int] = 1
-) -> Dict[str, Any]:
-    """Generate a story based on selected or custom parameters and character info"""
-    logger.info("Entering generate_story function with parameters:")
-    logger.info(f"Conflict: {conflict}, Setting: {setting}, Character: {character_info.get('name') if character_info else 'None'}")
-
-    try:
-        # Get final values, using custom if provided
-        final_conflict = custom_conflict or conflict
-        final_setting = custom_setting or setting
-        final_narrative = custom_narrative or narrative_style
-        final_mood = custom_mood or mood
-
-        # Build system message - improved approach based on JS version
-        system_message = {
-            "role": "system",
-            "content": f"""You are a master narrative generator for our adventure game. 
-Create highly detailed, layered narratives in a {final_mood} tone with a {final_narrative} storytelling style.
+def _build_system_message(mood: str, narrative_style: str) -> Dict[str, str]:
+    """Build the system message for story generation."""
+    return {
+        "role": "system",
+        "content": f"""You are a master narrative generator for our adventure game. 
+Create highly detailed, layered narratives in a {mood} tone with a {narrative_style} storytelling style.
 
 This game is set in the high-stakes world of international espionage, luxury, and intrigue. 
 Players take on missions, develop relationships with various characters, and navigate complex scenarios 
@@ -227,322 +153,275 @@ where betrayal, romance, and action are common themes. The game tracks character
 currency balances, and mission progress.
 
 NARRATIVE STYLE GUIDELINES:
-1. Create LENGTHY, DETAILED story segments (at least 1400-2000 words) with rich descriptions
+1. Create a LENGTHY, DETAILED story introduction (at least 1400-2000 words) with rich descriptions
 2. Use vivid sensory details, atmospheric descriptions, and character development
 3. Each segment should advance the plot significantly with unexpected twists or revelations
 4. Include multiple scenes within each story segment when appropriate
 5. Incorporate dynamic character interactions with dialogue that reveals personality
 6. Balance action, dialogue, intrigue, and character development
-7. If this is a continuation, reference previous events and choices to maintain continuity
-8. Never repeat the same scenarios, locations, or dialogue patterns
-9. Create a sense of escalating stakes and tension throughout the narrative
+7. Never repeat the same scenarios, settings, or dialogue patterns
+8. Create a sense of escalating stakes and tension throughout the narrative
 
 IMPORTANT FORMATTING INSTRUCTIONS:
 1. Your response MUST be valid JSON, following exactly the structure provided.
 2. Do not include any explanation, markdown formatting, code blocks, or additional text before or after the JSON.
 3. Make sure all keys and values in the JSON are properly quoted with double quotes.
 4. Ensure all arrays and objects are correctly closed.
-5. Avoid using unescaped special characters (like " or \\) within JSON strings.
+5. Avoid using unescaped special characters (like " or \\) within JSON strings.""",
+    }
 
-For initial story segments:
-1. Always introduce a character from the database with the "mission-giver" role who assigns a mission to the player
-2. Ensure one of the three choices involves meeting/interacting with a character (to introduce potential future mission-givers)
-3. Structure the mission with a clear objective, target, reward, and deadline
 
-For continuation segments:
-1. Reference previous events to maintain continuity
-2. Introduce new complications, challenges, or opportunities
-3. Develop existing character relationships while potentially introducing new characters
-4. Avoid repeating the same narrative patterns from previous segments"""
-        }
+def _build_character_prompt(character_info: Optional[Dict[str, Any]] = None) -> str:
+    """Build the character-specific portion of the prompt."""
+    if not character_info or not extract_character_name(character_info):
+        return ""
 
-        # Build main prompt content
+    traits = extract_character_traits(character_info)
+    plot_lines = extract_plot_lines(character_info)
+    style = extract_character_style(character_info)
+    char_name = extract_character_name(character_info)
+    char_role = extract_character_role(character_info)
+
+    prompt = (
+        f"\nFEATURED CHARACTER - INTEGRATE DEEPLY INTO THE NARRATIVE:\n"
+        f"Name: {char_name}\n"
+        f"Role: {char_role}\n"
+        f"Traits: {', '.join(traits)}\n"
+        f"Visual Description: {style}\n"
+        f"\nCHARACTER DEVELOPMENT INSTRUCTIONS FOR {char_name.upper()}:\n"
+        f"1. Show this character's personality through actions, dialogue, and decisions\n"
+        f"2. Reveal deeper aspects of their background and motivations\n"
+        f"3. Create meaningful interactions between this character and the protagonist\n"
+        f"4. Establish or develop a dynamic relationship (alliance, rivalry, romance, etc.)\n"
+        f"5. Demonstrate how this character's unique traits influence the narrative\n"
+    )
+
+    if plot_lines:
+        prompt += f"PLOT LINES (INTEGRATE AT LEAST ONE INTO THE NARRATIVE):\n"
+        for plot in plot_lines:
+            prompt += f"- {plot}\n"
+
+    return prompt
+
+
+def _build_additional_characters_prompt(
+    additional_characters: Optional[List[Dict[str, Any]]] = None,
+) -> str:
+    """Build the prompt section for additional characters."""
+    if not additional_characters:
+        return ""
+
+    prompt = "\nSECONDARY CHARACTERS - INCORPORATE AT LEAST ONE INTO THE NARRATIVE:\n"
+    for char in additional_characters:
+        char_traits = extract_character_traits(char)
+        if isinstance(char_traits, str):
+            char_traits = [char_traits]
+
+        char_name = extract_character_name(char)
+        char_role = extract_character_role(char)
+        traits_str = ", ".join(char_traits) if char_traits else "No specified traits"
+
+        prompt += (
+            f"- Name: {char_name}\n"
+            f"  Role: {char_role}\n"
+            f"  Traits: {traits_str}\n"
+            f"  Suggested Usage: Include in a meaningful scene that showcases their personality\n"
+        )
+
+    return prompt
+
+
+def generate_story(
+    conflict: str,
+    setting: str,
+    narrative_style: str,
+    mood: str,
+    user_id: Optional[str] = None,
+    character_info: Optional[Dict[str, Any]] = None,
+    custom_conflict: Optional[str] = None,
+    custom_setting: Optional[str] = None,
+    custom_narrative: Optional[str] = None,
+    custom_mood: Optional[str] = None,
+    additional_characters: Optional[List[Dict[str, Any]]] = None,
+    protagonist_name: Optional[str] = None,
+    protagonist_gender: Optional[str] = None,
+    protagonist_level: Optional[int] = 1,
+    story_context: Optional[str] = None,
+    previous_choice: Optional[str] = "INITIAL_STORY: Craft an opening to a grand adventure story that sets the stage for an epic narrative. Focus on establishing the world, introducing key characters, and creating a compelling hook that draws the reader into the story. The opening should be rich in detail and atmosphere, setting the tone for the adventure to come."
+) -> Dict[str, Any]:
+    """Generate a story based on selected or custom parameters and character info.
+    
+    Args:
+        conflict (str): Main story conflict
+        setting (str): Story setting/environment
+        narrative_style (str): Style of storytelling
+        mood (str): Story mood/tone
+        user_id (Optional[str]): User's ID for state tracking
+        character_info (Optional[Dict]): Featured character details
+        custom_conflict (Optional[str]): Custom conflict override
+        custom_setting (Optional[str]): Custom setting override
+        custom_narrative (Optional[str]): Custom narrative style
+        custom_mood (Optional[str]): Custom mood override
+        additional_characters (Optional[List]): Additional characters to include
+        protagonist_name (Optional[str]): Name of the protagonist
+        protagonist_gender (Optional[str]): Gender of the protagonist
+        protagonist_level (Optional[int]): Protagonist's current level
+        story_context (Optional[str]): Additional context for the story
+        previous_choice (Optional[str]): The previous choice made, or special value for initial story
+        
+    Returns:
+        Dict[str, Any]: Generated story data including:
+            - stories: Parsed story object for story panel
+            - story: Raw JSON string for choice buttons
+            - conflict: Final conflict used
+            - setting: Final setting used
+            - narrative_style: Final narrative style used
+            - mood: Final mood used
+    """
+    try:
+        # Get final values, using custom if provided
+        final_conflict = custom_conflict or conflict
+        final_setting = custom_setting or setting
+        final_narrative = custom_narrative or narrative_style
+        final_mood = custom_mood or mood
+
+        # Build system message
+        system_message = _build_system_message(final_mood, final_narrative)
+
+        # Build character prompts
+        character_prompt = _build_character_prompt(character_info)
+        additional_chars_prompt = _build_additional_characters_prompt(additional_characters)
+
+        # Build protagonist info
         protagonist_info = ""
         if protagonist_name and protagonist_gender:
-            protagonist_info = f"You are {protagonist_name}, a {protagonist_gender} agent who is very charismatic, arrogant, and constantly receives romantic advances from practically everybody you meet. "
-        else:
-            protagonist_info = "You are a charismatic but reckless agent who constantly receives romantic advances from practically everybody you meet. "
-
-        # Construct main content prompt
-        content_prompt = f"""Create a DETAILED, EXTENSIVE story segment with:
-Conflict: {final_conflict}
-Setting: {final_setting}
-Narrative Style: {final_narrative}
-Mood: {final_mood}
-{f"Protagonist: {protagonist_name} ({protagonist_gender}, Level {protagonist_level})" if protagonist_name else ""}
-{f"Previous Context: {story_context}" if story_context else ""}
-{f"Previous Choice: {previous_choice}" if previous_choice else ""}
-
-WORLD BACKGROUND:
-This is set in the high-stakes, sexy, dramatic international world of business, espionage, luxury, and parties. {protagonist_info}
-The world is mostly as we know it, but features advanced technology like neural implants, satellite surveillance networks, and experimental weapons. Many villains control vast global empires with private armies and cutting-edge technology.
-The world faces multiple crises - climate catastrophes, economic collapse, political instability, and secret wars between shadow organizations.
-To save the world and complete missions and earn money, the protagonist must party hard, seduce strategic contacts, and undertake James Bond-style missions with elaborate infiltrations, thrilling chase sequences, and intense gunfights.
-
-IMPORTANT NARRATIVE REQUIREMENTS:
-1. Write a SUBSTANTIAL narrative (at least 1800-2000 words) with multiple scenes when appropriate, if this is a continuation, meaningfully advance the plot based on previous choices, events, and character traits.
-2. Include vivid descriptions of locations and actions
-3. Feature realistic dialogue that reveals character motivations and relationships
-4. Incorporate sensory details that bring the setting to life
-5. Stay true to the requested narrative style and mood, with a focus on layered storytelling and dynamic character interactions across story segments
-6. Freely incorporate unusual elements and themes to create a unique and engaging story.
-7. Avoid using unescaped special characters (like " or \\) within JSON strings.
-8. Avoid reusing scenarios, dialogue patterns, or narrative structures from previous segments, but maintain continuity.
-9. Each choice should lead to significantly different narrative paths, only one of which should advance the mission.
-10. The protagonist should be tempted by the allure of the other two choices to advance a story arc. 
-11. Make sure that mostcharacters enter the story mainly by the protagonist seeking them out, avoid random encounters.
-12. Characters marked as "villains" should be difficult for the protagonist to locate without help from other characters.
-
-Generate an engaging, detailed story segment with 3 distinct choices that offer meaningful narrative branches."""
-
-        # Add character information if provided
-        selected_character_prompt = ""
-        if character_info and extract_character_name(character_info):
-            traits = extract_character_traits(character_info)
-            plot_lines = extract_plot_lines(character_info)
-            style = extract_character_style(character_info)
-            char_name = extract_character_name(character_info)
-            char_role = extract_character_role(character_info)
-
-            selected_character_prompt = (
-                f"\nFEATURED CHARACTER - INTEGRATE DEEPLY INTO THE NARRATIVE:\n"
-                f"Name: {char_name}\n"
-                f"Role: {char_role}\n"
-                f"Traits: {', '.join(traits)}\n"
-                f"Visual Description: {style}\n"
-            )
-
-            # Add character development instructions
-            selected_character_prompt += (
-                f"\nCHARACTER DEVELOPMENT INSTRUCTIONS FOR {char_name.upper()}:\n"
-                f"1. Show this character's personality through actions, dialogue, and decisions\n"
-                f"2. Reveal deeper aspects of their background and motivations\n"
-                f"3. Create meaningful interactions between this character and the protagonist\n"
-                f"4. Establish or develop a dynamic relationship (alliance, rivalry, romance, etc.)\n"
-                f"5. Demonstrate how this character's unique traits influence the narrative\n"
-            )
-
-            if plot_lines:
-                selected_character_prompt += f"PLOT LINES (INTEGRATE AT LEAST ONE INTO THE NARRATIVE):\n"
-                for plot in plot_lines:
-                    selected_character_prompt += f"- {plot}\n"
-
-        # Add additional characters if provided
-        additional_characters_prompt = ""
-        if additional_characters and len(additional_characters) > 0:
-            additional_characters_prompt = "\nSECONDARY CHARACTERS - INCORPORATE AT LEAST ONE INTO THE NARRATIVE:\n"
-            for char in additional_characters:
-                char_traits = extract_character_traits(char)
-                if isinstance(char_traits, str):
-                    char_traits = [char_traits]
-
-                char_name = extract_character_name(char)
-                char_role = extract_character_role(char)
-                traits_str = ', '.join(char_traits) if char_traits else 'No specified traits'
-
-                additional_characters_prompt += (
-                    f"- Name: {char_name}\n"
-                    f"  Role: {char_role}\n"
-                    f"  Traits: {traits_str}\n"
-                    f"  Suggested Usage: Include in a meaningful scene that showcases their personality\n"
-                )
-
-        # Add previous choice context if any
-        context_prompt = ""
-        if story_context and previous_choice:
-            is_custom_choice = previous_choice.startswith("Custom choice:")
-
-            if is_custom_choice:
-                context_prompt = (
-                    f"\nNARRATIVE CONTINUATION CONTEXT:\n"
-                    f"Previous story summary: {story_context[:300]}...\n"
-                    f"Player entered a custom choice: {previous_choice[14:].strip()}\n\n"
-                    "CONTINUATION INSTRUCTIONS:\n"
-                    "1. Treat the player's custom input as a direct action or decision made by the protagonist\n"
-                    "2. Build directly from this choice to create a NEW narrative direction\n" 
-                    "3. Use this choice as a catalyst for significant plot development\n"
-                    "4. Introduce new complications or opportunities stemming from this decision\n"
-                    "5. Avoid repeating narrative elements from the previous segment\n"
-                    "6. Show immediate and potential long-term consequences of this choice\n"
-                )
-            else:
-                context_prompt = (
-                    f"\nNARRATIVE CONTINUATION CONTEXT:\n"
-                    f"Previous story summary: {story_context[:300]}...\n"
-                    f"Player chose: {previous_choice}\n\n"
-                    "CONTINUATION INSTRUCTIONS:\n"
-                    "1. Build directly upon this choice with NEW narrative developments\n"
-                    "2. Avoid repeating scenarios, dialogue patterns, or story beats from previous segments\n"
-                    "3. Move the plot forward significantly with this continuation\n"
-                    "4. Introduce unexpected consequences or developments from this choice\n"
-                    "5. Deepen character relationships and advance any mission objectives\n"
-                    "6. If appropriate, introduce a new complication, character, or location\n"
-                )
-
-        # Build mission guidance
-        mission_prompt = """
-MISSION FRAMEWORK INSTRUCTIONS:
-
-If this is the beginning of a story, ensure:
-1. IMPORTANT: The story MUST begin with a detailed mission briefing scene where a mission-giver character assigns a mission to the player with these components:
-   - A clear, specific objective (steal a prototype, sabotage a weapons system, infiltrate a secure facility, etc.)
-   - A target character who has the 'villain' role in the database
-   - A large reward in one of the game currencies (💵, 💷, 💶, 💴)
-   - A deadline with serious consequences for failure
-   - Detailed mission parameters, challenges, and potential complications
-   - IMPORTANT: The mission-giver has a complex attitude - they reluctantly task you with missions while expressing doubts about your reliability, referencing your past failures or unprofessional methods, yet acknowledging your unique skills
-
-2. The mission briefing should include:
-   - Rich environmental descriptions of the briefing location
-   - Character development through dialogue and interactions
-   - Background information on why this mission is critical
-   - Personal stakes for both the mission-giver and protagonist
-   - Technical details or intelligence relevant to the mission
-
-3. Provide three sophisticated choice options that:
-   - Offer genuinely different approaches to the mission
-   - Reflect different aspects of the protagonist's character
-   - Have distinct risk/reward profiles
-   - Connect to the mission in meaningful ways
-   - Each choice should offer a compelling and sexy/dangerous description
-
-If this is a continuation segment:
-1. Briefly and naturally reference the mission objectives and progress
-2. Introduce new complications or developments related to the mission
-3. Ensure the narrative advances the mission in some way
-4. Maintain the tension and stakes established in the mission briefing
+            protagonist_info = f"""PROTAGONIST DETAILS:
+Name: {protagonist_name}
+Gender: {protagonist_gender}
+Experience Level: {protagonist_level}
+Always refer to the protagonist by their name or appropriate pronouns.
 """
 
-        # Format request
-        format_prompt = """
-Format as JSON with:
-{
-  "title": "Episode title",
-  "story": "Story text with integrated mission assignment",
-  "choices": [
-    {
-      "text": "First choice related to the mission",
-      "consequence": "Brief outcome hint",
-      "currency_requirements": {"💵": 500},
-      "mission_impact": "Describe how this choice affects the mission (advancing it)",
-      "type": "mission-advancing"
-    },
-    {
-      "text": "Second choice with high risk/reward",
-      "consequence": "Possible danger or unexpected outcome",
-      "currency_requirements": {"💵": 750},
-      "mission_impact": "High risk impact on mission (potential failure or big success)",
-      "type": "risky"
-    },
-    {
-      "text": "Third choice, an alternative approach",
-      "consequence": "Outcome hint, like gaining allies or resources",
-      "currency_requirements": {"💵": 600},
-      "mission_impact": "Alternative path that may help indirectly",
-      "type": "alternative"
-    }
-  ],
-  "mission": {
-    "title": "Mission title",
-    "description": "Detailed mission description",
-    "giver": "Name of character who gave the mission",
-    "giver_id": "ID of the character who gave the mission",
-    "target": "Name of target character (villain)",
-    "target_id": "ID of target character",
-    "objective": "What the player must do",
-    "reward_currency": "Currency symbol (💎, 💵, etc.)",
-    "reward_amount": "Amount of reward",
-    "deadline": "Narrative deadline description",
-    "difficulty": "Easy, Medium, or Hard"
-  },
-  "characters": ["List of character names featured, including new characters"]
-}"""
+        # Build main content prompt
+        content_prompt = f"""Create a DETAILED, EXTENSIVE story segment with:
+CONFLICT: {final_conflict}
+SETTING: {final_setting}
+NARRATIVE STYLE: {final_narrative}
+MOOD: {final_mood}
 
-        # Combine all prompts
-        full_prompt = (
-            f"{content_prompt}\n"
-            f"{selected_character_prompt}\n"
-            f"{additional_characters_prompt}\n"
-            f"{context_prompt}\n"
-            f"{mission_prompt}\n"
-            f"{format_prompt}"
-        )
+{protagonist_info}
+
+{f'STORY CONTEXT:\n{story_context}\n' if story_context else ''}
+
+WORLD BACKGROUND:
+This is set in the high-stakes world of international espionage, luxury, and intrigue.
+The world features advanced technology like neural implants, satellite networks, and experimental weapons.
+Many villains control vast global empires with private armies and cutting-edge technology.
+The world faces multiple crises - climate disasters, economic collapse, political instability, and shadow wars.
+
+STORY REQUIREMENTS:
+1. Create in 1500-2000 words a compelling opening that establishes the tone and setting
+2. Introduce the main conflict naturally through action or dialogue
+3. Include at least 2-3 distinct scenes 
+4. Feature dynamic character interactions and relationships
+5. Incorporate elements of espionage, luxury, and intrigue
+6. Balance action, dialogue, and atmospheric description
+7. End with three distinct choices that significantly impact the story
+
+{character_prompt}
+{additional_chars_prompt}
+
+Your response MUST be valid JSON with this structure:
+{{
+    "title": "Story title",
+    "story": "Main narrative text",
+    "choices": [
+        {{
+            "text": "Choice description",
+            "consequence": "Brief outcome preview",
+            "currency_requirements": {{"💎": 10}},
+            "type": "direct/risky/social"
+        }}
+    ],
+    "mission": {{
+        "title": "Mission name",
+        "description": "Mission details",
+        "objective": "Clear goal",
+        "reward": {{"currency_type": "amount"}},
+        "deadline": "Time limit"
+    }},
+    "characters": ["List of character names featured"]
+}}"""
 
         # Set up messages
         messages = [
             system_message,
-            {"role": "user", "content": full_prompt}
+            {"role": "user", "content": content_prompt}
         ]
 
-        logger.debug(f"Sending messages to OpenAI: {json.dumps(messages, indent=2)}")
-
-        # Make the OpenAI API call with response_format parameter
+        # Make the OpenAI API call
         response = client.chat.completions.create(
-            model="gpt-4o-mini",  # Using the newest model
+            model="gpt-4o-mini",
             messages=messages,
-            temperature=0.7,  # Original temperature
-            max_tokens=14000,  # Original token limit
-            response_format={"type": "json_object"}  # Force JSON response format
+            temperature=0.7,
+            max_tokens=14000,
+            response_format={"type": "json_object"}
         )
 
-        logger.info("Successfully received response from OpenAI")
-        logger.debug(f"Raw response content: {response.choices[0].message.content}")
+        # Parse the response
+        content = response.choices[0].message.content.strip()
+        story_data = json.loads(content)
 
-        # Parse the generated story - with proper error handling
-        try:
-            # The response should now be valid JSON without any need for regex extraction
-            content = response.choices[0].message.content.strip()
-            result = json.loads(content)
+        # Validate story data structure
+        required_fields = ['title', 'story', 'choices', 'mission', 'characters']
+        if not all(field in story_data for field in required_fields):
+            raise ValueError("Missing required fields in story data")
 
-            # Parse JSON content to ensure it's valid
-            story_data = json.loads(content)
+        # Validate each choice has required fields
+        for choice in story_data.get('choices', []):
+            if not all(field in choice for field in ['text', 'consequence', 'currency_requirements', 'type']):
+                raise ValueError("Each choice must have text, consequence, currency_requirements, and type fields")
             
-            # Return formatted result with both parsed JSON and the original JSON string
-            formatted_result = {
-                "stories": story_data,  # Include parsed JSON as 'stories' key that JS expects
-                "story": content,  # Also keep the raw JSON string
-                "conflict": final_conflict,
-                "setting": final_setting,
-                "narrative_style": final_narrative,
-                "mood": final_mood
-            }
-            
-            logger.info("Successfully generated and formatted story")
-            logger.info("Exiting generate_story function")
-            return formatted_result
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse OpenAI response as JSON: {str(e)}")
-            logger.error(f"Raw response content: {response.choices[0].message.content}")
-            
-            # Create a fallback story structure
-            fallback_result = {
-                "title": "Story Generation Error",
-                "story": "Our storyteller encountered an error. Please try again with different parameters.",
-                "choices": [
-                    {
-                        "text": "Try again",
-                        "consequence": "Start over with new options",
-                        "currency_requirements": {"💵": 0},
-                        "mission_impact": "None",
-                        "type": "retry"
+            # Add fixed currency requirement of 10 diamonds to each choice
+            choice['currency_requirements'] = {"💎": 10}
+
+        # Update character evolution if character info is provided
+        if character_info and user_id:
+            character_id = character_info.get("id")
+            if character_id:
+                # Evolve character traits based on story
+                evolve_character_traits(character_id, story_data.get("story", ""))
+
+                # Track relationships between this character and the protagonist
+                relationship_changes = {
+                    str(character_id): {
+                        "type": "story_interaction",
+                        "strength": 1
                     }
-                ],
-                "characters": []
-            }
-            
-            # Format and return fallback result
-            formatted_result = {
-                "story": json.dumps(fallback_result),
-                "conflict": final_conflict,
-                "setting": final_setting,
-                "narrative_style": final_narrative,
-                "mood": final_mood
-            }
-            
-            logger.info("Using fallback story structure due to parsing error")
-            return formatted_result
+                }
 
+                # Update relationships
+                update_character_relationships(user_id, relationship_changes)
+
+        # Update game state if user_id provided
+        if user_id:
+            game_state = {
+                "current_story": story_data,
+                "character_info": character_info,
+            }
+            state_manager.update_state(game_state)
+
+        # Return formatted result
+        return {
+            "stories": story_data,
+            "story": content,
+            "conflict": final_conflict,
+            "setting": final_setting,
+            "narrative_style": final_narrative,
+            "mood": final_mood
+        }
+
+    except json.JSONDecodeError:
+        raise RuntimeError("Failed to generate valid story - invalid JSON response")
     except Exception as e:
-        logger.error(f"Error generating story: {str(e)}", exc_info=True)
-        raise Exception(f"Failed to generate story: {str(e)}")
+        raise RuntimeError(f"Story generation failed: {str(e)}")

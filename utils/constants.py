@@ -3,9 +3,7 @@ Constants and configuration values for the application.
 Centralizing these values makes them easier to maintain and update.
 """
 
-# Database & ORM
-DEFAULT_PER_PAGE = 10
-MAX_PER_PAGE = 100
+
 
 # Currency & Economy
 CURRENCY_TYPES = {
@@ -60,31 +58,10 @@ CHARACTER_ROLES = [
     'mission-giver'
 ]
 
-CHARACTER_ROLE_MAPPING = {
-    'antagonist': 'villain',
-    'villain': 'villain',
-    'protagonist': 'neutral',
-    'hero': 'neutral',
-    'mission giver': 'mission-giver'
-}
+
 
 # OpenAI
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 DEFAULT_TEMPERATURE = 0.7
 DEFAULT_MAX_TOKENS = 2000
 
-# Security
-DANGEROUS_ACTIONS = [
-    "delete_all", 
-    "purge", 
-    "reset", 
-    "clear_database", 
-    "truncate"
-]
-
-# Confirmations required for dangerous actions
-CONFIRMATION_PHRASES = {
-    "delete_all_images": "DELETE ALL IMAGES",
-    "delete_all_stories": "DELETE ALL STORIES",
-    "reset_database": "RESET DATABASE"
-}

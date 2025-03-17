@@ -80,6 +80,7 @@ import logging
 import json
 from flask import Blueprint, render_template, request, jsonify, url_for, redirect, flash, session
 import uuid
+from datetime import datetime
 
 from database import db
 from models import (AIInstruction, StoryGeneration, StoryNode, 
@@ -128,6 +129,8 @@ def get_random_scene_background():
 
     except Exception as e:
         logger.error(f"Error getting random scene background: {str(e)}")
+        # Rollback the transaction on error
+        db.session.rollback()
         # Return a default or fallback image URL if the above fails
         return "/static/images/default-background.jpg"
 
@@ -180,72 +183,89 @@ def index():
 @main_bp.route('/storyboard/<int:story_id>')
 def storyboard(story_id):
     """Display the current story progress and choices"""
-    story = StoryGeneration.query.get_or_404(story_id)
-    story_data = json.loads(story.generated_story)
-    user_progress = get_or_create_user_progress()
+    try:
+        story = StoryGeneration.query.get_or_404(story_id)
+        story_data = json.loads(story.generated_story)
+        user_progress = get_or_create_user_progress()
 
-    # Update user progress to reflect current story
-    user_progress.current_story_id = story_id
-    db.session.commit()
-    logger.debug(f"Updated user progress with current_story_id: {story_id}")
+        # Update user progress to reflect current story
+        user_progress.current_story_id = story_id
+        
+        # Get random scene for background
+        background_image = get_random_scene_background()
 
-    # Get random scene for background
-    background_image = get_random_scene_background()
+        # Get associated character images from the story's characters
+        character_images = []
 
-    # Get associated character images from the story and referenced characters
-    character_images = []
+        try:
+            # Add characters from the story's character relationship
+            for character in story.characters:
+                try:
+                    character_images.append({
+                        'id': character.id,
+                        'image_url': character.image_url,
+                        'name': character.character_name,
+                        'traits': character.character_traits
+                    })
+                except Exception as e:
+                    logger.error(f"Error processing character {character.id}: {str(e)}")
+                    continue
+        except Exception as e:
+            logger.error(f"Error accessing story characters: {str(e)}")
+            # Continue without story characters
 
-    # Add direct story images first
-    for image in story.images:
-        analysis = image.analysis_result or {}
-        character_images.append({
-            'id': image.id,
-            'image_url': image.image_url,
-            'name': image.character_name or analysis.get('character_name', ''),
-            'traits': image.character_traits
-        })
+        # Get all characters mentioned in the story
+        mentioned_characters = []
+        if 'characters' in story_data and isinstance(story_data['characters'], list):
+            mentioned_characters = story_data['characters']
 
-    # Get all characters mentioned in the story
-    mentioned_characters = []
-    if 'characters' in story_data and isinstance(story_data['characters'], list):
-        mentioned_characters = story_data['characters']
+        # Try to find images for any additional characters mentioned
+        for character_name in mentioned_characters:
+            # Skip characters we already have
+            if any(char['name'].lower() == character_name.lower() for char in character_images):
+                continue
 
-    # Try to find images for any additional characters mentioned
-    for character_name in mentioned_characters:
-        # Skip characters we already have
-        if any(char['name'].lower() == character_name.lower() for char in character_images):
-            continue
+            # Look for this character in the database
+            character_img = Character.query.filter(
+                Character.character_name.ilike(f'%{character_name}%')
+            ).first()
 
-        # Look for this character in the database
-        character_img = Character.query.filter(
-            Character.character_name.ilike(f'%{character_name}%')
-        ).first()
+            if character_img:
+                character_images.append({
+                    'id': character_img.id,
+                    'image_url': character_img.image_url,
+                    'name': character_img.character_name,
+                    'traits': character_img.character_traits
+                })
 
-        if character_img:
-            character_images.append({
-                'id': character_img.id,
-                'image_url': character_img.image_url,
-                'name': character_img.character_name,
-                'traits': character_img.character_traits
-            })
+        # Prepare story progress data for the template with proper field names
+        story_progress = {
+            'current_story_id': user_progress.current_story_id,
+            'completed_plot_arcs': user_progress.completed_plot_arcs or [],
+            'choice_history': user_progress.choice_history or [],
+            'active_missions': user_progress.active_missions or []
+        }
 
-    # Prepare story progress data for the template with proper field names
-    story_progress = {
-        'current_story_id': user_progress.current_story_id,
-        'completed_plot_arcs': user_progress.completed_plot_arcs or [],
-        'choice_history': user_progress.choice_history or [],
-        'active_missions': user_progress.active_missions or []
-    }
+        # Commit the transaction after all database operations are successful
+        db.session.commit()
 
-    return render_template(
-        'storyboard.html',
-        story=story_data,
-        story_id=story_id,
-        character_images=character_images,
-        background_image=background_image,
-        user_progress=user_progress,
-        story_progress=story_progress
-    )
+        return render_template(
+            'storyboard.html',
+            story=story_data,
+            story_id=story_id,
+            character_images=character_images,
+            background_image=background_image,
+            user_progress=user_progress,
+            story_progress=story_progress
+        )
+    except Exception as e:
+        # Rollback the transaction on any error
+        db.session.rollback()
+        logger.error(f"Error in storyboard route: {str(e)}", exc_info=True)
+        return render_template(
+            'error.html',
+            error_message="An error occurred while loading the story. Please try again."
+        )
 
 @main_bp.route('/generate_story', methods=['POST'])
 def generate_story_route():
@@ -328,7 +348,7 @@ def generate_story_route():
         # Get the story parameters
         story_params = {
             'conflict': data.get('conflict', 'Mysterious adventure'),
-            'setting': data.get('setting', 'Enchanted world'),
+            'setting': data.get('setting', 'Unknown location'),
             'narrative_style': data.get('narrative_style', 'Engaging modern style'),
             'mood': data.get('mood', 'Exciting and adventurous'),
             'custom_conflict': data.get('custom_conflict', ''),

@@ -50,7 +50,7 @@ This document outlines all database tables in our project, their relationships, 
 
 ### 4. SceneImages
 **Purpose**: Stores scene images and their metadata
-**Usage**: Contains background and location images for stories
+**Usage**: Contains background and setting images for stories
 **Key Fields**:
 - `id`: Primary key
 - `image_url`: URL to the image
