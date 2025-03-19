@@ -135,73 +135,73 @@
                             </div>
                             <input type="hidden" name="selected_images" id="selectedImagesInput">
                             <div class="error-message" style="display: none;"></div>
-                        </form>
 
-                        <div class="accordion" id="storyOptionsAccordion">
-                            <div class="accordion-item">
-                                <h2 class="accordion-header" id="storyOptionsHeading">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
-                                            data-bs-target="#storyOptionsCollapse" aria-expanded="false" aria-controls="storyOptionsCollapse">
-                                        <i class="fas fa-sliders-h me-2"></i>Customize Story Options (Optional)
-                                    </button>
-                                </h2>
-                                <div id="storyOptionsCollapse" class="accordion-collapse collapse" aria-labelledby="storyOptionsHeading">
-                                    <div class="accordion-body">
-                                        <h4>Story Options</h4>
-                                        <div class="row mb-3">
-                                            <div class="col-md-6">
-                                                <label class="form-label">Conflict:</label>
-                                                <select class="form-select" name="conflict" data-option-type="conflict">
-                                                    {% for emoji, name in story_options.conflicts %}
-                                                    <option value="{{ name }}">{{ emoji }} {{ name }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                                <div class="form-text">Or specify your own:</div>
-                                                <input type="text" class="form-control mt-1" name="custom_conflict" placeholder="Custom conflict...">
+                            <div class="accordion" id="storyOptionsAccordion">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="storyOptionsHeading">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                                data-bs-target="#storyOptionsCollapse" aria-expanded="false" aria-controls="storyOptionsCollapse">
+                                            <i class="fas fa-sliders-h me-2"></i>Customize Story Options (Optional)
+                                        </button>
+                                    </h2>
+                                    <div id="storyOptionsCollapse" class="accordion-collapse collapse" aria-labelledby="storyOptionsHeading">
+                                        <div class="accordion-body">
+                                            <h4>Story Options</h4>
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Conflict:</label>
+                                                    <select class="form-select" name="conflict" data-option-type="conflict">
+                                                        {% for emoji, name in story_options.conflicts %}
+                                                        <option value="{{ name }}">{{ emoji }} {{ name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                    <div class="form-text">Or specify your own:</div>
+                                                    <input type="text" class="form-control mt-1" name="custom_conflict" placeholder="Custom conflict...">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Setting:</label>
+                                                    <select class="form-select" name="setting" data-option-type="setting">
+                                                        {% for emoji, name in story_options.settings %}
+                                                        <option value="{{ name }}">{{ emoji }} {{ name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                    <div class="form-text">Or specify your own:</div>
+                                                    <input type="text" class="form-control mt-1" name="custom_setting" placeholder="Custom setting...">
+                                                </div>
                                             </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">Setting:</label>
-                                                <select class="form-select" name="setting" data-option-type="setting">
-                                                    {% for emoji, name in story_options.settings %}
-                                                    <option value="{{ name }}">{{ emoji }} {{ name }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                                <div class="form-text">Or specify your own:</div>
-                                                <input type="text" class="form-control mt-1" name="custom_setting" placeholder="Custom setting...">
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <label class="form-label">Narrative Style:</label>
-                                                <select class="form-select" name="narrative_style" data-option-type="narrative">
-                                                    {% for emoji, name in story_options.narrative_styles %}
-                                                    <option value="{{ name }}">{{ emoji }} {{ name }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                                <div class="form-text">Or specify your own:</div>
-                                                <input type="text" class="form-control mt-1" name="custom_narrative" placeholder="Custom narrative style...">
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">Mood:</label>
-                                                <select class="form-select" name="mood" data-option-type="mood">
-                                                    {% for emoji, name in story_options.moods %}
-                                                    <option value="{{ name }}">{{ emoji }} {{ name }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                                <div class="form-text">Or specify your own:</div>
-                                                <input type="text" class="form-control mt-1" name="custom_mood" placeholder="Custom mood...">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Narrative Style:</label>
+                                                    <select class="form-select" name="narrative_style" data-option-type="narrative">
+                                                        {% for emoji, name in story_options.narrative_styles %}
+                                                        <option value="{{ name }}">{{ emoji }} {{ name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                    <div class="form-text">Or specify your own:</div>
+                                                    <input type="text" class="form-control mt-1" name="custom_narrative" placeholder="Custom narrative style...">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Mood:</label>
+                                                    <select class="form-select" name="mood" data-option-type="mood">
+                                                        {% for emoji, name in story_options.moods %}
+                                                        <option value="{{ name }}">{{ emoji }} {{ name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                    <div class="form-text">Or specify your own:</div>
+                                                    <input type="text" class="form-control mt-1" name="custom_mood" placeholder="Custom mood...">
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="text-center mt-4">
-                            <button type="submit" form="character-selection-form" class="btn btn-primary btn-lg" id="generateStoryBtn">
-                                <i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure
-                            </button>
-                        </div>
+                            <div class="text-center mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg" id="generateStoryBtn">
+                                    <i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>

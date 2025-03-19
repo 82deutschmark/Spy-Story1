@@ -78,7 +78,7 @@ Integration Points:
 import os
 import logging
 import json
-from flask import Blueprint, render_template, request, jsonify, url_for, redirect, flash, session
+from flask import Blueprint, render_template, request, jsonify, url_for, redirect, flash, session, render_template_string
 import uuid
 from datetime import datetime
 
@@ -839,9 +839,13 @@ def reroll_character():
         }
 
         # Generate HTML for the new character
-        character_html = render_template('partials/character_card.html', 
-                                         img=char_data, 
-                                         index=0)
+        character_html = render_template('partials/character_card.html')
+        character_html = render_template_string(
+            "{% from 'partials/character_card.html' import character_card %}"
+            "{{ character_card(img, index) }}",
+            img=char_data,
+            index=0
+        )
 
         logger.info("Successfully prepared character data and HTML")
         return jsonify({
