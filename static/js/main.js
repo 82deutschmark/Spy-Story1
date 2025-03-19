@@ -8,17 +8,19 @@
  * 
  * Key Dependencies:
  * ----------------
- * - EventHandlers: Core event management and form handling
+ * - FormHandler: Form submission and validation (not used on storyboard)
  * - UIUtils: UI interaction utilities
- * - initializeCharacterMentions: Character highlighting in story text
+ * - CharacterMentions: Character highlighting in story text
+ * - CharacterSelector: Character selection and management
  * 
  * Initialization Order:
  * -------------------
  * 1. FLASK_CONFIG validation and setup
- * 2. EventHandlers initialization
- * 3. Character mentions setup (if on story page)
- * 4. Global event listeners
- * 5. Story ID management
+ * 2. CharacterSelector initialization (if on character selection page)
+ * 3. FormHandler initialization (if not on storyboard)
+ * 4. Character mentions setup (if on story page)
+ * 5. Global event listeners
+ * 6. Story ID management
  * 
  * Integration Points:
  * -----------------
@@ -30,12 +32,17 @@
  * ---------------
  * 1. NEVER modify the initialization order
  * 2. ALWAYS maintain the FLASK_CONFIG structure
- * 3. Any new global features must be initialized AFTER EventHandlers
+ * 3. Any new global features must be initialized AFTER core modules
  * 4. Keep the DOMContentLoaded event handler clean and organized
  */
 
 // Main JavaScript file
-import EventHandlers from '/static/js/modules/EventHandlers.js';
+import FormHandler from '/static/js/modules/FormHandler.js';
+import ChoiceHandler from '/static/js/modules/ChoiceHandler.js';
+import CharacterSelector from '/static/js/modules/CharacterSelector.js';
+import CharacterMentions from '/static/js/modules/CharacterMentions.js';
+import LoadingManager from '/static/js/modules/LoadingManager.js';
+import ErrorHandler from '/static/js/modules/ErrorHandler.js';
 import { UIUtils } from '/static/js/modules/UIUtils.js';
 
 // Wait for DOM content and modules to load
@@ -48,69 +55,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         UIUtils.showToast('Error', 'Failed to initialize application. Please refresh the page.');
     }
 });
-
-// Initialize character mentions in story text
-function initializeCharacterMentions() {
-    try {
-        const storyContent = document.querySelector('.story-content');
-        if (!storyContent) {
-            console.log("No story content found for character mentions");
-            return;
-        }
-
-        // Get all character names from the mini-portraits
-        const characterPortraits = document.querySelectorAll('.character-portrait-mini');
-        const characterNames = Array.from(characterPortraits).map(portrait => {
-            return {
-                name: portrait.querySelector('.character-mini-name').textContent.trim(),
-                image: portrait.querySelector('img').src,
-                element: portrait
-            };
-        });
-
-        // Sort names by length (longest first) to avoid partial matches
-        characterNames.sort((a, b) => b.name.length - a.name.length);
-
-        // Get the story text
-        let storyText = storyContent.innerHTML;
-
-        // Replace character names with highlighted spans
-        characterNames.forEach(character => {
-            const regex = new RegExp(`\\b${character.name}\\b`, 'gi');
-            storyText = storyText.replace(regex, match => {
-                return `<span class="character-mention" data-character="${character.name.toLowerCase().replace(/\s/g, '-')}">${match}<span class="character-tooltip"><img src="${character.image}" alt="${match}"><div>${match}</div></span></span>`;
-            });
-        });
-
-        // Update the story content
-        storyContent.innerHTML = storyText;
-
-        // Add click event to highlight corresponding mini-portrait
-        document.querySelectorAll('.character-mention').forEach(mention => {
-            mention.addEventListener('click', function() {
-                const characterId = this.dataset.character;
-                const targetPortrait = document.querySelector(`.character-portrait-mini[data-character-name="${characterId}"]`);
-
-                document.querySelectorAll('.character-mini-img').forEach(img => {
-                    img.classList.remove('character-mini-highlight');
-                });
-
-                if (targetPortrait) {
-                    const portraitImg = targetPortrait.querySelector('.character-mini-img');
-                    portraitImg.classList.add('character-mini-highlight');
-                    targetPortrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                    setTimeout(() => {
-                        portraitImg.classList.remove('character-mini-highlight');
-                    }, 3000);
-                }
-            });
-        });
-
-        console.log(`Initialized ${characterNames.length} character mentions`);
-    } catch (error) {
-        console.error("Error initializing character mentions:", error);
-    }
-}
 
 // Setup global event listeners
 function setupGlobalListeners() {
@@ -146,14 +90,36 @@ async function initializeApplication() {
 
         console.log("Initializing application with config:", window.FLASK_CONFIG);
 
-        // Initialize EventHandlers first
-        await EventHandlers.initialize();
-        console.log("EventHandlers initialized");
+        // Initialize FormHandler only if not on storyboard page
+        if (!document.querySelector('.storyboard-body')) {
+            const formHandler = new FormHandler();
+            formHandler.initialize();
+            console.log("FormHandler initialized");
+        }
 
         // Initialize character highlighting if on story page
         if (document.querySelector('.story-content')) {
-            initializeCharacterMentions();
+            const characterMentions = new CharacterMentions();
+            characterMentions.initialize();
+            console.log("Character mentions initialized");
         }
+
+        // Initialize ChoiceHandler only on storyboard page
+        if (document.querySelector('.storyboard-body')) {
+            const choiceHandler = new ChoiceHandler();
+            choiceHandler.initialize();
+            console.log("ChoiceHandler initialized");
+        }
+
+        // Initialize loading manager
+        const loadingManager = new LoadingManager();
+        loadingManager.initialize();
+        console.log("LoadingManager initialized");
+
+        // Initialize error handler
+        const errorHandler = new ErrorHandler();
+        errorHandler.initialize();
+        console.log("ErrorHandler initialized");
 
         // Setup global event listeners
         setupGlobalListeners();
@@ -170,64 +136,3 @@ async function initializeApplication() {
         UIUtils.showToast('Error', 'An error occurred while loading the application. Please refresh the page or contact support if the problem persists.');
     }
 }
-
-// Story generation form handling
-document.addEventListener('DOMContentLoaded', function() {
-    const storyForm = document.querySelector('.story-form');
-    if (storyForm) {
-        // Handle custom input fields
-        const customFields = {
-            'conflict': document.getElementById('custom_conflict'),
-            'setting': document.getElementById('custom_setting'),
-            'narrative_style': document.getElementById('custom_narrative'),
-            'mood': document.getElementById('custom_mood')
-        };
-
-        // Handle select fields
-        const selectFields = {
-            'conflict': document.getElementById('conflict'),
-            'setting': document.getElementById('setting'),
-            'narrative_style': document.getElementById('narrative_style'),
-            'mood': document.getElementById('mood')
-        };
-
-        // Toggle custom input visibility based on select value
-        Object.keys(selectFields).forEach(field => {
-            const select = selectFields[field];
-            const customInput = customFields[field];
-            
-            if (select && customInput) {
-                select.addEventListener('change', function() {
-                    customInput.style.display = this.value ? 'none' : 'block';
-                });
-            }
-        });
-
-        // Form validation
-        storyForm.addEventListener('submit', function(event) {
-            event.preventDefault();
-            
-            // Check if either select or custom input is filled for each field
-            let isValid = true;
-            Object.keys(selectFields).forEach(field => {
-                const select = selectFields[field];
-                const customInput = customFields[field];
-                
-                if (select && customInput) {
-                    if (!select.value && !customInput.value) {
-                        isValid = false;
-                        select.classList.add('is-invalid');
-                        customInput.classList.add('is-invalid');
-                    } else {
-                        select.classList.remove('is-invalid');
-                        customInput.classList.remove('is-invalid');
-                    }
-                }
-            });
-
-            if (isValid) {
-                this.submit();
-            }
-        });
-    }
-});
