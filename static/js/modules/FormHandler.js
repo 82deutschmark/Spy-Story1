@@ -48,6 +48,11 @@ class FormHandler {
         try {
             // Start loading state
             submitButton = form.querySelector('button[type="submit"]');
+            if (!submitButton) {
+                // If no submit button found, try to find the button that triggered the submit
+                submitButton = event.submitter;
+            }
+
             if (formType === 'choice') {
                 // Disable all choice buttons to prevent multiple selections
                 document.querySelectorAll('.choice-button').forEach(btn => {
@@ -55,7 +60,7 @@ class FormHandler {
                 });
                 loadingState = this.loadingManager.startButtonLoading(
                     submitButton,
-                    submitButton.dataset.loadingText || 'Processing your choice...'
+                    submitButton?.dataset?.loadingText || 'Processing your choice...'
                 );
             } else {
                 loadingState = this.loadingManager.startButtonLoading(

@@ -1,27 +1,27 @@
 <!-- Simplified character card that matches EventHandlers.js expectations -->
+{% macro character_card(img, index) %}
 <div class="character-container">
-    <div class="character-select-card" data-id="{{ img.id }}">
-        <img class="card-img" src="{{ img.image_url }}" alt="{{ img.name }}">
-        <div class="selection-indicator" style="display: none;">
+    <div class="character-select-card" data-character-id="{{ img.id }}">
+        <img src="{{ img.image_url }}" alt="{{ img.name }}" class="character-image">
+        <div class="character-name">{{ img.name }}</div>
+        <div class="character-traits">
+            {% for trait in img.character_traits %}
+                <span class="trait-badge">{{ trait }}</span>
+            {% endfor %}
+        </div>
+        <div class="selection-indicator">
             <i class="fas fa-check"></i>
         </div>
-    </div>
-    <div class="character-info-box">
-        <h3 class="character-name">{{ img.name }}</h3>
-        <div class="character-traits-list">
-            {% if img.character_traits %}
-                {% for trait in img.character_traits %}
-                <span class="trait-badge">{{ trait }}</span>
-                {% endfor %}
-            {% endif %}
-        </div>
-        <div class="character-controls">
-            <button type="button" class="reroll-btn" data-card-index="{{ index }}">
-                <i class="fas fa-dice"></i> Reroll
-            </button>
-            <button type="button" class="select-character-btn" data-character-id="{{ img.id }}">
-                <i class="fas fa-check-circle"></i> Select
-            </button>
+        <div class="character-info-box">
+            <div class="character-controls">
+                <button type="button" class="reroll-btn">
+                    <i class="fas fa-dice me-1"></i> Reroll Character
+                </button>
+                <button type="button" class="select-character-btn">
+                    <i class="fas fa-check me-1"></i> Select Character
+                </button>
+            </div>
         </div>
     </div>
 </div>
+{% endmacro %}
