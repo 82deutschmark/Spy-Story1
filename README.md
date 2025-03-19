@@ -24,6 +24,27 @@ This application allows users to generate interactive stories featuring characte
 
 ## Recent Improvements
 
+- **Form Handling System Refactoring**:
+  - Migrated from monolithic EventHandlers.js to modular FormHandler.js
+  - Implemented HTML5 form validation for better user experience
+  - Enhanced error handling with improved visibility and styling
+  - Added proper loading states for all form submissions
+  - Improved character selection validation and integration
+  - Added support for custom field toggling
+  - Enhanced form data handling and submission
+  - Fixed choice form validation and submission issues
+  - Improved error message visibility in toast notifications
+  - Added proper handling of choice_id in form data
+
+- **Upcoming EventHandlers.js Refactoring**:
+  - Major architectural improvements to form handling and event management
+  - Separation of concerns with dedicated components for form handling and character selection
+  - Simplified state management with backend as source of truth
+  - Enhanced error handling and user feedback
+  - Improved code organization and documentation
+  - Reduced component coupling for better maintainability
+  - Leveraging HTML5 form validation for better user experience
+
 - **Code Cleanup and Consistency**:
   - Removed deprecated OpenAI service (`openai_service.py`) to reduce confusion and technical debt
   - Updated all model references to consistently use "gpt-4o-mini" across the codebase
@@ -74,6 +95,27 @@ This application allows users to generate interactive stories featuring characte
     - Added missing Character model import from character_data
     - Fixed circular import issues in model relationships
     - Ensured all required models are properly exported in __all__
+
+- **State Management System Refactoring**:
+  - Moved GameState class to state_manager.py for better organization
+  - Removed duplicate state management code from game_engine.py
+  - Simplified state synchronization between components
+  - Removed redundant error handling from state management
+  - Enhanced state persistence and reloading
+  - Improved state update notifications
+  - Streamlined state manager interface
+  - Removed redundant docstrings and comments
+  - Simplified listener implementation
+  - Enhanced state serialization
+  - Fixed story continuation context handling
+  - Improved mission update synchronization
+  - Enhanced character relationship tracking
+  - Fixed state persistence between story segments
+  - Improved state reloading from database
+  - Fixed state update notifications
+  - Enhanced state serialization
+  - Fixed state manager initialization
+  - Improved state consistency across components
 
 ### Current Status
 
@@ -392,3 +434,15 @@ MIT License
 ### 3. Characters
 **Purpose**: Stores character data and metadata
 **Usage**: Central repository for all character information
+
+### State Management Refactoring
+We've recently completed a major refactoring of the state management system to improve reliability and maintainability:
+
+- Moved GameState class to dedicated state_manager.py
+- Removed duplicate state management code
+- Enhanced state persistence and notifications
+- Improved state synchronization between components
+- Better error handling and recovery
+- More efficient state updates
+
+These changes have significantly improved the game's stability and performance.

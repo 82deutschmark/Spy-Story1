@@ -14,8 +14,7 @@ from typing import Dict, Any, Optional
 from openai import OpenAI
 from utils.context_manager import OpenAIContextManager
 
-# Initialize OpenAI client and logger
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+# Initialize logger
 logger = logging.getLogger(__name__)
 
 # Model configuration
@@ -24,6 +23,14 @@ MODEL_CONFIG = {
     "temperature": 0.7,
     "max_tokens": 14000
 }
+
+def get_openai_client():
+    """Get an OpenAI client with the current API key."""
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        logger.error("OpenAI API key is missing")
+        raise ValueError("OpenAI API key is required for story generation")
+    return OpenAI(api_key=api_key)
 
 def validate_mission_info(mission_info: Dict[str, Any]) -> bool:
     """Validate the mission info structure."""
@@ -36,28 +43,31 @@ def _build_system_message(mood: str = None, narrative_style: str = None, protago
     # Build protagonist info
     protagonist_info = ""
     if protagonist_name or protagonist_gender:
-        protagonist_info = "\nPROTAGONIST INFO:"
-        if protagonist_name:
-            protagonist_info += f"\n- Name: {protagonist_name}"
-        if protagonist_gender:
-            protagonist_info += f"\n- Gender: {protagonist_gender}"
-        protagonist_info += "\nAlways refer to the protagonist by their name or appropriate pronouns."
+        protagonist_info = f"""PROTAGONIST DETAILS:
+Name: {protagonist_name}
+Gender: {protagonist_gender}
+
+PROTAGONIST INTEGRATION REQUIREMENTS:
+1. Address the protagonist directly as "you" throughout the narrative
+2. Make the protagonist's gender influence their interactions and experiences
+3. Ensure the protagonist's name is used naturally in dialogue and descriptions
+4. Mission information is provided to you, and you must use it to create a story that is consistent with the mission.
+5. Make the protagonist's choices feel meaningful and impactful
+
+PROTAGONIST PERSPECTIVE GUIDELINES:
+1. Write in second person, addressing the player directly as "you"
+2. The protagonist is a user of the game, and the story is about their adventures.
+8. Create situations that challenge the protagonist's beliefs and values"""
     
     # Build style info
     style_info = ""
     if mood or narrative_style:
-        style_info = "\nSTYLE INFO:"
-        if mood:
-            style_info += f"\n- Mood: {mood}"
-        if narrative_style:
-            style_info += f"\n- Narrative Style: {narrative_style}"
-    
-    return f"""You are a master narrative generator for our choose your own adventure game.
-You excel at continuing stories based on player choices, maintaining narrative
-consistency while introducing fresh developments and unexpected twists.{protagonist_info}{style_info}
+        style_info = f"""STYLE GUIDELINES:
+Mood: {mood}
+Narrative Style: {narrative_style}
 
-NARRATIVE STYLE GUIDELINES:
-1. Create LENGTHY, DETAILED story segments (at least 1400-2000 words) with rich descriptions
+NARRATIVE STYLE GUIDELINES: You are a master narrative generator for our choose your own adventure game.
+1. Create LENGTHY, DETAILED story segments (at least 30000-35000 words) with rich descriptions
 2. Use vivid sensory details, atmospheric descriptions, and character development
 3. Each segment should advance the plot significantly with unexpected twists or revelations
 4. Include multiple scenes within each story segment when appropriate
@@ -68,8 +78,35 @@ NARRATIVE STYLE GUIDELINES:
 9. Show character development through actions and dialogue
 10. Maintain consistent tone and style with the previous segments
 
+CHARACTER INTEGRATION GUIDELINES:
+1. Make character traits manifest in their dialogue, actions, and decisions
+2. Show how character traits influence their relationships and interactions
+3. Ensure each character's unique traits affect their role in the story
+4. Make character traits visible through specific behaviors and choices
+5. Use character traits to drive plot developments and conflicts
+6. Show how character traits evolve through story events
+7. Make character relationships reflect their individual traits
+
+CHARACTER DIALOGUE GUIDELINES:
+1. Make speech patterns reflect personality traits
+2. Show skills through expertise in conversations
+3. Reveal relationships through how characters talk about others
+4. Let background influence perspective and opinions
+5. Make dialogue choices reflect personality values
+6. Show emotional intelligence through social interactions
+7. Reveal motivations through words and actions
+8. Make dialogue choices impact the story's direction"""
+
+    return f"""You are a master narrative generator for our choose your own adventure game.
+You excel at continuing stories based on player choices, maintaining narrative
+consistency while introducing fresh developments and unexpected twists.
+
+{protagonist_info}
+
+{style_info}
+
 Your response MUST be valid JSON with this structure:
-r'''{{
+{{
     "story": "Continuation narrative text",
     "choices": [
         {{
@@ -82,7 +119,7 @@ r'''{{
         "status": "unchanged/progressed/completed/failed",
         "progress_details": "How the mission has advanced"
     }}
-}}'''"""
+}}"""
 
 def generate_continuation(
     previous_story: str,
@@ -152,18 +189,24 @@ STORY REQUIREMENTS:
 4. Introduce at least one new story element (character, setting, or plot thread)
 5. Create three distinct choices for how to proceed:
    - One that advances the mission directly
-   - One that takes a risky approach
+   - One that takes a risky approach, involving gunplay or car chases
    - One that involves introducing a new character from the database
 6. Maintain narrative consistency with previous events
-7. Include rich descriptions and atmospheric details
+7. Include rich descriptions of guns and cars and atmospheric details, but not of characters or their look or clothing
 8. Show character development through actions and dialogue
 9. Create unexpected twists or revelations
 10. Balance action, dialogue, and intrigue
-11. Never repeat previous scenarios or story beats
-12. Create escalating stakes and tension"""
+11. Avoid repeating previous scenarios or story beats
+12. Create escalating stakes and tension
+13. Ensure all character interactions reflect their traits and relationships
+14. Make dialogue choices impact the story's direction
+15. Show how the protagonist's choices affect other characters"""
         
         # Add the continuation prompt
         context_manager.add_user_message(content_prompt)
+        
+        # Get a fresh OpenAI client
+        client = get_openai_client()
         
         # Get the response using model config
         response = context_manager.process_function_calling(

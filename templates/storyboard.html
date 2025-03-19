@@ -8,6 +8,20 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    <style>
+        /* Simple loading state for choice buttons */
+        .choice-button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        .choice-button:disabled i {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body class="storyboard-body">
     {% if background_image %}
@@ -73,27 +87,29 @@
             <!-- Choices - Moved outside story-scroll-container -->
             <div class="choices-container mt-4">
                 {% for choice in story.choices %}
-                <form action="{{ url_for('main.generate_story_route') }}" method="POST" class="choice-form">
+                <form method="POST" action="{{ url_for('main.make_choice') }}" class="choice-form" data-form-type="choice">
                     <input type="hidden" name="previous_choice" value="{{ choice.text }}">
                     <input type="hidden" name="story_context" value="{{ story.story }}">
                     <input type="hidden" name="story_id" value="{{ story_id }}">
+                    <input type="hidden" name="node_id" value="{{ story.node_id }}">
                     <!-- Character selection data - include all characters -->
                     {% for image in character_images %}
-                    <input type="hidden" name="selected_images" value="{{ image.id }}">
+                    <input type="hidden" name="characters[]" value="{{ image.id }}">
                     {% endfor %}
                     <!-- Include conflict/setting data from the initial story -->
                     <input type="hidden" name="conflict" value="{{ story.conflict|default('Unknown conflict') }}">
                     <input type="hidden" name="setting" value="{{ story.setting|default('Unknown setting') }}">
                     <input type="hidden" name="narrative_style" value="{{ story.narrative_style|default('Engaging modern style') }}">
                     <input type="hidden" name="mood" value="{{ story.mood|default('Exciting and adventurous') }}">
-                    <button type="submit" class="choice-btn">
-                        <div class="choice-text">{{ choice.text }}</div>
+                    <input type="hidden" name="choice_id" value="{{ choice.id }}">
+                    <button type="submit" class="choice-button" 
+                            {% if choice.currency_requirements %}data-currency-req='{{ choice.currency_requirements|tojson }}'{% endif %}
+                            data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing...">
+                        {{ choice.text }}
                         {% if choice.currency_requirements %}
-                        <div class="choice-currency-req">
+                        <div class="currency-cost">
                             {% for currency, amount in choice.currency_requirements.items() %}
-                            <span class="currency-req-item {% if user_progress.currency_balances.get(currency, 0) < amount %}currency-req-insufficient{% endif %}">
-                                {{ currency }}{{ amount }}
-                            </span>
+                            <span>{{ currency }} {{ amount }}</span>
                             {% endfor %}
                         </div>
                         {% endif %}
@@ -101,6 +117,20 @@
                 </form>
                 {% endfor %}
             </div>
+
+            <!-- Add flash messages display -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            {% endwith %}
 
             <!-- Navigation -->
             <div class="navigation-area">

@@ -1,35 +1,113 @@
 # Changelog
 
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Changed
+- Refactored state management system
+  - Moved GameState class to state_manager.py
+  - Removed duplicate state management code from game_engine.py
+  - Enhanced state persistence and notifications
+  - Improved state synchronization between components
+
+### Fixed
+- Fixed game engine state management
+  - Properly integrated OpenAIContextManager
+  - Fixed state persistence issues
+  - Fixed character relationship tracking
+  - Fixed mission progress updates
+
+### Improved
+- Enhanced state management architecture
+  - Better separation of concerns
+  - Improved code organization
+  - More efficient state updates
+  - Better error handling
+
+- Fixed character reroll functionality:
+  - Removed duplicate radio button from character card template
+  - Fixed selection state clearing on character reroll
+  - Removed redundant character selector initialization in main.js
+  - Ensured proper event handler cleanup and reattachment
+  - Fixed hidden input field clearing on reroll
+  - Improved error handling during reroll process
+  - Enhanced user feedback with toast notifications
+  - Fixed character selection state management
+  - Ensured proper DOM updates after reroll
+  - Fixed event propagation issues with reroll button
+
 ## [Unreleased]
 ### Changed
-- Consolidated CSS files by merging `characters.css` into `character.css`
-- Enhanced character styling with improved background opacity and spacing
-- Added new character highlighting and tooltip styles
-- Streamlined `index.html` to match JavaScript structure
-- Removed redundant UI elements not used by core functionality
-- Improved character selection interface with clearer structure
-- Enhanced character card layout and controls
-- Added detailed logging to application startup and request handling
-- Made user progress initialization optional to improve homepage performance
-- Updated OpenAI API key handling and configuration
-- Upgraded OpenAI client to use latest API version
-- Enhanced error handling for OpenAI API authentication
-- Consolidated loading animation handling in StoryFormHandler to support both initial story generation and choice submissions
-- Enhanced loading animation with context-specific messages for different actions
-- Improved button state management during loading states
-- Streamlined event handler code by removing redundant implementations
-- Improved storyboard layout by separating choice buttons from story content:
-  - Moved choices container outside of story scroll container
-  - Reduced story scroll container height to accommodate choices
-  - Added visual separator between story text and choices
-  - Enhanced choice button styling with better hover effects
-  - Improved mobile responsiveness for both story and choice sections
-- Standardized terminology across codebase:
-  - Updated story_maker.py to consistently use 'setting' instead of 'location/setting'
-  - Modified game_engine.py to use 'setting' parameter instead of 'location'
-  - Updated main_routes.py to use 'setting' in story parameters and template variables
-  - Updated form fields and labels in templates to use 'setting' terminology
-  - Modified JavaScript files to use 'setting' in form handling and validation
+- Refactored state management system:
+  - Moved GameState class to state_manager.py for better organization
+  - Removed duplicate state management code from game_engine.py
+  - Simplified state synchronization between components
+  - Removed redundant error handling from state management
+  - Enhanced state persistence and reloading
+  - Improved state update notifications
+  - Streamlined state manager interface
+  - Removed redundant docstrings and comments
+  - Simplified listener implementation
+  - Enhanced state serialization
+
+### Fixed
+- Fixed game engine state management:
+  - Properly integrated OpenAIContextManager with state management
+  - Fixed story continuation context handling
+  - Improved mission update synchronization
+  - Enhanced character relationship tracking
+  - Fixed state persistence between story segments
+  - Improved state reloading from database
+  - Fixed state update notifications
+  - Enhanced state serialization
+  - Fixed state manager initialization
+  - Improved state consistency across components
+
+### Improved
+- Enhanced state management architecture:
+  - Better separation of concerns between components
+  - Improved code organization and documentation
+  - Enhanced state synchronization
+  - Better state persistence handling
+  - Improved state update notifications
+  - Enhanced state serialization
+  - Better state reloading from database
+  - Improved state consistency
+  - Enhanced state manager interface
+  - Better state update handling
+- Refactored form handling system:
+  - Migrated from EventHandlers.js to modular FormHandler.js
+  - Improved form validation with HTML5 validation
+  - Enhanced error handling and user feedback
+  - Added proper loading states for form submissions
+  - Improved character selection validation
+  - Added support for custom field toggling
+  - Enhanced form data handling and submission
+  - Improved error message visibility and styling
+  - Fixed choice form validation and submission
+  - Added proper handling of choice_id in form data
+  - Fixed character selection handling in story form submission:
+    - Now properly uses hidden input for character selection
+    - Improved validation of selected character before submission
+    - Fixed undefined character ID issue in form submission
+    - Enhanced error handling for character selection
+    - Improved user feedback when no character is selected
+  - Enhanced choice button behavior:
+    - Added prevention of multiple choice selections
+    - Improved loading state feedback during choice processing
+    - Added proper handling of choice form submissions
+    - Enhanced error handling for choice submissions
+    - Improved user feedback during choice processing
+  - Added new ChoiceHandler module for improved choice flow:
+    - Centralized choice state management
+    - Enhanced choice form submission handling
+    - Improved loading states during choice processing
+    - Better error handling and user feedback
+    - Proper integration with existing modules
 
 ### Removed
 - Deleted the redundant `characters.css` file after consolidation
@@ -75,6 +153,12 @@
   - Improved logging for character image processing errors
   - Fixed database schema to properly reflect character-story relationships
   - Updated documentation to clarify correct model relationships
+- Corrected form submission handling in storyboard.html:
+  - Ensured choice forms properly submit to /make_choice endpoint
+  - Maintained proper data structure for choice submissions
+  - Fixed character data handling in choice continuation
+  - Preserved currency requirement checks and processing
+  - Kept proper error handling and user feedback
 
 ### Security
 - Removed the admin interface and debug endpoints to reduce the attack surface
@@ -200,3 +284,18 @@ All notable changes to the Story Creator project will be documented in this file
   - Added missing Character model import from character_data
   - Fixed circular import issues in model relationships
   - Ensured all required models are properly exported in __all__
+
+### Improved
+- Enhanced error handling and user feedback:
+  - Added proper flash messages for form submission errors
+  - Improved loading state feedback during submissions
+  - Maintained consistent error display across both flows
+  - Preserved proper redirect handling after submissions
+
+### Fixed
+- Fixed ChoiceHandler initialization error:
+  - Now only initializes on storyboard page where story_id is available
+  - Prevents "Missing story_id" error on non-storyboard pages
+  - Improved error handling during initialization
+  - Enhanced module initialization logic in main.js
+  - Fixed critical error during application initialization
