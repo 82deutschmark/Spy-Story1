@@ -71,7 +71,6 @@ class FormHandler {
 
             // Create form data
             const formData = new FormData(form);
-            const jsonData = this.convertFormDataToJson(formData);
 
             // Add character selection for story form
             if (formType === 'story') {
@@ -80,17 +79,20 @@ class FormHandler {
                 if (!selectedImagesInput || !selectedImagesInput.value) {
                     throw new Error('Please select a character before proceeding');
                 }
-                jsonData.selected_images = [selectedImagesInput.value];
+                
+                // Clear any existing selected_images entries
+                formData.delete('selected_images');
+                // Add the selected character ID
+                formData.append('selected_images', selectedImagesInput.value);
             }
 
             // Submit the form
             const response = await fetch(form.action, {
                 method: form.method || 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
                 },
-                body: JSON.stringify(jsonData)
+                body: formData
             });
 
             // Handle response

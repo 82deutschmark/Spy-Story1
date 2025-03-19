@@ -105,7 +105,7 @@
                     <button type="submit" class="choice-button" 
                             {% if choice.currency_requirements %}data-currency-req='{{ choice.currency_requirements|tojson }}'{% endif %}
                             data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing...">
-                        {{ choice.text }}
+                        <div class="choice-text">{{ choice.text }}</div>
                         {% if choice.currency_requirements %}
                         <div class="currency-cost">
                             {% for currency, amount in choice.currency_requirements.items() %}

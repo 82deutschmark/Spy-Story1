@@ -48,21 +48,29 @@ class CharacterSelector {
         // Convert NodeList to Array for proper array methods
         this.containers = Array.from(document.querySelectorAll('.character-container'));
         this.containers.forEach(container => {
-            // Setup click handler for card selection
-            container.addEventListener('click', this.handleContainerClick);
-
-            // Setup reroll button handler
-            const rerollBtn = container.querySelector('.reroll-btn');
-            if (rerollBtn) {
-                rerollBtn.addEventListener('click', (e) => this.handleReroll(e, container));
-            }
-
-            // Setup select button handler
-            const selectBtn = container.querySelector('.select-character-btn');
-            if (selectBtn) {
-                selectBtn.addEventListener('click', (e) => this.handleSelectButton(e, container));
-            }
+            this.attachEventListeners(container);
         });
+    }
+
+    /**
+     * Attach event listeners to a container
+     * @param {HTMLElement} container - The character container
+     */
+    attachEventListeners(container) {
+        // Setup click handler for card selection
+        container.addEventListener('click', this.handleContainerClick);
+
+        // Setup reroll button handler
+        const rerollBtn = container.querySelector('.reroll-btn');
+        if (rerollBtn) {
+            rerollBtn.addEventListener('click', (e) => this.handleReroll(e, container));
+        }
+
+        // Setup select button handler
+        const selectBtn = container.querySelector('.select-character-btn');
+        if (selectBtn) {
+            selectBtn.addEventListener('click', (e) => this.handleSelectButton(e, container));
+        }
     }
 
     /**
@@ -70,7 +78,7 @@ class CharacterSelector {
      * @param {Event} event - The click event
      * @param {HTMLElement} container - The character container
      */
-    async handleReroll(event, container) {
+    async handleReroll(event, event_container) {
         event.preventDefault();
         event.stopPropagation();
 
@@ -83,7 +91,7 @@ class CharacterSelector {
             rerollBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
             // Get the character ID
-            const originalCard = container.querySelector('.character-select-card');
+            const originalCard = event_container.querySelector('.character-select-card');
             const characterId = originalCard.dataset.characterId;
             if (!characterId) {
                 throw new Error('No character ID found');
@@ -120,41 +128,16 @@ class CharacterSelector {
             this.clearSelection();
 
             // Replace the old container with the new one
-            container.replaceWith(newContainer);
+            event_container.replaceWith(newContainer);
 
-            // Update the containers array to include the new container
-            const index = this.containers.indexOf(container);
+            // Update the containers array
+            const index = this.containers.indexOf(event_container);
             if (index !== -1) {
                 this.containers[index] = newContainer;
             }
 
-            // Add the same event handlers as in initialize
-            const newCard = newContainer.querySelector('.character-select-card');
-            const newInfoBox = newContainer.querySelector('.character-info-box');
-            
-            if (!newCard || !newInfoBox) {
-                console.error("Missing required elements in new container:", {
-                    hasCard: !!newCard,
-                    hasInfoBox: !!newInfoBox,
-                    containerHTML: newContainer.innerHTML
-                });
-                return;
-            }
-
-            // Handle card clicks (except buttons)
-            newContainer.addEventListener('click', this.handleContainerClick);
-
-            // Setup reroll button
-            const newRerollBtn = newInfoBox.querySelector('.reroll-btn');
-            if (newRerollBtn) {
-                newRerollBtn.addEventListener('click', (e) => this.handleReroll(e, newContainer));
-            }
-
-            // Setup select button
-            const newSelectBtn = newInfoBox.querySelector('.select-character-btn');
-            if (newSelectBtn) {
-                newSelectBtn.addEventListener('click', (e) => this.handleSelectButton(e, newContainer));
-            }
+            // Attach event listeners to the new container
+            this.attachEventListeners(newContainer);
 
             // Show success message
             UIUtils.showToast('Success', 'Character rerolled successfully');
@@ -162,8 +145,10 @@ class CharacterSelector {
         } catch (error) {
             console.error('Error rerolling character:', error);
             UIUtils.showToast('Error', error.message || 'Failed to reroll character');
-            rerollBtn.disabled = false;
-            rerollBtn.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
+            if (rerollBtn) {
+                rerollBtn.disabled = false;
+                rerollBtn.innerHTML = '<i class="fas fa-dice me-1"></i> Reroll Character';
+            }
         }
     }
 

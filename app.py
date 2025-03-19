@@ -1,105 +1,58 @@
 """
-app.py - Flask Application Factory
-==============================
-
-!!! IMPORTANT - READ BEFORE MODIFYING !!!
-This module provides the Flask application factory pattern implementation.
-It creates and configures the Flask application instance.
-
-Key Features:
-------------
-- Application factory pattern
-- Configuration loading
-- Database initialization
-- Blueprint registration
-- Session management
-- JavaScript configuration injection
-
-Dependencies:
------------
-- Flask: Web framework
-- SQLAlchemy: Database ORM
-- python-dotenv: Environment loading
-- Custom configurations and utilities
-
-Configuration Sources:
--------------------
-1. Environment variables (.env)
-2. Configuration classes (config.py)
-3. Session configuration
-4. Database settings
-
-Required Environment Variables:
----------------------------
-- SESSION_SECRET: Session encryption key
-- FLASK_ENV: Application environment
-- DATABASE_URL: Database connection string
-- LOG_LEVEL: Logging configuration
-
-Usage Guidelines:
----------------
-1. ALWAYS use create_app() for application creation
-2. Maintain proper configuration loading
-3. Keep session management secure
-4. Handle database initialization properly
-
-Integration Points:
-----------------
-- Database models and initialization
-- Route blueprints
-- Configuration system
-- Frontend JavaScript configuration
-
-Security Notes:
-------------
-1. Session secret must be properly set
-2. Database credentials must be secure
-3. Debug mode must be disabled in production
-4. Proper CORS configuration required
+Flask application factory for the Spy Story game.
 """
 
-from flask import Flask, session
-from config import get_config
-from database import db, init_db
-from routes import register_blueprints
-import logging
+from flask import Flask
+from flask_cors import CORS
+from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
+import logging
 
-# Load environment variables
-load_dotenv()
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# Initialize extensions
+db = SQLAlchemy()
+migrate = Migrate()
 
 def create_app():
-    """Create and configure the Flask application"""
+    """Create and configure the Flask application."""
+    # Load environment variables
+    load_dotenv()
+    
+    # Create Flask app
     app = Flask(__name__)
     
-    # Load configuration
-    config = get_config()
-    app.config.from_object(config)
+    # Configure the app
+    app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_recycle": 300,
+        "pool_pre_ping": True,
+    }
     
-    # Set the secret key from environment variable
-    app.secret_key = os.environ.get('SESSION_SECRET', 'dev-secret-key')
+    # Initialize extensions
+    db.init_app(app)
+    migrate.init_app(app, db)
     
-    # Configure logging
-    logging.basicConfig(level=app.config['LOG_LEVEL'])
-    
-    # Initialize database
-    init_db(app)
-    
-    # Register routes
-    register_blueprints(app)
-    
-    # Add FLASK_CONFIG to JavaScript
-    @app.context_processor
-    def inject_flask_config():
-        return {
-            'FLASK_CONFIG': {
-                'staticUrl': '/static/',
-                'apiBaseUrl': '/api',
-                'env': os.environ.get('FLASK_ENV', 'development'),
-                'debug': app.config['DEBUG']
-            }
+    # CORS configuration
+    CORS(app, resources={
+        r"/api/unity/*": {
+            "origins": "*",
+            "methods": ["GET", "POST", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"]
         }
+    })
+    
+    # Register blueprints
+    from routes import main_bp
+    from api.unity_routes import unity_api
+    
+    app.register_blueprint(main_bp)
+    app.register_blueprint(unity_api, url_prefix='/api/unity')
     
     return app
 

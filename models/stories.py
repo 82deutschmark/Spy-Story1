@@ -60,7 +60,10 @@ class StoryGeneration(db.Model):
         generated_story (JSONB): Complete story text and choices
         created_at (datetime): Story creation timestamp
         characters (relationship): Characters involved in the story
+        nodes (relationship): Story nodes belonging to this story
     """
+    __tablename__ = 'story_generation'
+    
     id = db.Column(db.Integer, primary_key=True)
     primary_conflict = db.Column(db.String(255))
     setting = db.Column(db.String(255))
@@ -72,6 +75,9 @@ class StoryGeneration(db.Model):
     # Many-to-many relationship with Character
     characters = db.relationship('Character', secondary=story_characters,
                                backref=db.backref('stories', lazy='dynamic'))
+    
+    # One-to-many relationship with StoryNode
+    nodes = db.relationship('StoryNode', backref='story', lazy='dynamic')
 
 class StoryNode(db.Model):
     """
@@ -82,6 +88,7 @@ class StoryNode(db.Model):
     
     Attributes:
         id (int): Primary key
+        story_id (int): Foreign key to parent story
         narrative_text (str): The actual story content
         image_id (int): Legacy reference to associated image
         character_id (int): Reference to primary character in this node
@@ -97,7 +104,10 @@ class StoryNode(db.Model):
         choices (relationship): Choices leading from this node
         child_nodes (relationship): Nodes branching from this one
     """
+    __tablename__ = 'story_node'
+    
     id = db.Column(db.Integer, primary_key=True)
+    story_id = db.Column(db.Integer, db.ForeignKey('story_generation.id'), nullable=False)
     narrative_text = db.Column(db.Text, nullable=False)
     image_id = db.Column(db.Integer)  # Legacy column, should be phased out
     character_id = db.Column(db.Integer, db.ForeignKey('characters.id'))
@@ -135,6 +145,8 @@ class StoryChoice(db.Model):
         currency_requirements (JSONB): Required currency to select this choice
         next_node (relationship): The node this choice leads to
     """
+    __tablename__ = 'story_choice'
+    
     id = db.Column(db.Integer, primary_key=True)
     node_id = db.Column(db.Integer, db.ForeignKey('story_node.id'), nullable=False)
     choice_text = db.Column(db.String(500), nullable=False)

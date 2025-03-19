@@ -1,5 +1,12 @@
+"""
+Scene Images Model
+================
+
+This model manages background scene images for the application.
+It is intentionally kept simple and focused only on scene image management.
+"""
+
 from models.base import db
-from datetime import datetime
 
 class SceneImages(db.Model):
     """Model for storing scene images and their metadata."""
