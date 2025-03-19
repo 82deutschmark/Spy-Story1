@@ -75,10 +75,13 @@ class GameEngine:
         self.state = GameState(user_id)
         self.character_service = CharacterInteractionService()
 
-    def start_new_story(self) -> Dict[str, Any]:
+    def start_new_story(self, form_data=None) -> Dict[str, Any]:
         """
         Start a new story for the user.
         
+        Args:
+            form_data (Optional[Dict]): Form data containing story parameters
+            
         Returns:
             Dict[str, Any]: Initial story state including:
                 - story_id: Unique identifier for the story
@@ -86,77 +89,164 @@ class GameEngine:
                 - initial_node: First story node
                 - available_missions: List of available missions
         """
-        # Generate new story using story_maker
-        story_data = generate_story(
-            conflict="Default conflict",  # These will be overridden by UI choices
-            setting="Default setting",
-            narrative_style="Default style",
-            mood="Default mood",
-            user_id=self.user_id
-        )
-        
-        # Create story in database
-        story = StoryGeneration(
-            primary_conflict=story_data["conflict"],
-            setting=story_data["setting"],
-            narrative_style=story_data["narrative_style"],
-            mood=story_data["mood"],
-            generated_story=story_data["story"]
-        )
-        db.session.add(story)
-        db.session.commit()
-        
-        # Create initial story node
-        initial_node = StoryNode(
-            story_id=story.id,
-            narrative_text=story_data["stories"]["story"],
-            is_endpoint=False,
-            branch_metadata={
-                "choices": story_data["stories"]["choices"]
+        try:
+            # Get story parameters from form data
+            story_params = {
+                'conflict': form_data.get('conflict', 'Mysterious adventure'),
+                'setting': form_data.get('setting', 'Unknown location'),
+                'narrative_style': form_data.get('narrative_style', 'Engaging modern style'),
+                'mood': form_data.get('mood', 'Exciting and adventurous')
             }
-        )
-        db.session.add(initial_node)
-        db.session.commit()
-        
-        # Update user progress
-        self.state.user_progress.current_story_id = story.id
-        self.state.user_progress.current_node_id = initial_node.id
-        self.state.user_progress.last_active = datetime.utcnow()
-        db.session.commit()
-        
-        # Generate initial missions
-        missions = generate_mission(self.user_id, story.id)
-        
-        # Update state
-        self.state.current_story = story
-        self.state.current_node = initial_node
-        self.state.active_missions = [missions] if missions else []
-        
-        # Notify state manager
-        state_manager.update_state(self.state.to_dict())
-        
-        return {
-            "story_id": story.id,
-            "title": story_data["stories"]["title"],
-            "initial_node": {
-                "id": initial_node.id,
-                "narrative_text": initial_node.narrative_text,
-                "is_endpoint": initial_node.is_endpoint,
-                "branch_metadata": initial_node.branch_metadata
-            },
-            "available_missions": [
-                {
-                    "id": mission.id,
-                    "title": mission.title,
-                    "description": mission.description,
-                    "objective": mission.objective,
-                    "progress": mission.progress,
-                    "reward_currency": mission.reward_currency,
-                    "reward_amount": mission.reward_amount,
-                    "difficulty": mission.difficulty
-                } for mission in self.state.active_missions
-            ]
-        }
+            
+            def format_character_traits(char):
+                """Helper function to format character traits consistently"""
+                traits = char.character_traits or {}
+                
+                # If traits is a list or string, convert to expected dictionary format
+                if isinstance(traits, (list, str)):
+                    traits_list = [traits] if isinstance(traits, str) else traits
+                    return {
+                        "personality": {trait: 1 for trait in traits_list},
+                        "background": char.backstory or "",
+                        "description": char.description or ""
+                    }
+                
+                # If traits is already a dict but missing required keys, ensure they exist
+                if isinstance(traits, dict):
+                    if "personality" not in traits:
+                        traits["personality"] = {}
+                    if "background" not in traits:
+                        traits["background"] = char.backstory or ""
+                    if "description" not in traits:
+                        traits["description"] = char.description or ""
+                    return traits
+                
+                # Default empty structure if traits is None or invalid type
+                return {
+                    "personality": {},
+                    "background": char.backstory or "",
+                    "description": char.description or ""
+                }
+            
+            # Get selected characters
+            selected_character_ids = form_data.get('selected_characters', [])
+            if selected_character_ids:
+                # Query selected characters
+                selected_characters = Character.query.filter(
+                    Character.id.in_(selected_character_ids)
+                ).all()
+                
+                if selected_characters:
+                    # Use the first character as the main character_info
+                    main_character = selected_characters[0]
+                    
+                    story_params['character_info'] = {
+                        'id': main_character.id,
+                        'name': main_character.character_name,
+                        'traits': format_character_traits(main_character),
+                        'role': main_character.character_role
+                    }
+                    
+                    # Add any additional characters to additional_characters
+                    if len(selected_characters) > 1:
+                        story_params['additional_characters'] = [
+                            {
+                                'id': char.id,
+                                'name': char.character_name,
+                                'traits': format_character_traits(char),
+                                'role': char.character_role
+                            }
+                            for char in selected_characters[1:]
+                        ]
+            
+            try:
+                # Generate new story using story_maker
+                story_data = generate_story(**story_params)
+                
+                # Start database transaction
+                db.session.begin_nested()
+                
+                # Create story in database
+                story = StoryGeneration(
+                    primary_conflict=story_data["conflict"],
+                    setting=story_data["setting"],
+                    narrative_style=story_data["narrative_style"],
+                    mood=story_data["mood"],
+                    generated_story=story_data["story"]
+                )
+                db.session.add(story)
+                
+                # Associate selected characters with the story
+                if selected_character_ids:
+                    story.characters = selected_characters
+                
+                db.session.flush()  # Flush to get story.id
+                
+                # Create initial story node
+                initial_node = StoryNode(
+                    story_id=story.id,
+                    narrative_text=story_data["stories"]["story"],
+                    is_endpoint=False,
+                    branch_metadata={
+                        "choices": story_data["stories"]["choices"],
+                        "characters": [char.id for char in selected_characters] if selected_character_ids else []
+                    }
+                )
+                db.session.add(initial_node)
+                db.session.flush()  # Flush to get initial_node.id
+                
+                # Update user progress
+                self.state.user_progress.current_story_id = story.id
+                self.state.user_progress.current_node_id = initial_node.id
+                self.state.user_progress.last_active = datetime.utcnow()
+                
+                # Generate initial missions
+                missions = generate_mission(self.user_id, story.id)
+                
+                # Update state
+                self.state.current_story = story
+                self.state.current_node = initial_node
+                self.state.active_missions = [missions] if missions else []
+                
+                # Commit all changes
+                db.session.commit()
+                
+                # Notify state manager
+                state_manager.update_state(self.state.to_dict())
+                
+                return {
+                    "story_id": story.id,
+                    "title": story_data["stories"]["title"],
+                    "initial_node": {
+                        "id": initial_node.id,
+                        "narrative_text": initial_node.narrative_text,
+                        "is_endpoint": initial_node.is_endpoint,
+                        "branch_metadata": initial_node.branch_metadata
+                    },
+                    "available_missions": [
+                        {
+                            "id": mission.id,
+                            "title": mission.title,
+                            "description": mission.description,
+                            "objective": mission.objective,
+                            "progress": mission.progress,
+                            "reward_currency": mission.reward_currency,
+                            "reward_amount": mission.reward_amount,
+                            "difficulty": mission.difficulty
+                        } for mission in self.state.active_missions
+                    ]
+                }
+                
+            except Exception as e:
+                # Rollback transaction on any error
+                db.session.rollback()
+                raise RuntimeError(f"Story generation failed: {str(e)}")
+                
+        except Exception as e:
+            logger.error(f"Error starting new story: {str(e)}", exc_info=True)
+            # Ensure any open transaction is rolled back
+            db.session.rollback()
+            raise RuntimeError(f"Failed to start new story: {str(e)}")
 
     def make_choice(
         self,
@@ -186,10 +276,13 @@ class GameEngine:
         
         # Get current story and node
         story = self.state.current_story
-        current_node = self.state.current_node
-        
-        if not story or not current_node:
-            raise ValueError("Missing required story or node information")
+        if not story:
+            raise ValueError("No active story found")
+            
+        # Resolve current node
+        current_node = self.state.resolve_current_node(story.id)
+        if not current_node:
+            raise ValueError("Could not resolve current node")
         
         # Find next node based on choice
         next_node = StoryNode.query.filter_by(
@@ -201,11 +294,11 @@ class GameEngine:
         # If no predefined node found and custom choice provided, create new node
         if not next_node and custom_choice_text:
             next_node = StoryNode(
+                story_id=story.id,
                 narrative_text=custom_choice_text,
                 parent_node_id=current_node.id,
                 generated_by_ai=True,
                 branch_metadata={
-                    "story_id": story.id,
                     "choice_id": choice_id,
                     "choice_text": custom_choice_text,
                     "timestamp": datetime.utcnow().isoformat()
@@ -217,9 +310,27 @@ class GameEngine:
         if not next_node:
             raise ValueError(f"No valid node found for choice_id: {choice_id}")
         
-        # Update user progress
-        self.state.user_progress.current_node_id = next_node.id
-        self.state.user_progress.last_active = datetime.utcnow()
+        # Transition to new node atomically
+        if not self.state.transition_to_node(next_node.id):
+            raise RuntimeError("Failed to transition to new node")
+        
+        # Get node context for story continuation
+        node_context = self.state.get_node_context(next_node.id)
+        
+        # Generate next story segment using segment_maker
+        next_segment = generate_continuation(
+            previous_story=current_node.narrative_text,
+            chosen_choice=custom_choice_text or choice_id,
+            mission_info=node_context.get("active_missions", [{}])[0],
+            context_manager=context_manager,
+            mood=story.mood,
+            narrative_style=story.narrative_style,
+            story_context=story_context
+        )
+        
+        # Update node with generated content
+        next_node.narrative_text = next_segment["story"]
+        next_node.branch_metadata["choices"] = next_segment["choices"]
         db.session.commit()
         
         # Update missions based on choice
@@ -241,34 +352,6 @@ class GameEngine:
                 )
                 if update:
                     character_updates.extend(update)
-        
-        # Update state
-        self.state.current_node = next_node
-        self.state.active_missions = [
-            mission for mission in self.state.active_missions
-            if mission.id in [m.id for m in mission_updates]
-        ]
-        
-        # Generate next story segment using segment_maker
-        next_segment = generate_continuation(
-            previous_story=current_node.narrative_text,
-            chosen_choice=custom_choice_text or choice_id,
-            mission_info={
-                "id": next_node.id,
-                "title": next_node.narrative_text,
-                "status": "in_progress",
-                "progress_details": {}
-            },
-            context_manager=context_manager,
-            mood=story.mood,
-            narrative_style=story.narrative_style,
-            story_context=story_context
-        )
-        
-        # Update node with generated content
-        next_node.narrative_text = next_segment["story"]
-        next_node.branch_metadata["choices"] = next_segment["choices"]
-        db.session.commit()
         
         # Update state manager
         state_manager.update_state(self.state.to_dict())

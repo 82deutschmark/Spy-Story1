@@ -87,14 +87,17 @@ This document outlines all database tables in our project, their relationships, 
 **Usage**: Represents a single point in the narrative with text and choices
 **Key Fields**:
 - `id`: Primary key
+- `story_id`: Foreign key to StoryGeneration (shared story content)
 - `narrative_text`: Text content of this story node
 - `character_id`: Reference to associated character
 - `is_endpoint`: Whether this node is an endpoint
 - `parent_node_id`: Reference to parent node (self-referential)
 - `achievement_id`: Achievement unlocked at this node
-- `branch_metadata`: Additional metadata including story_id and mission_id
+- `branch_metadata`: Additional metadata including mission_id and other dynamic data
 - `generated_by_ai`: Whether this node was AI-generated
 - `created_at`: Creation timestamp
+
+**Note**: Story nodes represent shared content that any user can encounter. User-specific progress (which node a user is currently on) is tracked in the UserProgress table.
 
 ### 7. StoryChoice
 **Purpose**: Choices that connect story nodes

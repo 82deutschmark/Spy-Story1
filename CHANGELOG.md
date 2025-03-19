@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Enhanced node resolution system with priority-based logic:
+  - User's current node for story
+  - Story's latest node
+  - Root node fallback
+- Atomic state transitions with transaction management
+- Rich node context retrieval including:
+  - Parent node chains
+  - Character relationships
+  - Active missions
+  - Story metadata
+- Improved state validation and error handling
+
+### Changed
+- Refactored state management system:
+  - Enhanced GameState class with robust node resolution
+  - Added transaction management for state transitions
+  - Improved error handling and logging
+  - Better state synchronization between components
+  - Enhanced state persistence and notifications
+
+### Fixed
+- Fixed critical node resolution issues in storyboard route
+- Improved error handling in state transitions
+- Enhanced character relationship tracking
+- Fixed state persistence between story segments
+- Improved state consistency across components
+- Fixed critical database schema issue in story_node table:
+  - Properly aligned database schema with model definition
+  - Ensured story_id column exists as a proper foreign key to story_generation
+  - Maintained proper separation between shared story content and user-specific progress
+  - Verified correct relationship between StoryNode and UserProgress tables
+  - Documented table structure in schema documentation
+
 ### Changed
 - Refactored state management system
   - Moved GameState class to state_manager.py
@@ -299,3 +333,11 @@ All notable changes to the Story Creator project will be documented in this file
   - Improved error handling during initialization
   - Enhanced module initialization logic in main.js
   - Fixed critical error during application initialization
+
+### Fixed
+- Fixed character reroll and story generation functionality:
+  - Fixed macro rendering in reroll_character endpoint to properly import and use character_card macro
+  - Fixed form submission by moving story options inside the form element
+  - Ensured all required story parameters (conflict, setting, narrative_style, mood) are included in form submission
+  - Fixed story generation validation by properly organizing form fields
+  - Improved error handling and user feedback during story generation

@@ -38,6 +38,7 @@ from models import UserProgress, StoryGeneration, StoryNode, Mission
 from models.character_data import Character
 from database import db
 from utils.context_manager import OpenAIContextManager
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,77 @@ class GameState:
     def get_context_manager(self) -> OpenAIContextManager:
         """Get the OpenAIContextManager for this story."""
         return self._context_manager
+
+    def get_node_context(self, node_id: int) -> Dict[str, Any]:
+        """
+        Get additional context information for a story node.
+        
+        Args:
+            node_id (int): ID of the node to get context for
+            
+        Returns:
+            Dict[str, Any]: Dictionary containing:
+                - character_relationships: Dict of character IDs to relationship info
+                - active_missions: List of active mission details
+                - story_context: Additional story-specific context
+        """
+        try:
+            # Get the node
+            node = StoryNode.query.get(node_id)
+            if not node:
+                logger.error(f"Node {node_id} not found")
+                return {
+                    "character_relationships": {},
+                    "active_missions": [],
+                    "story_context": {}
+                }
+
+            # Get character relationships from user progress
+            character_relationships = {}
+            if self.user_progress.encountered_characters:
+                for char_id, char_info in self.user_progress.encountered_characters.items():
+                    character_relationships[char_id] = {
+                        "relationship_level": char_info.get("relationship_level", 0),
+                        "last_interaction": char_info.get("last_interaction")
+                    }
+
+            # Get active missions for this story
+            active_missions = []
+            if self.user_progress.active_missions:
+                missions = Mission.query.filter(
+                    Mission.id.in_(self.user_progress.active_missions),
+                    Mission.story_id == node.story_id
+                ).all()
+                
+                for mission in missions:
+                    active_missions.append({
+                        "id": mission.id,
+                        "title": mission.title,
+                        "description": mission.description,
+                        "status": mission.status,
+                        "progress": mission.progress,
+                        "reward_currency": mission.reward_currency,
+                        "reward_amount": mission.reward_amount
+                    })
+
+            # Get any additional context from node metadata
+            story_context = {}
+            if node.branch_metadata:
+                story_context = node.branch_metadata.get("story_context", {})
+
+            return {
+                "character_relationships": character_relationships,
+                "active_missions": active_missions,
+                "story_context": story_context
+            }
+
+        except Exception as e:
+            logger.error(f"Error getting node context: {str(e)}")
+            return {
+                "character_relationships": {},
+                "active_missions": [],
+                "story_context": {}
+            }
 
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -148,6 +220,109 @@ class GameState:
                 Mission.id.in_(self.user_progress.active_missions),
                 Mission.user_id == self.user_id
             ).all()
+
+    def resolve_current_node(self, story_id: Optional[int] = None) -> Optional[StoryNode]:
+        """
+        Resolve the current story node using a priority-based approach.
+        
+        Priority order:
+        1. User's current node for this story
+        2. Story's latest node
+        3. Root node for this story
+        
+        Args:
+            story_id (Optional[int]): Story ID to resolve node for, defaults to current story
+            
+        Returns:
+            Optional[StoryNode]: Resolved story node or None if no valid node found
+            
+        Raises:
+            ValueError: If story_id is invalid or story not found
+        """
+        try:
+            # Use provided story_id or current story
+            target_story_id = story_id or (self.current_story.id if self.current_story else None)
+            if not target_story_id:
+                logger.error("No valid story ID for node resolution")
+                return None
+                
+            # Priority 1: User's current node
+            if self.user_progress.current_node_id:
+                node = StoryNode.query.get(self.user_progress.current_node_id)
+                if node and (not story_id or node.story_id == story_id):
+                    logger.debug(f"Resolved node from user progress: {node.id}")
+                    return node
+                    
+            # Priority 2: Latest node for story
+            latest_node = StoryNode.query.filter_by(story_id=target_story_id)\
+                .order_by(StoryNode.created_at.desc())\
+                .first()
+            if latest_node:
+                logger.debug(f"Resolved latest node for story: {latest_node.id}")
+                return latest_node
+                
+            # Priority 3: Root node
+            root_node = StoryNode.query.filter_by(
+                story_id=target_story_id,
+                parent_node_id=None
+            ).first()
+            if root_node:
+                logger.debug(f"Resolved root node: {root_node.id}")
+                return root_node
+                
+            logger.error(f"No valid node found for story {target_story_id}")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error resolving current node: {str(e)}")
+            return None
+
+    def transition_to_node(self, node_id: int, update_progress: bool = True) -> bool:
+        """
+        Transition the game state to a new node atomically.
+        
+        This method ensures that all state updates related to a node transition
+        happen in a single transaction, maintaining state consistency.
+        
+        Args:
+            node_id (int): ID of the node to transition to
+            update_progress (bool): Whether to update user progress
+            
+        Returns:
+            bool: True if transition successful, False otherwise
+            
+        Raises:
+            ValueError: If node_id is invalid or node not found
+        """
+        try:
+            # Start transaction
+            with db.session.begin_nested():
+                # Get and validate node
+                new_node = StoryNode.query.get(node_id)
+                if not new_node:
+                    raise ValueError(f"Invalid node ID: {node_id}")
+                
+                # Update current node
+                self.current_node = new_node
+                
+                # Update user progress if requested
+                if update_progress:
+                    self.user_progress.current_node_id = node_id
+                    self.user_progress.last_active = datetime.utcnow()
+                    
+                    # Add to choice history if this is a new node
+                    if node_id not in self.user_progress.choice_history:
+                        self.user_progress.choice_history.append(node_id)
+                
+                # Commit transaction
+                db.session.commit()
+                
+                return True
+                
+        except Exception as e:
+            logger.error(f"Error transitioning to node {node_id}: {str(e)}")
+            db.session.rollback()
+            return False
 
 class GameStateManager:
     """
