@@ -236,7 +236,7 @@ def storyboard(story_id):
             return redirect(url_for('main.index'))
             
         # Transition to resolved node if different from current
-        if current_node.id != game_state.current_node_id:
+        if current_node.id != (game_state.current_node.id if game_state.current_node else None):
             if not game_state.transition_to_node(current_node.id):
                 logger.error(f"Failed to transition to node {current_node.id}")
                 flash("Failed to load story state.", "error")
@@ -338,192 +338,79 @@ def generate_story_route():
 def make_choice():
     """Process a story choice and generate continuation"""
     try:
-        # Get data from either form or JSON
+        # Handle both JSON and form data
         if request.is_json:
             data = request.get_json()
-            current_state = data.get('current_state', {})
+            story_id = data.get('story_id')
+            node_id = data.get('node_id')
+            choice_id = data.get('choice_id')
+            previous_choice = data.get('previous_choice')
+            story_context = data.get('story_context')
             characters = data.get('characters', [])
         else:
-            data = request.form
-            current_state = {
-                'story_id': data.get('story_id'),
-                'node_id': data.get('node_id'),
-                'story_context': data.get('story_context'),
-                'characters': data.getlist('characters[]')
-            }
-            characters = data.getlist('characters[]')
-
-        choice_id = data.get('choice_id')
-        custom_choice = data.get('custom_choice')
-        story_id = current_state.get('story_id')
-        node_id = current_state.get('node_id')
-
-        # Validate required data
-        if not story_id or not node_id:
-            raise ValueError("Missing required story or node information")
-
-        # Validate choice_id if not a custom choice
-        if not custom_choice:
-            try:
-                choice_id = int(choice_id)
-                if not choice_id:
-                    raise ValueError("Invalid choice ID")
-            except (ValueError, TypeError):
-                logger.error(f"Invalid choice_id provided: {choice_id}")
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return jsonify({'error': 'Invalid choice ID'}), 400
-                flash('Invalid choice', 'error')
-                return redirect(url_for('main.storyboard', story_id=story_id))
-
+            story_id = request.form.get('story_id')
+            node_id = request.form.get('node_id')
+            choice_id = request.form.get('choice_id')
+            previous_choice = request.form.get('previous_choice')
+            story_context = request.form.get('story_context')
+            characters = request.form.getlist('characters[]')
+        
+        # Log the received data for debugging
+        logger.debug(f"Received choice data: story_id={story_id}, node_id={node_id}, choice_id={choice_id}")
+        
+        # Validate required fields individually
+        if not story_id:
+            raise ValueError("Missing story_id")
+        if not node_id:
+            raise ValueError("Missing node_id")
+        if not choice_id:
+            raise ValueError("Missing choice_id")
+            
+        # Get story generation
+        story = StoryGeneration.query.get_or_404(story_id)
+        
         # Get user progress
         user_progress = get_or_create_user_progress()
-
-        # Handle currency requirements
-        if custom_choice:
-            currency_requirements = {'💎': 100}
-            if not user_progress.can_afford(currency_requirements):
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return jsonify({'error': 'Insufficient diamonds for custom choice'}), 400
-                flash('Insufficient diamonds for custom choice', 'error')
-                return redirect(url_for('main.storyboard', story_id=story_id))
-
-            success = user_progress.spend_currency(
-                currency_requirements,
-                'choice',
-                f'Custom choice: {custom_choice[:50]}...' if len(custom_choice) > 50 else custom_choice
-            )
-            if not success:
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return jsonify({'error': 'Failed to process currency transaction'}), 400
-                flash('Failed to process currency transaction', 'error')
-                return redirect(url_for('main.storyboard', story_id=story_id))
-        else:
-            choice = StoryChoice.query.get(choice_id)
-            if not choice:
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return jsonify({'error': 'Invalid choice'}), 400
-                flash('Invalid choice', 'error')
-                return redirect(url_for('main.storyboard', story_id=story_id))
-
-            if choice.currency_requirements and not user_progress.can_afford(choice.currency_requirements):
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return jsonify({'error': 'Insufficient funds for this choice'}), 400
-                flash('Insufficient funds for this choice', 'error')
-                return redirect(url_for('main.storyboard', story_id=story_id))
-
-            if choice.currency_requirements:
-                success = user_progress.spend_currency(
-                    choice.currency_requirements,
-                    'choice',
-                    f'Story choice: {choice.choice_text[:50]}...' if len(choice.choice_text) > 50 else choice.choice_text
-                )
-                if not success:
-                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                        return jsonify({'error': 'Failed to process currency transaction'}), 400
-                    flash('Failed to process currency transaction', 'error')
-                    return redirect(url_for('main.storyboard', story_id=story_id))
-
-        # Record the choice
-        user_progress.record_choice(
-            choice_text=custom_choice if custom_choice else choice.choice_text,
+        
+        # Initialize game engine
+        game_engine = GameEngine(user_id=user_progress.user_id)
+        
+        # Process the choice and generate continuation
+        result = game_engine.make_choice(
             choice_id=choice_id,
-            node_id=node_id,
-            story_id=story_id
+            custom_choice_text=previous_choice,
+            story_context=story_context,
+            characters=[{"id": char_id} for char_id in characters]
         )
-
-        # Award experience
-        user_progress.add_experience_points(25 if custom_choice else 10, "Made story choice")
-
-        # Get the current story node and story for context
-        current_node = StoryNode.query.get(node_id)
-        story = StoryGeneration.query.get(story_id)
-        if not current_node or not story:
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({'error': 'Story node or story not found'}), 404
-            flash('Story node or story not found', 'error')
-            return redirect(url_for('main.storyboard', story_id=story_id))
-
-        # Get mission info for the segment maker
-        mission_info = {
-            "id": node_id,
-            "title": current_node.narrative_text[:100],  # Use first 100 chars as title
-            "status": "in_progress",
-            "progress_details": current_node.branch_metadata.get('mission_progress', {}) if current_node.branch_metadata else {}
-        }
-
-        # Import and use the segment maker
-        from services.segment_maker import generate_continuation
-        from utils.context_manager import OpenAIContextManager
-
-        # Create context manager for the continuation
-        context_manager = OpenAIContextManager()
-
-        # Generate the continuation using segment_maker
-        story_data = generate_continuation(
-            previous_story=current_node.narrative_text,
-            chosen_choice=custom_choice if custom_choice else choice.choice_text,
-            mission_info=mission_info,
-            context_manager=context_manager,
-            mood=story.mood,
-            narrative_style=story.narrative_style,
-            story_context=current_state.get('story_context')
-        )
-
-        if not story_data:
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({'error': 'Failed to generate story continuation'}), 500
-            flash('Failed to generate story continuation', 'error')
-            return redirect(url_for('main.storyboard', story_id=story_id))
-
-        # Create new story node with the continuation
-        new_node = StoryNode(
-            narrative_text=story_data['story'],
-            parent_node_id=node_id,
-            generated_by_ai=True,
-            branch_metadata={
-                'story_id': story_id,
-                'choice_id': choice_id,
-                'choice_text': custom_choice if custom_choice else choice.choice_text,
-                'choices': story_data['choices'],
-                'mission_progress': story_data['mission_update'],
-                'timestamp': datetime.utcnow().isoformat()
-            }
-        )
-        db.session.add(new_node)
-
-        # Update mission progress if needed
-        if story_data['mission_update']['status'] != 'unchanged':
-            # Get active mission for this story
-            mission = Mission.query.filter_by(
-                story_id=story_id,
-                    user_id=user_progress.user_id,
-                status='in_progress'
-                ).first()
-
-            if mission:
-                update_mission_progress(
-                    mission.id,
-                    story_data['mission_update']['status'],
-                    story_data['mission_update']['progress_details']
-                )
-
-            db.session.commit()
-
-        # For AJAX requests, return success response with redirect
+        
+        # Save changes
+        db.session.commit()
+        
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({
-            'success': True,
-                'redirect': url_for('main.storyboard', story_id=story_id)
+                'success': True,
+                'redirect_url': url_for('main.storyboard', story_id=story_id)
             })
-
-        # For regular form submissions, redirect to storyboard
+        
         return redirect(url_for('main.storyboard', story_id=story_id))
-
+        
+    except ValueError as e:
+        logger.error(f"Validation error in make_choice: {str(e)}")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 400
+        flash(str(e), 'error')
+        return redirect(url_for('main.storyboard', story_id=story_id))
     except Exception as e:
         logger.error(f"Error processing choice: {str(e)}", exc_info=True)
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'error': str(e)}), 500
-        flash(str(e), 'error')
+            return jsonify({
+                'success': False,
+                'error': 'An error occurred while processing your choice'
+            }), 500
+        flash('An error occurred while processing your choice', 'error')
         return redirect(url_for('main.storyboard', story_id=story_id))
 
 @main_bp.route('/reroll_character', methods=['POST'])

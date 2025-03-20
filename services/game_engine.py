@@ -85,7 +85,10 @@ class GameEngine:
         Returns:
             Dict[str, Any]: Initial story state including:
                 - story_id: Unique identifier for the story
-                - title: Story title
+                - primary_conflict: Main conflict of the story
+                - setting: Story setting
+                - narrative_style: Style of the narrative
+                - mood: Story mood
                 - initial_node: First story node
                 - available_missions: List of available missions
         """
@@ -100,32 +103,10 @@ class GameEngine:
             
             def format_character_traits(char):
                 """Helper function to format character traits consistently"""
-                traits = char.character_traits or {}
-                
-                # If traits is a list or string, convert to expected dictionary format
-                if isinstance(traits, (list, str)):
-                    traits_list = [traits] if isinstance(traits, str) else traits
-                    return {
-                        "personality": {trait: 1 for trait in traits_list},
-                        "background": char.backstory or "",
-                        "description": char.description or ""
-                    }
-                
-                # If traits is already a dict but missing required keys, ensure they exist
-                if isinstance(traits, dict):
-                    if "personality" not in traits:
-                        traits["personality"] = {}
-                    if "background" not in traits:
-                        traits["background"] = char.backstory or ""
-                    if "description" not in traits:
-                        traits["description"] = char.description or ""
-                    return traits
-                
-                # Default empty structure if traits is None or invalid type
                 return {
-                    "personality": {},
-                    "background": char.backstory or "",
-                    "description": char.description or ""
+                    "character_traits": char.character_traits or {},
+                    "backstory": char.backstory or "",
+                    "plot_lines": char.plot_lines or []
                 }
             
             # Get selected characters
@@ -216,7 +197,10 @@ class GameEngine:
                 
                 return {
                     "story_id": story.id,
-                    "title": story_data["stories"]["title"],
+                    "primary_conflict": story.primary_conflict,
+                    "setting": story.setting,
+                    "narrative_style": story.narrative_style,
+                    "mood": story.mood,
                     "initial_node": {
                         "id": initial_node.id,
                         "narrative_text": initial_node.narrative_text,

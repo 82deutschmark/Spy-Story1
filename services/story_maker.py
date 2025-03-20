@@ -107,7 +107,7 @@ STORY_OPTIONS = {
         ("🧠", "Mind control experiment"),
     ],
     "settings": [
-        ("🗼", "Paris and Monaco"),
+        ("🗼", "Europe"),
         ("🏝️", "Private Island"),
         ("🏙️", "Dubai"),
         ("🚢", "Luxury Cruise Liner"),
@@ -117,7 +117,7 @@ STORY_OPTIONS = {
         ("🌋", "Volcanic Lair"),
     ],
     "narrative_styles": [
-        ("😎", "Bored Gen Z Teenager"),
+        ("😎", "Masterful spy thriller"),
         ("🔥", "Steamy romance novel"),
         ("🤪", "Absurdist wacky comedy"),
         ("🎭", "Surreal hallucination"),
@@ -194,64 +194,47 @@ def _build_character_prompt(character_info: Optional[Dict[str, Any]] = None) -> 
     if not character_info:
         return ""
 
-    # Extract character traits
-    traits = character_info.get("traits", {})
-    personality = traits.get("personality", {})
-    skills = traits.get("skills", {})
-    relationships = traits.get("relationships", {})
-    background = traits.get("background", {})
-    
+    # Get the exact fields from the database
+    character_traits = character_info.get("character_traits", {})
+    backstory = character_info.get("backstory", "")
+    plot_lines = character_info.get("plot_lines", [])
+
     # Build trait descriptions
-    personality_traits = []
-    for trait, value in personality.items():
-        if value > 0:
-            personality_traits.append(f"{trait} (strength: {value})")
-    
-    # Build skills descriptions
-    skill_traits = []
-    for skill, value in skills.items():
-        if value > 0:
-            skill_traits.append(f"{skill} (level: {value})")
-    
-    # Build relationship descriptions
-    relationship_traits = []
-    for char_id, rel in relationships.items():
-        if rel.get("strength", 0) > 0:
-            relationship_traits.append(f"relationship with {char_id} (strength: {rel['strength']})")
-    
-    # Build background descriptions
-    background_traits = []
-    for key, value in background.items():
-        if value:
-            background_traits.append(f"{key}: {value}")
+    trait_descriptions = []
+    if isinstance(character_traits, dict):
+        for trait, value in character_traits.items():
+            if value > 0:
+                trait_descriptions.append(f"{trait} (strength: {value})")
+    elif isinstance(character_traits, (list, str)):
+        traits_list = [character_traits] if isinstance(character_traits, str) else character_traits
+        for trait in traits_list:
+            trait_descriptions.append(str(trait))
 
     # Construct the character prompt
     character_prompt = f"""FEATURED CHARACTER:
 Name: {character_info.get('name', 'Unknown')}
 Role: {character_info.get('role', 'Unknown')}
 
-CHARACTER TRAITS:
-Personality: {', '.join(personality_traits) if personality_traits else 'Not specified'}
-Skills: {', '.join(skill_traits) if skill_traits else 'Not specified'}
-Relationships: {', '.join(relationship_traits) if relationship_traits else 'Not specified'}
-Background: {', '.join(background_traits) if background_traits else 'Not specified'}
+CHARACTER DETAILS:
+Traits: {', '.join(trait_descriptions) if trait_descriptions else 'Not specified'}
+Backstory: {backstory if backstory else 'Not specified'}
+Plot Lines: {', '.join(plot_lines) if plot_lines else 'Not specified'}
 
 CHARACTER INTEGRATION REQUIREMENTS:
-1. Make this character's personality traits manifest in their dialogue and actions with the protagonist
-2. Show their skills through specific demonstrations or references
-3. Reflect their relationships in interactions with other characters and the protagonist
-4. Reference their background when relevant to the story
-5. Ensure their traits influence their decisions and reactions
-6. Make their presence meaningful to the plot
-7. Show how their traits affect their relationship with the protagonist
-8. Use their traits to create interesting conflicts or opportunities
+1. Make this character's traits manifest in their dialogue and actions
+2. Show their backstory through their experiences and knowledge
+3. Reflect their plot lines in their motivations and actions
+4. Ensure their traits influence their decisions and reactions
+5. Make their presence meaningful to the plot
+6. Show how their traits affect their relationship with the protagonist
+7. Use their traits to create interesting conflicts or opportunities
 
 CHARACTER DIALOGUE GUIDELINES:
-1. Make their speech patterns reflect their personality traits
-2. Show their skills through their expertise in conversations
-3. Reveal their relationships through how they talk about others
-4. Let their background influence their perspective and opinions
-5. Make their dialogue choices reflect their personality values
+1. Make their speech patterns reflect their traits
+2. Show their backstory through their expertise in conversations
+3. Reveal their plot lines through their motivations and goals
+4. Let their backstory influence their perspective and opinions
+5. Make their dialogue choices reflect their values
 6. Show their emotional intelligence through social interactions
 7. Reveal their motivations through their words and actions
 8. Make their dialogue choices impact the story's direction"""
