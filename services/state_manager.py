@@ -145,32 +145,22 @@ class GameState:
             }
 
     def to_dict(self) -> Dict[str, Any]:
-        """
-        Convert the game state to a dictionary for API responses.
-        
-        Returns:
-            Dict[str, Any]: Dictionary containing:
-                - user_id: User's unique identifier
-                - current_story: Current story details if any
-                - current_node: Current story node details if any
-                - active_missions: List of active mission details
-                - user_progress: User's progress details
-        """
+        """Convert the current state to a dictionary."""
         return {
             "user_id": self.user_id,
             "current_story": {
-                "id": self.current_story.id,
-                "title": self.current_story.title,
-                "conflict": self.current_story.primary_conflict,
-                "setting": self.current_story.setting,
-                "narrative_style": self.current_story.narrative_style,
-                "mood": self.current_story.mood
+                "id": self.current_story.id if self.current_story else None,
+                "primary_conflict": self.current_story.primary_conflict if self.current_story else None,
+                "setting": self.current_story.setting if self.current_story else None,
+                "narrative_style": self.current_story.narrative_style if self.current_story else None,
+                "mood": self.current_story.mood if self.current_story else None,
+                "generated_story": self.current_story.generated_story if self.current_story else None
             } if self.current_story else None,
             "current_node": {
-                "id": self.current_node.id,
-                "narrative_text": self.current_node.narrative_text,
-                "is_endpoint": self.current_node.is_endpoint,
-                "branch_metadata": self.current_node.branch_metadata
+                "id": self.current_node.id if self.current_node else None,
+                "narrative_text": self.current_node.narrative_text if self.current_node else None,
+                "is_endpoint": self.current_node.is_endpoint if self.current_node else None,
+                "branch_metadata": self.current_node.branch_metadata if self.current_node else None
             } if self.current_node else None,
             "active_missions": [
                 {
@@ -183,17 +173,20 @@ class GameState:
                     "reward_amount": mission.reward_amount,
                     "difficulty": mission.difficulty
                 } for mission in self.active_missions
-            ],
+            ] if self.active_missions else [],
             "user_progress": {
-                "level": self.user_progress.level,
-                "experience_points": self.user_progress.experience_points,
-                "currency_balances": self.user_progress.currency_balances,
-                "active_missions": self.user_progress.active_missions,
-                "completed_missions": self.user_progress.completed_missions,
-                "failed_missions": self.user_progress.failed_missions,
-                "choice_history": self.user_progress.choice_history,
-                "encountered_characters": self.user_progress.encountered_characters
-            }
+                "user_id": self.user_progress.user_id if self.user_progress else None,
+                "current_story_id": self.user_progress.current_story_id if self.user_progress else None,
+                "current_node_id": self.user_progress.current_node_id if self.user_progress else None,
+                "level": self.user_progress.level if self.user_progress else None,
+                "experience_points": self.user_progress.experience_points if self.user_progress else None,
+                "currency_balances": self.user_progress.currency_balances if self.user_progress else None,
+                "active_missions": self.user_progress.active_missions if self.user_progress else None,
+                "completed_missions": self.user_progress.completed_missions if self.user_progress else None,
+                "failed_missions": self.user_progress.failed_missions if self.user_progress else None,
+                "choice_history": self.user_progress.choice_history if self.user_progress else None,
+                "encountered_characters": self.user_progress.encountered_characters if self.user_progress else None
+            } if self.user_progress else None
         }
 
     def _load_user_progress(self) -> UserProgress:

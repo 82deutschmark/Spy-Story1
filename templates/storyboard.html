@@ -66,12 +66,12 @@
         <!-- Story Content -->
         <div class="story-content-container">
             <div class="story-title-area">
-                <h1 class="story-title">{{ story.title }}</h1>
+                <h1 class="story-title">{{ story.primary_conflict }}</h1>
                 <p class="story-subtitle">
                     {% if story.setting %}
                         A spy thriller in {{ story.setting }}
-                    {% elif story.conflict %}
-                        {{ story.conflict }}
+                    {% elif story.primary_conflict %}
+                        {{ story.primary_conflict }}
                     {% else %}
                         International Spy Network: 2070
                     {% endif %}
@@ -80,42 +80,44 @@
 
             <div class="story-scroll-container">
                 <div class="story-content">
-                    {{ story.story | safe }}
+                    {{ node.narrative_text | safe }}
                 </div>
             </div>
 
             <!-- Choices - Moved outside story-scroll-container -->
             <div class="choices-container mt-4">
-                {% for choice in story.choices %}
-                <form method="POST" action="{{ url_for('main.make_choice') }}" class="choice-form" data-form-type="choice">
-                    <input type="hidden" name="previous_choice" value="{{ choice.text }}">
-                    <input type="hidden" name="story_context" value="{{ story.story }}">
-                    <input type="hidden" name="story_id" value="{{ story_id }}">
-                    <input type="hidden" name="node_id" value="{{ story.node_id }}">
-                    <!-- Character selection data - include all characters -->
-                    {% for image in character_images %}
-                    <input type="hidden" name="characters[]" value="{{ image.id }}">
+                {% if node.branch_metadata and node.branch_metadata.choices %}
+                    {% for choice in node.branch_metadata.choices %}
+                    <form method="POST" action="{{ url_for('main.make_choice') }}" class="choice-form" data-form-type="choice">
+                        <input type="hidden" name="previous_choice" value="{{ choice.text }}">
+                        <input type="hidden" name="story_context" value="{{ node.narrative_text }}">
+                        <input type="hidden" name="story_id" value="{{ story_id }}">
+                        <input type="hidden" name="node_id" value="{{ node.id }}">
+                        <input type="hidden" name="choice_id" value="{{ choice.id }}">
+                        <!-- Character selection data - include all characters -->
+                        {% for image in character_images %}
+                        <input type="hidden" name="characters[]" value="{{ image.id }}">
+                        {% endfor %}
+                        <!-- Include conflict/setting data from the initial story -->
+                        <input type="hidden" name="conflict" value="{{ story.primary_conflict|default('Unknown conflict') }}">
+                        <input type="hidden" name="setting" value="{{ story.setting|default('Unknown setting') }}">
+                        <input type="hidden" name="narrative_style" value="{{ story.narrative_style|default('Engaging modern style') }}">
+                        <input type="hidden" name="mood" value="{{ story.mood|default('Exciting and adventurous') }}">
+                        <button type="submit" class="choice-button" 
+                                {% if choice.currency_requirements %}data-currency-req='{{ choice.currency_requirements|tojson }}'{% endif %}
+                                data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing...">
+                            <div class="choice-text">{{ choice.text }}</div>
+                            {% if choice.currency_requirements %}
+                            <div class="currency-cost">
+                                {% for currency, amount in choice.currency_requirements.items() %}
+                                <span>{{ currency }} {{ amount }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </button>
+                    </form>
                     {% endfor %}
-                    <!-- Include conflict/setting data from the initial story -->
-                    <input type="hidden" name="conflict" value="{{ story.conflict|default('Unknown conflict') }}">
-                    <input type="hidden" name="setting" value="{{ story.setting|default('Unknown setting') }}">
-                    <input type="hidden" name="narrative_style" value="{{ story.narrative_style|default('Engaging modern style') }}">
-                    <input type="hidden" name="mood" value="{{ story.mood|default('Exciting and adventurous') }}">
-                    <input type="hidden" name="choice_id" value="{{ choice.id }}">
-                    <button type="submit" class="choice-button" 
-                            {% if choice.currency_requirements %}data-currency-req='{{ choice.currency_requirements|tojson }}'{% endif %}
-                            data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing...">
-                        <div class="choice-text">{{ choice.text }}</div>
-                        {% if choice.currency_requirements %}
-                        <div class="currency-cost">
-                            {% for currency, amount in choice.currency_requirements.items() %}
-                            <span>{{ currency }} {{ amount }}</span>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                    </button>
-                </form>
-                {% endfor %}
+                {% endif %}
             </div>
 
             <!-- Add flash messages display -->
@@ -141,5 +143,50 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle form submissions
+        document.querySelectorAll('.choice-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const button = this.querySelector('button[type="submit"]');
+                const originalText = button.innerHTML;
+                button.innerHTML = button.dataset.loadingText;
+                button.disabled = true;
+                
+                // Get form data
+                const formData = new FormData(this);
+                
+                // Submit via AJAX
+                fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Redirect to the new story node
+                        window.location.href = data.redirect_url;
+                    } else {
+                        // Show error message
+                        alert(data.error || 'An error occurred. Please try again.');
+                        button.innerHTML = originalText;
+                        button.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again.');
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                });
+            });
+        });
+    });
+    </script>
 </body>
 </html>
