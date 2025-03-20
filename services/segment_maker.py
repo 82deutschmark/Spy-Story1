@@ -57,7 +57,7 @@ PROTAGONIST INTEGRATION REQUIREMENTS:
 PROTAGONIST PERSPECTIVE GUIDELINES:
 1. Write in second person, addressing the player directly as "you"
 2. The protagonist is a user of the game, and the story is about their adventures.
-8. Create situations that challenge the protagonist's beliefs and values"""
+3. Create situations that challenge the protagonist's beliefs and values"""
     
     # Build style info
     style_info = ""
@@ -78,6 +78,22 @@ NARRATIVE STYLE GUIDELINES: You are a master narrative generator for our choose 
 9. Show character development through actions and dialogue
 10. Maintain consistent tone and style with the previous segments
 
+CRITICAL CHARACTER ROLE REQUIREMENTS:
+1. You MUST ONLY use characters that are explicitly provided to you in the character prompts
+2. NEVER invent or create new characters that aren't in the database
+3. If a character isn't provided in the prompts, they cannot appear in the story
+4. Each character has a specific role that MUST be respected:
+   - Mission-giver: MUST be the one giving the mission to the player
+   - Villain: MUST be the primary antagonist
+   - Neutral: Can be used in supporting roles
+   - Undetermined: Role is flexible but must align with traits
+5. Character roles cannot be changed or swapped
+6. No new characters can be introduced
+7. Each character's role must be maintained throughout the story
+8. Character interactions must reflect their assigned roles
+9. The mission-giver must remain the mission-giver
+10. The villain must remain the primary antagonist
+
 CHARACTER INTEGRATION GUIDELINES:
 1. Make character traits manifest in their dialogue, actions, and decisions
 2. Show how character traits influence their relationships and interactions
@@ -86,6 +102,13 @@ CHARACTER INTEGRATION GUIDELINES:
 5. Use character traits to drive plot developments and conflicts
 6. Show how character traits evolve through story events
 7. Make character relationships reflect their individual traits
+8. Each character's role must be clearly evident in their actions and dialogue
+9. Character interactions must align with their assigned roles
+10. The mission-giver must be authoritative and knowledgeable
+11. The villain must be threatening and pose a significant challenge
+12. No new characters can be introduced in story continuations
+13. All characters must maintain their assigned roles throughout the story
+14. Character interactions must reflect their established roles
 
 CHARACTER DIALOGUE GUIDELINES:
 1. Make speech patterns reflect personality traits
@@ -95,7 +118,9 @@ CHARACTER DIALOGUE GUIDELINES:
 5. Make dialogue choices reflect personality values
 6. Show emotional intelligence through social interactions
 7. Reveal motivations through words and actions
-8. Make dialogue choices impact the story's direction"""
+8. Make dialogue choices impact the story's direction
+9. Ensure dialogue reflects assigned roles
+10. Make speech patterns match role requirements"""
 
     return f"""You are a master narrative generator for our choose your own adventure game.
 You excel at continuing stories based on player choices, maintaining narrative
@@ -200,7 +225,12 @@ STORY REQUIREMENTS:
 12. Create escalating stakes and tension
 13. Ensure all character interactions reflect their traits and relationships
 14. Make dialogue choices impact the story's direction
-15. Show how the protagonist's choices affect other characters"""
+15. Show how the protagonist's choices affect other characters
+16. IMPORTANT: Only use characters that were previously introduced in the story
+17. Maintain each character's assigned role throughout the continuation
+18. Do not introduce any new characters
+19. Ensure character interactions align with their established roles
+20. Keep the mission-giver and villain roles consistent with their previous appearances"""
         
         # Add the continuation prompt
         context_manager.add_user_message(content_prompt)

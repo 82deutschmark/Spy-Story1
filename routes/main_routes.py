@@ -81,6 +81,7 @@ import json
 from flask import Blueprint, render_template, request, jsonify, url_for, redirect, flash, session, render_template_string
 import uuid
 from datetime import datetime
+from typing import List, Dict, Any
 
 from database import db
 from models import (AIInstruction, StoryGeneration, StoryNode, 
@@ -100,6 +101,9 @@ logger = logging.getLogger(__name__)
 
 # Create Blueprint
 main_bp = Blueprint('main', __name__)
+
+# Required character roles for story generation
+REQUIRED_ROLES = ['mission-giver', 'villain']
 
 def get_or_create_user_progress(protagonist_name=None):
     """Get or create user progress record for the current session. Uses protagonist_name for identification."""
@@ -128,6 +132,31 @@ def get_random_scene_background():
         logger.error(f"Error getting random scene background: {str(e)}")
         return None
 
+def get_random_characters_with_roles() -> List[Character]:
+    """Get random characters ensuring required roles are present."""
+    try:
+        # Get one random character for each required role
+        mission_giver = Character.query.filter_by(character_role='mission-giver').order_by(db.func.random()).first()
+        villain = Character.query.filter_by(character_role='villain').order_by(db.func.random()).first()
+        
+        if not mission_giver or not villain:
+            logger.error("Missing required character roles in database")
+            return []
+            
+        # Get a random neutral character if available
+        neutral_char = Character.query.filter_by(character_role='neutral').order_by(db.func.random()).first()
+        
+        # Combine characters
+        selected_characters = [mission_giver, villain]
+        if neutral_char:
+            selected_characters.append(neutral_char)
+            
+        return selected_characters
+        
+    except Exception as e:
+        logger.error(f"Error getting random characters: {str(e)}")
+        return []
+
 @main_bp.route('/')
 def index():
     """Main page showing character selection and story options"""
@@ -135,8 +164,15 @@ def index():
         story_options = get_story_options()
         background_image = get_random_scene_background()
 
-        # Get 2 random characters for selection
-        characters = Character.query.order_by(db.func.random()).limit(2).all()
+        # Get random characters with required roles
+        characters = get_random_characters_with_roles()
+        if not characters:
+            logger.error("Failed to get characters with required roles")
+            return render_template(
+                'error.html',
+                error_message="Unable to load characters. Please try again later."
+            )
+
         character_data = []
         for char in characters:
             # Ensure we're using standardized role values
@@ -292,18 +328,15 @@ def generate_story_route():
         # Get form data
         data = request.form.to_dict()
         
-        # Handle both single value and list of values for selected_images
-        selected_character_ids = request.form.getlist('selected_images')
-        if not selected_character_ids and 'selected_images' in data:
-            # If getlist() is empty but the key exists in form data, it might be a single value
-            selected_character_ids = [data['selected_images']]
-        
-        # Validate character selection
-        if not selected_character_ids or not any(selected_character_ids):
-            return jsonify({'error': 'Please select a character for your story'}), 400
+        # Get random characters with required roles
+        selected_characters = get_random_characters_with_roles()
+        if not selected_characters:
+            return jsonify({
+                'error': 'Unable to generate story: Missing required character roles'
+            }), 500
             
         # Add selected characters to form data
-        data['selected_characters'] = selected_character_ids
+        data['selected_characters'] = [char.id for char in selected_characters]
         
         # Get user progress
         user_progress = get_or_create_user_progress()

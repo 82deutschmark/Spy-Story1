@@ -96,10 +96,15 @@ class ChoiceHandler {
 
             // Create form data
             const formData = new FormData(form);
-            const jsonData = this.convertFormDataToJson(formData);
+            
+            // Ensure choice_id is present
+            const choiceId = formData.get('choice_id');
+            if (!choiceId) {
+                throw new Error('Missing choice_id');
+            }
 
-            // Add current state to request
-            jsonData.current_state = this.currentState;
+            // Convert form data to JSON
+            const jsonData = this.convertFormDataToJson(formData);
 
             // Submit the choice
             const response = await fetch(form.action, {
@@ -122,8 +127,8 @@ class ChoiceHandler {
             }
 
             // Handle successful choice
-            if (result.redirect) {
-                window.location.href = result.redirect;
+            if (result.redirect_url) {
+                window.location.href = result.redirect_url;
             } else if (result.success && result.story_id) {
                 window.location.href = `/storyboard/${result.story_id}`;
             } else {
