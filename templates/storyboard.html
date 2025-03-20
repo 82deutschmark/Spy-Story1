@@ -93,7 +93,7 @@
                         <input type="hidden" name="story_context" value="{{ node.narrative_text }}">
                         <input type="hidden" name="story_id" value="{{ story_id }}">
                         <input type="hidden" name="node_id" value="{{ node.id }}">
-                        <input type="hidden" name="choice_id" value="{{ choice.id }}">
+                        <input type="hidden" name="choice_id" value="{{ choice.id or choice.choice_id }}">
                         <!-- Character selection data - include all characters -->
                         {% for image in character_images %}
                         <input type="hidden" name="characters[]" value="{{ image.id }}">
@@ -103,7 +103,7 @@
                         <input type="hidden" name="setting" value="{{ story.setting|default('Unknown setting') }}">
                         <input type="hidden" name="narrative_style" value="{{ story.narrative_style|default('Engaging modern style') }}">
                         <input type="hidden" name="mood" value="{{ story.mood|default('Exciting and adventurous') }}">
-                        <button type="submit" class="choice-button" 
+                        <button type="submit" class="choice-btn" 
                                 {% if choice.currency_requirements %}data-currency-req='{{ choice.currency_requirements|tojson }}'{% endif %}
                                 data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing...">
                             {{ choice.text }}

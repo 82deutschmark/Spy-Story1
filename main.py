@@ -10,6 +10,8 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.pool import QueuePool
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -29,7 +31,37 @@ def create_app():
     
     # Configure the app
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///app.db')
+    
+    # Database configuration with connection pooling
+    database_url = os.environ.get('DATABASE_URL', 'sqlite:///app.db')
+    if database_url.startswith('postgresql'):
+        # Add connection pooling settings for PostgreSQL
+        engine = create_engine(
+            database_url,
+            poolclass=QueuePool,
+            pool_size=5,
+            max_overflow=10,
+            pool_timeout=30,
+            pool_recycle=1800,  # Recycle connections after 30 minutes
+            pool_pre_ping=True,  # Enable connection health checks
+            connect_args={
+                'connect_timeout': 10,
+                'keepalives': 1,
+                'keepalives_idle': 30,
+                'keepalives_interval': 10,
+                'keepalives_count': 5
+            }
+        )
+        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+            'poolclass': QueuePool,
+            'pool_size': 5,
+            'max_overflow': 10,
+            'pool_timeout': 30,
+            'pool_recycle': 1800,
+            'pool_pre_ping': True
+        }
+    
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
     # Initialize extensions

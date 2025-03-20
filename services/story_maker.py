@@ -1,26 +1,15 @@
 """
-story_maker.py - Story Generation Service
+story_maker.py - Initial Story Generation Service
 =====================================
 
 !!! IMPORTANT - READ BEFORE MODIFYING !!!
-This module is the core story generation engine that creates and manages
-interactive narratives using AI. Changes here affect the entire story experience.
-
-!!! MODEL CONFIGURATION WARNING !!!
-DO NOT MODIFY THE MODEL CONFIGURATION (model name, tokens, temperature)
-UNLESS EXPLICITLY DIRECTED TO DO SO. The current settings are:
-- model: "gpt-4o-mini"
-- max_tokens: 14000
-- temperature: 0.7
-These settings are carefully tuned for the application's needs.
+This module is the core story generation engine that creates the initial story.
 
 Key Features:
 ------------
-- Story generation using OpenAI
-- Choice generation and validation
+- Initial story generation using OpenAI
+- Choice generation
 - Character integration
-- Mission creation
-- Plot arc management
 
 Dependencies:
 -----------
@@ -34,27 +23,6 @@ Dependencies:
   * validation_utils: Input validation
   * state_manager: Game state tracking
   * character_evolution_service: Character development
-
-Story Structure:
--------------
-{
-    'title': str,
-    'story': str,
-    'choices': List[{
-        'text': str,
-        'consequence': str,
-        'currency_requirements': Dict[str, int],  # Required currency for each choice
-        'type': str
-    }],
-    'mission': {
-        'title': str,
-        'description': str,
-        'objective': str,
-        'reward': Dict[str, int],
-        'deadline': str
-    },
-    'characters': List[str]
-}
 """
 
 import os
@@ -79,29 +47,41 @@ from datetime import datetime
 from database import db
 from models import StoryGeneration, Character, PlotArc, Mission
 from utils.validation_utils import validate_story_parameters
+from utils.context_manager import OpenAIContextManager
+from utils.constants import DEFAULT_TEMPERATURE
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 def get_openai_client():
     """Get an OpenAI client with the current API key."""
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        logger.error("OpenAI API key is missing")
-        raise ValueError("OpenAI API key is required for story generation")
-    return OpenAI(api_key=api_key)
+    try:
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            logger.error("OpenAI API key is missing")
+            raise ValueError("OpenAI API key is required for story generation")
+        
+        client = OpenAI(api_key=api_key)
+        if client is None:
+            logger.error("Failed to create OpenAI client")
+            raise ValueError("Failed to create OpenAI client")
+            
+        return client
+    except Exception as e:
+        logger.error(f"Error initializing OpenAI client: {str(e)}")
+        raise
 
 # Initialize state manager
 state_manager = GameStateManager()
 
-# Story generation options
+# Initial Story generation options
 STORY_OPTIONS = {
     "conflicts": [
         ("🤵", "Double agent exposed"),
         ("💼", "Corporate espionage"),
         ("🧪", "Bioweapon heist"),
         ("💰", "Trillion-dollar ransom"),
-        ("🔍", "Assassination conspiracy"),
+        ("🔍", "Hidden conspiracy"),
         ("🕵️", "Government overthrow"),
         ("🌌", "Space station takeover"),
         ("🧠", "Mind control experiment"),
@@ -154,13 +134,13 @@ Create highly detailed, layered narratives in a {mood} tone with a {narrative_st
 
 This game is set in the high-stakes world of international espionage, luxury, and intrigue. 
 Players take on missions, develop relationships with various characters, and navigate complex scenarios 
-where betrayal, romance, and action are common themes. The game tracks character relationships, 
-currency balances, and mission progress.
+where betrayal, romance, and action are common themes. The game engine tracks character relationships, 
+story progress, and mission progress.
 
 CRITICAL CHARACTER ROLE REQUIREMENTS:
 1. You MUST ONLY use characters that are explicitly provided to you in the character prompts
-2. NEVER invent or create new characters that aren't in the database
-3. If a character isn't provided in the prompts, they cannot appear in the story
+2. NEVER invent or create new characters that are not in the database
+3. If a character is not provided in the prompts, they cannot appear in the story
 4. Each character has a specific role that MUST be respected:
    - Mission-giver: MUST be the one giving the mission to the player
    - Villain: MUST be the primary antagonist
@@ -195,14 +175,7 @@ CHARACTER INTEGRATION GUIDELINES:
 8. Each character's role must be clearly evident in their actions and dialogue
 9. Character interactions must align with their assigned roles
 10. The mission-giver must be authoritative and knowledgeable
-11. The villain must be threatening and pose a significant challenge
-
-IMPORTANT FORMATTING INSTRUCTIONS:
-1. Your response MUST be valid JSON, following exactly the structure provided.
-2. Do not include any explanation, markdown formatting, code blocks, or additional text before or after the JSON.
-3. Make sure all keys and values in the JSON are properly quoted with double quotes.
-4. Ensure all arrays and objects are correctly closed.
-5. Avoid using unescaped special characters (like " or \\) within JSON strings.""",
+11. The villain must be threatening and pose a significant challenge"""
     }
 
 
@@ -293,7 +266,7 @@ def _build_additional_characters_prompt(
             f"  Role: {char_role}\n"
             f"  Role Requirements: {role_requirements}\n"
             f"  Traits: {traits_str}\n"
-            f"  Suggested Usage: Include in a meaningful scene that showcases their personality and their interaction with the player character\n"
+            f"  Suggested Usage: Include in a meaningful choice for the player character\n"
             f"  Important: This character must maintain their assigned role and cannot be replaced or substituted\n"
         )
 
@@ -305,217 +278,85 @@ def generate_story(
     setting: str,
     narrative_style: str,
     mood: str,
-    user_id: Optional[str] = None,
     character_info: Optional[Dict[str, Any]] = None,
+    additional_characters: Optional[List[Dict[str, Any]]] = None,
+    user_id: Optional[str] = None,
     custom_conflict: Optional[str] = None,
     custom_setting: Optional[str] = None,
     custom_narrative: Optional[str] = None,
     custom_mood: Optional[str] = None,
-    additional_characters: Optional[List[Dict[str, Any]]] = None,
     protagonist_name: Optional[str] = None,
     protagonist_gender: Optional[str] = None,
     protagonist_level: Optional[int] = 1,
     story_context: Optional[str] = None,
-    previous_choice: Optional[str] = "INITIAL_STORY: Craft an opening to a grand adventure story that sets the stage for an epic narrative. Focus on establishing the world, introducing key characters, and creating a compelling hook that draws the reader into the story. The opening should be rich in detail and atmosphere, setting the tone for the adventure to come."
+    client = None
 ) -> Dict[str, Any]:
-    """Generate a story based on selected or custom parameters and character info.
+    """Generate a new story with the given parameters."""
+    context_manager = OpenAIContextManager()
     
-    Args:
-        conflict (str): Main story conflict
-        setting (str): Story setting/environment
-        narrative_style (str): Style of storytelling
-        mood (str): Story mood/tone
-        user_id (Optional[str]): User's ID for state tracking
-        character_info (Optional[Dict]): Featured character details
-        custom_conflict (Optional[str]): Custom conflict override
-        custom_setting (Optional[str]): Custom setting override
-        custom_narrative (Optional[str]): Custom narrative style
-        custom_mood (Optional[str]): Custom mood override
-        additional_characters (Optional[List]): Additional characters to include
-        protagonist_name (Optional[str]): Name of the protagonist
-        protagonist_gender (Optional[str]): Gender of the protagonist
-        protagonist_level (Optional[int]): Protagonist's current level
-        story_context (Optional[str]): Additional context for the story
-        previous_choice (Optional[str]): The previous choice made, or special value for initial story
-        
-    Returns:
-        Dict[str, Any]: Generated story data including:
-            - stories: Parsed story object for story panel
-            - story: Raw JSON string for choice buttons
-            - conflict: Final conflict used
-            - setting: Final setting used
-            - narrative_style: Final narrative style used
-            - mood: Final mood used
-    """
-    try:
-        # Get final values, using custom if provided
-        final_conflict = custom_conflict or conflict
-        final_setting = custom_setting or setting
-        final_narrative = custom_narrative or narrative_style
-        final_mood = custom_mood or mood
-
-        # Build system message
-        system_message = _build_system_message(final_mood, final_narrative)
-
-        # Build character prompts
-        character_prompt = _build_character_prompt(character_info)
-        additional_chars_prompt = _build_additional_characters_prompt(additional_characters)
-
-        # Build protagonist info with enhanced personalization
-        protagonist_info = ""
-        if protagonist_name and protagonist_gender:
-            protagonist_info = f"""PROTAGONIST DETAILS:
+    # Get final values, using custom if provided
+    final_conflict = custom_conflict or conflict
+    final_setting = custom_setting or setting
+    final_narrative = custom_narrative or narrative_style
+    final_mood = custom_mood or mood
+    
+    # Build character prompts
+    character_prompt = _build_character_prompt(character_info)
+    additional_chars_prompt = _build_additional_characters_prompt(additional_characters)
+    
+    # Build protagonist info
+    protagonist_info = ""
+    if protagonist_name and protagonist_gender:
+        protagonist_info = f"""PROTAGONIST DETAILS:
 Name: {protagonist_name}
 Gender: {protagonist_gender}
-Experience Level: {protagonist_level}
-
-PROTAGONIST INTEGRATION REQUIREMENTS:
-1. Address the protagonist directly as "you" throughout the narrative
-2. 
-5. Make the protagonist's gender influence their interactions and experiences
-6. Ensure the protagonist's name is used naturally in dialogue and descriptions
-7. Create personal stakes that resonate with the protagonist's identity
-8. Make the protagonist's choices feel meaningful and impactful
-
-PROTAGONIST PERSPECTIVE GUIDELINES:
-1. The protagonist is a user of the game, and the story is about their adventures.
-2. Create situations that challenge the protagonist's beliefs and values"""
-
-        # Build main content prompt
-        content_prompt = f"""Create a DETAILED, EXTENSIVE story segment with:
-CONFLICT: {final_conflict}
-SETTING: {final_setting}
-NARRATIVE STYLE: {final_narrative}
-MOOD: {final_mood}
-
-{protagonist_info}
-
-{f'STORY CONTEXT:\n{story_context}\n' if story_context else ''}
-
-WORLD BACKGROUND:
-This is set in the high-stakes world of international espionage, luxury, and intrigue.
-The world features advanced technology like neural implants, satellite networks, and experimental weapons.
-Many villains control vast global empires with private armies and cutting-edge technology.
-The world faces multiple crises - climate disasters, economic collapse, political instability, and shadow wars.
-
-STORY REQUIREMENTS:
-1. Create in 9500-15000 words a compelling opening that establishes the tone and setting
-2. Introduce the main conflict naturally through action or dialogue
-3. Include at least 1-3 distinct scenes 
-4. Feature dynamic character interactions and relationships
-5. Incorporate elements of espionage, luxury, and intrigue
-6. Balance action, dialogue, and atmospheric description, do not suddenly introduce a villain in this initial story
-7. End with three distinct choices that significantly impact the story:
-   - One choice should involve gunplay or action
-   - One choice should involve meeting/interacting with a specific character from the provided character list
-   - One choice should seem safe but still advance the plot
-8. Remember that this is just the introduction to a larger story with many segments and plot arcs
-9. IMPORTANT: Only use characters that are explicitly provided in the character prompts. Do not invent new characters.
-
-CHARACTER USAGE RULES:
-1. The mission-giver must be one of the characters provided in the character prompts
-2. Any villains or antagonists must be from the provided character list
-3. All supporting characters must be from the provided character list
-4. Do not create or invent any new characters
-5. If a character isn't in the provided list, they cannot appear in the story
-
-{character_prompt}
-{additional_chars_prompt}
-
-Your response MUST be valid JSON with this structure:
-{{
-    "title": "Story title",
-    "story": "Main narrative text",
-    "choices": [
-        {{
-            "text": "Choice description",
-            "consequence": "Brief outcome preview",
-            "currency_requirements": {{"💎": 10}},
-            "type": "direct/risky/social"
-        }}
-    ],
-    "mission": {{
-        "title": "Mission name",
-        "description": "Mission details",
-        "objective": "Clear goal",
-        "reward": {{"currency_type": "amount"}},
-        "deadline": "Time limit"
-    }},
-    "characters": ["List of character names featured"]
-}}"""
-
-        # Set up messages
-        messages = [
-            system_message,
-            {"role": "user", "content": content_prompt}
-        ]
-
-        # Get a fresh OpenAI client
+Experience Level: {protagonist_level}"""
+    
+    # Log the prompts being sent
+    logger.info("Story Generation Parameters:")
+    logger.info(f"Conflict: {final_conflict}")
+    logger.info(f"Setting: {final_setting}")
+    logger.info(f"Narrative Style: {final_narrative}")
+    logger.info(f"Mood: {final_mood}")
+    logger.info(f"Character Info: {json.dumps(character_info, indent=2)}")
+    logger.info(f"Additional Characters: {json.dumps(additional_characters, indent=2)}")
+    logger.info(f"Protagonist Info: {protagonist_info}")
+    
+    # Get OpenAI client if not provided
+    if client is None:
         client = get_openai_client()
-
-        # Make the OpenAI API call
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages,
-            temperature=0.7,
-            max_tokens=14000,
-            response_format={"type": "json_object"}
-        )
-
-        # Parse the response
-        content = response.choices[0].message.content.strip()
-        story_data = json.loads(content)
-
-        # Validate story data structure
-        required_fields = ['title', 'story', 'choices', 'mission', 'characters']
-        if not all(field in story_data for field in required_fields):
-            raise ValueError("Missing required fields in story data")
-
-        # Validate each choice has required fields
-        for choice in story_data.get('choices', []):
-            if not all(field in choice for field in ['text', 'consequence', 'currency_requirements', 'type']):
-                raise ValueError("Each choice must have text, consequence, currency_requirements, and type fields")
-            
-            # Add fixed currency requirement of 10 diamonds to each choice
-            choice['currency_requirements'] = {"💎": 10}
-
-        # Update character evolution if character info is provided
-        if character_info and user_id:
-            character_id = character_info.get("id")
-            if character_id:
-                # Evolve character traits based on story
-                evolve_character_traits(character_id, story_data.get("story", ""))
-
-                # Track relationships between this character and the protagonist
-                relationship_changes = {
-                    str(character_id): {
-                        "type": "story_interaction",
-                        "strength": 1
-                    }
-                }
-
-                # Update relationships
-                update_character_relationships(user_id, relationship_changes)
-
-        # Update game state if user_id provided
-        if user_id:
-            game_state = {
-                "current_story": story_data,
-                "character_info": character_info,
-            }
-            state_manager.update_state(game_state)
-
-        # Return formatted result
-        return {
-            "stories": story_data,
-            "story": content,
-            "conflict": final_conflict,
-            "setting": final_setting,
-            "narrative_style": final_narrative,
-            "mood": final_mood
-        }
-
-    except json.JSONDecodeError:
-        raise RuntimeError("Failed to generate valid story - invalid JSON response")
-    except Exception as e:
-        raise RuntimeError(f"Story generation failed: {str(e)}")
+        if client is None:
+            raise ValueError("Failed to initialize OpenAI client")
+    
+    # Generate the story
+    story_data = context_manager.generate_initial_story(
+        conflict=final_conflict,
+        setting=final_setting,
+        narrative_style=final_narrative,
+        mood=final_mood,
+        character_info=character_info,
+        client=client
+    )
+    
+    # Add unique IDs to choices if they don't have them
+    if "choices" in story_data:
+        for i, choice in enumerate(story_data["choices"]):
+            if "id" not in choice and "choice_id" not in choice:
+                choice["choice_id"] = f"choice_{i}_{datetime.utcnow().timestamp()}"
+    
+    # Log the response
+    logger.info("Generated Story Data:")
+    logger.info(json.dumps(story_data, indent=2))
+    
+    # Create a new dictionary with the original story data under "stories"
+    # and add our additional metadata at the root level
+    final_story_data = {
+        "conflict": final_conflict,
+        "setting": final_setting,
+        "narrative_style": final_narrative,
+        "mood": final_mood,
+        "stories": story_data,  # Preserve the original OpenAI response structure
+        "choices": story_data.get("choices", [])  # Also expose choices at root level for easier access
+    }
+    
+    return final_story_data

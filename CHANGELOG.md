@@ -27,6 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved error handling and logging
   - Better state synchronization between components
   - Enhanced state persistence and notifications
+- Updated story continuation system:
+  - Enhanced choice generation with proper currency requirements
+  - Improved choice formatting in branch metadata
+  - Added proper initialization of choices array in new nodes
+  - Enhanced choice ID preservation across story segments
+  - Improved choice type handling and validation
 
 ### Fixed
 - Fixed critical node resolution issues in storyboard route
@@ -34,6 +40,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced character relationship tracking
 - Fixed state persistence between story segments
 - Improved state consistency across components
+- Fixed choice button display issues:
+  - Corrected CSS class mismatch (choice-button to choice-btn)
+  - Ensured proper currency requirements in choice structure
+  - Fixed choice formatting in branch metadata
+  - Improved choice ID handling and preservation
+  - Enhanced choice validation and error handling
+- Fixed story continuation issues:
+  - Improved empty response handling from OpenAI API
+  - Enhanced response validation and error logging
+  - Fixed choice structure validation
+  - Improved mission update handling
+  - Enhanced character relationship updates
 - Fixed critical database schema issue in story_node table:
   - Properly aligned database schema with model definition
   - Ensured story_id column exists as a proper foreign key to story_generation
@@ -341,3 +359,8 @@ All notable changes to the Story Creator project will be documented in this file
   - Ensured all required story parameters (conflict, setting, narrative_style, mood) are included in form submission
   - Fixed story generation validation by properly organizing form fields
   - Improved error handling and user feedback during story generation
+
+### Fixed
+- Resolved circular reference issue in story generation by properly structuring the story data response
+- Fixed syntax error in story_maker.py by correcting docstring formatting
+- Improved story data structure to maintain OpenAI response format under "stories" key while preserving metadata at root level
