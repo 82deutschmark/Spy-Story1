@@ -146,36 +146,47 @@ CRITICAL CHARACTER ROLE REQUIREMENTS:
    - Villain: MUST be the primary antagonist
    - Neutral: Can be used in supporting roles
    - Undetermined: Role is flexible but must align with traits
-5. Character roles cannot be changed or swapped
-6. No new characters can be introduced
-7. Each character's role must be maintained throughout the story
-8. Character interactions must reflect their assigned roles
-9. The mission-giver must remain the mission-giver
-10. The villain must remain the primary antagonist
+5. The mission-giver must remain the mission-giver
+6. The villain must remain the primary antagonist
 
 NARRATIVE STYLE GUIDELINES:
-1. Create a LENGTHY, DETAILED story introduction (at least 16000-20000 words) with rich descriptions
+1. Create a LENGTHY, DETAILED story introduction (at least 16000-20000 words) with good story structure
 2. ALWAYS tell the story in second person, addressing the player directly and alluding to their name and gender in the introduction
 3. Use vivid sensory details, atmospheric descriptions, but do not reference a character's physical features or clothing
-4. Each segment should advance the plot significantly with unexpected twists or revelations
-5. Include multiple scenes within each story segment when appropriate
+4. This segment should set the stage for the story, introduce the characters, and provide a clear objective for the player
+5. The story should be a thriller with a lot of action, intrigue, and suspense
 6. Incorporate dynamic character interactions with dialogue that reveals personality
-7. Balance action, dialogue, intrigue, and character development
-8. Never repeat the same scenarios, settings, or dialogue patterns
-9. Create a sense of escalating stakes and tension throughout the narrative
+7. Balance action, dialogue, intrigue, and character development, ending with a cliffhanger with three choices
 
-CHARACTER INTEGRATION GUIDELINES:
-1. Make character traits manifest in their dialogue, actions, and decisions
-2. Show how character traits influence their relationships and interactions
-3. Ensure each character's unique traits affect their role in the story
-4. Make character traits visible through specific behaviors and choices
-5. Use character traits to drive plot developments and conflicts
-6. Make character relationships reflect their individual traits
-7. When introducing characters, ONLY use those provided in the character prompts
-8. Each character's role must be clearly evident in their actions and dialogue
-9. Character interactions must align with their assigned roles
-10. The mission-giver must be authoritative and knowledgeable
-11. The villain must be threatening and pose a significant challenge"""
+
+
+CHARACTER INTEGRATION REQUIREMENTS:
+1. This NPC MUST be used in the story according to their specified role
+2. Make this NPC's traits manifest in their dialogue and actions
+3. Show their backstory through their experiences and knowledge
+4. Reflect their plot lines in their motivations and actions
+5. Ensure their traits influence their decisions and reactions
+6. Make their presence meaningful to the plot
+7. Show how their traits affect their relationship with the player character
+8. Use their traits to create interesting conflicts or opportunities
+9. Do not modify or change this NPC's role or personality
+10. This NPC must remain consistent with their provided traits and backstory
+11. This NPC's role must be clearly evident in their actions and dialogue
+12. This NPC must maintain their assigned role throughout the story
+13. This NPC's interactions must align with their role requirements
+14. This NPC cannot be replaced or substituted with other characters
+
+CHARACTER DIALOGUE GUIDELINES:
+1. Make their speech patterns reflect their traits
+2. Show their backstory through their expertise in conversations
+3. Reveal their plot lines through their motivations and goals
+4. Let their backstory influence their perspective and opinions
+5. Make their dialogue choices reflect their values
+6. Show their emotional intelligence through social interactions
+7. Reveal their motivations through their words and actions
+8. Make their dialogue choices impact the story's direction
+9. Ensure their dialogue reflects their assigned role
+10. Make their speech patterns match their role requirements"""
     }
 
 
@@ -328,6 +339,41 @@ Experience Level: {protagonist_level}"""
         if client is None:
             raise ValueError("Failed to initialize OpenAI client")
     
+    # Build the user message that will generate the story
+    user_message = f"""Generate the first segment of the thriller story with the following parameters:
+
+CONFLICT: {final_conflict}
+SETTING: {final_setting}
+NARRATIVE STYLE: {final_narrative}
+MOOD: {final_mood}
+
+{protagonist_info}
+
+CHARACTERS THAT MUST BE USED IN THE STORY:
+{character_prompt}
+
+{additional_chars_prompt}
+
+STORY CONTEXT:
+{story_context if story_context else "No additional context provided."}
+
+IMPORTANT CHARACTER USAGE RULES:
+1. You MUST use the mission-giver character to give the initial mission, which targets one of the villain characters.
+2. The mission should have a clear objective like to steal something, kill someone, or obtain info or all three.
+3. The mission should have a deadline and a consequence for failure.
+4. The villain should not appear directly in the story until later in the game, introduce them first via other character dialogue
+5. You MUST NOT invent or create any important new characters, select from the characters provided in the character prompts and use their traits and backstory
+6. The mission-giver reluctantly agrees to give the player the mission and reminds them not to screw it up again.
+7. The villain must be well-protected and pose a significant challenge
+8. The villain is hated by the mission-giver for reasons that are business or political or ideological or personal or any combination.
+9. The villain should have a weakness that the player can exploit
+10. The villain should have a backstory that explains their motivation, but generally they are a super rich scumbag who will stop at nothing to get what they want.
+11. Do not describe the villain's physical appearance, only their role and motivation.
+12. The mission-giver is a rich person, or a high-level spy or a government agent with a lot of resources and a lot of power. They need the protagonist for a discreet job
+13. The mission-giver should already have a strained relationship with the player character, who they view as a reckless and impulsive amateur.
+14. The mission-giver is always talking about geopolitical tensions and macroeconomic trends and esoteric financial strategies in niche industries, frequently in one or two complex and convoluted sentences.
+Please generate a story that follows these requirements exactly."""
+
     # Generate the story
     story_data = context_manager.generate_initial_story(
         conflict=final_conflict,
@@ -335,7 +381,8 @@ Experience Level: {protagonist_level}"""
         narrative_style=final_narrative,
         mood=final_mood,
         character_info=character_info,
-        client=client
+        client=client,
+        user_message=user_message  # Pass the constructed user message
     )
     
     # Add unique IDs to choices if they don't have them

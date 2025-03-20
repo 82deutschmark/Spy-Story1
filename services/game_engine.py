@@ -130,7 +130,10 @@ class GameEngine:
                 'conflict': form_data.get('conflict', 'Mysterious adventure'),
                 'setting': form_data.get('setting', 'Unknown location'),
                 'narrative_style': form_data.get('narrative_style', 'Engaging modern style'),
-                'mood': form_data.get('mood', 'Exciting and adventurous')
+                'mood': form_data.get('mood', 'Exciting and adventurous'),
+                'protagonist_name': form_data.get('protagonist_name'),
+                'protagonist_gender': form_data.get('protagonist_gender'),
+                'protagonist_level': form_data.get('protagonist_level', 1)
             }
             
             # Get selected characters
@@ -172,6 +175,7 @@ class GameEngine:
                 
                 # Create story in database
                 story = StoryGeneration(
+                    user_id=self.user_id,
                     primary_conflict=story_data["conflict"],
                     setting=story_data["setting"],
                     narrative_style=story_data["narrative_style"],
@@ -193,7 +197,12 @@ class GameEngine:
                     is_endpoint=False,
                     branch_metadata={
                         "choices": story_data["choices"],  # Use choices from root level
-                        "characters": [char.id for char in selected_characters] if selected_character_ids else []
+                        "characters": [char.id for char in selected_characters] if selected_character_ids else [],
+                        "protagonist": {
+                            "name": form_data.get('protagonist_name'),
+                            "gender": form_data.get('protagonist_gender'),
+                            "level": form_data.get('protagonist_level', 1)
+                        }
                     }
                 )
                 db.session.add(initial_node)
@@ -230,7 +239,12 @@ class GameEngine:
                         "is_endpoint": initial_node.is_endpoint,
                         "branch_metadata": {
                             "choices": story_data["choices"],  # Use choices from root level
-                            "characters": [char.id for char in selected_characters] if selected_character_ids else []
+                            "characters": [char.id for char in selected_characters] if selected_character_ids else [],
+                            "protagonist": {
+                                "name": form_data.get('protagonist_name'),
+                                "gender": form_data.get('protagonist_gender'),
+                                "level": form_data.get('protagonist_level', 1)
+                            }
                         }
                     },
                     "available_missions": [
@@ -366,8 +380,8 @@ class GameEngine:
             story_context=story_context
         )
         
-        # Update node with generated content
-        next_node.narrative_text = next_segment["story"]
+        # Update node with generated content - handle nested structure
+        next_node.narrative_text = next_segment["stories"]["story"]
         
         # Update branch_metadata with new choices while preserving other metadata
         if not next_node.branch_metadata:

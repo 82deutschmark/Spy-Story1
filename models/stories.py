@@ -53,6 +53,7 @@ class StoryGeneration(db.Model):
     
     Attributes:
         id (int): Primary key
+        user_id (str): ID of the user who owns this story
         primary_conflict (str): Main conflict driving the story
         setting (str): Story's setting/location
         narrative_style (str): Writing style of the story
@@ -65,6 +66,7 @@ class StoryGeneration(db.Model):
     __tablename__ = 'story_generation'
     
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(255), nullable=False)  # Add user_id field
     primary_conflict = db.Column(db.String(255))
     setting = db.Column(db.String(255))
     narrative_style = db.Column(db.String(255))

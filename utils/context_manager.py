@@ -1,7 +1,7 @@
 import logging
 from typing import List, Dict, Any, Optional
 import json
-from utils.constants import DEFAULT_TEMPERATURE, INITIAL_STORY_TEMPERATURE
+from utils.constants import DEFAULT_TEMPERATURE, INITIAL_STORY_TEMPERATURE, MODEL_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -238,89 +238,58 @@ Your response MUST be valid JSON with this structure:
 
     def generate_initial_story(
         self,
+        user_message: str,
         conflict: str,
         setting: str,
         narrative_style: str,
         mood: str,
-        character_info: Optional[Dict[str, Any]] = None,
+        character_info: Dict[str, Any],
         client = None,
         temperature: float = INITIAL_STORY_TEMPERATURE
     ) -> Dict[str, Any]:
         """Generate the initial opening of a story.
         
-        The output will contain rich information for the game engine to parse:
-        - Characters introduced
-        - Initial mission details
-        - Story setting and atmosphere
-        - Initial choices
+        Args:
+            user_message: Critical information about the story to be generated including characters
+            conflict: The main conflict of the story
+            setting: The setting where the story takes place
+            narrative_style: The style of narrative to use
+            mood: The mood of the story
+            character_info: Required information about the NPCs in the story (mission-giver, villain, etc.)
+            client: OpenAI client instance
+            temperature: Temperature for generation
+            
+        Returns:
+            Dict containing the generated story data
         """
         # Add system message
         self.add_system_message(self._build_system_message(mood, narrative_style))
         
-        # Format character information more explicitly
-        character_prompt = ""
-        if character_info:
-            character_prompt = f"""
-CHARACTER INFORMATION:
-Name: {character_info.get('name', 'Unknown')}
-Role: {character_info.get('role', 'Unknown')}
-Role Requirements: {character_info.get('role_requirements', 'None specified')}
-
-Character Traits:
-{json.dumps(character_info.get('character_traits', {}), indent=2)}
-
-Backstory:
-{character_info.get('backstory', 'None provided')}
-
-Plot Lines:
-{json.dumps(character_info.get('plot_lines', []), indent=2)}
-
-IMPORTANT: This character MUST be used according to their specified role and traits.
-"""
-        
-        # Add story parameters
-        self.add_user_message(
-            f"Create an opening story with the following parameters:\n\n"
-            f"CONFLICT:\n{conflict}\n\n"
-            f"SETTING:\n{setting}\n\n"
-            f"CHARACTERS:\n{character_prompt}\n\n"
-            f"Please ensure the story follows all the guidelines in the system message, "
-            f"particularly regarding character roles and narrative style."
-        )
+        # Use the provided user_message which contains the detailed character information
+        self.add_user_message(user_message)
         
         # Get response
         response = self.process_function_calling(
             client=client,
-            model="gpt-4o-mini",
-            temperature=0.3
+            model=MODEL_CONFIG["model"],
+            temperature=MODEL_CONFIG["temperature"]
         )
         
         # Parse and validate the response
-        try:
-            content = response.choices[0].message.content
-            if content.startswith('```json'):
-                content = content[7:]  # Remove ```json
-            if content.endswith('```'):
-                content = content[:-3]  # Remove ```
-            content = content.strip()
-            
-            # Try to parse the JSON
-            story_data = json.loads(content)
-            
-            # Validate required fields
-            required_fields = ["story", "choices", "mission_update"]
-            for field in required_fields:
-                if field not in story_data:
-                    raise ValueError(f"Missing required field: {field}")
-            
-            return story_data
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Error parsing story data: {str(e)}")
-            raise ValueError(f"Invalid JSON response: {str(e)}")
-        except Exception as e:
-            logger.error(f"Error processing story data: {str(e)}")
-            raise
+        content = response.choices[0].message.content
+        if content.startswith('```json'):
+            content = content[7:]  # Remove ```json
+        if content.endswith('```'):
+            content = content[:-3]  # Remove ```
+        content = content.strip()
+        
+        # Parse the response
+        story_data = json.loads(content)
+        
+        # Add the response to conversation history
+        self.add_assistant_message(content)
+        
+        return story_data
 
 class GameState:
     def __init__(self, user_id: str):

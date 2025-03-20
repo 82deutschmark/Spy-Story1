@@ -14,6 +14,10 @@ from typing import Dict, Any, List, Optional
 from openai import OpenAI
 from utils.context_manager import OpenAIContextManager
 from utils.constants import MODEL_CONFIG
+from datetime import datetime
+from models.character_data import Character
+from models.base import db
+from sqlalchemy import func
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -130,6 +134,7 @@ Your response MUST be valid JSON with this structure:
     "story": "Continuation narrative text",
     "choices": [
         {{
+            "choice_id": "unique_choice_id",  # REQUIRED: Unique identifier for this choice
             "text": "Choice description",
             "consequence": "Brief outcome description",
             "type": "direct/risky/social",
@@ -162,6 +167,26 @@ def generate_continuation(
         raise ValueError("Invalid mission info structure")
 
     try:
+        # Get a random neutral character for one of the choices
+        random_character = Character.query.filter_by(
+            character_role='neutral'
+        ).order_by(func.random()).first()
+        
+        # Format character info for the prompt
+        character_choice = ""
+        if random_character:
+            character_choice = f"""
+AVAILABLE CHARACTER FOR CHOICE:
+Name: {random_character.character_name}
+Role: {random_character.character_role}
+ID: {random_character.id}
+Traits: {', '.join(random_character.character_traits) if random_character.character_traits else 'None'}
+Backstory: {random_character.backstory or 'Unknown'}
+
+This character MUST be used in one of the choices as "Ask {random_character.character_name} for help" or similar.
+The choice should make sense given their traits and backstory.
+"""
+        
         # Create or use existing context manager
         if not context_manager:
             context_manager = OpenAIContextManager()
@@ -186,38 +211,37 @@ Title: {mission_info.get('title', 'Unknown')}
 Objective: {mission_info.get('objective', 'Unknown')}
 Current Status: {mission_info.get('status', 'In Progress')}
 
+{character_choice}
+
 {f'STORY CONTEXT:\n{story_context}\n' if story_context else ''}
 
 STORY REQUIREMENTS:
-1. Create a compelling continuation that builds upon the player's choice
+1. Create a compelling continuation of 5000-15000 words that builds upon the player's choice
 2. Show immediate consequences of their decision
 3. Advance the mission in some way (progress, setback, or complication)
-4. Introduce at least one new story element (character, setting, or plot thread)
-5. Create three distinct choices for how to proceed:
+4. Create three distinct choices for how to proceed:
    - One that advances the mission directly
    - One that takes a risky approach, involving gunplay or car chases
-   - One that involves introducing a new character from the database
-6. Maintain narrative consistency with previous events
-7. Include rich descriptions of guns and cars and atmospheric details, but not of characters or their look or clothing
-8. Show character development through actions and dialogue
-9. Create unexpected twists or revelations
-10. Balance action, dialogue, and intrigue
-11. Avoid repeating previous scenarios or story beats
-12. Create escalating stakes and tension
-13. Ensure all character interactions reflect their traits and relationships
-14. Make dialogue choices impact the story's direction
-15. Show how the protagonist's choices affect other characters
-16. IMPORTANT: Only use characters that were previously introduced in the story
-17. Maintain each character's assigned role throughout the continuation
-18. Do not introduce any new characters
-19. Ensure character interactions align with their established roles
-20. Keep the mission-giver and villain roles consistent with their previous appearances
+   - One that involves asking {random_character.character_name if random_character else 'a previously introduced character'} for help
+5. Maintain narrative consistency with previous events
+6. Include rich descriptions of guns and cars and atmospheric details, but not of characters or their look or clothing
+7. Show character development through actions and dialogue
+8. Create unexpected twists or revelations
+9. Balance action, dialogue, and intrigue
+10. Avoid repeating previous scenarios or story beats
+11. Create escalating stakes and tension
+12. Ensure all character interactions reflect their traits and relationships
+13. Make dialogue choices impact the story's direction
+14. Show how the protagonist's choices affect other characters
+15. 
+19. Keep the mission-giver and villain roles consistent with their previous appearances
 
 Your response MUST be valid JSON with this structure:
 {{
     "story": "Continuation narrative text",
     "choices": [
         {{
+            "choice_id": "unique_choice_id",  # REQUIRED: Unique identifier for this choice
             "text": "Choice description",
             "consequence": "Brief outcome description",
             "type": "direct/risky/social",
@@ -270,10 +294,10 @@ Your response MUST be valid JSON with this structure:
                 logger.error("Invalid or empty choices in story data")
                 raise ValueError("Invalid or empty choices in story data")
                 
-            # Add IDs to choices if not present
+            # Add choice_ids if not present
             for i, choice in enumerate(story_data['choices']):
-                if 'id' not in choice:
-                    choice['id'] = f"choice_{i}"
+                if 'choice_id' not in choice:
+                    choice['choice_id'] = f"choice_{i}_{datetime.utcnow().timestamp()}"
                 
             # Validate mission update
             if not isinstance(story_data['mission_update'], dict) or \
@@ -282,7 +306,13 @@ Your response MUST be valid JSON with this structure:
                 logger.error("Invalid mission update structure")
                 raise ValueError("Invalid mission update structure")
             
-            return story_data
+            # Create final story data structure matching story_maker.py
+            final_story_data = {
+                "stories": story_data,
+                "choices": story_data.get("choices", [])
+            }
+            
+            return final_story_data
             
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse story response: {e}")

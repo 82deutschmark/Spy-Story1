@@ -128,6 +128,7 @@
                               method="POST">
                             <input type="hidden" name="protagonist_name" id="protagonistNameInput">
                             <input type="hidden" name="protagonist_gender" id="protagonistGenderInput">
+                            <input type="hidden" name="protagonist_level" id="protagonistLevelInput" value="1">
                             <div class="character-grid">
                                 {% for character in images %}
                                     {{ character_card(character, loop.index0) }}
@@ -233,6 +234,22 @@
         
         document.getElementById('protagonistGender').addEventListener('change', function(e) {
             document.getElementById('protagonistGenderInput').value = e.target.value;
+        });
+
+        // Form validation
+        document.getElementById('character-selection-form').addEventListener('submit', function(e) {
+            const name = document.getElementById('protagonistNameInput').value;
+            const gender = document.getElementById('protagonistGenderInput').value;
+            const errorDiv = document.querySelector('.error-message');
+
+            if (!name || !gender) {
+                e.preventDefault();
+                errorDiv.textContent = 'Please enter both agent codename and gender.';
+                errorDiv.style.display = 'block';
+                return false;
+            }
+            errorDiv.style.display = 'none';
+            return true;
         });
     </script>
 </body>
