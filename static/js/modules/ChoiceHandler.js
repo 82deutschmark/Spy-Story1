@@ -94,17 +94,33 @@ class ChoiceHandler {
                 submitButton.dataset.loadingText || 'Processing your choice...'
             );
 
-            // Create form data
+            // Get form data
             const formData = new FormData(form);
             
-            // Ensure choice_id is present
-            const choiceId = formData.get('choice_id');
-            if (!choiceId) {
+            // Log form data for debugging
+            console.log('Form data:', Object.fromEntries(formData.entries()));
+
+            // Create JSON data
+            const jsonData = {
+                story_id: formData.get('story_id'),
+                node_id: formData.get('node_id'),
+                choice_id: formData.get('choice_id'),
+                previous_choice: formData.get('previous_choice'),
+                story_context: formData.get('story_context'),
+                characters: formData.getAll('characters[]'),
+                conflict: formData.get('conflict'),
+                setting: formData.get('setting'),
+                narrative_style: formData.get('narrative_style'),
+                mood: formData.get('mood')
+            };
+
+            // Validate required fields
+            if (!jsonData.choice_id) {
                 throw new Error('Missing choice_id');
             }
 
-            // Convert form data to JSON
-            const jsonData = this.convertFormDataToJson(formData);
+            // Log JSON data for debugging
+            console.log('JSON data:', jsonData);
 
             // Submit the choice
             const response = await fetch(form.action, {
@@ -153,27 +169,6 @@ class ChoiceHandler {
                 window.location.href = error.response.redirect;
             }
         }
-    }
-
-    /**
-     * Convert FormData to JSON
-     * @param {FormData} formData - The form data to convert
-     * @returns {Object} The JSON data
-     */
-    convertFormDataToJson(formData) {
-        const jsonData = {};
-        for (const [key, value] of formData.entries()) {
-            if (key.endsWith('[]')) {
-                const baseKey = key.slice(0, -2);
-                if (!jsonData[baseKey]) {
-                    jsonData[baseKey] = [];
-                }
-                jsonData[baseKey].push(value);
-            } else {
-                jsonData[key] = value;
-            }
-        }
-        return jsonData;
     }
 }
 

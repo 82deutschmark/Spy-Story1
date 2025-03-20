@@ -216,7 +216,7 @@ def storyboard(story_id):
     try:
         # Get story and initialize game state
         story = StoryGeneration.query.get_or_404(story_id)
-        story_data = json.loads(story.generated_story)
+        story_data = story.generated_story  # PostgreSQL automatically converts JSONB to dict
         user_progress = get_or_create_user_progress()
         game_state = GameState(user_progress.user_id)
 
@@ -264,29 +264,39 @@ def storyboard(story_id):
                         'traits': character.character_traits
                     })
 
-        # Resolve current node using priority-based resolution
-        current_node = game_state.resolve_current_node(story_id)
+        # Get current node and ensure it has choices
+        current_node = game_state.resolve_current_node()
         if not current_node:
-            logger.error(f"Could not resolve node for story {story_id}")
-            flash("Could not find a valid story node.", "error")
-            return redirect(url_for('main.index'))
+            flash('Error: Could not resolve current story node', 'error')
+            return redirect(url_for('main.dashboard'))
             
-        # Transition to resolved node if different from current
-        if current_node.id != (game_state.current_node.id if game_state.current_node else None):
-            if not game_state.transition_to_node(current_node.id):
-                logger.error(f"Failed to transition to node {current_node.id}")
-                flash("Failed to load story state.", "error")
-                return redirect(url_for('main.index'))
-
-        # Get node context for additional state information
-        node_context = game_state.get_node_context(current_node.id)
-        
-        # Update character relationships from node context
-        for char_id, char_info in node_context["character_relationships"].items():
+        # Ensure node has branch_metadata with required fields
+        if not current_node.branch_metadata:
+            current_node.branch_metadata = {
+                "choices": [],
+                "timestamp": datetime.utcnow().isoformat(),
+                "character_relationships": {},
+                "active_missions": []
+            }
+            db.session.commit()
+        else:
+            # Ensure all required fields exist
+            if "choices" not in current_node.branch_metadata:
+                current_node.branch_metadata["choices"] = []
+            if "character_relationships" not in current_node.branch_metadata:
+                current_node.branch_metadata["character_relationships"] = {}
+            if "active_missions" not in current_node.branch_metadata:
+                current_node.branch_metadata["active_missions"] = []
+            if "timestamp" not in current_node.branch_metadata:
+                current_node.branch_metadata["timestamp"] = datetime.utcnow().isoformat()
+            db.session.commit()
+            
+        # Update character relationships
+        for char_id, char_info in current_node.branch_metadata.get("character_relationships", {}).items():
             for i, char in enumerate(character_images):
                 if str(char['id']) == char_id:
                     character_images[i].update({
-                        'relationship_level': char_info['relationship_level']
+                        'relationship_level': char_info.get('relationship_level', 0)
                     })
 
         # Prepare story progress data for the template
@@ -295,7 +305,7 @@ def storyboard(story_id):
             'current_node_id': current_node.id,
             'completed_plot_arcs': user_progress.completed_plot_arcs or [],
             'choice_history': user_progress.choice_history or [],
-            'active_missions': node_context["active_missions"]
+            'active_missions': current_node.branch_metadata.get("active_missions", [])
         }
 
         # Commit the transaction after all database operations are successful

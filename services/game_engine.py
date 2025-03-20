@@ -36,7 +36,7 @@ from datetime import datetime
 from models import UserProgress, StoryGeneration, StoryNode, Mission
 from models.character_data import Character
 from database import db
-from services.story_maker import generate_story
+from services.story_maker import generate_story, get_openai_client
 from services.segment_maker import generate_continuation
 from services.mission_generator import (
     generate_mission,
@@ -49,6 +49,7 @@ from services.mission_generator import (
 from services.character_interaction import CharacterInteractionService
 from services.state_manager import GameState, state_manager
 from utils.context_manager import OpenAIContextManager
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +156,14 @@ class GameEngine:
                         ]
             
             try:
+                # Get OpenAI client
+                client = get_openai_client()
+                if client is None:
+                    raise ValueError("Failed to initialize OpenAI client")
+                
+                # Add client to story parameters
+                story_params['client'] = client
+                
                 # Generate new story using story_maker
                 story_data = generate_story(**story_params)
                 
@@ -167,7 +176,7 @@ class GameEngine:
                     setting=story_data["setting"],
                     narrative_style=story_data["narrative_style"],
                     mood=story_data["mood"],
-                    generated_story=story_data["story"]
+                    generated_story=story_data  # Store data directly, let PostgreSQL handle JSONB conversion
                 )
                 db.session.add(story)
                 
@@ -180,10 +189,10 @@ class GameEngine:
                 # Create initial story node
                 initial_node = StoryNode(
                     story_id=story.id,
-                    narrative_text=story_data["stories"]["story"],
+                    narrative_text=story_data["stories"]["story"],  # Access story from nested structure
                     is_endpoint=False,
                     branch_metadata={
-                        "choices": story_data["stories"]["choices"],
+                        "choices": story_data["choices"],  # Use choices from root level
                         "characters": [char.id for char in selected_characters] if selected_character_ids else []
                     }
                 )
@@ -219,7 +228,10 @@ class GameEngine:
                         "id": initial_node.id,
                         "narrative_text": initial_node.narrative_text,
                         "is_endpoint": initial_node.is_endpoint,
-                        "branch_metadata": initial_node.branch_metadata
+                        "branch_metadata": {
+                            "choices": story_data["choices"],  # Use choices from root level
+                            "characters": [char.id for char in selected_characters] if selected_character_ids else []
+                        }
                     },
                     "available_missions": [
                         {
@@ -285,9 +297,17 @@ class GameEngine:
         # Find next node based on choice
         next_node = StoryNode.query.filter_by(
             story_id=story.id,
-            parent_id=current_node.id,
+            parent_node_id=current_node.id,
             branch_id=choice_id
         ).first()
+        
+        # If no node found with branch_id, try choice_id
+        if not next_node:
+            next_node = StoryNode.query.filter_by(
+                story_id=story.id,
+                parent_node_id=current_node.id,
+                choice_id=choice_id
+            ).first()
         
         # If no predefined node found and custom choice provided, create new node
         if not next_node and custom_choice_text:
@@ -298,11 +318,23 @@ class GameEngine:
                 generated_by_ai=True,
                 branch_metadata={
                     "choice_id": choice_id,
+                    "branch_id": choice_id,  # Set both for consistency
                     "choice_text": custom_choice_text,
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "choices": []  # Initialize empty choices array
                 }
             )
             db.session.add(next_node)
+            db.session.commit()
+        elif next_node and not next_node.branch_metadata:
+            # Ensure existing node has branch_metadata
+            next_node.branch_metadata = {
+                "choice_id": choice_id,
+                "branch_id": choice_id,
+                "choice_text": custom_choice_text or choice_id,
+                "timestamp": datetime.utcnow().isoformat(),
+                "choices": []
+            }
             db.session.commit()
         
         if not next_node:
@@ -315,11 +347,19 @@ class GameEngine:
         # Get node context for story continuation
         node_context = self.state.get_node_context(next_node.id)
         
+        # Safely get mission info, using a default empty mission if none exists
+        active_missions = node_context.get("active_missions", [])
+        mission_info = active_missions[0] if active_missions else {
+            "title": "Unknown Mission",
+            "objective": "Continue the story",
+            "status": "in_progress"
+        }
+        
         # Generate next story segment using segment_maker
         next_segment = generate_continuation(
             previous_story=current_node.narrative_text,
             chosen_choice=custom_choice_text or choice_id,
-            mission_info=node_context.get("active_missions", [{}])[0],
+            mission_info=mission_info,
             context_manager=context_manager,
             mood=story.mood,
             narrative_style=story.narrative_style,
@@ -328,8 +368,13 @@ class GameEngine:
         
         # Update node with generated content
         next_node.narrative_text = next_segment["story"]
+        
+        # Update branch_metadata with new choices while preserving other metadata
+        if not next_node.branch_metadata:
+            next_node.branch_metadata = {}
         next_node.branch_metadata["choices"] = next_segment["choices"]
-        db.session.commit()
+        next_node.branch_metadata["timestamp"] = datetime.utcnow().isoformat()
+        db.session.commit()  # Ensure changes are persisted
         
         # Update missions based on choice
         mission_updates = []
@@ -340,16 +385,14 @@ class GameEngine:
         # Update character relationships
         character_updates = []
         if characters:
-            for character in characters:
-                update = self.character_service.update_relationships(
-                    self.user_id,
-                    story.id,
-                    current_node.id,
-                    next_node.id,
-                    character_id=character.get('id')
-                )
-                if update:
-                    character_updates.extend(update)
+            updates = self.character_service.update_relationships(
+                self.user_id,
+                story.id,
+                current_node.id,
+                next_node.id
+            )
+            if updates:
+                character_updates.extend(updates)
         
         # Update state manager
         state_manager.update_state(self.state.to_dict())
@@ -361,14 +404,7 @@ class GameEngine:
                 "is_endpoint": next_node.is_endpoint,
                 "branch_metadata": next_node.branch_metadata
             },
-            "available_choices": [
-                {
-                    "id": choice.get("id", choice.get("text", "")),
-                    "text": choice.get("text", ""),
-                    "cost": choice.get("currency_requirements", {}),
-                    "requirements": choice.get("requirements", {})
-                } for choice in next_segment.get("choices", [])
-            ],
+            "available_choices": next_segment["choices"],
             "mission_updates": [
                 {
                     "id": mission.id,

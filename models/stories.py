@@ -98,6 +98,8 @@ class StoryNode(db.Model):
         achievement_id (int): Associated achievement if any
         branch_metadata (JSONB): Additional branch-specific data
         parent_node_id (int): Reference to parent node
+        branch_id (str): Unique identifier for this story branch
+        choice_id (str): Identifier for the choice that led to this node
         character (relationship): Associated character
         achievement (relationship): Associated achievement
         parent_node (relationship): Parent node in story tree
@@ -117,6 +119,8 @@ class StoryNode(db.Model):
     achievement_id = db.Column(db.Integer, db.ForeignKey('achievement.id'))
     branch_metadata = db.Column(JSONB)  # Store branch-specific metadata
     parent_node_id = db.Column(db.Integer, db.ForeignKey('story_node.id'))
+    branch_id = db.Column(db.String(255))  # Unique identifier for this story branch
+    choice_id = db.Column(db.String(255))  # Identifier for the choice that led to this node
 
     # Relationships
     character = db.relationship('Character')

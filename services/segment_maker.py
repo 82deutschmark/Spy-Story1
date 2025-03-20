@@ -10,19 +10,13 @@ coherent story continuations based on player choices.
 import os
 import json
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 from openai import OpenAI
 from utils.context_manager import OpenAIContextManager
+from utils.constants import MODEL_CONFIG
 
 # Initialize logger
 logger = logging.getLogger(__name__)
-
-# Model configuration
-MODEL_CONFIG = {
-    "model": "gpt-4o-mini",
-    "temperature": 0.7,
-    "max_tokens": 14000
-}
 
 def get_openai_client():
     """Get an OpenAI client with the current API key."""
@@ -126,6 +120,7 @@ CHARACTER DIALOGUE GUIDELINES:
 You excel at continuing stories based on player choices, maintaining narrative
 consistency while introducing fresh developments and unexpected twists.
 
+
 {protagonist_info}
 
 {style_info}
@@ -137,7 +132,11 @@ Your response MUST be valid JSON with this structure:
         {{
             "text": "Choice description",
             "consequence": "Brief outcome description",
-            "type": "direct/risky/social"
+            "type": "direct/risky/social",
+            "currency_requirements": {{
+                "💎": 10
+            }},
+            "requirements": {{}}
         }}
     ],
     "mission_update": {{
@@ -154,30 +153,10 @@ def generate_continuation(
     mood: Optional[str] = None,
     narrative_style: Optional[str] = None,
     protagonist_name: Optional[str] = None,
-    protagonist_gender: Optional[str] = None
+    protagonist_gender: Optional[str] = None,
+    story_context: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Generate a story continuation based on the player's choice.
-    
-    Args:
-        previous_story: The previous story segment's text
-        chosen_choice: The choice text that the player selected
-        mission_info: Current mission details
-        context_manager: Optional existing context manager for conversation history
-        mood: Optional mood to maintain consistent tone
-        narrative_style: Optional narrative style to maintain consistent voice
-        protagonist_name: Optional name of the protagonist for consistent reference
-        protagonist_gender: Optional gender of the protagonist for proper pronouns
-        
-    Returns:
-        Dict containing the continuation story data:
-        - story: Main narrative text
-        - choices: List of next choices
-        - mission_update: Mission progression details
-        
-    Raises:
-        ValueError: If mission_info is invalid
-        RuntimeError: If story generation fails
-    """
+    """Generate a story continuation based on the player's choice."""
     # Validate mission info
     if not validate_mission_info(mission_info):
         raise ValueError("Invalid mission info structure")
@@ -207,6 +186,8 @@ Title: {mission_info.get('title', 'Unknown')}
 Objective: {mission_info.get('objective', 'Unknown')}
 Current Status: {mission_info.get('status', 'In Progress')}
 
+{f'STORY CONTEXT:\n{story_context}\n' if story_context else ''}
+
 STORY REQUIREMENTS:
 1. Create a compelling continuation that builds upon the player's choice
 2. Show immediate consequences of their decision
@@ -230,7 +211,27 @@ STORY REQUIREMENTS:
 17. Maintain each character's assigned role throughout the continuation
 18. Do not introduce any new characters
 19. Ensure character interactions align with their established roles
-20. Keep the mission-giver and villain roles consistent with their previous appearances"""
+20. Keep the mission-giver and villain roles consistent with their previous appearances
+
+Your response MUST be valid JSON with this structure:
+{{
+    "story": "Continuation narrative text",
+    "choices": [
+        {{
+            "text": "Choice description",
+            "consequence": "Brief outcome description",
+            "type": "direct/risky/social",
+            "currency_requirements": {{
+                "💎": 10
+            }},
+            "requirements": {{}}
+        }}
+    ],
+    "mission_update": {{
+        "status": "unchanged/progressed/completed/failed",
+        "progress_details": "How the mission has advanced"
+    }}
+}}"""
         
         # Add the continuation prompt
         context_manager.add_user_message(content_prompt)
@@ -242,10 +243,17 @@ STORY REQUIREMENTS:
         response = context_manager.process_function_calling(
             client=client,
             model=MODEL_CONFIG["model"],
-            temperature=MODEL_CONFIG["temperature"],
-            max_tokens=MODEL_CONFIG["max_tokens"]
+            temperature=MODEL_CONFIG["temperature"]
         )
         
+        # Validate response content
+        if not response.choices or not response.choices[0].message.content:
+            logger.error("Received empty response from OpenAI API")
+            raise RuntimeError("Failed to generate story continuation - empty response")
+            
+        # Log the raw response for debugging
+        logger.debug(f"Raw OpenAI response: {response.choices[0].message.content}")
+            
         # Parse and validate the response
         try:
             story_data = json.loads(response.choices[0].message.content)
@@ -253,22 +261,32 @@ STORY REQUIREMENTS:
             # Validate required fields
             required_fields = ['story', 'choices', 'mission_update']
             if not all(field in story_data for field in required_fields):
-                raise ValueError("Missing required fields in story data")
+                missing_fields = [field for field in required_fields if field not in story_data]
+                logger.error(f"Missing required fields in story data: {missing_fields}")
+                raise ValueError(f"Missing required fields in story data: {missing_fields}")
                 
             # Validate choices structure
             if not isinstance(story_data['choices'], list) or not story_data['choices']:
+                logger.error("Invalid or empty choices in story data")
                 raise ValueError("Invalid or empty choices in story data")
+                
+            # Add IDs to choices if not present
+            for i, choice in enumerate(story_data['choices']):
+                if 'id' not in choice:
+                    choice['id'] = f"choice_{i}"
                 
             # Validate mission update
             if not isinstance(story_data['mission_update'], dict) or \
                'status' not in story_data['mission_update'] or \
                'progress_details' not in story_data['mission_update']:
+                logger.error("Invalid mission update structure")
                 raise ValueError("Invalid mission update structure")
             
             return story_data
             
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse story response: {e}")
+            logger.error(f"Raw response content: {response.choices[0].message.content}")
             raise RuntimeError("Failed to generate valid story continuation")
             
     except Exception as e:
