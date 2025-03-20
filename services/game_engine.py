@@ -75,6 +75,37 @@ class GameEngine:
         self.state = GameState(user_id)
         self.character_service = CharacterInteractionService()
 
+    def format_character_data(self, character: Character) -> Dict[str, Any]:
+        """
+        Format character data with proper role information and NPC marking.
+        
+        Args:
+            character (Character): The character to format
+            
+        Returns:
+            Dict[str, Any]: Formatted character data with role information
+        """
+        # Get standardized role value
+        role = character.character_role or 'neutral'
+        if role.lower() not in ['villain', 'neutral', 'mission-giver', 'undetermined']:
+            role = 'neutral'
+            
+        return {
+            "character_traits": character.character_traits or {},
+            "backstory": character.backstory or "",
+            "plot_lines": character.plot_lines or [],
+            "role": role,
+            "is_npc": True,  # Explicitly mark as NPC
+            "id": character.id,
+            "name": character.character_name,
+            "role_requirements": {
+                "mission-giver": "This NPC MUST be the one giving the mission to the player character. They should be authoritative and knowledgeable about the mission details.",
+                "villain": "This NPC MUST be the primary antagonist or villain of the story. They should be threatening and pose a significant challenge to the player character.",
+                "neutral": "This NPC can be used in any supporting role, but their actions should align with their traits and backstory.",
+                "undetermined": "This NPC's role is flexible, but they must be used in a way that makes sense given their traits and backstory."
+            }.get(role, "This NPC should be used in a way that makes sense given their traits and backstory.")
+        }
+
     def start_new_story(self, form_data=None) -> Dict[str, Any]:
         """
         Start a new story for the user.
@@ -101,14 +132,6 @@ class GameEngine:
                 'mood': form_data.get('mood', 'Exciting and adventurous')
             }
             
-            def format_character_traits(char):
-                """Helper function to format character traits consistently"""
-                return {
-                    "character_traits": char.character_traits or {},
-                    "backstory": char.backstory or "",
-                    "plot_lines": char.plot_lines or []
-                }
-            
             # Get selected characters
             selected_character_ids = form_data.get('selected_characters', [])
             if selected_character_ids:
@@ -121,22 +144,13 @@ class GameEngine:
                     # Use the first character as the main character_info
                     main_character = selected_characters[0]
                     
-                    story_params['character_info'] = {
-                        'id': main_character.id,
-                        'name': main_character.character_name,
-                        'traits': format_character_traits(main_character),
-                        'role': main_character.character_role
-                    }
+                    # Format the main character info with proper role handling
+                    story_params['character_info'] = self.format_character_data(main_character)
                     
                     # Add any additional characters to additional_characters
                     if len(selected_characters) > 1:
                         story_params['additional_characters'] = [
-                            {
-                                'id': char.id,
-                                'name': char.character_name,
-                                'traits': format_character_traits(char),
-                                'role': char.character_role
-                            }
+                            self.format_character_data(char)
                             for char in selected_characters[1:]
                         ]
             

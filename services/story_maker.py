@@ -157,28 +157,45 @@ Players take on missions, develop relationships with various characters, and nav
 where betrayal, romance, and action are common themes. The game tracks character relationships, 
 currency balances, and mission progress.
 
+CRITICAL CHARACTER ROLE REQUIREMENTS:
+1. You MUST ONLY use characters that are explicitly provided to you in the character prompts
+2. NEVER invent or create new characters that aren't in the database
+3. If a character isn't provided in the prompts, they cannot appear in the story
+4. Each character has a specific role that MUST be respected:
+   - Mission-giver: MUST be the one giving the mission to the player
+   - Villain: MUST be the primary antagonist
+   - Neutral: Can be used in supporting roles
+   - Undetermined: Role is flexible but must align with traits
+5. Character roles cannot be changed or swapped
+6. No new characters can be introduced
+7. Each character's role must be maintained throughout the story
+8. Character interactions must reflect their assigned roles
+9. The mission-giver must remain the mission-giver
+10. The villain must remain the primary antagonist
+
 NARRATIVE STYLE GUIDELINES:
 1. Create a LENGTHY, DETAILED story introduction (at least 16000-20000 words) with rich descriptions
 2. ALWAYS tell the story in second person, addressing the player directly and alluding to their name and gender in the introduction
-
-2. Use vivid sensory details, atmospheric descriptions, but do not reference a character's physical features or clothing
-
-3. Each segment should advance the plot significantly with unexpected twists or revelations
-4. Include multiple scenes within each story segment when appropriate
-5. Incorporate dynamic character interactions with dialogue that reveals personality
-6. Balance action, dialogue, intrigue, and character development
-7. Never repeat the same scenarios, settings, or dialogue patterns
-8. Create a sense of escalating stakes and tension throughout the narrative
+3. Use vivid sensory details, atmospheric descriptions, but do not reference a character's physical features or clothing
+4. Each segment should advance the plot significantly with unexpected twists or revelations
+5. Include multiple scenes within each story segment when appropriate
+6. Incorporate dynamic character interactions with dialogue that reveals personality
+7. Balance action, dialogue, intrigue, and character development
+8. Never repeat the same scenarios, settings, or dialogue patterns
+9. Create a sense of escalating stakes and tension throughout the narrative
 
 CHARACTER INTEGRATION GUIDELINES:
-1. Characters from the database are featured in the story.
-2. Make character traits manifest in their dialogue, actions, and decisions
-3. Show how character traits influence their relationships and interactions
-4. Ensure each character's unique traits affect their role in the story
-5. Make character traits visible through specific behaviors and choices
-6. Use character traits to drive plot developments and conflicts
-7
-8. Make character relationships reflect their individual traits
+1. Make character traits manifest in their dialogue, actions, and decisions
+2. Show how character traits influence their relationships and interactions
+3. Ensure each character's unique traits affect their role in the story
+4. Make character traits visible through specific behaviors and choices
+5. Use character traits to drive plot developments and conflicts
+6. Make character relationships reflect their individual traits
+7. When introducing characters, ONLY use those provided in the character prompts
+8. Each character's role must be clearly evident in their actions and dialogue
+9. Character interactions must align with their assigned roles
+10. The mission-giver must be authoritative and knowledgeable
+11. The villain must be threatening and pose a significant challenge
 
 IMPORTANT FORMATTING INSTRUCTIONS:
 1. Your response MUST be valid JSON, following exactly the structure provided.
@@ -198,6 +215,8 @@ def _build_character_prompt(character_info: Optional[Dict[str, Any]] = None) -> 
     character_traits = character_info.get("character_traits", {})
     backstory = character_info.get("backstory", "")
     plot_lines = character_info.get("plot_lines", [])
+    role = character_info.get("role", "Unknown")
+    role_requirements = character_info.get("role_requirements", "")
 
     # Build trait descriptions
     trait_descriptions = []
@@ -210,10 +229,10 @@ def _build_character_prompt(character_info: Optional[Dict[str, Any]] = None) -> 
         for trait in traits_list:
             trait_descriptions.append(str(trait))
 
-    # Construct the character prompt
-    character_prompt = f"""FEATURED CHARACTER:
+    character_prompt = f"""FEATURED NPC CHARACTER:
 Name: {character_info.get('name', 'Unknown')}
-Role: {character_info.get('role', 'Unknown')}
+Role: {role}
+Role Requirements: {role_requirements}
 
 CHARACTER DETAILS:
 Traits: {', '.join(trait_descriptions) if trait_descriptions else 'Not specified'}
@@ -221,13 +240,20 @@ Backstory: {backstory if backstory else 'Not specified'}
 Plot Lines: {', '.join(plot_lines) if plot_lines else 'Not specified'}
 
 CHARACTER INTEGRATION REQUIREMENTS:
-1. Make this character's traits manifest in their dialogue and actions
-2. Show their backstory through their experiences and knowledge
-3. Reflect their plot lines in their motivations and actions
-4. Ensure their traits influence their decisions and reactions
-5. Make their presence meaningful to the plot
-6. Show how their traits affect their relationship with the protagonist
-7. Use their traits to create interesting conflicts or opportunities
+1. This NPC MUST be used in the story according to their specified role
+2. Make this NPC's traits manifest in their dialogue and actions
+3. Show their backstory through their experiences and knowledge
+4. Reflect their plot lines in their motivations and actions
+5. Ensure their traits influence their decisions and reactions
+6. Make their presence meaningful to the plot
+7. Show how their traits affect their relationship with the player character
+8. Use their traits to create interesting conflicts or opportunities
+9. Do not modify or change this NPC's role or personality
+10. This NPC must remain consistent with their provided traits and backstory
+11. This NPC's role must be clearly evident in their actions and dialogue
+12. This NPC must maintain their assigned role throughout the story
+13. This NPC's interactions must align with their role requirements
+14. This NPC cannot be replaced or substituted with other characters
 
 CHARACTER DIALOGUE GUIDELINES:
 1. Make their speech patterns reflect their traits
@@ -237,7 +263,9 @@ CHARACTER DIALOGUE GUIDELINES:
 5. Make their dialogue choices reflect their values
 6. Show their emotional intelligence through social interactions
 7. Reveal their motivations through their words and actions
-8. Make their dialogue choices impact the story's direction"""
+8. Make their dialogue choices impact the story's direction
+9. Ensure their dialogue reflects their assigned role
+10. Make their speech patterns match their role requirements"""
 
     return character_prompt
 
@@ -249,7 +277,7 @@ def _build_additional_characters_prompt(
     if not additional_characters:
         return ""
 
-    prompt = "\nSECONDARY CHARACTERS - INCORPORATE AT LEAST ONE INTO THE NARRATIVE:\n"
+    prompt = "\nSECONDARY NPC CHARACTERS - INCORPORATE AT LEAST ONE INTO THE NARRATIVE:\n"
     for char in additional_characters:
         char_traits = extract_character_traits(char)
         if isinstance(char_traits, str):
@@ -257,13 +285,16 @@ def _build_additional_characters_prompt(
 
         char_name = extract_character_name(char)
         char_role = extract_character_role(char)
+        role_requirements = char.get("role_requirements", "")
         traits_str = ", ".join(char_traits) if char_traits else "No specified traits"
 
         prompt += (
             f"- Name: {char_name}\n"
             f"  Role: {char_role}\n"
+            f"  Role Requirements: {role_requirements}\n"
             f"  Traits: {traits_str}\n"
-            f"  Suggested Usage: Include in a meaningful scene that showcases their personality\n"
+            f"  Suggested Usage: Include in a meaningful scene that showcases their personality and their interaction with the player character\n"
+            f"  Important: This character must maintain their assigned role and cannot be replaced or substituted\n"
         )
 
     return prompt
@@ -374,8 +405,19 @@ STORY REQUIREMENTS:
 4. Feature dynamic character interactions and relationships
 5. Incorporate elements of espionage, luxury, and intrigue
 6. Balance action, dialogue, and atmospheric description, do not suddenly introduce a villain in this initial story
-7. End with three distinct choices that significantly impact the story, one of them should involve gunplay, another should involve a new character from the database, and the third should seem safe.
-8. Remember that this is just the introduction to a larger story with many segments and plot arcs.
+7. End with three distinct choices that significantly impact the story:
+   - One choice should involve gunplay or action
+   - One choice should involve meeting/interacting with a specific character from the provided character list
+   - One choice should seem safe but still advance the plot
+8. Remember that this is just the introduction to a larger story with many segments and plot arcs
+9. IMPORTANT: Only use characters that are explicitly provided in the character prompts. Do not invent new characters.
+
+CHARACTER USAGE RULES:
+1. The mission-giver must be one of the characters provided in the character prompts
+2. Any villains or antagonists must be from the provided character list
+3. All supporting characters must be from the provided character list
+4. Do not create or invent any new characters
+5. If a character isn't in the provided list, they cannot appear in the story
 
 {character_prompt}
 {additional_chars_prompt}
