@@ -31,6 +31,7 @@ import logging
 import re
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
+import json
 
 from models import Mission, UserProgress, StoryGeneration
 from models.scene_images import SceneImages
@@ -231,10 +232,11 @@ def generate_mission(user_id: str, story_id: Optional[int] = None) -> Optional[M
         if story_id:
             story = StoryGeneration.query.get(story_id)
             if story and story.generated_story:
-                # Try to parse the JSON story content
+                # Try to parse the story content - handle both string and dict
                 try:
-                    import json
-                    story_data = json.loads(story.generated_story)
+                    story_data = story.generated_story
+                    if isinstance(story_data, str):
+                        story_data = json.loads(story_data)
                     
                     # If the story has a mission field, use that directly
                     if 'mission' in story_data and story_data['mission'] and story_data['mission'].get('title'):
@@ -245,7 +247,7 @@ def generate_mission(user_id: str, story_id: Optional[int] = None) -> Optional[M
                         target_id = None
                         
                         # If giver_id is provided directly
-                        if mission_data.get('giver_id') and mission_data.get('giver_id').isdigit():
+                        if mission_data.get('giver_id') and str(mission_data['giver_id']).isdigit():
                             giver_id = int(mission_data['giver_id'])
                         # Otherwise try to find by name
                         elif mission_data.get('giver'):
@@ -257,7 +259,7 @@ def generate_mission(user_id: str, story_id: Optional[int] = None) -> Optional[M
                                 giver_id = giver.id
                         
                         # If target_id is provided directly  
-                        if mission_data.get('target_id') and mission_data.get('target_id').isdigit():
+                        if mission_data.get('target_id') and str(mission_data['target_id']).isdigit():
                             target_id = int(mission_data['target_id'])
                         # Otherwise try to find by name
                         elif mission_data.get('target'):
@@ -306,12 +308,22 @@ def generate_mission(user_id: str, story_id: Optional[int] = None) -> Optional[M
                 except Exception as e:
                     logger.error(f"Error parsing story data: {str(e)}")
                     # If JSON parsing fails, try to use the raw story text
-                    return create_mission_from_story(user_id, story.generated_story, story_id)
+                    if isinstance(story.generated_story, str):
+                        return create_mission_from_story(user_id, story.generated_story, story_id)
+                    elif isinstance(story.generated_story, dict):
+                        story_text = story.generated_story.get('story', '')
+                        if story_text:
+                            return create_mission_from_story(user_id, story_text, story_id)
             
         # If we didn't create a mission from story, fall back to getting a recent story
         recent_story = StoryGeneration.query.filter_by(user_id=user_id).order_by(StoryGeneration.created_at.desc()).first()
         if recent_story and recent_story.generated_story:
-            return create_mission_from_story(user_id, recent_story.generated_story, recent_story.id)
+            if isinstance(recent_story.generated_story, str):
+                return create_mission_from_story(user_id, recent_story.generated_story, recent_story.id)
+            elif isinstance(recent_story.generated_story, dict):
+                story_text = recent_story.generated_story.get('story', '')
+                if story_text:
+                    return create_mission_from_story(user_id, story_text, recent_story.id)
             
         # If we still don't have a mission, log that we couldn't generate one
         logger.warning(f"Could not generate mission for user {user_id}")

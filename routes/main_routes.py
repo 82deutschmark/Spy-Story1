@@ -248,7 +248,10 @@ def storyboard(story_id):
 
         # Get all characters mentioned in the story
         mentioned_characters = []
-        if 'characters' in story_data and isinstance(story_data['characters'], list):
+        # Handle both nested and flat story structures
+        if 'stories' in story_data and 'characters' in story_data['stories']:
+            mentioned_characters = story_data['stories']['characters']
+        elif 'characters' in story_data:
             mentioned_characters = story_data['characters']
 
         # Add any missing characters from the mentioned list
@@ -308,12 +311,20 @@ def storyboard(story_id):
             'active_missions': current_node.branch_metadata.get("active_missions", [])
         }
 
+        # Prepare story data for template - handle both nested and flat structures
+        template_story_data = story_data
+        if 'stories' in story_data:
+            template_story_data = story_data['stories']
+            # Ensure choices are available at root level
+            if 'choices' not in template_story_data and 'choices' in story_data:
+                template_story_data['choices'] = story_data['choices']
+
         # Commit the transaction after all database operations are successful
         db.session.commit()
 
         return render_template(
             'storyboard.html',
-            story=story_data,
+            story=template_story_data,
             story_id=story_id,
             node=current_node,
             character_images=character_images,
