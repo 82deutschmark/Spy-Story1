@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="1200" height="800" viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg" version="1.1">
+  <defs>
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f2027" />
+      <stop offset="50%" stop-color="#203a43" />
+      <stop offset="100%" stop-color="#2c5364" />
+    </linearGradient>
+    <filter id="noise" x="0%" y="0%" width="100%" height="100%">
+      <feTurbulence baseFrequency="0.01" numOctaves="3" seed="0" />
+      <feComponentTransfer>
+        <feFuncR type="linear" slope="0.1" intercept="0" />
+        <feFuncG type="linear" slope="0.1" intercept="0" />
+        <feFuncB type="linear" slope="0.1" intercept="0" />
+      </feComponentTransfer>
+      <feBlend in="SourceGraphic" mode="overlay" />
+    </filter>
+    <clipPath id="rect-clip">
+      <rect width="1200" height="800" />
+    </clipPath>
+  </defs>
+  
+  <!-- Base Background -->
+  <rect width="1200" height="800" fill="url(#bg-gradient)" />
+  
+  <!-- Subtle Noise Effect -->
+  <rect width="1200" height="800" fill="transparent" filter="url(#noise)" />
+  
+  <!-- Decorative Elements -->
+  <g opacity="0.05">
+    <!-- World Map Silhouette -->
+    <path d="M200,200 Q400,150 500,300 T900,400 Q1000,350 1100,450" 
+          stroke="#ffffff" stroke-width="5" fill="none" />
+    
+    <!-- Circuit-like patterns -->
+    <g>
+      <circle cx="300" cy="200" r="80" fill="none" stroke="#ffffff" stroke-width="1" />
+      <circle cx="300" cy="200" r="40" fill="none" stroke="#ffffff" stroke-width="1" />
+      <line x1="220" y1="200" x2="270" y2="200" stroke="#ffffff" stroke-width="1" />
+      <line x1="330" y1="200" x2="380" y2="200" stroke="#ffffff" stroke-width="1" />
+      <line x1="300" y1="120" x2="300" y2="170" stroke="#ffffff" stroke-width="1" />
+      <line x1="300" y1="230" x2="300" y2="280" stroke="#ffffff" stroke-width="1" />
+    </g>
+    
+    <g>
+      <circle cx="900" cy="600" r="80" fill="none" stroke="#ffffff" stroke-width="1" />
+      <circle cx="900" cy="600" r="40" fill="none" stroke="#ffffff" stroke-width="1" />
+      <line x1="820" y1="600" x2="870" y2="600" stroke="#ffffff" stroke-width="1" />
+      <line x1="930" y1="600" x2="980" y2="600" stroke="#ffffff" stroke-width="1" />
+      <line x1="900" y1="520" x2="900" y2="570" stroke="#ffffff" stroke-width="1" />
+      <line x1="900" y1="630" x2="900" y2="680" stroke="#ffffff" stroke-width="1" />
+    </g>
+    
+    <!-- Grid Pattern -->
+    <g>
+      <path d="M 50 50 h 1100 m -1100 100 h 1100 m -1100 100 h 1100 m -1100 100 h 1100 m -1100 100 h 1100 m -1100 100 h 1100 m -1100 100 h 1100 m -1100 100 h 1100" 
+            stroke="#ffffff" stroke-width="0.5" stroke-dasharray="5,20" />
+      <path d="M 50 50 v 700 m 100 -700 v 700 m 100 -700 v 700 m 100 -700 v 700 m 100 -700 v 700 m 100 -700 v 700 m 100 -700 v 700 m 100 -700 v 700 m 100 -700 v 700 m 100 -700 v 700 m 100 -700 v 700 m 100 -700 v 700" 
+            stroke="#ffffff" stroke-width="0.5" stroke-dasharray="5,20" />
+    </g>
+    
+    <!-- Spy-themed Elements -->
+    <g>
+      <!-- Compass -->
+      <circle cx="1000" cy="200" r="50" fill="none" stroke="#ffffff" stroke-width="1" />
+      <circle cx="1000" cy="200" r="5" fill="#ffffff" />
+      <line x1="1000" y1="150" x2="1000" y2="250" stroke="#ffffff" stroke-width="1" />
+      <line x1="950" y1="200" x2="1050" y2="200" stroke="#ffffff" stroke-width="1" />
+      <path d="M1000,160 L1010,190 L1000,180 L990,190 Z" fill="#ffffff" />
+    </g>
+    
+    <!-- Abstract Dots -->
+    <g>
+      <circle cx="100" cy="300" r="3" fill="#ffffff" />
+      <circle cx="130" cy="320" r="2" fill="#ffffff" />
+      <circle cx="150" cy="290" r="4" fill="#ffffff" />
+      <circle cx="170" cy="330" r="2" fill="#ffffff" />
+      <circle cx="120" cy="350" r="3" fill="#ffffff" />
+      
+      <circle cx="700" cy="100" r="3" fill="#ffffff" />
+      <circle cx="730" cy="120" r="2" fill="#ffffff" />
+      <circle cx="750" cy="90" r="4" fill="#ffffff" />
+      <circle cx="770" cy="130" r="2" fill="#ffffff" />
+      <circle cx="720" cy="150" r="3" fill="#ffffff" />
+      
+      <circle cx="500" cy="700" r="3" fill="#ffffff" />
+      <circle cx="530" cy="720" r="2" fill="#ffffff" />
+      <circle cx="550" cy="690" r="4" fill="#ffffff" />
+      <circle cx="570" cy="730" r="2" fill="#ffffff" />
+      <circle cx="520" cy="750" r="3" fill="#ffffff" />
+    </g>
+  </g>
+</svg>

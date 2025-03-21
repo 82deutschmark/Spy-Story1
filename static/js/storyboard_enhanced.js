@@ -9,409 +9,406 @@
  * without adding bloat to main.js
  */
 
-import CharacterMentions from '/static/js/modules/CharacterMentions.js';
-import ChoiceHandler from '/static/js/modules/ChoiceHandler.js';
-
 class StoryboardEnhanced {
     constructor() {
-        // References to existing modules
-        this.characterMentions = null;
-        this.choiceHandler = null;
+        // Configuration
+        this.config = {
+            characterToggleSelector: '.character-panel-toggle',
+            characterPanelSelector: '.character-panel',
+            characterCardSelector: '.character-card',
+            characterMentionSelector: '.character-mention',
+            storyContentSelector: '.story-content',
+            choicesContainerSelector: '.choices-container',
+            choiceButtonSelector: '.choice-btn',
+            toastContainerSelector: '.toast-container',
+            characterHighlightClass: 'highlighted'
+        };
         
-        // DOM elements
-        this.storyContent = null;
-        this.characterGallery = null;
-        this.charactersGrid = null;
-        this.galleryToggle = null;
+        // State
+        this.state = {
+            isCharacterPanelExpanded: false,
+            highlightedCharacter: null,
+            lastScrollPosition: 0,
+            isScrolling: false
+        };
         
-        // Bind methods to this
-        this.handleGalleryToggle = this.handleGalleryToggle.bind(this);
-        this.handleCharacterPortraitClick = this.handleCharacterPortraitClick.bind(this);
-        this.highlightCharactersInText = this.highlightCharactersInText.bind(this);
-        this.fadeInChoices = this.fadeInChoices.bind(this);
-        this.setupParallaxEffect = this.setupParallaxEffect.bind(this);
-        this.setupScrollHighlighting = this.setupScrollHighlighting.bind(this);
+        // Initialize
+        this.initialize();
     }
-
+    
     /**
      * Initialize the enhanced storyboard
      */
     initialize() {
-        // Initialize existing modules if available
-        if (typeof CharacterMentions === 'function') {
-            this.characterMentions = new CharacterMentions();
-            this.characterMentions.initialize();
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Initializing enhanced storyboard experience');
+            
+            // Set up event listeners
+            this.setupEventListeners();
+            
+            // Initialize features
+            this.highlightCharactersInText();
+            this.fadeInChoices();
+            this.setupParallaxEffect();
+            this.setupScrollHighlighting();
+            this.setupAccessibility();
+            
+            console.log('Enhanced storyboard initialized');
+        });
+    }
+    
+    /**
+     * Set up all event listeners
+     */
+    setupEventListeners() {
+        // Character gallery toggle on mobile
+        const toggleBtn = document.querySelector(this.config.characterToggleSelector);
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', this.handleGalleryToggle.bind(this));
         }
         
-        if (typeof ChoiceHandler === 'function') {
-            this.choiceHandler = new ChoiceHandler();
-            this.choiceHandler.initialize();
-        }
-        
-        // Get DOM elements
-        this.storyContent = document.getElementById('story-content-text');
-        this.characterGallery = document.querySelector('.character-gallery');
-        this.charactersGrid = document.querySelector('.character-portraits-grid');
-        this.galleryToggle = document.querySelector('.btn-collapse-gallery');
-        
-        if (this.galleryToggle && this.characterGallery) {
-            this.galleryToggle.addEventListener('click', this.handleGalleryToggle);
-        }
-        
-        // Setup character portrait clicks
-        const portraits = document.querySelectorAll('.character-portrait-item');
-        portraits.forEach(portrait => {
-            portrait.addEventListener('click', this.handleCharacterPortraitClick);
+        // Character portrait click
+        const characterCards = document.querySelectorAll(this.config.characterCardSelector);
+        characterCards.forEach(card => {
+            card.addEventListener('click', this.handleCharacterPortraitClick.bind(this));
         });
         
-        // Setup enhanced functionality
-        this.setupParallaxEffect();
-        this.setupScrollHighlighting();
-        this.highlightCharactersInText();
-        this.fadeInChoices();
-        this.setupAccessibility();
-        
-        // Scroll story content to bottom if it contains new content
-        if (this.storyContent) {
-            const scrollContainer = document.querySelector('.story-scroll-container');
-            if (scrollContainer) {
-                scrollContainer.scrollTop = 0; // Start at the top for new story segments
+        // Character mention clicks
+        document.addEventListener('click', (event) => {
+            if (event.target.classList.contains('character-mention')) {
+                this.handleCharacterMentionClick(event);
             }
-        }
+        });
     }
-
+    
     /**
      * Toggle character gallery on mobile
      */
     handleGalleryToggle(event) {
-        const header = event.currentTarget.closest('.gallery-header');
-        if (header) {
-            header.classList.toggle('active');
-            
-            // Toggle icon
-            const icon = this.galleryToggle.querySelector('i');
-            if (icon) {
-                if (header.classList.contains('active')) {
-                    icon.classList.remove('fa-chevron-down');
-                    icon.classList.add('fa-chevron-up');
-                } else {
-                    icon.classList.remove('fa-chevron-up');
-                    icon.classList.add('fa-chevron-down');
-                }
+        const panel = document.querySelector(this.config.characterPanelSelector);
+        panel.classList.toggle('expanded');
+        this.state.isCharacterPanelExpanded = panel.classList.contains('expanded');
+        
+        // Update toggle button icon
+        const icon = event.currentTarget.querySelector('i');
+        if (icon) {
+            if (this.state.isCharacterPanelExpanded) {
+                icon.className = 'fas fa-chevron-up';
+            } else {
+                icon.className = 'fas fa-chevron-down';
             }
         }
+        
+        // Show feedback
+        const message = this.state.isCharacterPanelExpanded ? 
+            'Character gallery expanded' : 'Character gallery collapsed';
+        this.showFeedbackToast(message);
     }
-
+    
     /**
      * Handle clicks on character portraits
      */
     handleCharacterPortraitClick(event) {
-        const portrait = event.currentTarget;
-        const characterName = portrait.dataset.characterName;
+        // Find the character card element
+        const card = event.currentTarget.closest(this.config.characterCardSelector);
+        if (!card) return;
         
-        // Remove highlight from all portraits
-        document.querySelectorAll('.character-portrait-item').forEach(p => {
-            p.classList.remove('highlighted');
+        // Get character name
+        const nameElement = card.querySelector('.character-name');
+        const characterName = nameElement ? nameElement.textContent : null;
+        
+        if (!characterName) return;
+        
+        // Highlight character card
+        this.highlightCharacter(card);
+        
+        // Highlight character mentions in text
+        this.highlightMentionsInText(characterName);
+        
+        // Show feedback
+        this.showFeedbackToast(`Highlighted character: ${characterName}`);
+    }
+    
+    /**
+     * Handle clicks on character mentions in story text
+     */
+    handleCharacterMentionClick(event) {
+        const mention = event.target;
+        const characterName = mention.textContent.trim();
+        
+        // Find matching character card
+        const characterCards = document.querySelectorAll(this.config.characterCardSelector);
+        characterCards.forEach(card => {
+            const nameElement = card.querySelector('.character-name');
+            if (nameElement && nameElement.textContent.trim() === characterName) {
+                // Highlight character card
+                this.highlightCharacter(card);
+                
+                // Scroll to character card if not visible
+                card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
         });
         
-        // Add highlight to clicked portrait
-        portrait.classList.add('highlighted');
-        
-        // Find and highlight character mentions in text
-        if (this.storyContent && characterName) {
-            // Convert dataset format (kebab-case) to regular name format with spaces
-            const displayName = characterName.replace(/-/g, ' ')
-                                            .replace(/\b\w/g, l => l.toUpperCase());
-            
-            // Find mentions in text
-            const mentions = this.storyContent.querySelectorAll('.character-mention');
-            let foundMention = false;
-            
-            mentions.forEach(mention => {
-                if (mention.textContent.trim() === displayName) {
-                    // Scroll to the mention
-                    mention.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    
-                    // Add highlight animation
-                    mention.classList.add('highlight-pulse');
-                    setTimeout(() => {
-                        mention.classList.remove('highlight-pulse');
-                    }, 2000);
-                    
-                    foundMention = true;
-                }
-            });
-            
-            // If character not found in text, show a small feedback toast
-            if (!foundMention) {
-                this.showFeedbackToast(`${displayName} doesn't appear in this part of the story.`);
-            }
-        }
+        // Highlight all mentions of this character in text
+        this.highlightMentionsInText(characterName);
     }
-
+    
+    /**
+     * Highlight a character card and remove highlight from others
+     */
+    highlightCharacter(cardElement) {
+        // Remove highlight from all cards
+        const allCards = document.querySelectorAll(this.config.characterCardSelector);
+        allCards.forEach(card => {
+            card.classList.remove(this.config.characterHighlightClass);
+        });
+        
+        // Add highlight to selected card
+        cardElement.classList.add(this.config.characterHighlightClass);
+        
+        // Update state
+        this.state.highlightedCharacter = cardElement.querySelector('.character-name').textContent;
+    }
+    
+    /**
+     * Highlight all mentions of a character in the story text
+     */
+    highlightMentionsInText(characterName) {
+        const mentions = document.querySelectorAll(this.config.characterMentionSelector);
+        mentions.forEach(mention => {
+            if (mention.textContent.trim() === characterName) {
+                mention.classList.add(this.config.characterHighlightClass);
+            } else {
+                mention.classList.remove(this.config.characterHighlightClass);
+            }
+        });
+    }
+    
     /**
      * Show a small feedback toast message
      */
     showFeedbackToast(message, duration = 3000) {
-        // Create toast container if it doesn't exist
-        let toastContainer = document.querySelector('.feedback-toast-container');
+        // Find or create toast container
+        let toastContainer = document.querySelector(this.config.toastContainerSelector);
         if (!toastContainer) {
             toastContainer = document.createElement('div');
-            toastContainer.className = 'feedback-toast-container';
+            toastContainer.className = 'toast-container';
             document.body.appendChild(toastContainer);
-            
-            // Add styles if not already in CSS
-            const style = document.createElement('style');
-            style.textContent = `
-                .feedback-toast-container {
-                    position: fixed;
-                    bottom: 20px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    z-index: 9999;
-                }
-                .feedback-toast {
-                    background: rgba(0, 0, 0, 0.7);
-                    color: white;
-                    padding: 10px 20px;
-                    border-radius: 20px;
-                    margin-top: 10px;
-                    font-size: 14px;
-                    opacity: 0;
-                    transform: translateY(20px);
-                    transition: all 0.3s ease;
-                }
-                .feedback-toast.visible {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            `;
-            document.head.appendChild(style);
         }
         
-        // Create and show the toast
+        // Create toast element
         const toast = document.createElement('div');
-        toast.className = 'feedback-toast';
-        toast.textContent = message;
+        toast.className = 'toast fade-in';
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'polite');
+        
+        // Add toast content
+        toast.innerHTML = `
+            <div class="toast-body">
+                ${message}
+            </div>
+        `;
+        
+        // Add to container
         toastContainer.appendChild(toast);
         
-        // Trigger animation
+        // Auto remove after duration
         setTimeout(() => {
-            toast.classList.add('visible');
-        }, 10);
-        
-        // Remove after duration
-        setTimeout(() => {
-            toast.classList.remove('visible');
+            toast.style.opacity = '0';
             setTimeout(() => {
                 toast.remove();
             }, 300);
         }, duration);
     }
-
+    
     /**
      * Process text nodes to highlight character names
      */
     highlightCharactersInText() {
-        // If CharacterMentions is already handling this, we don't need to duplicate
-        if (this.characterMentions) return;
+        const storyContent = document.querySelector(this.config.storyContentSelector);
+        if (!storyContent) return;
         
-        // Only proceed if we have both story content and character portraits
-        if (!this.storyContent || !this.charactersGrid) return;
+        // Get all character names
+        const characterNames = Array.from(
+            document.querySelectorAll(`${this.config.characterCardSelector} .character-name`)
+        ).map(element => element.textContent.trim());
         
-        // Get all character names from portrait items
-        const characters = Array.from(document.querySelectorAll('.character-portrait-item')).map(portrait => ({
-            name: portrait.querySelector('.portrait-name').textContent.trim(),
-            id: portrait.dataset.characterName,
-            element: portrait,
-            image: portrait.querySelector('.character-portrait-img').src
-        }));
+        // Sort by length (longest first) to ensure proper matching
+        characterNames.sort((a, b) => b.length - a.length);
         
-        // Sort by name length (longest first) to avoid partial matches
-        characters.sort((a, b) => b.name.length - a.name.length);
+        // Process all text nodes
+        const treeWalker = document.createTreeWalker(
+            storyContent,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+        );
         
-        // Create a temporary container to process the HTML
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(this.storyContent.innerHTML, 'text/html');
+        const nodesToProcess = [];
+        let currentNode;
         
-        // Process text nodes to add highlighting
-        function processNode(node) {
-            if (node.nodeType === Node.TEXT_NODE) {
-                let text = node.textContent;
-                let lastIndex = 0;
-                let fragments = [];
-                
-                characters.forEach(character => {
-                    const regex = new RegExp(`\\b${character.name}\\b`, 'g');
-                    let match;
-                    
-                    while ((match = regex.exec(text)) !== null) {
-                        // Add text before match
-                        if (match.index > lastIndex) {
-                            fragments.push(text.substring(lastIndex, match.index));
-                        }
-                        
-                        // Add highlighted character name
-                        fragments.push(`<span class="character-mention" data-character="${character.id}">${match[0]}<span class="character-tooltip"><img src="${character.image}" alt="${match[0]}"><div>${match[0]}</div></span></span>`);
-                        
-                        lastIndex = regex.lastIndex;
-                    }
-                });
-                
-                // Add remaining text
-                if (lastIndex < text.length) {
-                    fragments.push(text.substring(lastIndex));
-                }
-                
-                if (fragments.length > 1) {
-                    const span = document.createElement('span');
-                    span.innerHTML = fragments.join('');
-                    node.parentNode.replaceChild(span, node);
-                }
-            } else {
-                // Skip processing existing character mentions
-                if (node.classList && node.classList.contains('character-mention')) {
-                    return;
-                }
-                
-                // Process child nodes
-                Array.from(node.childNodes).forEach(child => processNode(child));
-            }
+        // Collect nodes first to avoid modification during traversal
+        while (currentNode = treeWalker.nextNode()) {
+            nodesToProcess.push(currentNode);
         }
         
-        // Process the document
-        processNode(doc.body);
+        // Process each node
+        nodesToProcess.forEach(node => {
+            processNode(node);
+        });
         
-        // Update the story content
-        this.storyContent.innerHTML = doc.body.innerHTML;
-        
-        // Add click handlers to mentions
-        this.storyContent.querySelectorAll('.character-mention').forEach(mention => {
-            mention.addEventListener('click', event => {
-                const characterId = event.currentTarget.dataset.character;
-                const targetPortrait = document.querySelector(`.character-portrait-item[data-character-name="${characterId}"]`);
-                
-                // Remove highlight from all portraits
-                document.querySelectorAll('.character-portrait-item').forEach(p => {
-                    p.classList.remove('highlighted');
-                });
-                
-                // Highlight target portrait
-                if (targetPortrait) {
-                    targetPortrait.classList.add('highlighted');
-                    targetPortrait.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                    
-                    // Remove highlight after delay
-                    setTimeout(() => {
-                        targetPortrait.classList.remove('highlighted');
-                    }, 3000);
+        // Function to process a text node
+        function processNode(node) {
+            if (!node.textContent.trim()) return;
+            
+            // Skip if parent is already a character mention
+            if (node.parentNode.classList && 
+                node.parentNode.classList.contains('character-mention')) {
+                return;
+            }
+            
+            let html = node.textContent;
+            let replaced = false;
+            
+            // Replace character names with highlighted spans
+            characterNames.forEach(name => {
+                // Use word boundary to ensure we match whole words
+                const regex = new RegExp(`\\b${name}\\b`, 'g');
+                if (regex.test(html)) {
+                    html = html.replace(regex, `<span class="character-mention" data-character="${name}">${name}</span>`);
+                    replaced = true;
                 }
             });
-        });
+            
+            // Only replace if we found matches
+            if (replaced) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                
+                // Insert all child nodes
+                const fragment = document.createDocumentFragment();
+                while (tempDiv.firstChild) {
+                    fragment.appendChild(tempDiv.firstChild);
+                }
+                
+                // Replace original node with our processed fragments
+                node.parentNode.replaceChild(fragment, node);
+            }
+        }
     }
-
+    
     /**
      * Add fade-in animation to choices
      */
     fadeInChoices() {
-        const choices = document.querySelectorAll('.choice-btn');
+        const choices = document.querySelectorAll(this.config.choiceButtonSelector);
         choices.forEach((choice, index) => {
             choice.style.opacity = '0';
-            choice.style.transform = 'translateY(20px)';
-            choice.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-            
-            // Stagger the animations
             setTimeout(() => {
                 choice.style.opacity = '1';
-                choice.style.transform = 'translateY(0)';
-            }, 100 + (index * 150));
+                choice.classList.add('fade-in');
+            }, 300 + (index * 100)); // Staggered animation
         });
     }
-
+    
     /**
      * Set up subtle parallax effect for background
      */
     setupParallaxEffect() {
-        const background = document.querySelector('.story-background');
+        const background = document.querySelector('.enhanced-background img');
         if (!background) return;
         
-        // Subtle parallax on scroll
         window.addEventListener('scroll', () => {
             const scrollPosition = window.scrollY;
-            background.style.transform = `scale(1.1) translateY(${scrollPosition * 0.05}px)`;
+            const offset = scrollPosition * 0.3; // Parallax factor (adjust to taste)
+            background.style.transform = `translateY(${offset}px)`;
+        });
+        
+        window.addEventListener('mousemove', (e) => {
+            const mouseX = e.clientX / window.innerWidth;
+            const mouseY = e.clientY / window.innerHeight;
+            const offsetX = 5 * (0.5 - mouseX);
+            const offsetY = 5 * (0.5 - mouseY);
+            
+            background.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
         });
     }
-
+    
     /**
      * Setup scroll highlighting for story content
      */
     setupScrollHighlighting() {
-        const scrollContainer = document.querySelector('.story-scroll-container');
-        if (!scrollContainer) return;
+        const storyContent = document.querySelector(this.config.storyContentSelector);
+        if (!storyContent) return;
         
-        // Update progress bar as user scrolls
-        const progressBar = document.querySelector('.story-progress-indicator .progress-bar');
-        if (progressBar) {
-            scrollContainer.addEventListener('scroll', () => {
-                const scrollPercentage = (scrollContainer.scrollTop / (scrollContainer.scrollHeight - scrollContainer.clientHeight)) * 100;
-                progressBar.style.width = `${Math.min(scrollPercentage, 100)}%`;
-            });
-        }
-        
-        // Add smooth scroll behavior
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                
-                document.querySelector(this.getAttribute('href')).scrollIntoView({
-                    behavior: 'smooth'
-                });
-            });
+        storyContent.addEventListener('scroll', () => {
+            if (this.state.isScrolling) return;
+            
+            this.state.isScrolling = true;
+            
+            // Add active class to story content
+            storyContent.classList.add('scrolling');
+            
+            // Add visual indicator for scroll position
+            const scrollPercentage = (storyContent.scrollTop / 
+                (storyContent.scrollHeight - storyContent.clientHeight)) * 100;
+            
+            // Show scroll position in a subtle way if needed
+            
+            // Remove active class after scrolling stops
+            clearTimeout(this.state.scrollTimeout);
+            this.state.scrollTimeout = setTimeout(() => {
+                storyContent.classList.remove('scrolling');
+                this.state.isScrolling = false;
+            }, 100);
         });
     }
-
+    
     /**
      * Setup accessibility enhancements
      */
     setupAccessibility() {
-        // Add ARIA attributes to improve screen reader experience
-        const choiceButtons = document.querySelectorAll('.choice-btn');
-        choiceButtons.forEach((button, index) => {
-            button.setAttribute('aria-labelledby', `choice-${index}-text`);
+        // Add ARIA attributes
+        const characterPanel = document.querySelector(this.config.characterPanelSelector);
+        if (characterPanel) {
+            characterPanel.setAttribute('role', 'region');
+            characterPanel.setAttribute('aria-label', 'Character gallery');
             
-            const choiceText = button.querySelector('.choice-text');
-            if (choiceText) {
-                choiceText.id = `choice-${index}-text`;
+            const toggle = characterPanel.querySelector(this.config.characterToggleSelector);
+            if (toggle) {
+                toggle.setAttribute('aria-expanded', 'false');
+                toggle.setAttribute('aria-controls', 'character-grid-container');
+                
+                // Update aria attributes when toggled
+                toggle.addEventListener('click', () => {
+                    const isExpanded = characterPanel.classList.contains('expanded');
+                    toggle.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+                });
             }
+        }
+        
+        // Make choice buttons more accessible
+        const choices = document.querySelectorAll(this.config.choiceButtonSelector);
+        choices.forEach((choice, index) => {
+            choice.setAttribute('role', 'button');
+            choice.setAttribute('aria-label', `Choice ${index + 1}: ${choice.textContent.trim()}`);
             
-            const consequence = button.querySelector('.choice-consequence');
-            if (consequence) {
-                consequence.id = `choice-${index}-consequence`;
-                button.setAttribute('aria-describedby', `choice-${index}-consequence`);
-            }
+            // Add keyboard accessibility
+            choice.setAttribute('tabindex', '0');
+            choice.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    choice.click();
+                }
+            });
         });
         
-        // Add focus indicators
-        const style = document.createElement('style');
-        style.textContent = `
-            .choice-btn:focus-visible {
-                outline: 3px solid var(--primary-color);
-                outline-offset: 2px;
-            }
-            
-            .character-portrait-item:focus-visible {
-                outline: 3px solid var(--primary-color);
-                outline-offset: 2px;
-            }
-        `;
-        document.head.appendChild(style);
+        // Add focus outline styles (already in CSS)
     }
 }
 
 // Initialize the enhanced storyboard
-document.addEventListener('DOMContentLoaded', () => {
-    const storyboardEnhanced = new StoryboardEnhanced();
-    storyboardEnhanced.initialize();
-});
+const storyboardEnhanced = new StoryboardEnhanced();
 
-export default StoryboardEnhanced;
+// Export for use in other modules if needed
+export default storyboardEnhanced;
