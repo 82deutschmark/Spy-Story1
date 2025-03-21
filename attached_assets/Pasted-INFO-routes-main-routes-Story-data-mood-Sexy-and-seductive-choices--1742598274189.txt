@@ -1,0 +1,137 @@
+INFO:routes.main_routes:Story data: {
+  "mood": "Sexy and seductive",
+  "choices": [
+    {
+      "text": "Join forces with Jane for the mission.",
+      "type": "risky",
+      "choice_id": "align_with_jane",
+      "consequence": "You gain a powerful ally with unique skills, but risk her unpredictable nature.",
+      "requirements": {},
+      "currency_requirements": {
+        "\ud83d\udc8e": 10
+      }
+    },
+    {
+      "text": "Decide to go it alone, trusting in your own skills.",
+      "type": "direct",
+      "choice_id": "go_alone",
+      "consequence": "You maintain control but miss out on Jane's expertise.",
+      "requirements": {},
+      "currency_requirements": {
+        "\ud83d\udc8e": 0
+      }
+    }
+  ],
+  "setting": "Europe",
+  "stories": {
+    "story": "The sun dipped low over the horizon, casting a sultry glow across the cobblestone streets of Prague. The air was thick with the scent of rich coffee and the distant sound of laughter from the nearby cafes. You could almost taste the tension that hung in the air, a tantalizing mix of excitement and danger, as you navigated through the thrumming heart of Europe. Every shadow seemed to whisper secrets, and every passerby could be a friend or foe. You were no stranger to this world, but tonight felt different. You were on the edge of something big, and you could feel it in your bones.\n\nAs you strolled through the bustling streets, the flickering lights of the city illuminated your path, guiding you toward the rendezvous point\u2014a discreet bar hidden away from the prying eyes of the public. The establishment, known only to those who tread the fine line between legality and treachery, was a sanctuary for spies and informants alike. You pushed the heavy door open, the scent of aged whiskey and polished wood enveloping you like a lover's embrace.\n\nInside, the atmosphere was charged with anticipation. You spotted Sgt. Boring, your mission-giver, seated at a dimly lit corner table, his expression a mix of irritation and authority. He was a man who thrived on rules and regulations, a total buzzkill in a world that thrived on chaos. You could see the tension in his posture, the way he tapped his fingers against the table, as if counting down the seconds until he could unleash his latest mission upon you.\n\n\"You\u2019re late,\" he said, his voice flat and devoid of any warmth. \"I expected you to be here on time, considering the stakes of this operation.\"\n\nYou took a seat across from him, the weight of his gaze pressing down on you. \"I had a few things to take care of. You know how it is in this line of work.\"\n\nHis eyes narrowed, and you could sense the disappointment radiating from him. \"This is not a game. The last time you were involved in an operation, we nearly lost everything. I won\u2019t have that happen again.\"\n\nYou could feel the tension crackling between you, a mixture of frustration and unspoken history. Sgt. Boring had always been a stickler for the rules, and your reckless nature had clashed with his obsession for order more than once. But you were still here, still willing to play his game, and that was something he couldn\u2019t ignore.\n\n\"What\u2019s the mission?\" you asked, leaning forward, eager to shift the focus away from your previous failures.\n\nHe sighed, his demeanor softening slightly as he pulled out a file from his briefcase. \"Mr. Hands. He\u2019s been making waves in the underground market, and we need to put a stop to his operations before they spiral out of control. He\u2019s a cowardly bully, but he\u2019s also incredibly wealthy and well-connected. We need to steal sensitive information from his estate that could expose his dealings.\"\n\nYou raised an eyebrow, intrigued. \"And what\u2019s the catch?\"\n\n\"The catch is that his estate is heavily guarded, and he\u2019s not one to take kindly to intrusions. If you fail, it could mean not just your life but the lives of many others. We\u2019re talking about geopolitical ramifications here, not just a simple heist.\"\n\nYou could feel the weight of his words, the gravity of the situation settling over you like a heavy cloak. \"What\u2019s the deadline?\"\n\n\"You have until the end of the week. After that, he\u2019ll be moving the information, and we\u2019ll lose our chance.\"\n\n\"And if I fail?\" you asked, your voice steady despite the stakes.\n\n\"Then we\u2019ll have to reconsider our partnership,\" he said, his tone icy. \"I can\u2019t afford to keep you around if you can\u2019t deliver results.\"\n\nYou nodded, understanding the implications of his words. The tension between you was palpable, a reminder of the precarious balance you walked in this dangerous world. You had to succeed, not just for yourself but for the fragile alliance that had formed between you and Sgt. Boring.\n\nAs you stood to leave, a sultry voice interrupted your thoughts. \"You\u2019re not thinking of going in there alone, are you?\"\n\nYou turned to see Jane, a master of disguise and espionage, leaning against the bar with an air of confidence that was both alluring and unsettling. She had a reputation for being unstable, but her skills were undeniable. \"I could help you, you know.\"\n\n\"And what\u2019s in it for you?\" you asked, wary of her motives.\n\nHer lips curled into a seductive smile. \"Let\u2019s just say I have my reasons. Besides, I dislike Mr. Hands as much as you do. He\u2019s a creep, and I would love to see him taken down a peg or two.\"\n\nYou considered her offer. Jane was dangerous, but she was also an expert in the field, and her knowledge could prove invaluable. \"What\u2019s your plan?\"\n\n\"I can create a diversion while you slip in and grab the information. He won\u2019t see it coming.\"\n\nSgt. Boring\u2019s voice cut through the tension. \"This is a bad idea. You can\u2019t trust her. She\u2019s unstable.\"\n\nJane shot him a glare, her eyes flashing with defiance. \"I can be trusted when it matters. Unlike some people who just follow orders without thinking.\"\n\nYou felt the pull of two opposing forces\u2014Sgt. Boring\u2019s rigid adherence to rules and Jane\u2019s seductive chaos. The choice was yours, and the stakes had never been higher. Would you take the risk and align with Jane, or would you heed Sgt. Boring\u2019s warnings and go it alone?\n\nAs you weighed your options, the seductive allure of espionage wrapped around you like a silken thread, promising danger and excitement. The thrill of the chase beckoned, and you were ready to dive headfirst into the world of intrigue, betrayal, and seduction that awaited you. The clock was ticking, and the game was on. \n\nYou took a deep breath, feeling the weight of your decision hanging in the air. The night was young, and the shadows whispered secrets that only you could uncover. The mission awaited, and you were ready to play your part in a dangerous dance of deception and desire.",
+    "choices": [
+      {
+        "text": "Join forces with Jane for the mission.",
+        "type": "risky",
+        "choice_id": "align_with_jane",
+        "consequence": "You gain a powerful ally with unique skills, but risk her unpredictable nature.",
+        "requirements": {},
+        "currency_requirements": {
+          "\ud83d\udc8e": 10
+        }
+      },
+      {
+        "text": "Decide to go it alone, trusting in your own skills.",
+        "type": "direct",
+        "choice_id": "go_alone",
+        "consequence": "You maintain control but miss out on Jane's expertise.",
+        "requirements": {},
+        "currency_requirements": {
+          "\ud83d\udc8e": 0
+        }
+      }
+    ],
+    "mission_update": {
+      "status": "progressed",
+      "progress_details": "You have received the mission to infiltrate Mr. Hands' estate and gather sensitive information. You must decide whether to partner with Jane or proceed alone."
+    }
+  },
+  "conflict": "Double agent exposed",
+  "narrative_style": "Masterful spy thriller"
+}
+INFO:routes.main_routes:Current node data: {
+  "id": 154,
+  "story_id": 401,
+  "narrative_text": "The sun dipped low over the horizon, casting a sultry glow across the cobblestone streets of Prague. The air was thick with the scent of rich coffee and the distant sound of laughter from the nearby cafes. You could almost taste the tension that hung in the air, a tantalizing mix of excitement and danger, as you navigated through the thrumming heart of Europe. Every shadow seemed to whisper secrets, and every passerby could be a friend or foe. You were no stranger to this world, but tonight felt different. You were on the edge of something big, and you could feel it in your bones.\n\nAs you strolled through the bustling streets, the flickering lights of the city illuminated your path, guiding you toward the rendezvous point\u2014a discreet bar hidden away from the prying eyes of the public. The establishment, known only to those who tread the fine line between legality and treachery, was a sanctuary for spies and informants alike. You pushed the heavy door open, the scent of aged whiskey and polished wood enveloping you like a lover's embrace.\n\nInside, the atmosphere was charged with anticipation. You spotted Sgt. Boring, your mission-giver, seated at a dimly lit corner table, his expression a mix of irritation and authority. He was a man who thrived on rules and regulations, a total buzzkill in a world that thrived on chaos. You could see the tension in his posture, the way he tapped his fingers against the table, as if counting down the seconds until he could unleash his latest mission upon you.\n\n\"You\u2019re late,\" he said, his voice flat and devoid of any warmth. \"I expected you to be here on time, considering the stakes of this operation.\"\n\nYou took a seat across from him, the weight of his gaze pressing down on you. \"I had a few things to take care of. You know how it is in this line of work.\"\n\nHis eyes narrowed, and you could sense the disappointment radiating from him. \"This is not a game. The last time you were involved in an operation, we nearly lost everything. I won\u2019t have that happen again.\"\n\nYou could feel the tension crackling between you, a mixture of frustration and unspoken history. Sgt. Boring had always been a stickler for the rules, and your reckless nature had clashed with his obsession for order more than once. But you were still here, still willing to play his game, and that was something he couldn\u2019t ignore.\n\n\"What\u2019s the mission?\" you asked, leaning forward, eager to shift the focus away from your previous failures.\n\nHe sighed, his demeanor softening slightly as he pulled out a file from his briefcase. \"Mr. Hands. He\u2019s been making waves in the underground market, and we need to put a stop to his operations before they spiral out of control. He\u2019s a cowardly bully, but he\u2019s also incredibly wealthy and well-connected. We need to steal sensitive information from his estate that could expose his dealings.\"\n\nYou raised an eyebrow, intrigued. \"And what\u2019s the catch?\"\n\n\"The catch is that his estate is heavily guarded, and he\u2019s not one to take kindly to intrusions. If you fail, it could mean not just your life but the lives of many others. We\u2019re talking about geopolitical ramifications here, not just a simple heist.\"\n\nYou could feel the weight of his words, the gravity of the situation settling over you like a heavy cloak. \"What\u2019s the deadline?\"\n\n\"You have until the end of the week. After that, he\u2019ll be moving the information, and we\u2019ll lose our chance.\"\n\n\"And if I fail?\" you asked, your voice steady despite the stakes.\n\n\"Then we\u2019ll have to reconsider our partnership,\" he said, his tone icy. \"I can\u2019t afford to keep you around if you can\u2019t deliver results.\"\n\nYou nodded, understanding the implications of his words. The tension between you was palpable, a reminder of the precarious balance you walked in this dangerous world. You had to succeed, not just for yourself but for the fragile alliance that had formed between you and Sgt. Boring.\n\nAs you stood to leave, a sultry voice interrupted your thoughts. \"You\u2019re not thinking of going in there alone, are you?\"\n\nYou turned to see Jane, a master of disguise and espionage, leaning against the bar with an air of confidence that was both alluring and unsettling. She had a reputation for being unstable, but her skills were undeniable. \"I could help you, you know.\"\n\n\"And what\u2019s in it for you?\" you asked, wary of her motives.\n\nHer lips curled into a seductive smile. \"Let\u2019s just say I have my reasons. Besides, I dislike Mr. Hands as much as you do. He\u2019s a creep, and I would love to see him taken down a peg or two.\"\n\nYou considered her offer. Jane was dangerous, but she was also an expert in the field, and her knowledge could prove invaluable. \"What\u2019s your plan?\"\n\n\"I can create a diversion while you slip in and grab the information. He won\u2019t see it coming.\"\n\nSgt. Boring\u2019s voice cut through the tension. \"This is a bad idea. You can\u2019t trust her. She\u2019s unstable.\"\n\nJane shot him a glare, her eyes flashing with defiance. \"I can be trusted when it matters. Unlike some people who just follow orders without thinking.\"\n\nYou felt the pull of two opposing forces\u2014Sgt. Boring\u2019s rigid adherence to rules and Jane\u2019s seductive chaos. The choice was yours, and the stakes had never been higher. Would you take the risk and align with Jane, or would you heed Sgt. Boring\u2019s warnings and go it alone?\n\nAs you weighed your options, the seductive allure of espionage wrapped around you like a silken thread, promising danger and excitement. The thrill of the chase beckoned, and you were ready to dive headfirst into the world of intrigue, betrayal, and seduction that awaited you. The clock was ticking, and the game was on. \n\nYou took a deep breath, feeling the weight of your decision hanging in the air. The night was young, and the shadows whispered secrets that only you could uncover. The mission awaited, and you were ready to play your part in a dangerous dance of deception and desire.",
+  "is_endpoint": false,
+  "generated_by_ai": true,
+  "created_at": "2025-03-21T22:46:05.827437",
+  "branch_metadata": {
+    "choices": [
+      {
+        "text": "Join forces with Jane for the mission.",
+        "type": "risky",
+        "choice_id": "align_with_jane",
+        "consequence": "You gain a powerful ally with unique skills, but risk her unpredictable nature.",
+        "requirements": {},
+        "currency_requirements": {
+          "\ud83d\udc8e": 10
+        }
+      },
+      {
+        "text": "Decide to go it alone, trusting in your own skills.",
+        "type": "direct",
+        "choice_id": "go_alone",
+        "consequence": "You maintain control but miss out on Jane's expertise.",
+        "requirements": {},
+        "currency_requirements": {
+          "\ud83d\udc8e": 0
+        }
+      }
+    ],
+    "characters": [
+      13,
+      27,
+      15
+    ],
+    "protagonist": {
+      "name": "",
+      "level": "1",
+      "gender": ""
+    }
+  },
+  "parent_node_id": null,
+  "branch_id": null,
+  "choice_id": null,
+  "character_id": null,
+  "achievement_id": null
+}
+INFO:routes.main_routes:Node branch_metadata: {
+  "choices": [
+    {
+      "text": "Join forces with Jane for the mission.",
+      "type": "risky",
+      "choice_id": "align_with_jane",
+      "consequence": "You gain a powerful ally with unique skills, but risk her unpredictable nature.",
+      "requirements": {},
+      "currency_requirements": {
+        "\ud83d\udc8e": 10
+      }
+    },
+    {
+      "text": "Decide to go it alone, trusting in your own skills.",
+      "type": "direct",
+      "choice_id": "go_alone",
+      "consequence": "You maintain control but miss out on Jane's expertise.",
+      "requirements": {},
+      "currency_requirements": {
+        "\ud83d\udc8e": 0
+      }
+    }
+  ],
+  "characters": [
+    13,
+    27,
+    15
+  ],
+  "protagonist": {
+    "name": "",
+    "level": "1",
+    "gender": ""
+  }
