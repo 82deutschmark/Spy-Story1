@@ -1,13 +1,63 @@
-# Character Role Handling Fix Plan
+# Character Role and ID Handling
 
 ## Issue Description
-The story generation system is currently allowing the AI to invent characters not present in the database, instead of properly using the characters with their assigned roles (mission-giver, villain, etc.) from the database.
+The story generation system needed improvements in two areas:
+1. Proper character role handling to prevent AI from inventing characters
+2. Consistent character ID tracking throughout the story flow
+3. Proper character name highlighting in story text
 
 ## Current Flow
 1. `main_routes.py`: Fetches random characters for selection
 2. `game_engine.py`: Formats character data for story generation
 3. `story_maker.py`: Builds prompts and generates initial story
 4. `segment_maker.py`: Generates story continuations
+5. `CharacterMentions.js`: Handles character highlighting in UI
+
+## Recent Improvements
+
+### Character ID Handling (`segment_maker.py`)
+- Added explicit `character_id` field to JSON structure
+- Enhanced character choice prompt with ID requirements
+- Added validation for character IDs in choices
+- Improved error logging for ID mismatches
+
+```python
+# Example JSON structure with character_id
+{
+    "choices": [
+        {
+            "choice_id": "unique_choice_id",
+            "text": "Choice description",
+            "character_id": null  # Required field for character tracking
+        }
+    ]
+}
+```
+
+### Character Role Requirements
+- Mission-giver MUST be the one giving the mission
+- Villain MUST be the primary antagonist
+- Character IDs must be preserved exactly as provided
+- No modification of character IDs allowed
+- All character references must include proper ID
+
+### Character Highlighting (`CharacterMentions.js`)
+- Improved text processing to handle HTML content properly
+- Added recursive DOM node processing
+- Prevents double-processing of already highlighted names
+- Maintains proper HTML structure during highlighting
+- Handles character tooltips and click interactions
+
+```javascript
+// Example character highlighting structure
+<span class="character-mention" data-character="character-id">
+    Character Name
+    <span class="character-tooltip">
+        <img src="character-image.jpg" alt="Character Name">
+        <div>Character Name</div>
+    </span>
+</span>
+```
 
 ## Required Changes
 
@@ -15,85 +65,68 @@ The story generation system is currently allowing the AI to invent characters no
 - Modify random character selection to ensure required roles
 - Add role validation before story generation
 - Prevent story generation if required roles are missing
-
-```python
-# Example validation
-selected_roles = [char.character_role for char in selected_characters]
-if 'mission-giver' not in selected_roles or 'villain' not in selected_roles:
-    return jsonify({'error': 'Story requires both a mission-giver and villain character'}), 400
-```
+- Ensure character IDs are properly tracked
+- Include all characters from story nodes in character_images list
 
 ### 2. Character Formatting (`game_engine.py`)
 - Add explicit NPC marking in character data
 - Ensure role information is properly formatted
 - Validate character roles before story generation
-
-```python
-def format_character_traits(char):
-    return {
-        "character_traits": char.character_traits or {},
-        "backstory": char.backstory or "",
-        "plot_lines": char.plot_lines or [],
-        "role": char.character_role or "neutral",
-        "is_npc": True  # Explicitly mark as NPC
-    }
-```
+- Track character IDs throughout the process
 
 ### 3. Story Generation (`story_maker.py`)
 - Update system message to enforce role requirements
 - Enhance character prompts with role-specific requirements
 - Add validation for character usage in generated stories
-
-```python
-# Example role requirements
-role_requirements = """
-REQUIRED CHARACTER ROLES:
-1. Mission-giver MUST be the one giving the mission to the player
-2. Villain MUST be the primary antagonist
-3. All other characters must be used according to their specified roles
-4. No new characters can be invented
-5. Each character's role must be respected throughout the story
-"""
-```
+- Ensure character IDs are preserved in story generation
 
 ### 4. Story Continuation (`segment_maker.py`)
 - Add role enforcement to continuation prompts
 - Ensure character roles remain consistent
 - Prevent introduction of new characters
+- Maintain character ID consistency throughout continuations
 
-```python
-# Example role enforcement
-character_role_guidelines = """
-CHARACTER ROLE ENFORCEMENT:
-1. Mission-giver must remain the mission-giver throughout the story
-2. Villain must remain the primary antagonist
-3. All characters must maintain their assigned roles
-4. No new characters can be introduced
-5. Character roles cannot be changed or swapped
-"""
-```
+### 5. Character Highlighting (`CharacterMentions.js`)
+- Process text nodes recursively to maintain HTML structure
+- Skip already highlighted character mentions
+- Use proper DOM parsing for HTML content
+- Maintain character ID references in data attributes
+- Handle character tooltips and portrait highlighting
 
-## Implementation Order
-1. Start with `main_routes.py` to ensure proper character selection
-2. Update `game_engine.py` to properly format character data
-3. Enhance `story_maker.py` with stricter role requirements
-4. Update `segment_maker.py` to maintain role consistency
+## Implementation Status
+✅ Character ID handling in segment_maker.py
+✅ Character highlighting in CharacterMentions.js
+⏳ Role validation in main_routes.py
+⏳ Character formatting in game_engine.py
+⏳ Story generation enhancements in story_maker.py
 
 ## Testing Plan
 1. Test character selection with various role combinations
 2. Verify story generation uses only database characters
 3. Check story continuations maintain character roles
-4. Validate error handling for missing required roles
+4. Validate character ID consistency throughout flow
+5. Test error handling for ID mismatches
+6. Verify character choice validation
+7. Test character highlighting with various text content
+8. Verify character tooltips and click interactions
+9. Test highlighting with HTML-formatted text
 
 ## Success Criteria
 1. All stories must use only characters from the database
 2. Mission-giver and villain roles must be properly assigned
 3. Character roles must remain consistent throughout the story
 4. No new characters should be invented by the AI
-5. Error messages should clearly indicate missing required roles
+5. Character IDs must be preserved exactly throughout the flow
+6. Error messages should clearly indicate any ID mismatches
+7. Character names must be properly highlighted in story text
+8. Character tooltips must show correct character information
+9. Character highlighting must work with HTML-formatted text
 
 ## Notes
-- Changes should maintain existing functionality
-- Error handling should be user-friendly
-- Role validation should happen early in the process
-- Character role consistency must be maintained across story segments 
+- Changes maintain existing functionality
+- Error handling is user-friendly
+- Role and ID validation happens early
+- Character consistency maintained across segments
+- ID tracking enables proper relationship management
+- Text processing preserves HTML structure
+- Character highlighting handles dynamic content updates 

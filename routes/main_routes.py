@@ -280,6 +280,21 @@ def storyboard(story_id):
         logger.info(f"Current node data: {json.dumps(current_node.to_dict(), indent=2)}")
         logger.info(f"Node branch_metadata: {json.dumps(current_node.branch_metadata, indent=2)}")
 
+        # Add characters from node's choices
+        if current_node.branch_metadata and 'choices' in current_node.branch_metadata:
+            for choice in current_node.branch_metadata['choices']:
+                if choice.get('character_id'):
+                    # Only add if not already in character_images
+                    if not any(char['id'] == choice['character_id'] for char in character_images):
+                        character = Character.query.get(choice['character_id'])
+                        if character:
+                            character_images.append({
+                                'id': character.id,
+                                'image_url': character.image_url,
+                                'name': character.character_name,
+                                'traits': character.character_traits
+                            })
+
         # Ensure node has branch_metadata with required fields
         if not current_node.branch_metadata:
             # For a new node, use story's initial choices

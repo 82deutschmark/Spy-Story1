@@ -339,6 +339,18 @@ class GameEngine:
                 }
             )
             
+            # Maintain character relationships from the story
+            if characters:
+                # Convert character IDs to integers
+                character_ids = [int(char["id"]) for char in characters]
+                # Query the characters
+                story_characters = Character.query.filter(Character.id.in_(character_ids)).all()
+                # Add character IDs to branch_metadata
+                next_node.branch_metadata["characters"] = [char.id for char in story_characters]
+                # Set the first character as the primary character for this node
+                if story_characters:
+                    next_node.character_id = story_characters[0].id
+                    
             # Add mission update to branch_metadata if present
             if "mission_update" in next_segment["stories"]:
                 next_node.branch_metadata["mission_update"] = next_segment["stories"]["mission_update"]
@@ -367,6 +379,14 @@ class GameEngine:
             # Update character relationships
             character_updates = []
             if characters:
+                # Ensure characters are associated with the story
+                if story_characters:
+                    # Properly maintain the many-to-many relationship
+                    for char in story_characters:
+                        if char not in story.characters:
+                            story.characters.append(char)
+                    
+                # Update relationship tracking
                 updates = self.character_service.update_relationships(
                     self.user_id,
                     story.id,
