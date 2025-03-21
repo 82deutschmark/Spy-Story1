@@ -109,12 +109,12 @@ NARRATIVE STYLE GUIDELINES: You are a master narrative generator for our choose 
     @staticmethod
     def get_json_structure() -> str:
         """Get the expected JSON response structure."""
-        return '''
-{
+        # Use raw string to avoid backslash issues
+        return r'''{
     "story": "Continuation narrative text",
     "choices": [
         {
-            "choice_id": "unique_choice_id",  # REQUIRED: Unique identifier for this choice
+            "choice_id": "unique_choice_id",
             "text": "Choice description",
             "consequence": "Brief outcome description",
             "type": "direct/risky/social",
@@ -122,7 +122,7 @@ NARRATIVE STYLE GUIDELINES: You are a master narrative generator for our choose 
                 "💎": 10
             },
             "requirements": {},
-            "character_id": null  # REQUIRED: ID of the character involved in this choice, or null if none
+            "character_id": null
         }
     ],
     "mission_update": {
@@ -168,45 +168,50 @@ class StoryContinuationHandler:
         """Build the continuation prompt."""
         random_char_name = random_character.character_name if random_character else 'a previously introduced character'
         
-        return f"""Continue the story based on:
-
-PREVIOUS EVENTS:
-{previous_story[:500]}...
-
-PLAYER'S CHOICE:
-{chosen_choice}
-
-CURRENT MISSION:
-Title: {mission_info.get('title', 'Unknown')}
-Objective: {mission_info.get('objective', 'Unknown')}
-Current Status: {mission_info.get('status', 'In Progress')}
-
-{CharacterFormatter.format_character_info(random_character) if random_character else ''}
-
-{f'STORY CONTEXT:\n{story_context}\n' if story_context else ''}
-
-STORY REQUIREMENTS:
-1. Create a compelling continuation of 15000-18000 words that builds upon the player's choice
-2. Show immediate consequences of their decision
-3. Advance the mission in some way (progress, setback, or complication)
-4. Create three distinct choices for how to proceed:
-   - One that advances the mission directly
-   - One that takes a risky approach, involving gunplay or car chases
-   - One that involves asking {random_char_name} for help (MUST include character_id: {random_character.id if random_character else 'null'})
-5. Maintain narrative consistency with previous events
-6. Include rich descriptions of guns and cars and atmospheric details, but not of characters or their look or clothing
-7. Show character development through actions and dialogue
-8. Create unexpected twists or revelations
-9. Balance action, dialogue, and intrigue
-10. Avoid repeating previous scenarios or story beats
-11. Create escalating stakes and tension
-12. Ensure all character interactions reflect their traits and relationships
-13. Make dialogue choices impact the story's direction
-14. Show how the protagonist's choices affect other characters
-15. Keep the mission-giver and villain roles consistent with their previous appearances
-
-Your response MUST be valid JSON with this structure:
-{StoryPromptBuilder.get_json_structure()}"""
+        # Build the prompt parts separately to avoid f-string with JSON structure
+        prompt_parts = [
+            "Continue the story based on:",
+            "",
+            "PREVIOUS EVENTS:",
+            f"{previous_story[:500]}...",
+            "",
+            "PLAYER'S CHOICE:",
+            chosen_choice,
+            "",
+            "CURRENT MISSION:",
+            f"Title: {mission_info.get('title', 'Unknown')}",
+            f"Objective: {mission_info.get('objective', 'Unknown')}",
+            f"Current Status: {mission_info.get('status', 'In Progress')}",
+            "",
+            CharacterFormatter.format_character_info(random_character) if random_character else '',
+            f"STORY CONTEXT:\n{story_context}\n" if story_context else '',
+            "",
+            "STORY REQUIREMENTS:",
+            "1. Create a compelling continuation of 15000-18000 words that builds upon the player's choice",
+            "2. Show immediate consequences of their decision",
+            "3. Advance the mission in some way (progress, setback, or complication)",
+            "4. Create three distinct choices for how to proceed:",
+            f"   - One that advances the mission directly",
+            f"   - One that takes a risky approach, involving gunplay or car chases",
+            f"   - One that involves asking {random_char_name} for help (MUST include character_id: {random_character.id if random_character else 'null'})",
+            "5. Maintain narrative consistency with previous events",
+            "6. Include rich descriptions of guns and cars and atmospheric details, but not of characters or their look or clothing",
+            "7. Show character development through actions and dialogue",
+            "8. Create unexpected twists or revelations",
+            "9. Balance action, dialogue, and intrigue",
+            "10. Avoid repeating previous scenarios or story beats",
+            "11. Create escalating stakes and tension",
+            "12. Ensure all character interactions reflect their traits and relationships",
+            "13. Make dialogue choices impact the story's direction",
+            "14. Show how the protagonist's choices affect other characters",
+            "15. Keep the mission-giver and villain roles consistent with their previous appearances",
+            "",
+            "Your response MUST be valid JSON with this structure:",
+            StoryPromptBuilder.get_json_structure()
+        ]
+        
+        # Join the parts with newlines
+        return "\n".join(prompt_parts)
 
     def generate_continuation(
         self,
@@ -225,13 +230,22 @@ Your response MUST be valid JSON with this structure:
         
         # Initialize context manager if needed
         if not self.context_manager:
+            # Build system message parts separately
+            system_parts = [
+                "You are a master narrative generator for our choose your own adventure game.",
+                "You excel at continuing stories based on player choices, maintaining narrative",
+                "consistency while introducing fresh developments and unexpected twists.",
+                "",
+                StoryPromptBuilder.build_protagonist_info(protagonist_name, protagonist_gender),
+                "",
+                StoryPromptBuilder.build_style_info(mood, narrative_style),
+                "",
+                "Your response MUST be valid JSON with this structure:",
+                StoryPromptBuilder.get_json_structure()
+            ]
+            
             self.context_manager = OpenAIContextManager()
-            self.context_manager.add_system_message(_build_system_message(
-                mood=mood,
-                narrative_style=narrative_style,
-                protagonist_name=protagonist_name,
-                protagonist_gender=protagonist_gender
-            ))
+            self.context_manager.add_system_message("\n".join(system_parts))
         
         # Build and add the continuation prompt
         continuation_prompt = self.build_continuation_prompt(
