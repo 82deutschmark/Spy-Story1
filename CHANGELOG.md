@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Active missions
   - Story metadata
 - Improved state validation and error handling
+- Added `to_dict()` method to `StoryNode` model for proper serialization
+- Enhanced node serialization with comprehensive field mapping including:
+  - Basic information (id, story_id, narrative_text)
+  - Status flags (is_endpoint, generated_by_ai)
+  - Timestamps (created_at)
+  - Metadata (branch_metadata)
+  - Relationships (parent_node_id, character_id, achievement_id)
+  - Branch information (branch_id, choice_id)
 
 ### Changed
 - Refactored state management system:
@@ -58,6 +66,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Maintained proper separation between shared story content and user-specific progress
   - Verified correct relationship between StoryNode and UserProgress tables
   - Documented table structure in schema documentation
+- Fixed game engine state management
+  - Properly integrated OpenAIContextManager
+  - Fixed state persistence issues
+  - Fixed character relationship tracking
+  - Fixed mission progress updates
+- Fixed character reroll functionality:
+  - Removed duplicate radio button from character card template
+  - Fixed selection state clearing on character reroll
+  - Removed redundant character selector initialization in main.js
+  - Ensured proper event handler cleanup and reattachment
+  - Fixed hidden input field clearing on reroll
+  - Improved error handling during reroll process
+  - Enhanced user feedback with toast notifications
+  - Fixed character selection state management
+  - Ensured proper DOM updates after reroll
+  - Fixed event propagation issues with reroll button
+- Fixed state manager initialization
+- Improved state consistency across components
+- Fixed form submission error handling in EventHandlers.js:
+  - Improved validation for required story parameters
+  - Added user-friendly error messages for missing selections
+  - Fixed character selection handling in form data
+  - Enhanced error display with both toast notifications and inline messages
+  - Improved loading state management during form submission
+  - Added proper error handling for API responses
+  - Consolidated error handling for both initial story and choice forms
+- Added proper AJAX request handling for story generation errors
+- Improved error message display with toast notifications
+- Fixed character selection handling in form submission
+- Fixed loading animation not appearing when clicking choice buttons on the storyboard page
+- Improved loading state feedback with proper button text preservation
+- Enhanced error handling during story generation and choice submissions
+- Fixed critical database relationship issue in StoryGeneration model:
+  - Removed incorrect story_images association table that was causing "Unknown PG numeric type: 3802" error
+  - Updated storyboard route to use correct story.characters relationship instead of story.images
+  - Fixed model imports in models/__init__.py to remove story_images reference
+  - Ensured proper character image handling in storyboard template
+  - Added error handling for character image loading in storyboard route
+  - Improved logging for character image processing errors
+  - Fixed database schema to properly reflect character-story relationships
+  - Updated documentation to clarify correct model relationships
+- Corrected form submission handling in storyboard.html:
+  - Ensured choice forms properly submit to /make_choice endpoint
+  - Maintained proper data structure for choice submissions
+  - Fixed character data handling in choice continuation
+  - Preserved currency requirement checks and processing
+  - Kept proper error handling and user feedback
+- Fixed critical error in story continuation where StoryNode lacked to_dict() method
+- Improved state serialization in game engine
+- Enhanced data consistency in story node transitions
+- Fixed choice processing in story flow
+- Fixed critical choice handling issues in game_engine.py:
+  - Resolved empty choices array issue in node branch_metadata
+  - Fixed timing of node creation and choice assignment
+  - Improved transaction handling in make_choice method
+  - Ensured choices are properly populated from story continuation
+  - Enhanced error handling and logging for choice processing
+  - Fixed node transition logic to maintain choice consistency
+  - Improved state management during choice transitions
+  - Added proper validation of continuation data
+  - Enhanced logging of node states during transitions
+  - Fixed choice data structure consistency between story_maker and segment_maker
 
 ### Changed
 - Refactored state management system
@@ -65,13 +135,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed duplicate state management code from game_engine.py
   - Enhanced state persistence and notifications
   - Improved state synchronization between components
-
-### Fixed
-- Fixed game engine state management
-  - Properly integrated OpenAIContextManager
-  - Fixed state persistence issues
-  - Fixed character relationship tracking
-  - Fixed mission progress updates
 
 ### Improved
 - Enhanced state management architecture

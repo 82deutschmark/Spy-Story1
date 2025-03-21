@@ -281,161 +281,122 @@ class GameEngine:
     ) -> Dict[str, Any]:
         """
         Process a user's story choice and update game state.
-        
-        Args:
-            choice_id (str): ID of the chosen story branch
-            custom_choice_text (Optional[str]): Custom choice text if not using predefined choice
-            story_context (Optional[str]): Additional context for story continuation
-            characters (Optional[List[Dict[str, Any]]]): List of characters involved in the choice
-            
-        Returns:
-            Dict[str, Any]: Updated game state including:
-                - current_node: New story node
-                - available_choices: List of available choices
-                - mission_updates: List of mission updates
-                - character_updates: List of character relationship updates
         """
-        # Get context manager for story continuation
-        context_manager = self.state.get_context_manager()
-        
-        # Get current story and node
-        story = self.state.current_story
-        if not story:
-            raise ValueError("No active story found")
+        try:
+            # Start transaction
+            db.session.begin_nested()
             
-        # Resolve current node
-        current_node = self.state.resolve_current_node(story.id)
-        if not current_node:
-            raise ValueError("Could not resolve current node")
-        
-        # Find next node based on choice
-        next_node = StoryNode.query.filter_by(
-            story_id=story.id,
-            parent_node_id=current_node.id,
-            branch_id=choice_id
-        ).first()
-        
-        # If no node found with branch_id, try choice_id
-        if not next_node:
-            next_node = StoryNode.query.filter_by(
-                story_id=story.id,
-                parent_node_id=current_node.id,
-                choice_id=choice_id
-            ).first()
-        
-        # If no predefined node found and custom choice provided, create new node
-        if not next_node and custom_choice_text:
+            # Get context manager for story continuation
+            context_manager = self.state.get_context_manager()
+            
+            # Get current story and node
+            story = self.state.current_story
+            if not story:
+                raise ValueError("No active story found")
+                
+            # Resolve current node
+            current_node = self.state.resolve_current_node(story.id)
+            if not current_node:
+                raise ValueError("Could not resolve current node")
+            
+            # Get node context for story continuation
+            node_context = self.state.get_node_context(current_node.id)
+            
+            # Safely get mission info, using a default empty mission if none exists
+            active_missions = node_context.get("active_missions", [])
+            mission_info = active_missions[0] if active_missions else {
+                "title": "Unknown Mission",
+                "objective": "Continue the story",
+                "status": "in_progress"
+            }
+            
+            # Generate next story segment using segment_maker
+            next_segment = generate_continuation(
+                previous_story=current_node.narrative_text,
+                chosen_choice=custom_choice_text or choice_id,
+                mission_info=mission_info,
+                context_manager=context_manager,
+                mood=story.mood,
+                narrative_style=story.narrative_style,
+                story_context=story_context
+            )
+            
+            # Log the continuation data
+            logger.debug(f"Generated continuation data: {json.dumps(next_segment, indent=2)}")
+            
+            # Create new node with the generated content
             next_node = StoryNode(
                 story_id=story.id,
-                narrative_text=custom_choice_text,
+                narrative_text=next_segment["stories"]["story"],
                 parent_node_id=current_node.id,
                 generated_by_ai=True,
                 branch_metadata={
                     "choice_id": choice_id,
-                    "branch_id": choice_id,  # Set both for consistency
-                    "choice_text": custom_choice_text,
+                    "branch_id": choice_id,
+                    "choice_text": custom_choice_text or choice_id,
                     "timestamp": datetime.utcnow().isoformat(),
-                    "choices": []  # Initialize empty choices array
+                    "choices": next_segment["choices"]  # Use choices from root level
                 }
             )
+            
+            # Add mission update to branch_metadata if present
+            if "mission_update" in next_segment["stories"]:
+                next_node.branch_metadata["mission_update"] = next_segment["stories"]["mission_update"]
+            
+            # Add node to session and flush to get ID
             db.session.add(next_node)
+            db.session.flush()
+            
+            # Log the node data before transition
+            logger.debug(f"Node data before transition: {json.dumps(next_node.branch_metadata, indent=2)}")
+            
+            try:
+                # Transition to new node
+                if not self.state.transition_to_node(next_node.id):
+                    raise RuntimeError("Failed to transition to new node")
+            except Exception as e:
+                logger.error(f"Error during node transition: {str(e)}")
+                raise RuntimeError(f"Failed to transition to new node: {str(e)}")
+            
+            # Update missions based on choice
+            mission_updates = []
+            for mission in self.state.active_missions:
+                if update_mission_progress(mission.id, int(mission.progress + 10)):
+                    mission_updates.append(mission)
+            
+            # Update character relationships
+            character_updates = []
+            if characters:
+                updates = self.character_service.update_relationships(
+                    self.user_id,
+                    story.id,
+                    current_node.id,
+                    next_node.id
+                )
+                if updates:
+                    character_updates.extend(updates)
+            
+            # Commit all changes
             db.session.commit()
-        elif next_node and not next_node.branch_metadata:
-            # Ensure existing node has branch_metadata
-            next_node.branch_metadata = {
-                "choice_id": choice_id,
-                "branch_id": choice_id,
-                "choice_text": custom_choice_text or choice_id,
-                "timestamp": datetime.utcnow().isoformat(),
-                "choices": []
+            
+            # Log the final node state after commit
+            logger.debug(f"Final node state after commit: {json.dumps(next_node.to_dict(), indent=2)}")
+            
+            # Update state manager
+            state_manager.update_state(self.state.to_dict())
+            
+            # Return updated game state
+            return {
+                "current_node": next_node.to_dict(),
+                "available_choices": next_segment["choices"],  # Use choices from root level
+                "mission_updates": mission_updates,
+                "character_updates": character_updates
             }
-            db.session.commit()
-        
-        if not next_node:
-            raise ValueError(f"No valid node found for choice_id: {choice_id}")
-        
-        # Transition to new node atomically
-        if not self.state.transition_to_node(next_node.id):
-            raise RuntimeError("Failed to transition to new node")
-        
-        # Get node context for story continuation
-        node_context = self.state.get_node_context(next_node.id)
-        
-        # Safely get mission info, using a default empty mission if none exists
-        active_missions = node_context.get("active_missions", [])
-        mission_info = active_missions[0] if active_missions else {
-            "title": "Unknown Mission",
-            "objective": "Continue the story",
-            "status": "in_progress"
-        }
-        
-        # Generate next story segment using segment_maker
-        next_segment = generate_continuation(
-            previous_story=current_node.narrative_text,
-            chosen_choice=custom_choice_text or choice_id,
-            mission_info=mission_info,
-            context_manager=context_manager,
-            mood=story.mood,
-            narrative_style=story.narrative_style,
-            story_context=story_context
-        )
-        
-        # Update node with generated content - handle nested structure
-        next_node.narrative_text = next_segment["stories"]["story"]
-        
-        # Update branch_metadata with new choices while preserving other metadata
-        if not next_node.branch_metadata:
-            next_node.branch_metadata = {}
-        next_node.branch_metadata["choices"] = next_segment["choices"]
-        next_node.branch_metadata["timestamp"] = datetime.utcnow().isoformat()
-        db.session.commit()  # Ensure changes are persisted
-        
-        # Update missions based on choice
-        mission_updates = []
-        for mission in self.state.active_missions:
-            if update_mission_progress(mission.id, int(mission.progress + 10)):
-                mission_updates.append(mission)
-        
-        # Update character relationships
-        character_updates = []
-        if characters:
-            updates = self.character_service.update_relationships(
-                self.user_id,
-                story.id,
-                current_node.id,
-                next_node.id
-            )
-            if updates:
-                character_updates.extend(updates)
-        
-        # Update state manager
-        state_manager.update_state(self.state.to_dict())
-        
-        return {
-            "current_node": {
-                "id": next_node.id,
-                "narrative_text": next_node.narrative_text,
-                "is_endpoint": next_node.is_endpoint,
-                "branch_metadata": next_node.branch_metadata
-            },
-            "available_choices": next_segment["choices"],
-            "mission_updates": [
-                {
-                    "id": mission.id,
-                    "title": mission.title,
-                    "progress": mission.progress,
-                    "status": mission.status
-                } for mission in mission_updates
-            ],
-            "character_updates": [
-                {
-                    "id": update.character_id,
-                    "relationship": update.relationship_level,
-                    "trust": update.trust_level,
-                    "loyalty": update.loyalty_level
-                } for update in character_updates
-            ]
-        }
+            
+        except Exception as e:
+            logger.error(f"Error in make_choice: {str(e)}", exc_info=True)
+            db.session.rollback()
+            raise RuntimeError(f"Failed to process choice: {str(e)}")
 
     def update_mission(self, mission_id: str, progress: float) -> Dict[str, Any]:
         """

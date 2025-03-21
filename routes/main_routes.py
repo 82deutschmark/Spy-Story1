@@ -220,6 +220,9 @@ def storyboard(story_id):
         user_progress = get_or_create_user_progress()
         game_state = GameState(user_progress.user_id)
 
+        # Debug logging
+        logger.info(f"Story data: {json.dumps(story_data, indent=2)}")
+
         # Update user progress to reflect current story
         user_progress.current_story_id = story_id
         
@@ -273,27 +276,35 @@ def storyboard(story_id):
             flash('Error: Could not resolve current story node', 'error')
             return redirect(url_for('main.dashboard'))
             
+        # Debug logging for node data
+        logger.info(f"Current node data: {json.dumps(current_node.to_dict(), indent=2)}")
+        logger.info(f"Node branch_metadata: {json.dumps(current_node.branch_metadata, indent=2)}")
+
         # Ensure node has branch_metadata with required fields
         if not current_node.branch_metadata:
+            # For a new node, use story's initial choices
             current_node.branch_metadata = {
-                "choices": [],
+                "choices": story_data.get("choices", []),  # Get choices from story data if available
                 "timestamp": datetime.utcnow().isoformat(),
                 "character_relationships": {},
                 "active_missions": []
             }
             db.session.commit()
+            logger.info("Created new branch_metadata with choices from story_data")
         else:
-            # Ensure all required fields exist
-            if "choices" not in current_node.branch_metadata:
-                current_node.branch_metadata["choices"] = []
+            # For existing nodes, ensure all required fields exist
+            # but DO NOT overwrite existing choices
+            if "timestamp" not in current_node.branch_metadata:
+                current_node.branch_metadata["timestamp"] = datetime.utcnow().isoformat()
             if "character_relationships" not in current_node.branch_metadata:
                 current_node.branch_metadata["character_relationships"] = {}
             if "active_missions" not in current_node.branch_metadata:
                 current_node.branch_metadata["active_missions"] = []
-            if "timestamp" not in current_node.branch_metadata:
-                current_node.branch_metadata["timestamp"] = datetime.utcnow().isoformat()
+            if "choices" not in current_node.branch_metadata:
+                # Only set choices if they don't exist
+                current_node.branch_metadata["choices"] = story_data.get("choices", [])
             db.session.commit()
-            
+
         # Update character relationships
         for char_id, char_info in current_node.branch_metadata.get("character_relationships", {}).items():
             for i, char in enumerate(character_images):
@@ -315,9 +326,6 @@ def storyboard(story_id):
         template_story_data = story_data
         if 'stories' in story_data:
             template_story_data = story_data['stories']
-            # Ensure choices are available at root level
-            if 'choices' not in template_story_data and 'choices' in story_data:
-                template_story_data['choices'] = story_data['choices']
 
         # Commit the transaction after all database operations are successful
         db.session.commit()
@@ -437,7 +445,24 @@ def make_choice():
             characters=[{"id": char_id} for char_id in characters]
         )
         
-        # Save changes
+        # Log the result for debugging
+        logger.debug(f"Game engine result: {json.dumps(result, indent=2)}")
+        
+        # Ensure the new node is properly saved and linked
+        new_node = StoryNode.query.get(result['current_node']['id'])
+        if not new_node:
+            raise ValueError("Failed to create new story node")
+            
+        # Update user progress with new node
+        user_progress.current_node_id = new_node.id
+        user_progress.last_active = datetime.utcnow()
+        
+        # Ensure the node has the new choices in its branch_metadata
+        if not new_node.branch_metadata:
+            new_node.branch_metadata = {}
+        new_node.branch_metadata['choices'] = result['available_choices']
+        
+        # Save all changes
         db.session.commit()
         
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':

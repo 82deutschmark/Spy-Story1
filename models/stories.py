@@ -37,6 +37,7 @@ Usage Notes:
 from datetime import datetime
 from .base import db
 from sqlalchemy.dialects.postgresql import JSONB
+from typing import Dict, Any
 
 # Association table for stories and characters
 story_characters = db.Table('story_characters',
@@ -133,6 +134,27 @@ class StoryNode(db.Model):
                             backref='source_node',
                             lazy=True,
                             primaryjoin="StoryNode.id == StoryChoice.node_id")
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the story node to a dictionary representation.
+        
+        Returns:
+            Dict[str, Any]: Dictionary containing node data
+        """
+        return {
+            "id": self.id,
+            "story_id": self.story_id,
+            "narrative_text": self.narrative_text,
+            "is_endpoint": self.is_endpoint,
+            "generated_by_ai": self.generated_by_ai,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "branch_metadata": self.branch_metadata or {},
+            "parent_node_id": self.parent_node_id,
+            "branch_id": self.branch_id,
+            "choice_id": self.choice_id,
+            "character_id": self.character_id,
+            "achievement_id": self.achievement_id
+        }
 
 class StoryChoice(db.Model):
     """

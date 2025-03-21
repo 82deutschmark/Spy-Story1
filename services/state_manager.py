@@ -288,34 +288,33 @@ class GameState:
             ValueError: If node_id is invalid or node not found
         """
         try:
-            # Start transaction
-            with db.session.begin_nested():
-                # Get and validate node
-                new_node = StoryNode.query.get(node_id)
-                if not new_node:
-                    raise ValueError(f"Invalid node ID: {node_id}")
+            # Get and validate node
+            new_node = StoryNode.query.get(node_id)
+            if not new_node:
+                logger.error(f"Invalid node ID: {node_id}")
+                raise ValueError(f"Invalid node ID: {node_id}")
+            
+            # Update current node
+            self.current_node = new_node
+            
+            # Update user progress if requested
+            if update_progress:
+                self.user_progress.current_node_id = node_id
+                self.user_progress.last_active = datetime.utcnow()
                 
-                # Update current node
-                self.current_node = new_node
-                
-                # Update user progress if requested
-                if update_progress:
-                    self.user_progress.current_node_id = node_id
-                    self.user_progress.last_active = datetime.utcnow()
-                    
-                    # Add to choice history if this is a new node
-                    if node_id not in self.user_progress.choice_history:
-                        self.user_progress.choice_history.append(node_id)
-                
-                # Commit transaction
-                db.session.commit()
-                
-                return True
+                # Add to choice history if this is a new node
+                if not self.user_progress.choice_history:
+                    self.user_progress.choice_history = []
+                if node_id not in self.user_progress.choice_history:
+                    self.user_progress.choice_history.append(node_id)
+            
+            # Log successful transition
+            logger.debug(f"Successfully transitioned to node {node_id}")
+            return True
                 
         except Exception as e:
             logger.error(f"Error transitioning to node {node_id}: {str(e)}")
-            db.session.rollback()
-            return False
+            raise  # Re-raise to let caller handle the error
 
 class GameStateManager:
     """

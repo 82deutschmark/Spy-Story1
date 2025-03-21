@@ -198,6 +198,30 @@ The choice should make sense given their traits and backstory.
             ))
         
         # Build the continuation prompt
+        random_char_name = random_character.character_name if random_character else 'a previously introduced character'
+        
+        # Define the JSON structure separately to avoid f-string issues
+        json_structure = '''
+{
+    "story": "Continuation narrative text",
+    "choices": [
+        {
+            "choice_id": "unique_choice_id",  # REQUIRED: Unique identifier for this choice
+            "text": "Choice description",
+            "consequence": "Brief outcome description",
+            "type": "direct/risky/social",
+            "currency_requirements": {
+                "💎": 10
+            },
+            "requirements": {}
+        }
+    ],
+    "mission_update": {
+        "status": "unchanged/progressed/completed/failed",
+        "progress_details": "How the mission has advanced"
+    }
+}'''
+        
         content_prompt = f"""Continue the story based on:
 
 PREVIOUS EVENTS:
@@ -222,7 +246,7 @@ STORY REQUIREMENTS:
 4. Create three distinct choices for how to proceed:
    - One that advances the mission directly
    - One that takes a risky approach, involving gunplay or car chases
-   - One that involves asking {random_character.character_name if random_character else 'a previously introduced character'} for help
+   - One that involves asking {random_char_name} for help
 5. Maintain narrative consistency with previous events
 6. Include rich descriptions of guns and cars and atmospheric details, but not of characters or their look or clothing
 7. Show character development through actions and dialogue
@@ -233,29 +257,10 @@ STORY REQUIREMENTS:
 12. Ensure all character interactions reflect their traits and relationships
 13. Make dialogue choices impact the story's direction
 14. Show how the protagonist's choices affect other characters
-15. 
-19. Keep the mission-giver and villain roles consistent with their previous appearances
+15. Keep the mission-giver and villain roles consistent with their previous appearances
 
 Your response MUST be valid JSON with this structure:
-{{
-    "story": "Continuation narrative text",
-    "choices": [
-        {{
-            "choice_id": "unique_choice_id",  # REQUIRED: Unique identifier for this choice
-            "text": "Choice description",
-            "consequence": "Brief outcome description",
-            "type": "direct/risky/social",
-            "currency_requirements": {{
-                "💎": 10
-            }},
-            "requirements": {{}}
-        }}
-    ],
-    "mission_update": {{
-        "status": "unchanged/progressed/completed/failed",
-        "progress_details": "How the mission has advanced"
-    }}
-}}"""
+{json_structure}"""
         
         # Add the continuation prompt
         context_manager.add_user_message(content_prompt)
@@ -308,8 +313,12 @@ Your response MUST be valid JSON with this structure:
             
             # Create final story data structure matching story_maker.py
             final_story_data = {
-                "stories": story_data,
-                "choices": story_data.get("choices", [])
+                "stories": {
+                    "story": story_data["story"],
+                    "choices": story_data["choices"],
+                    "mission_update": story_data["mission_update"]
+                },
+                "choices": story_data["choices"]  # Also expose choices at root level for easier access
             }
             
             return final_story_data
