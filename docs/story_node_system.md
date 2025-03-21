@@ -15,6 +15,13 @@
    - Links to parent nodes via `parent_node_id`
    - Contains `branch_metadata` with story_id, choice_id, etc.
    - Forms tree structure of narrative
+   - Implements `to_dict()` for state serialization with fields:
+     - Basic information (id, story_id, narrative_text)
+     - Status flags (is_endpoint, generated_by_ai)
+     - Timestamps (created_at)
+     - Metadata (branch_metadata)
+     - Relationships (parent_node_id, character_id, achievement_id)
+     - Branch information (branch_id, choice_id)
 
 3. `StoryChoice`
    - Connects story nodes

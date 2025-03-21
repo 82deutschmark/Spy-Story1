@@ -2,7 +2,7 @@
  * ChoiceHandler.js - Choice Management Module
  * =========================================
  * 
- * This module handles the flow of story choices, managing state and
+ * This module handles the flow of story choices and
  * communication between the frontend and backend.
  */
 
@@ -13,13 +13,6 @@ class ChoiceHandler {
     constructor() {
         this.loadingManager = new LoadingManager();
         this.errorHandler = new ErrorHandler();
-        this.currentState = {
-            story_id: null,
-            node_id: null,
-            characters: [],
-            story_context: null
-        };
-        this.handleChoiceSubmit = this.handleChoiceSubmit.bind(this);
     }
 
     /**
@@ -29,42 +22,12 @@ class ChoiceHandler {
         this.loadingManager.initialize();
         this.errorHandler.initialize();
         
-        // Initialize state from the page
-        this.initializeState();
-        
-        // Set up choice form handlers
-        document.querySelectorAll('.choice-form').forEach(form => {
-            form.addEventListener('submit', this.handleChoiceSubmit);
+        // Use event delegation for form submissions
+        document.addEventListener('submit', (event) => {
+            if (event.target.matches('.choice-form')) {
+                this.handleChoiceSubmit(event);
+            }
         });
-    }
-
-    /**
-     * Initialize state from the current page
-     * @throws {Error} If required story or node information is missing
-     */
-    initializeState() {
-        const storyIdInput = document.querySelector('input[name="story_id"]');
-        const nodeIdInput = document.querySelector('input[name="node_id"]');
-        const storyContextInput = document.querySelector('input[name="story_context"]');
-        const characterInputs = document.querySelectorAll('input[name="characters[]"]');
-
-        // Validate required fields
-        if (!storyIdInput || !storyIdInput.value) {
-            throw new Error('Missing story_id');
-        }
-        if (!nodeIdInput || !nodeIdInput.value) {
-            throw new Error('Missing node_id');
-        }
-        if (!storyContextInput || !storyContextInput.value) {
-            throw new Error('Missing story_context');
-        }
-
-        // Set state values
-        this.currentState.story_id = storyIdInput.value;
-        this.currentState.node_id = nodeIdInput.value;
-        this.currentState.story_context = storyContextInput.value;
-        this.currentState.characters = characterInputs ? 
-            Array.from(characterInputs).map(input => input.value) : [];
     }
 
     /**
@@ -78,13 +41,8 @@ class ChoiceHandler {
         let loadingState = null;
 
         try {
-            // Validate state before proceeding
-            if (!this.currentState.story_id || !this.currentState.node_id || !this.currentState.story_context) {
-                throw new Error('Missing required story or node information');
-            }
-
             // Disable all choice buttons
-            document.querySelectorAll('.choice-button').forEach(btn => {
+            document.querySelectorAll('.choice-btn').forEach(btn => {
                 btn.disabled = true;
             });
 
@@ -94,52 +52,20 @@ class ChoiceHandler {
                 submitButton.dataset.loadingText || 'Processing your choice...'
             );
 
-            // Get form data
-            const formData = new FormData(form);
-            
-            // Log form data for debugging
-            console.log('Form data:', Object.fromEntries(formData.entries()));
-
-            // Create JSON data
-            const jsonData = {
-                story_id: formData.get('story_id'),
-                node_id: formData.get('node_id'),
-                choice_id: formData.get('choice_id'),
-                previous_choice: formData.get('previous_choice'),
-                story_context: formData.get('story_context'),
-                characters: formData.getAll('characters[]'),
-                conflict: formData.get('conflict'),
-                setting: formData.get('setting'),
-                narrative_style: formData.get('narrative_style'),
-                mood: formData.get('mood')
-            };
-
-            // Validate required fields
-            if (!jsonData.choice_id) {
-                throw new Error('Missing choice_id');
-            }
-
-            // Log JSON data for debugging
-            console.log('JSON data:', jsonData);
-
-            // Submit the choice
+            // Submit the form data
             const response = await fetch(form.action, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
                 },
-                body: JSON.stringify(jsonData)
+                body: JSON.stringify(Object.fromEntries(new FormData(form)))
             });
 
             const result = await response.json();
 
-            if (!response.ok) {
+            if (!response.ok || result.error) {
                 throw new Error(result.error || `HTTP error! status: ${response.status}`);
-            }
-
-            if (result.error) {
-                throw new Error(result.error);
             }
 
             // Handle successful choice
@@ -160,14 +86,9 @@ class ChoiceHandler {
             }
 
             // Re-enable choice buttons
-            document.querySelectorAll('.choice-button').forEach(btn => {
+            document.querySelectorAll('.choice-btn').forEach(btn => {
                 btn.disabled = false;
             });
-
-            // Handle redirect if provided in error response
-            if (error.response && error.response.redirect) {
-                window.location.href = error.response.redirect;
-            }
         }
     }
 }

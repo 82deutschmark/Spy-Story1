@@ -278,7 +278,7 @@ def _build_additional_characters_prompt(
             f"  Role Requirements: {role_requirements}\n"
             f"  Traits: {traits_str}\n"
             f"  Suggested Usage: Include in a meaningful choice for the player character\n"
-            f"  Important: This character must maintain their assigned role and cannot be replaced or substituted\n"
+            f"  Important: This character should introduce one of thier plot_lines into the story\n"
         )
 
     return prompt
@@ -355,20 +355,22 @@ CHARACTERS THAT MUST BE USED IN THE STORY:
 {additional_chars_prompt}
 
 STORY CONTEXT:
-{story_context if story_context else "No additional context provided."}
+{story_context if story_context else "This is the first segment of the story, the protagonist is just starting out, introduce characters slowly and use 12000-14000 words."}
 
 IMPORTANT CHARACTER USAGE RULES:
 1. You MUST use the mission-giver character to give the initial mission, which targets one of the villain characters.
 2. The mission should have a clear objective like to steal something, kill someone, or obtain info or all three.
 3. The mission should have a deadline and a consequence for failure.
 4. The villain should not appear directly in the story until later in the game, introduce them first via other character dialogue
-5. You MUST NOT invent or create any important new characters, select from the characters provided in the character prompts and use their traits and backstory
-6. The mission-giver reluctantly agrees to give the player the mission and reminds them not to screw it up again.
-7. The villain must be well-protected and pose a significant challenge
+5. You MUST NOT invent or create any important new characters, select from the characters provided in the character prompts
+6. The protagonist should encounter the other characters by seeking them out or they will seek the protagonist out
+7. The other characters should have a reason to be hostile or helpful to the protagonist, and use their traits and backstory to enrich the story
+6. The mission-giver reluctantly agrees to give the player the mission and reminds them not to screw it up again, alluding to a previous fiasco.
+7. The villain must be well-protected and pose a significant challenge, but also be pathetic and incompetent and the object of disgust not fear. 
 8. The villain is hated by the mission-giver for reasons that are business or political or ideological or personal or any combination.
 9. The villain should have a weakness that the player can exploit
 10. The villain should have a backstory that explains their motivation, but generally they are a super rich scumbag who will stop at nothing to get what they want.
-11. Do not describe the villain's physical appearance, only their role and motivation.
+11. Do not describe the villain's physical appearance, only their role and motivation. 
 12. The mission-giver is a rich person, or a high-level spy or a government agent with a lot of resources and a lot of power. They need the protagonist for a discreet job
 13. The mission-giver should already have a strained relationship with the player character, who they view as a reckless and impulsive amateur.
 14. The mission-giver is always talking about geopolitical tensions and macroeconomic trends and esoteric financial strategies in niche industries, frequently in one or two complex and convoluted sentences.

@@ -110,6 +110,10 @@
                         </button>
                     </form>
                     {% endfor %}
+                {% else %}
+                    <div class="alert alert-warning">
+                        No choices available. Please refresh the page or contact support if this persists.
+                    </div>
                 {% endif %}
             </div>
 
