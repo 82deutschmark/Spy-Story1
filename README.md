@@ -117,6 +117,18 @@ This application allows users to generate interactive stories featuring characte
   - Fixed state manager initialization
   - Improved state consistency across components
 
+- **Choice System Overhaul**:
+  - Fixed critical choice handling in game engine
+  - Improved choice data consistency between story segments
+  - Enhanced transaction handling for choice processing
+  - Fixed empty choices array issue in node metadata
+  - Improved state management during choice transitions
+  - Added robust validation of continuation data
+  - Enhanced logging for debugging choice flow
+  - Fixed timing issues in node creation and choice assignment
+  - Improved error handling in choice processing
+  - Ensured proper choice population from story continuation
+
 ### Current Status
 
 - **Working Features**:
