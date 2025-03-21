@@ -345,15 +345,35 @@ def storyboard(story_id):
         # Commit the transaction after all database operations are successful
         db.session.commit()
 
+        # Check if environment flag is set to use the new enhanced storyboard template
+        use_enhanced_template = os.environ.get('USE_ENHANCED_STORYBOARD', 'false').lower() == 'true'
+        
+        template_name = 'new_storyboard.html' if use_enhanced_template else 'storyboard.html'
+        
+        # Additional template data for enhanced version
+        template_data = {
+            'story': template_story_data,
+            'story_id': story_id,
+            'node': current_node,
+            'character_images': character_images,
+            'background_image': background_image,
+            'user_progress': user_progress,
+            'story_progress': story_progress
+        }
+        
+        # Add additional data for character relationships and roles if available
+        for i, char in enumerate(character_images):
+            # Add default role if not present
+            if 'role' not in char:
+                char_obj = Character.query.get(char['id'])
+                if char_obj and char_obj.character_role:
+                    character_images[i]['role'] = char_obj.character_role
+                else:
+                    character_images[i]['role'] = 'character'
+                
         return render_template(
-            'storyboard.html',
-            story=template_story_data,
-            story_id=story_id,
-            node=current_node,
-            character_images=character_images,
-            background_image=background_image,
-            user_progress=user_progress,
-            story_progress=story_progress
+            template_name,
+            **template_data
         )
 
     except Exception as e:
