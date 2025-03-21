@@ -8,11 +8,13 @@
 
 import LoadingManager from '/static/js/modules/LoadingManager.js';
 import ErrorHandler from '/static/js/modules/ErrorHandler.js';
+import CharacterMentions from '/static/js/modules/CharacterMentions.js';
 
 class ChoiceHandler {
     constructor() {
         this.loadingManager = new LoadingManager();
         this.errorHandler = new ErrorHandler();
+        this.characterMentions = null;
     }
 
     /**
@@ -21,6 +23,12 @@ class ChoiceHandler {
     initialize() {
         this.loadingManager.initialize();
         this.errorHandler.initialize();
+        
+        // Initialize character mentions if we're on a story page
+        if (document.querySelector('.story-content')) {
+            this.characterMentions = new CharacterMentions();
+            this.characterMentions.initialize();
+        }
         
         // Use event delegation for form submissions
         document.addEventListener('submit', (event) => {

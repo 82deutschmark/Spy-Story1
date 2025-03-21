@@ -27,6 +27,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Metadata (branch_metadata)
   - Relationships (parent_node_id, character_id, achievement_id)
   - Branch information (branch_id, choice_id)
+- Character ID tracking in story choices
+- Explicit character_id field in JSON response structure
+- Validation for character IDs in story continuations
+- Enhanced character choice prompts with ID requirements
+- Character ID validation in response processing
+- Documentation for character ID handling
+- Enhanced character highlighting system in CharacterMentions.js:
+  - Proper HTML content handling using DOMParser
+  - Recursive text node processing
+  - Skip mechanism for already highlighted names
+  - Proper tooltip and click interaction handling
+  - Character portrait highlighting integration
+- Enhanced character data handling in storyboard route:
+  - Added character loading from choice metadata
+  - Improved character list compilation
+  - Better character relationship tracking
+  - Enhanced character data validation
 
 ### Changed
 - Refactored state management system:
@@ -41,6 +58,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added proper initialization of choices array in new nodes
   - Enhanced choice ID preservation across story segments
   - Improved choice type handling and validation
+- Updated segment_maker.py to enforce character ID preservation
+- Enhanced story node metadata to include character tracking
+- Improved character role handling in story generation
+- Updated documentation to reflect new character ID requirements
+- Refactored CharacterMentions module:
+  - Improved text processing logic
+  - Enhanced DOM manipulation approach
+  - Better character name detection
+  - More robust HTML structure handling
+- Updated storyboard route character handling:
+  - Now includes characters from all sources
+  - Better character metadata organization
+  - Improved character relationship tracking
+  - Enhanced character data validation
 
 ### Fixed
 - Fixed critical node resolution issues in storyboard route
@@ -128,6 +159,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added proper validation of continuation data
   - Enhanced logging of node states during transitions
   - Fixed choice data structure consistency between story_maker and segment_maker
+- Issue with character IDs not being properly tracked in choices
+- Inconsistent character references in story continuations
+- Missing character validation in story generation
+- Fixed character highlighting issues:
+  - Resolved broken HTML structure in character name highlighting
+  - Fixed multiple replacement issues with character names
+  - Corrected tooltip display and positioning
+  - Fixed character portrait highlighting
+  - Improved character name detection accuracy
+- Fixed character data loading in storyboard:
+  - Now properly loads characters from node choices
+  - Maintains complete character list across story segments
+  - Preserves character relationships and metadata
+  - Ensures consistent character display in UI
 
 ### Changed
 - Refactored state management system
