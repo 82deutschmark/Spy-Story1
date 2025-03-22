@@ -284,4 +284,16 @@ class ChoiceHandler {
 - Consider adding database constraints
 - Add logging for state transitions
 - Consider adding node validation middleware
-- Document all state transitions 
+- Document all state transitions
+
+## Storyboard File Overview
+
+The storyboard template is responsible for rendering the current state of the narrative. Key aspects include:
+- It is rendered by the `/storyboard/<story_id>` route, which provides context including the story content, current node, character images, background image, and user progress.
+- The template displays:
+  • A dynamic background image.
+  • A primary character showcase and a gallery of character portraits.
+  • The narrative text (from the current story node).
+  • A list of choice forms that submit required state (story_id, node_id, choice_id, etc.) to the `/make_choice` route.
+  • Flash messages to inform the user of success or errors.
+- Client-side JavaScript (in main.js and related modules) further augments user interaction through character highlighting and dynamic form handling.

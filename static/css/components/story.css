@@ -25,7 +25,7 @@
   position: relative;
   overflow-y: auto;
   max-height: 50vh;  /* Reduced from 60vh to leave room for choices */
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
   border-bottom: 1px solid rgba(139, 92, 246, 0.2);
   padding-bottom: 1rem;
 }
@@ -71,8 +71,12 @@
   background: rgba(255, 255, 255, 0.9);
   border-radius: 10px;
   padding: 1rem;
-  width: 95%;
+  max-width: 800px;
+  width: 100%;
   margin: auto;
+  /* New changes: limit height and allow inner scrolling */
+  max-height: 70vh;
+  overflow-y: auto;
 }
 
 .story-content {
@@ -121,8 +125,8 @@
 /* Story main container */
 .story-main-container {
   max-width: 1200px;
-  margin: 0 auto;
-  padding: 1rem;
+  margin: 2rem auto;
+  padding: 0 1rem;
 }
 
 /* Consequence text */
@@ -178,7 +182,7 @@
 /* Responsive design */
 @media (min-width: 992px) {
   .story-container {
-    grid-template-columns: minmax(300px, 1fr) 2fr;
+    grid-template-columns: 300px minmax(0, 1fr);
   }
 
   .story-main-container {

@@ -364,6 +364,18 @@ button[type="submit"].loading::after {
     margin-top: 2rem;
 }
 
+/* Legacy override interfering with component-specific layout for character portraits - disabled */
+// .character-portraits-grid {
+//     all: unset;  /* disable all inherited properties from custom.css */
+// }
+// .character-portraits-grid {
+//     display: grid;
+//     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+//     gap: 1.5rem;
+//     margin-top: 1rem;
+//     justify-items: center;
+// }
+
 .character-portraits-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));

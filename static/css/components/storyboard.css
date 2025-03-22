@@ -1,4 +1,3 @@
-
 /* Storyboard specific styles */
 .storyboard-body {
     background-color: #f9f7ff;
@@ -88,4 +87,51 @@
 .plot-arc-description {
     font-size: 0.9rem;
     color: #666;
+}
+
+/* New layout for storyboard page */
+.storyboard-layout {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+@media (max-width: 991px) {
+    .storyboard-layout {
+        flex-direction: column;
+    }
+}
+
+@media (min-width: 992px) {
+    .storyboard-layout .character-gallery {
+        position: fixed;      /* detach gallery so it stays fixed */
+        left: 1rem;           /* adjust position as needed */
+        top: 1rem;
+        width: 30%;           /* fixed width for gallery */
+        max-height: 80vh;
+        overflow-y: auto;
+        z-index: 3;
+    }
+    .storyboard-layout .story-content-container {
+        margin-left: calc(30% + 2rem);  /* leave space for fixed gallery */
+    }
+}
+
+/* Layout adjustments for children */
+.storyboard-layout .character-showcase {
+    flex: 0 0 35%;
+}
+.storyboard-layout .character-gallery {
+    flex: 0 0 35%;
+    margin-top: 0; /* remove extra top margin as needed */
+    position: sticky;  /* makes it fixed relative to viewport */
+    top: 1rem;         /* adjust as needed */
+    max-height: 80vh;  /* fixed vertical size */
+    overflow-y: auto;  /* allow inner scrolling if gallery overflows */
+}
+.storyboard-layout .story-content-container {
+    flex: 1;
+    max-height: 80vh; /* increased available height */
+    overflow-y: auto;
+    margin: 0; /* remove margin auto for flex layout */
 }

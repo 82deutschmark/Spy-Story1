@@ -28,7 +28,22 @@
     </div>
     {% endif %}
 
-    <div class="container mt-5">
+    <header class="site-header bg-dark text-white py-3">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="site-title m-0"><i class="fas fa-book-open me-2"></i>Global Espionage</h1>
+                <nav class="site-nav">
+                    <ul class="nav">
+                        <li class="nav-item"><a href="{{ url_for('main.index') }}" class="nav-link text-white">Home</a></li>
+                        <li class="nav-item"><a href="{{ url_for('main.index') }}" class="nav-link text-white">About</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-white">Contact</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <div class="container-fluid mt-5">
         <div class="row justify-content-center">
             <div class="col-md-10">
                 <div class="text-center mb-4">
@@ -208,6 +223,12 @@
             </div>
         </div>
     </div>
+
+    <footer class="site-footer bg-dark text-white py-3 mt-5">
+        <div class="container text-center">
+            <small>&copy; {{ current_year }} Spy Story. All rights reserved.</small>
+        </div>
+    </footer>
 
     <!-- Toast for notifications -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3">
