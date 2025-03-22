@@ -56,6 +56,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+// Initialize story content from hidden input
+document.addEventListener('DOMContentLoaded', () => {
+    const storyContentElem = document.querySelector('.story-content');
+    const storyContextInput = document.querySelector('input[name="story_context"]');
+    if (storyContentElem && storyContextInput) {
+        storyContentElem.innerHTML = storyContextInput.value;
+        // Initialize character mentions after text injection
+        const characterMentions = new CharacterMentions();
+        characterMentions.initialize();
+        console.log("Character mentions initialized after text injection");
+    }
+});
+
 // Setup global event listeners
 function setupGlobalListeners() {
     // Back to top button
@@ -95,13 +108,6 @@ async function initializeApplication() {
             const formHandler = new FormHandler();
             formHandler.initialize();
             console.log("FormHandler initialized");
-        }
-
-        // Initialize character highlighting if on story page
-        if (document.querySelector('.story-content')) {
-            const characterMentions = new CharacterMentions();
-            characterMentions.initialize();
-            console.log("Character mentions initialized");
         }
 
         // Initialize ChoiceHandler only on storyboard page

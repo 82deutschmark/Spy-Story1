@@ -15,6 +15,13 @@
   transition: opacity 0.5s ease;
 }
 
+/* New styling for the percentage display */
+.loading-percentage {
+  font-size: 2rem;
+  color: white;
+  margin-top: 10px;
+}
+
 .loading-overlay.fadeout {
   opacity: 0;
 }

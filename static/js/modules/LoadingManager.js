@@ -51,29 +51,26 @@ class LoadingManager {
      * @returns {Object} Loading state object with cleanup function
      */
     startButtonLoading(button, message = 'Processing...') {
+        // Instead of applying a button spinner, disable the button and show a full-screen overlay.
         const originalText = button.innerHTML;
         button.disabled = true;
-        button.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i>${message}`;
-
-        const loadingState = {
-            button,
-            originalText,
-            cleanup: () => this.stopButtonLoading(button, originalText)
-        };
-
-        this.loadingStates.set(button, loadingState);
+        const loadingState = this.startLoadingOverlay(message);
+        // Store button info along with the overlay state
+        this.loadingStates.set(button, { overlayState: loadingState, originalText });
         return loadingState;
     }
 
     /**
      * Stop loading state for a button
      * @param {HTMLElement} button - The button element
-     * @param {string} originalText - Original button text to restore
      */
-    stopButtonLoading(button, originalText) {
-        button.disabled = false;
-        button.innerHTML = originalText;
-        this.loadingStates.delete(button);
+    stopButtonLoading(button) {
+        const state = this.loadingStates.get(button);
+        if (state) {
+            button.disabled = false;
+            this.stopLoadingOverlay(state.overlayState.overlay);
+            this.loadingStates.delete(button);
+        }
     }
 
     /**
@@ -90,6 +87,7 @@ class LoadingManager {
                     <span class="visually-hidden">Loading...</span>
                 </div>
                 <div class="loading-message">${message}</div>
+                <div class="loading-percentage">0%</div>
                 <div class="progress mt-3" style="width: 200px;">
                     <div class="progress-bar progress-bar-striped progress-bar-animated" 
                          role="progressbar" style="width: 0%"></div>
@@ -102,6 +100,7 @@ class LoadingManager {
         const loadingState = {
             overlay,
             progressBar: overlay.querySelector('.progress-bar'),
+            percentage: overlay.querySelector('.loading-percentage'),
             message: overlay.querySelector('.loading-message'),
             cleanup: () => this.stopLoadingOverlay(overlay)
         };
@@ -126,7 +125,11 @@ class LoadingManager {
      */
     updateProgress(loadingState, progress) {
         if (loadingState.progressBar) {
-            loadingState.progressBar.style.width = `${Math.min(100, Math.max(0, progress))}%`;
+            const pct = Math.min(100, Math.max(0, progress));
+            loadingState.progressBar.style.width = `${pct}%`;
+            if(loadingState.percentage) {
+                loadingState.percentage.textContent = `${pct}%`;
+            }
         }
     }
 
@@ -202,4 +205,4 @@ class LoadingManager {
 }
 
 // Export the LoadingManager class
-export default LoadingManager; 
+export default LoadingManager;
