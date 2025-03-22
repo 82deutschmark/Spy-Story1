@@ -97,6 +97,7 @@ STORY_OPTIONS = {
         ("🌋", "Volcanic Lair"),
     ],
     "narrative_styles": [
+        ("🤪", "Absurdist wacky comedy"),
         ("😎", "Masterful spy thriller"),
         ("🔥", "Steamy romance novel"),
         ("🤪", "Absurdist wacky comedy"),
@@ -105,6 +106,7 @@ STORY_OPTIONS = {
         ("🤵", "Classic Bond film"),
     ],
     "moods": [
+        ("😂", "Light and funny with ridiculously over-the-top plot twists"),
         ("🍸", "Sexy and seductive"),
         ("💥", "Explosive and chaotic"),
         ("😂", "Light and funny with ridiculously over-the-top plot twists"),
@@ -302,7 +304,7 @@ class StoryPromptBuilder:
             CharacterPromptBuilder.build_additional_characters_prompt(additional_characters),
             "",
             "STORY CONTEXT:",
-            story_context if story_context else "This is the first segment of the story, the protagonist is just starting out, introduce characters slowly and use 12000-14000 words.",
+            story_context if story_context else "This is the first segment of the story, the protagonist is a charismatic, reckless, fearless rouge agent with a checkered past, introduce characters slowly and use 12000-14000 words.",
             "",
             "IMPORTANT CHARACTER USAGE RULES:",
             "1. You MUST use the mission-giver character to give the initial mission, which targets one of the villain characters.",
