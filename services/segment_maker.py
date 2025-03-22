@@ -146,15 +146,11 @@ class StoryContinuationHandler:
                 choice['choice_id'] = f"choice_{i}_{datetime.utcnow().timestamp()}"
             if 'character_id' not in choice:
                 choice['character_id'] = None
-                
-        # Create final story data structure matching story_maker.py
+        # Return a simplified structure without the nested "stories" key.
         return {
-            "stories": {
-                "story": story_data["story"],
-                "choices": story_data["choices"],
-                "mission_update": story_data["mission_update"]
-            },
-            "choices": story_data["choices"]  # Also expose choices at root level for easier access
+            "narrative_text": story_data["story"],
+            "choices": story_data["choices"],
+            "mission_update": story_data["mission_update"]
         }
     
     def build_continuation_prompt(
@@ -315,4 +311,4 @@ def generate_continuation(
         protagonist_name=protagonist_name,
         protagonist_gender=protagonist_gender,
         story_context=story_context
-    ) 
+    )
