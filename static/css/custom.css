@@ -112,7 +112,7 @@ body {
 
 .character-select-card img {
     width: 100%;
-    height: 400px;
+    height: auto;
     object-fit: cover;
     transition: transform 0.3s ease;
 }
@@ -339,8 +339,8 @@ button[type="submit"].loading::after {
 /* Character Showcase */
 .character-showcase {
     background: var(--card-bg);
-    border-radius: 15px;
-    padding: 1.5rem;
+    border-radius: 1px;
+    padding: 1rem;
     position: sticky;
     top: 2rem;
     height: fit-content;
@@ -380,6 +380,22 @@ button[type="submit"].loading::after {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
     gap: 1rem;
+}
+
+/* Override character-portraits-grid for proper dynamic sizing */
+.character-portraits-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+    gap: 1rem !important;
+}
+
+/* Override character-portraits-grid for better use of space */
+.character-portraits-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+    gap: 1rem !important;
+    width: 100%;
+    justify-items: center;
 }
 
 .character-portrait-mini {
@@ -505,7 +521,7 @@ button[type="submit"].loading::after {
     }
 
     .character-showcase {
-        position: relative;
+        position: initial;
         top: 0;
     }
 
