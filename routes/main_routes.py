@@ -369,17 +369,34 @@ def storyboard(story_id):
 def generate_story_route():
     """Generate a new story or continue an existing one"""
     try:
-        # Get form data
+        # Get form data as a dictionary
         data = request.form.to_dict()
         
-        # Get random characters with required roles
-        selected_characters = get_random_characters_with_roles()
+        # Use user's selected character IDs if provided in hidden input "selected_images"
+        selected_chars_input = request.form.getlist('selected_images')
+        if selected_chars_input:
+            # Convert input values to integers and query the Character table
+            selected_characters = Character.query.filter(
+                Character.id.in_([int(cid) for cid in selected_chars_input])
+            ).all()
+            # Ensure required roles (mission-giver and villain) are present
+            required_roles = ['mission-giver', 'villain']
+            existing_roles = [char.character_role.lower() for char in selected_characters if char.character_role]
+            for role in required_roles:
+                if role not in existing_roles:
+                    missing_char = Character.query.filter_by(character_role=role).order_by(db.func.random()).first()
+                    if missing_char:
+                        selected_characters.append(missing_char)
+        else:
+            # Fall back to random characters for required roles
+            selected_characters = get_random_characters_with_roles()
+        
         if not selected_characters:
             return jsonify({
                 'error': 'Unable to generate story: Missing required character roles'
             }), 500
             
-        # Add selected characters to form data
+        # Add selected characters (by their IDs) to form data
         data['selected_characters'] = [char.id for char in selected_characters]
         
         # Get user progress
@@ -401,13 +418,11 @@ def generate_story_route():
                 return redirect(url_for('main.storyboard', story_id=story_data['story_id']))
                 
         except Exception as e:
-            # Ensure transaction is rolled back
             db.session.rollback()
             raise
             
     except Exception as e:
         logger.error(f"Error generating story: {str(e)}", exc_info=True)
-        # Ensure any open transaction is rolled back
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
