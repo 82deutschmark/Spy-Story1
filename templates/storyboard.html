@@ -1,3 +1,28 @@
+<!--
+  STORYBOARD TEMPLATE DOCUMENTATION
+
+  Purpose:
+    Renders the current story state including narrative text, character showcases, and available choices.
+  
+  Data Provided:
+    - story: Overall story parameters (e.g., primary conflict, setting, mood)
+    - node: The current story node containing narrative text and branch_metadata (choices)
+    - character_images: List of character objects (id, image_url, name, traits)
+    - background_image: URL for the background image that sets the scene
+    - user_progress & story_progress: Tracking details for the current session
+  
+  Structure:
+    • Header and background: Displays the background image and overlays.
+    • Character Showcase: Shows a primary character and a grid gallery.
+    • Story Content: Contains the narrative text pulled from the current node.
+    • Choices: Dynamically generates forms for each available choice. Each form
+      carries hidden inputs (story/node IDs, state metadata) and posts to `/make_choice`.
+    • Flash Messages: Renders any session flash messages (e.g., errors) using Bootstrap alerts.
+  
+  Integration:
+    Works with the server-side storyboard route (in main_routes.py) which populates
+    the required context data and with client-side JS modules that manage user interactions.
+-->
 <!DOCTYPE html>
 <html>
 <head>
@@ -10,6 +35,20 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 </head>
 <body class="storyboard-body">
+    <header class="site-header bg-dark text-white py-3">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="site-title m-0"><i class="fas fa-book-open me-2"></i>Story Adventure</h1>
+                <nav class="site-nav">
+                    <ul class="nav">
+                        <li class="nav-item"><a href="{{ url_for('main.index') }}" class="nav-link text-white">Home</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-white">My Progress</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-white">Support</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
     {% if background_image %}
     <div class="story-background-container">
         <img src="{{ background_image }}" class="story-background" alt="Story Background">
@@ -17,35 +56,37 @@
     </div>
     {% endif %}
 
-    <div class="story-main-container">
-        <!-- Character Showcase -->
-        <div class="character-showcase">
+    <!-- Changed main container wrapper from fluid to fixed -->
+    <div class="container"> <!-- replaced container-fluid -->
+        <div class="storyboard-layout"> <!-- new wrapper start -->
             <!-- Primary Character -->
-            {% if character_images %}
-                {% set primary_char = character_images|selectattr("id", "equalto", node.character_id)|first %}
-                {% if not primary_char %}
-                    {% set primary_char = character_images|random %}
-                {% endif %}
-                <div class="character-container">
-                    <div class="character-select-card" data-character-name="{{ primary_char.name|lower|replace(' ', '-') }}">
-                        <div class="character-image-container">
-                            <img src="{{ primary_char.image_url }}" alt="{{ primary_char.name }}" class="character-image">
-                        </div>
-                        <div class="character-content">
-                            <div class="character-name">{{ primary_char.name }}</div>
-                            <div class="character-traits">
-                                {% if primary_char.traits %}
-                                    {% for trait in primary_char.traits %}
-                                        <span class="trait-badge">{{ trait }}</span>
-                                    {% endfor %}
-                                {% endif %}
+            <div class="character-showcase">
+                {% if character_images %}
+                    {% set primary_char = character_images|selectattr("id", "equalto", node.character_id)|first %}
+                    {% if not primary_char %}
+                        {% set primary_char = character_images|random %}
+                    {% endif %}
+                    <div class="character-container">
+                        <div class="character-select-card" data-character-name="{{ primary_char.name|lower|replace(' ', '-') }}">
+                            <div class="character-image-container">
+                                <img src="{{ primary_char.image_url }}" alt="{{ primary_char.name }}" class="character-image primary-character-img">
+                            </div>
+                            <div class="character-content">
+                                <div class="character-name">{{ primary_char.name }}</div>
+                                <div class="character-traits">
+                                    {% if primary_char.traits %}
+                                        {% for trait in primary_char.traits %}
+                                            <span class="trait-badge">{{ trait }}</span>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            {% endif %}
-
-            <!-- Character Gallery -->
+                {% endif %}
+            </div>
+            
+            <!-- Character Gallery: moved out as sibling -->
             <div class="character-gallery mt-4">
                 <h4 class="text-center mb-3">Characters in Story</h4>
                 <div class="character-portraits-grid">
@@ -70,91 +111,97 @@
                     {% endfor %}
                 </div>
             </div>
-        </div>
 
-        <!-- Story Content -->
-        <div class="story-content-container">
-            <div class="story-title-area">
-                <h1 class="story-title">{{ story.primary_conflict }}</h1>
-                <p class="story-subtitle">
-                    {% if story.setting %}
-                        A spy thriller in {{ story.setting }}
-                    {% elif story.primary_conflict %}
-                        {{ story.primary_conflict }}
-                    {% else %}
-                        Prototype: Spy Story
-                    {% endif %}
-                </p>
-            </div>
-
-            <div class="story-scroll-container">
-                <div class="story-content">
-                    {{ node.narrative_text | safe }}
-                </div>
-            </div>
-
-            <!-- Choices -->
-            <div class="choices-container mt-4">
-                {% if node.branch_metadata and node.branch_metadata.choices %}
-                    {% for choice in node.branch_metadata.choices %}
-                    <form method="POST" action="{{ url_for('main.make_choice') }}" class="choice-form" data-form-type="choice">
-                        <input type="hidden" name="previous_choice" value="{{ choice.text }}">
-                        <input type="hidden" name="story_context" value="{{ node.narrative_text }}">
-                        <input type="hidden" name="story_id" value="{{ story_id }}">
-                        <input type="hidden" name="node_id" value="{{ node.id }}">
-                        <input type="hidden" name="choice_id" value="{{ choice.id or choice.choice_id }}">
-                        
-                        <!-- Include ALL characters from node.branch_metadata.characters -->
-                        {% if node.branch_metadata.characters %}
-                            {% for char_id in node.branch_metadata.characters %}
-                            <input type="hidden" name="characters[]" value="{{ char_id }}">
-                            {% endfor %}
+            <!-- Story Content -->
+            <div class="story-content-container">
+                <div class="story-title-area">
+                    <h1 class="story-title">{{ story.primary_conflict }}</h1>
+                    <p class="story-subtitle">
+                        {% if story.setting %}
+                            A spy thriller in {{ story.setting }}
+                        {% elif story.primary_conflict %}
+                            {{ story.primary_conflict }}
+                        {% else %}
+                            Prototype: Spy Story
                         {% endif %}
-                        
-                        <!-- Include story metadata -->
-                        <input type="hidden" name="conflict" value="{{ story.primary_conflict|default('Unknown conflict') }}">
-                        <input type="hidden" name="setting" value="{{ story.setting|default('Unknown setting') }}">
-                        <input type="hidden" name="narrative_style" value="{{ story.narrative_style|default('Engaging modern style') }}">
-                        <input type="hidden" name="mood" value="{{ story.mood|default('Exciting and adventurous') }}">
-                        
-                        <button type="submit" class="choice-btn" 
-                                {% if choice.currency_requirements %}data-currency-req='{{ choice.currency_requirements|tojson }}'{% endif %}
-                                data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing...">
-                            {{ choice.text }}
-                            {% if choice.currency_requirements %}
-                            <span class="currency-req-item">
-                                {% for currency, amount in choice.currency_requirements.items() %}
-                                <span>{{ currency }}{{ amount }}</span>
-                                {% endfor %}
-                            </span>
-                            {% endif %}
-                        </button>
-                    </form>
-                    {% endfor %}
-                {% else %}
-                    <div class="alert alert-warning">
-                        No choices available. Please refresh the page or contact support if this persists.
-                    </div>
-                {% endif %}
-            </div>
-
-            <!-- Flash Messages -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                <div class="flash-messages">
-                    {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                    {% endfor %}
+                    </p>
                 </div>
-                {% endif %}
-            {% endwith %}
-        </div>
+
+                <div class="story-scroll-container">
+                    <div class="story-content">
+                        {{ node.narrative_text | safe }}
+                    </div>
+                </div>
+
+                <!-- Choices -->
+                <div class="choices-container mt-4">
+                    {% if node.branch_metadata and node.branch_metadata.choices %}
+                        {% for choice in node.branch_metadata.choices %}
+                        <form method="POST" action="{{ url_for('main.make_choice') }}" class="choice-form" data-form-type="choice">
+                            <input type="hidden" name="previous_choice" value="{{ choice.text }}">
+                            <input type="hidden" name="story_context" value="{{ node.narrative_text }}">
+                            <input type="hidden" name="story_id" value="{{ story_id }}">
+                            <input type="hidden" name="node_id" value="{{ node.id }}">
+                            <input type="hidden" name="choice_id" value="{{ choice.id or choice.choice_id }}">
+                            
+                            <!-- Include ALL characters from node.branch_metadata.characters -->
+                            {% if node.branch_metadata.characters %}
+                                {% for char_id in node.branch_metadata.characters %}
+                                <input type="hidden" name="characters[]" value="{{ char_id }}">
+                                {% endfor %}
+                            {% endif %}
+                            
+                            <!-- Include story metadata -->
+                            <input type="hidden" name="conflict" value="{{ story.primary_conflict|default('Unknown conflict') }}">
+                            <input type="hidden" name="setting" value="{{ story.setting|default('Unknown setting') }}">
+                            <input type="hidden" name="narrative_style" value="{{ story.narrative_style|default('Engaging modern style') }}">
+                            <input type="hidden" name="mood" value="{{ story.mood|default('Exciting and adventurous') }}">
+                            
+                            <button type="submit" class="choice-btn" 
+                                    {% if choice.currency_requirements %}data-currency-req='{{ choice.currency_requirements|tojson }}'{% endif %}
+                                    data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing...">
+                                {{ choice.text }}
+                                {% if choice.currency_requirements %}
+                                <span class="currency-req-item">
+                                    {% for currency, amount in choice.currency_requirements.items() %}
+                                    <span>{{ currency }}{{ amount }}</span>
+                                    {% endfor %}
+                                </span>
+                                {% endif %}
+                            </button>
+                        </form>
+                        {% endfor %}
+                    {% else %}
+                        <div class="alert alert-warning">
+                            No choices available. Please refresh the page or contact support if this persists.
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                {% endwith %}
+            </div>
+        </div> <!-- new wrapper end -->
     </div>
+
+    <footer class="site-footer bg-dark text-white py-3 mt-5">
+        <div class="container text-center">
+            <small>&copy; {{ current_year }} Spy Story. All rights reserved.</small>
+        </div>
+    </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
-</html> 
+</html>

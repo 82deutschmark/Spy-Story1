@@ -38,7 +38,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 0;
+  margin-bottom: 2rem; /* added extra spacing */
   width: 100%;
 }
 
@@ -89,10 +89,12 @@
 .trait-badge {
   background-color: #4299e1;
   color: white;
-  padding: 0.35em 0.65em;
-  font-size: 0.75em;
+  padding: 0.5em 0.75em; /* increased padding for better readability */
+  font-size: 0.8em;
   border-radius: 0.5rem;
-  opacity: 0.9;
+  margin: 0.25em;       /* spacing between badges */
+  display: inline-block;
+  white-space: nowrap;
 }
 
 /* Character Gallery */
@@ -106,9 +108,10 @@
 
 .character-portraits-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* increased min width for better use of space */
+  gap: 1.5rem;  /* adjusted gap for more breathing room */
   margin-top: 1rem;
+  justify-items: center;
 }
 
 .character-portrait-mini {
@@ -263,10 +266,12 @@
 .trait-badge {
   background-color: #4299e1;
   color: white;
-  padding: 0.35em 0.65em;
-  font-size: 0.75em;
+  padding: 0.5em 0.75em; /* increased padding for better readability */
+  font-size: 0.8em;
   border-radius: 0.5rem;
-  opacity: 0.9;
+  margin: 0.25em;       /* spacing between badges */
+  display: inline-block;
+  white-space: nowrap;
 }
 
 /* Character thumbnails panel */
@@ -438,6 +443,7 @@
     width: 40%; 
     position: sticky; 
     top: 1rem; 
+    z-index: 2; /* ensure gallery appears above story content */
   }
 
   .character-portrait-container,
@@ -445,7 +451,7 @@
     max-width: 650px;
   }
 }
-
+ /* reduced minimum width */
 /* Character Grid Layout */
 .character-grid {
     display: grid;
@@ -463,12 +469,15 @@
 .character-select-card {
     position: relative;
     width: 100%;
-    background-color: #1a2235;
+    background-color: rgba(26, 34, 53, 0.9);
     border-radius: 15px;
     overflow: hidden;
     border: 2px solid rgba(66, 153, 225, 0.3);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
     transition: all 0.3s ease;
+    /* Remove fixed max-width to allow proper scaling in fluid layouts */
+    /* max-width: 300px; */
+    margin: auto;
 }
 
 .character-select-card:hover {
@@ -486,7 +495,9 @@
 .character-image-container {
     position: relative;
     width: 100%;
-    padding-top: 100%; /* Creates a 1:1 aspect ratio */
+    /* Ensure the container remains a square */
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
 }
 
 .character-select-card img.character-image {
@@ -495,7 +506,8 @@
     left: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain !important;
+    display: block;
 }
 
 .character-content {
@@ -590,4 +602,11 @@
     .character-content {
         padding: 1rem;
     }
+}
+
+/* Adjust primary character image */
+.primary-character-img {
+    max-width: 300px;
+    max-height: 300px;
+    object-fit: contain;
 }
