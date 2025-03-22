@@ -136,19 +136,17 @@ class GameEngine:
                 'protagonist_level': form_data.get('protagonist_level', 1)
             }
             
-            # Get selected characters
+            # Get selected characters from form data
             selected_character_ids = form_data.get('selected_characters', [])
             if selected_character_ids:
-                # Query selected characters
+                # Query selected characters from DB
                 selected_characters = Character.query.filter(
                     Character.id.in_(selected_character_ids)
                 ).all()
                 
                 if selected_characters:
-                    # Use the first character as the main character_info
+                    # Use the first character as the primary character info
                     main_character = selected_characters[0]
-                    
-                    # Format the main character info with proper role handling
                     story_params['character_info'] = self.format_character_data(main_character)
                     
                     # Add any additional characters to additional_characters
@@ -327,7 +325,7 @@ class GameEngine:
             # Create new node with the generated content
             next_node = StoryNode(
                 story_id=story.id,
-                narrative_text=next_segment["narrative_text"],
+                narrative_text=next_segment["narrative_text"],  # Now clean without duplication
                 parent_node_id=current_node.id,
                 generated_by_ai=True,
                 branch_metadata={

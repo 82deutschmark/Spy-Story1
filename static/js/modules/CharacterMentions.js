@@ -69,6 +69,11 @@ class CharacterMentions {
      * @param {Node} node - The node to process
      */
     processNode(node) {
+        // If the node is already wrapped by a character mention, skip processing its children
+        if (node.nodeType !== Node.TEXT_NODE && node.querySelector('.character-tooltip')) {
+            return;
+        }
+        
         if (node.nodeType === Node.TEXT_NODE) {
             let text = node.textContent;
             let lastIndex = 0;
@@ -102,11 +107,6 @@ class CharacterMentions {
                 node.parentNode.replaceChild(span, node);
             }
         } else {
-            // Skip processing existing character mentions
-            if (node.classList && node.classList.contains('character-mention')) {
-                return;
-            }
-
             // Process child nodes
             Array.from(node.childNodes).forEach(child => this.processNode(child));
         }
@@ -141,4 +141,4 @@ class CharacterMentions {
 }
 
 // Export the CharacterMentions class
-export default CharacterMentions; 
+export default CharacterMentions;

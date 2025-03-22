@@ -140,17 +140,19 @@ class StoryContinuationHandler:
     
     def validate_response(self, story_data: Dict[str, Any], random_character: Optional[Character] = None) -> Dict[str, Any]:
         """Validate and process the story response."""
-        # Process choices
+        # Process choices: ensure each choice has a unique id and character_id is set to None if not needed.
         for i, choice in enumerate(story_data['choices']):
             if 'choice_id' not in choice:
                 choice['choice_id'] = f"choice_{i}_{datetime.utcnow().timestamp()}"
             if 'character_id' not in choice:
                 choice['character_id'] = None
-        # Return a simplified structure without the nested "stories" key.
+        # NEW: Remove any embedded raw IDs from narrative_text using a regex cleanup.
+        import re
+        clean_text = re.sub(r'\(character_id:\s*\d+\)', '', story_data["story"])
         return {
-            "narrative_text": story_data["story"],
+            "narrative_text": clean_text,
             "choices": story_data["choices"],
-            "mission_update": story_data["mission_update"]
+            "mission_update": story_data.get("mission_update", {})
         }
     
     def build_continuation_prompt(
@@ -164,12 +166,12 @@ class StoryContinuationHandler:
         """Build the continuation prompt."""
         random_char_name = random_character.character_name if random_character else 'a previously introduced character'
         
-        # Build the prompt parts separately to avoid f-string with JSON structure
         prompt_parts = [
-            "Continue the story based on:",
+            "Continue the story based on the following details:",
             "",
-            "PREVIOUS EVENTS:",
-            f"{previous_story[:500]}...",
+            # Removed duplicate previous_story excerpt to avoid echoing
+            # "PREVIOUS EVENTS:",
+            # f"{previous_story[:500]}...",
             "",
             "PLAYER'S CHOICE:",
             chosen_choice,
@@ -206,7 +208,6 @@ class StoryContinuationHandler:
             StoryPromptBuilder.get_json_structure()
         ]
         
-        # Join the parts with newlines
         return "\n".join(prompt_parts)
 
     def generate_continuation(

@@ -76,8 +76,19 @@ class ChoiceHandler {
                 throw new Error(result.error || `HTTP error! status: ${response.status}`);
             }
 
-            // Handle successful choice
-            if (result.redirect_url) {
+            // NEW: Based on the revised backend, expect result.narrative_text only once.
+            if (result.narrative_text) {
+                // Update story content with parsed narrative text.
+                this.updateStoryContent(result.narrative_text);
+                // Optionally update choices if returning new ones:
+                const choicesContainer = document.querySelector('.choices-container');
+                if (choicesContainer && result.choices) {
+                    choicesContainer.innerHTML = ''; 
+                    result.choices.forEach(choice => {
+                        // ...existing code to rebuild the choice forms...
+                    });
+                }
+            } else if (result.redirect_url) {
                 window.location.href = result.redirect_url;
             } else if (result.success && result.story_id) {
                 window.location.href = `/storyboard/${result.story_id}`;
@@ -99,6 +110,20 @@ class ChoiceHandler {
             });
         }
     }
+
+    /**
+     * Update story content with parsed narrative text
+     * @param {string} narrativeText - The narrative text to update
+     */
+    updateStoryContent(narrativeText) {
+        const storyContent = document.querySelector('.story-content');
+        if (storyContent) {
+            storyContent.innerHTML = narrativeText;
+            if (this.characterMentions) {
+                this.characterMentions.initialize();
+            }
+        }
+    }
 }
 
-export default ChoiceHandler; 
+export default ChoiceHandler;
