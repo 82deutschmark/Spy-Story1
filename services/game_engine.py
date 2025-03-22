@@ -327,7 +327,7 @@ class GameEngine:
             # Create new node with the generated content
             next_node = StoryNode(
                 story_id=story.id,
-                narrative_text=next_segment["stories"]["story"],
+                narrative_text=next_segment["narrative_text"],
                 parent_node_id=current_node.id,
                 generated_by_ai=True,
                 branch_metadata={
@@ -352,8 +352,8 @@ class GameEngine:
                     next_node.character_id = story_characters[0].id
                     
             # Add mission update to branch_metadata if present
-            if "mission_update" in next_segment["stories"]:
-                next_node.branch_metadata["mission_update"] = next_segment["stories"]["mission_update"]
+            if "mission_update" in next_segment:
+                next_node.branch_metadata["mission_update"] = next_segment["mission_update"]
             
             # Add node to session and flush to get ID
             db.session.add(next_node)
