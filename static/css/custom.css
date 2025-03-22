@@ -5,7 +5,7 @@
     --accent-color: #ff3e3e;   /* Warning red */
     --dark-bg: #faf9f9;        
     --card-bg: rgba(247, 241, 241, 0.85);  /* Slightly more transparent */
-    --text-color: #333;        /* Dark gray for text */
+    --text-color: #070000;        /* Dark gray for text */
     --border-color: #2a2a2a;
     --glow-blue: rgba(66, 153, 225, 0.2);
     --glow-red: rgba(255, 62, 62, 0.2);
@@ -592,4 +592,19 @@ button[type="submit"].loading::after {
 
 .character-mini-highlight {
     animation: pulseHighlight 2s infinite;
+}
+
+/* Example override forcing character-content display below image */
+.character-content {
+    display: block !important;
+    margin-top: 0.5rem !important;
+    padding: 1rem !important;
+    background-color: #eff1f5 !important;
+}
+
+/* If needed, adjust the square rule too */
+.character-image-container {
+    width: 100% !important;
+    aspect-ratio: 1 / 1 !important;
+    overflow: hidden;
 }

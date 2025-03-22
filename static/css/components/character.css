@@ -108,7 +108,7 @@
 
 .character-portraits-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* increased min width for better use of space */
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); /* dynamic sizing */
   gap: 1.5rem;  /* adjusted gap for more breathing room */
   margin-top: 1rem;
   justify-items: center;
@@ -492,10 +492,9 @@
     transform: translateY(-5px);
 }
 
+/* Update image container to always be square */
 .character-image-container {
-    position: relative;
     width: 100%;
-    /* Ensure the container remains a square */
     aspect-ratio: 1 / 1;
     overflow: hidden;
 }
@@ -510,8 +509,12 @@
     display: block;
 }
 
+/* Update character-content to be a block element below the card */
 .character-content {
-    padding: 1.5rem;
+    display: block;
+    position: relative;
+    margin-top: 0.5rem;
+    padding: 1rem;
     background-color: #1a2235;
 }
 
@@ -609,4 +612,5 @@
     max-width: 300px;
     max-height: 300px;
     object-fit: contain;
+    aspect-ratio: 1 / 1;  /* ensure square display */
 }
