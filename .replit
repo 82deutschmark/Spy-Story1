@@ -5,11 +5,11 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 main:app"]
+run = ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 'main:create_app()'"]
 build = ["sh", "-c", "pip install -r requirements.txt"]
 
 [workflows]
-runButton = "Start application"
+runButton = "Start application (fixed)"
 
 [[workflows.workflow]]
 name = "Project"
@@ -34,6 +34,15 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "python main.py"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Start application (fixed)"
+author = 38813642
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python -m main"
 
 [[ports]]
 localPort = 3000

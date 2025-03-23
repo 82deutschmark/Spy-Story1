@@ -80,9 +80,6 @@ def create_app():
     
     app.register_blueprint(main_bp)
     
-
-app = create_app()
-
     return app
 
 if __name__ == '__main__':
