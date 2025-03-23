@@ -1,4 +1,66 @@
 /**
+ * UserProgress.js - User State and Progress Management
+ * =============================================
+ * 
+ * !!! IMPORTANT - READ BEFORE MODIFYING !!!
+ * This module manages all user-related state and progress tracking.
+ * Changes here affect the user's entire game experience.
+ * 
+ * Key Features:
+ * ------------
+ * - Progress tracking
+ * - Experience points
+ * - Level management
+ * - Achievement tracking
+ * - Character relationships
+ * 
+ * Dependencies:
+ * -----------
+ * - EventHandlers: For event coordination
+ * - UIUtils: For progress feedback
+ * - LocalStorage: For state persistence
+ * - API endpoints: For server sync
+ * 
+ * Progress Types:
+ * -------------
+ * - Story Progress
+ * - Character Relationships
+ * - Mission Completion
+ * - Achievements
+ * - Currency Collection
+ * 
+ * Required DOM Elements:
+ * -------------------
+ * - '.progress-bar': Level and XP display
+ * - '.achievement-list': Achievement tracking
+ * - '.relationship-status': Character relations
+ * - '.user-stats': General statistics
+ * 
+ * Integration Points:
+ * -----------------
+ * - Story system for progress
+ * - Character system for relationships
+ * - Mission system for completion
+ * - Currency system for rewards
+ * 
+ * Usage Guidelines:
+ * ---------------
+ * 1. ALWAYS sync with server after changes
+ * 2. Maintain data consistency
+ * 3. Handle progress atomically
+ * 4. Cache progress locally
+ * 
+ * State Management:
+ * --------------
+ * 1. Load initial state
+ * 2. Track changes
+ * 3. Validate updates
+ * 4. Sync with server
+ * 5. Update UI
+ * 6. Cache state
+ */
+
+/**
  * User Progress Module
  * Manages user level and experience data
  */

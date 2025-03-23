@@ -1,5 +1,6 @@
 import logging
 from flask import Blueprint, request, jsonify
+from models.character_data import Character
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -20,13 +21,12 @@ def random_character():
     """
     Return a random character from the database.
     """
-    from models import ImageAnalysis
     import random
     import logging
 
     try:
-        # Get all characters
-        characters = ImageAnalysis.query.filter_by(image_type='character').all()
+        # Get all characters using the new Character model
+        characters = Character.query.order_by(Character.id).all()
 
         # Log character count and first few IDs for debugging
         logger.info(f"Found {len(characters)} characters for random selection")
@@ -45,7 +45,7 @@ def random_character():
         # Return character data
         response_data = {
             "id": random_char.id,
-            "name": random_char.character_name or "Unknown Character",
+            "name": random_char.character_name,
             "image_url": random_char.image_url,
             "character_role": random_char.character_role or "neutral",
             "success": True
@@ -66,7 +66,7 @@ def api_make_choice():
             return jsonify({'error': 'No data provided'}), 400
 
         # Forward to the main route handler
-        # which contains the business logic
+        from routes.main_routes import make_choice as make_choice_handler
         result = make_choice_handler(data)
         return jsonify(result)
     except Exception as e:
@@ -98,16 +98,18 @@ def get_user_progress():
                 'create_new': True
             })
 
-        # Return user progress data
+        # Return user progress data with proper null handling for all required fields
         return jsonify({
             'success': True,
             'user_progress': {
                 'user_id': user_progress.user_id,
                 'level': user_progress.level,
                 'experience_points': user_progress.experience_points,
-                'currency_balances': user_progress.currency_balances,
-                'active_missions': user_progress.active_missions,
-                'encountered_characters': user_progress.encountered_characters,
+                'currency_balances': user_progress.currency_balances or {},
+                'active_missions': user_progress.active_missions or [],
+                'completed_plot_arcs': user_progress.completed_plot_arcs if hasattr(user_progress, 'completed_plot_arcs') else [],
+                'choice_history': user_progress.choice_history if hasattr(user_progress, 'choice_history') else [],
+                'encountered_characters': user_progress.encountered_characters or {},
                 'current_story_id': user_progress.current_story_id
             }
         })

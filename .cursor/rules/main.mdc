@@ -1,0 +1,13 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+To prevent mistakes I should:
+Always read the entire file before making any changes
+Create a complete list of all required imports before making changes
+Double-check that all existing functionality is preserved
+Avoid adding any debugging or logging or increasing the number of lines in a file
+Document changes and functionalities in the file via comments.
+

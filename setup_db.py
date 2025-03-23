@@ -1,7 +1,11 @@
-
 import os
-from app import app, db
 import logging
+from dotenv import load_dotenv
+from main import create_app
+from database import db
+
+# Load environment variables
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -9,6 +13,7 @@ logger = logging.getLogger(__name__)
 def initialize_database():
     """Initialize the database by creating all tables"""
     try:
+        app = create_app()
         with app.app_context():
             db.create_all()
             logger.info("Database tables created successfully")

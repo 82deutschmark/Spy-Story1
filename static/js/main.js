@@ -1,93 +1,138 @@
 /**
- * Main entry point for the application
- * Imports all modules and initializes the application
+ * main.js - Application Entry Point
+ * ================================
+ * 
+ * !!! IMPORTANT - READ BEFORE MODIFYING !!!
+ * This is the primary entry point for the entire application.
+ * It orchestrates the initialization of all core modules.
+ * 
+ * Key Dependencies:
+ * ----------------
+ * - FormHandler: Form submission and validation (not used on storyboard)
+ * - UIUtils: UI interaction utilities
+ * - CharacterMentions: Character highlighting in story text
+ * - CharacterSelector: Character selection and management
+ * 
+ * Initialization Order:
+ * -------------------
+ * 1. FLASK_CONFIG validation and setup
+ * 2. CharacterSelector initialization (if on character selection page)
+ * 3. FormHandler initialization (if not on storyboard)
+ * 4. Character mentions setup (if on story page)
+ * 5. Global event listeners
+ * 6. Story ID management
+ * 
+ * Integration Points:
+ * -----------------
+ * - DOM Elements: Requires '.story-content' for character mentions
+ * - URL Parameters: Handles 'story_id' parameter
+ * - Local Storage: Manages 'lastStoryId' and configuration
+ * 
+ * Usage Guidelines:
+ * ---------------
+ * 1. NEVER modify the initialization order
+ * 2. ALWAYS maintain the FLASK_CONFIG structure
+ * 3. Any new global features must be initialized AFTER core modules
+ * 4. Keep the DOMContentLoaded event handler clean and organized
  */
-import UIUtils from './modules/UIUtils.js';
-import CurrencyManager from './modules/CurrencyManager.js';
-import UserProgress from './modules/UserProgress.js';
-import CharacterManager from './modules/CharacterManager.js';
-import StoryManager from './modules/StoryManager.js';
-import MissionManager from './modules/MissionManager.js';
-import PaymentManager from './modules/PaymentManager.js';
-import EventHandlers from './modules/EventHandlers.js';
-// Import modules - using dynamic import to ensure they load properly
-async function loadModules() {
+
+// Main JavaScript file
+import FormHandler from '/static/js/modules/FormHandler.js';
+import ChoiceHandler from '/static/js/modules/ChoiceHandler.js';
+import CharacterSelector from '/static/js/modules/CharacterSelector.js';
+import CharacterMentions from '/static/js/modules/CharacterMentions.js';
+import LoadingManager from '/static/js/modules/LoadingManager.js';
+import ErrorHandler from '/static/js/modules/ErrorHandler.js';
+import { UIUtils } from '/static/js/modules/UIUtils.js';
+
+// Wait for DOM content and modules to load
+document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // Load NotebookManager if the module exists
-        try {
-            const NotebookManagerModule = await import('./modules/NotebookManager.js');
-            // Check if default export exists
-            if (NotebookManagerModule.default) {
-                const NotebookManager = NotebookManagerModule.default;
-
-                if (document.querySelector('.notebook-container')) {
-                    const notebookManager = new NotebookManager();
-                    notebookManager.initialize();
-                    window.notebookManagerInstance = notebookManager;
-                } else {
-                    console.log("Notebook elements not found in the DOM, skipping initialization");
-                }
-            } else {
-                console.log("NotebookManager module loaded but doesn't have a default export");
-            }
-        } catch (notebookError) {
-            console.log("NotebookManager module not available or error:", notebookError.message);
-        }
-
-        // Load UserProgressManager
-        try {
-            const UserProgressManagerModule = await import('./modules/UserProgressManager.js');
-            const UserProgressManager = UserProgressManagerModule.default;
-
-            const userProgressManager = new UserProgressManager();
-            userProgressManager.initialize();
-            window.userProgressManagerInstance = userProgressManager;
-        } catch (progressError) {
-            console.error("Error initializing UserProgressManager:", progressError);
-        }
-
-        console.log("Modules loaded successfully");
+        console.log("DOM Content Loaded, initializing application...");
+        await initializeApplication();
     } catch (error) {
-        console.error("Error loading modules:", error);
+        console.error("Error during initialization:", error);
+        UIUtils.showToast('Error', 'Failed to initialize application. Please refresh the page.');
+    }
+});
+
+// Setup global event listeners
+function setupGlobalListeners() {
+    // Back to top button
+    const backToTopBtn = document.getElementById('back-to-top');
+    if (backToTopBtn) {
+        window.onscroll = function() {
+            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+                backToTopBtn.style.display = 'block';
+            } else {
+                backToTopBtn.style.display = 'none';
+            }
+        };
+
+        backToTopBtn.addEventListener('click', function() {
+            document.body.scrollTop = 0; // For Safari
+            document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+        });
     }
 }
 
-// Wait for DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("DOM loaded, initializing modules...");
-    loadModules();
-});
-import UserProgressManager from './modules/UserProgressManager.js';
+// Main initialization
+async function initializeApplication() {
+    try {
+        // Check for FLASK_CONFIG
+        if (!window.FLASK_CONFIG) {
+            console.warn('FLASK_CONFIG not found. Using default configuration.');
+            window.FLASK_CONFIG = {
+                staticUrl: '/static/',
+                apiBaseUrl: '/api'
+            };
+        }
 
+        console.log("Initializing application with config:", window.FLASK_CONFIG);
 
-// Make core modules available globally for debugging
-window.App = {
-    UI: UIUtils,
-    Currency: CurrencyManager,
-    Progress: UserProgress,
-    Character: CharacterManager,
-    Story: StoryManager,
-    Mission: MissionManager,
-    Payment: PaymentManager
-};
+        // Initialize FormHandler only if not on storyboard page
+        if (!document.querySelector('.storyboard-body')) {
+            const formHandler = new FormHandler();
+            formHandler.initialize();
+            console.log("FormHandler initialized");
+        }
 
-// Initialize the application when the DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Check if we're on a storyboard page and save the story ID
-    const storyIdParam = new URLSearchParams(window.location.search).get('story_id');
-    if (storyIdParam) {
-        localStorage.setItem('lastStoryId', storyIdParam);
+        // Initialize character highlighting if on story page
+        if (document.querySelector('.story-content')) {
+            const characterMentions = new CharacterMentions();
+            characterMentions.initialize();
+            console.log("Character mentions initialized");
+        }
+
+        // Initialize ChoiceHandler only on storyboard page
+        if (document.querySelector('.storyboard-body')) {
+            const choiceHandler = new ChoiceHandler();
+            choiceHandler.initialize();
+            console.log("ChoiceHandler initialized");
+        }
+
+        // Initialize loading manager
+        const loadingManager = new LoadingManager();
+        loadingManager.initialize();
+        console.log("LoadingManager initialized");
+
+        // Initialize error handler
+        const errorHandler = new ErrorHandler();
+        errorHandler.initialize();
+        console.log("ErrorHandler initialized");
+
+        // Setup global event listeners
+        setupGlobalListeners();
+
+        // Store story ID if present
+        const storyIdParam = new URLSearchParams(window.location.search).get('story_id');
+        if (storyIdParam) {
+            localStorage.setItem('lastStoryId', storyIdParam);
+        }
+
+        console.log("Application initialization complete");
+    } catch (error) {
+        console.error('Critical error during application initialization:', error);
+        UIUtils.showToast('Error', 'An error occurred while loading the application. Please refresh the page or contact support if the problem persists.');
     }
-
-    EventHandlers.initialize();
-
-    // Let the class initialization handle itself in their respective module files
-    // This ensures modules are loaded consistently whether imported in main.js or loaded via script tags
-});
-
-// NOTE: The following features are described in the thinking section but not fully implemented in the provided changes:
-// - "Continue Story" button in storyboard.html
-// - "Continue Story" button in index.html
-// - continueStory method in NotebookManager.js
-// - Updated UserProgressManager.js to handle last story ID and button display
-// - Updated main.js to handle story ID storage when a story is viewed.
+}

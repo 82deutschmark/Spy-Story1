@@ -1,374 +1,207 @@
+<!--
+  STORYBOARD TEMPLATE DOCUMENTATION
+
+  Purpose:
+    Renders the current story state including narrative text, character showcases, and available choices.
+  
+  Data Provided:
+    - story: Overall story parameters (e.g., primary conflict, setting, mood)
+    - node: The current story node containing narrative text and branch_metadata (choices)
+    - character_images: List of character objects (id, image_url, name, traits)
+    - background_image: URL for the background image that sets the scene
+    - user_progress & story_progress: Tracking details for the current session
+  
+  Structure:
+    • Header and background: Displays the background image and overlays.
+    • Character Showcase: Shows a primary character and a grid gallery.
+    • Story Content: Contains the narrative text pulled from the current node.
+    • Choices: Dynamically generates forms for each available choice. Each form
+      carries hidden inputs (story/node IDs, state metadata) and posts to `/make_choice`.
+    • Flash Messages: Renders any session flash messages (e.g., errors) using Bootstrap alerts.
+  
+  Integration:
+    Works with the server-side storyboard route (in main_routes.py) which populates
+    the required context data and with client-side JS modules that manage user interactions.
+-->
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
-
-<script type="module" src="/static/js/main.js"></script>
-
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Story Adventure</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 </head>
 <body class="storyboard-body">
-    <!-- Notebook button -->
-    <button id="toggleNotebookBtn" class="notebook-toggle-btn">
-        <i class="fas fa-book-open"></i> Agent's Notebook
-    </button>
-
-    <!-- Notebook Sidebar -->
-    <div id="notebookSidebar" class="notebook-sidebar">
-        <div class="notebook-header">
-            <h3><i class="fas fa-book me-2"></i>Agent's Notebook</h3>
-            <button id="closeNotebookBtn" class="close-notebook-btn">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="notebook-content">
-            <div class="notebook-section">
-                <h4><i class="fas fa-user-circle me-2"></i>Agent Profile</h4>
-                <div class="notebook-data">
-                    <p><strong>Name:</strong> <span id="agentName">{{ user_progress.protagonist_name or "Agent" }}</span></p>
-                    <p><strong>Level:</strong> <span id="agentLevel">{{ user_progress.level }}</span></p>
-                    <div class="progress mb-2">
-                        <div class="progress-bar" id="xpProgressBar" role="progressbar" style="width: {{ (user_progress.experience_points % 100) }}%"></div>
-                    </div>
-                    <p><small><span id="agentXP">{{ user_progress.experience_points }}</span> XP</small></p>
-                    {% if user_progress.current_story_id %}
-                    <div class="continue-story-btn-container mt-3">
-                        <button id="continueStoryBtn" class="btn btn-primary btn-sm w-100">
-                            <i class="fas fa-book-reader me-2"></i>Continue Your Adventure
-                        </button>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <div class="notebook-section">
-                <h4><i class="fas fa-coins me-2"></i>Currency</h4>
-                <div class="notebook-data currency-balances">
-                    {% for currency, amount in user_progress.currency_balances.items() %}
-                    <div class="currency-item">
-                        <span class="currency-symbol">{{ currency }}</span>
-                        <span class="currency-amount">{{ amount }}</span>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            
-            <div class="notebook-section">
-                <h4><i class="fas fa-tasks me-2"></i>Active Missions</h4>
-                <div class="notebook-data">
-                    {% if user_progress.active_missions and user_progress.active_missions|length > 0 %}
-                        <ul class="notebook-missions-list">
-                        {% for mission_id in user_progress.active_missions %}
-                            <li class="mission-item">Mission #{{ mission_id }}</li>
-                        {% endfor %}
-                        </ul>
-                    {% else %}
-                        <p>No active missions</p>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <div class="notebook-section">
-                <h4><i class="fas fa-users me-2"></i>Character Relationships</h4>
-                <div class="notebook-data">
-                    {% if user_progress.character_relationships and user_progress.character_relationships|length > 0 %}
-                        <ul class="relationships-list">
-                        {% for char_id, data in user_progress.character_relationships.items() %}
-                            <li>
-                                <span class="char-name">{{ data.name }}</span>
-                                <div class="relationship-meter">
-                                    <div class="relationship-level" style="width: {{ data.relationship_value * 10 }}%"></div>
-                                </div>
-                            </li>
-                        {% endfor %}
-                        </ul>
-                    {% else %}
-                        <p>No character relationships</p>
-                    {% endif %}
-                </div>
+    <header class="site-header bg-dark text-white py-3">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="site-title m-0"><i class="fas fa-book-open me-2"></i>Story Adventure</h1>
+                <nav class="site-nav">
+                    <ul class="nav">
+                        <li class="nav-item"><a href="{{ url_for('main.index') }}" class="nav-link text-white">Home</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-white">My Progress</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-white">Support</a></li>
+                    </ul>
+                </nav>
             </div>
         </div>
-    </div>
-
+    </header>
     {% if background_image %}
-    <img src="{{ background_image }}" class="story-background" alt="Story Background">
+    <div class="story-background-container">
+        <img src="{{ background_image }}" class="story-background" alt="Story Background">
+        <div class="background-overlay"></div>
+    </div>
     {% endif %}
 
-    <div class="story-main-container">
-        <!-- Character Showcase -->
-        <div class="character-showcase">
-            {% for char in character_images[:1] %}
-            <div class="character-portrait-container">
-                <img src="{{ char.image_url }}" class="main-character-img" alt="{{ char.name|default('Mystery Character') }}">
-            </div>
-            <div class="character-info-box">
-                <h3>{{ char.name|default('Mystery Character') }}</h3>
-                <div class="character-traits-list">
-                    {% if char.traits %}
-                        {% for trait in char.traits %}
-                        <span class="trait-badge">{{ trait }}</span>
-                        {% endfor %}
+    <!-- Changed main container wrapper from fluid to fixed -->
+    <div class="container"> <!-- replaced container-fluid -->
+        <div class="storyboard-layout"> <!-- new wrapper start -->
+            <!-- Primary Character -->
+            <div class="character-showcase">
+                {% if character_images %}
+                    {% set primary_char = character_images|selectattr("id", "equalto", node.character_id)|first %}
+                    {% if not primary_char %}
+                        {% set primary_char = character_images|random %}
                     {% endif %}
-                </div>
+                    <div class="character-container">
+                        <div class="character-select-card" data-character-name="{{ primary_char.name|lower|replace(' ', '-') }}">
+                            <div class="character-image-container">
+                                <img src="{{ primary_char.image_url }}" alt="{{ primary_char.name }}" class="character-image primary-character-img">
+                            </div>
+                            <div class="character-content">
+                                <div class="character-name">{{ primary_char.name }}</div>
+                                <div class="character-traits">
+                                    {% if primary_char.traits %}
+                                        {% for trait in primary_char.traits %}
+                                            <span class="trait-badge">{{ trait }}</span>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
             </div>
-            {% endfor %}
-
-            <!-- Character Gallery for all characters -->
+            
+            <!-- Character Gallery: moved out as sibling -->
             <div class="character-gallery mt-4">
                 <h4 class="text-center mb-3">Characters in Story</h4>
                 <div class="character-portraits-grid">
                     {% for char in character_images %}
-                    <div class="character-portrait-mini" data-character-name="{{ char.name|lower|replace(' ', '-') }}">
-                        <img src="{{ char.image_url }}" alt="{{ char.name }}" class="character-mini-img">
-                        <div class="character-mini-name">{{ char.name }}</div>
+                    <div class="character-container">
+                        <div class="character-select-card" data-character-name="{{ char.name|lower|replace(' ', '-') }}">
+                            <div class="character-image-container">
+                                <img src="{{ char.image_url }}" alt="{{ char.name }}" class="character-image">
+                            </div>
+                            <div class="character-content">
+                                <div class="character-name">{{ char.name }}</div>
+                                <div class="character-traits">
+                                    {% if char.traits %}
+                                        {% for trait in char.traits %}
+                                            <span class="trait-badge">{{ trait }}</span>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
             </div>
-        </div>
 
-        <!-- Story Content -->
-        <div class="story-content-container">
-            <div class="story-title-area">
-                <h1 class="story-title">{{ story.title }}</h1>
-                <p class="story-subtitle">
-                    {% if story.setting %}
-                        A spy thriller in {{ story.setting }}
-                    {% elif story.conflict %}
-                        {{ story.conflict }}
-                    {% else %}
-                        International Spy Network: 2070
-                    {% endif %}
-                </p>
-            </div>
+            <!-- Story Content -->
+            <div class="story-content-container">
+                <div class="story-title-area">
+                    <h1 class="story-title">{{ story.primary_conflict }}</h1>
+                    <p class="story-subtitle">
+                        {% if story.setting %}
+                            A spy thriller in {{ story.setting }}
+                        {% elif story.primary_conflict %}
+                            {{ story.primary_conflict }}
+                        {% else %}
+                            Prototype: Spy Story
+                        {% endif %}
+                    </p>
+                </div>
 
-            <div class="story-scroll-container">
-                <div class="story-content">
-                    {{ story.story | safe }}
+                <div class="story-scroll-container">
+                    <div class="story-content">
+                        {{ node.narrative_text | safe }}
+                    </div>
                 </div>
 
                 <!-- Choices -->
-                <div class="choices-container">
-                    {% for choice in story.choices %}
-                    <form action="{{ url_for('main.generate_story_route') }}" method="POST" class="choice-form">
-                        <input type="hidden" name="previous_choice" value="{{ choice.text }}">
-                        <input type="hidden" name="story_context" value="{{ story.story }}">
-                        <input type="hidden" name="story_id" value="{{ story_id }}">
-                        <!-- Character selection data - include all characters -->
-                        {% for image in character_images %}
-                        <input type="hidden" name="selected_images[]" value="{{ image.id }}">
-                        {% endfor %}
-                        <!-- Include conflict/setting data from the initial story -->
-                        <input type="hidden" name="conflict" value="{{ story.conflict|default('Mysterious adventure') }}">
-                        <input type="hidden" name="setting" value="{{ story.setting|default('Enchanted world') }}">
-                        <input type="hidden" name="narrative_style" value="{{ story.narrative_style|default('Engaging modern style') }}">
-                        <input type="hidden" name="mood" value="{{ story.mood|default('Exciting and adventurous') }}">
-                        <button type="submit" class="choice-btn" {% if choice.currency_requirements %}data-currency-req='{{ choice.currency_requirements|tojson }}'{% endif %}>
-                            <div class="choice-text">{{ choice.text }}</div>
-                            {% if choice.currency_requirements %}
-                            <div class="choice-currency-req">
-                                {% for currency, amount in choice.currency_requirements.items() %}
-                                <span class="currency-req-item {% if user_progress.currency_balances.get(currency, 0) < amount %}currency-req-insufficient{% endif %}">
-                                    {{ currency }}{{ amount }}
-                                </span>
+                <div class="choices-container mt-4">
+                    {% if node.branch_metadata and node.branch_metadata.choices %}
+                        {% for choice in node.branch_metadata.choices %}
+                        <form method="POST" action="{{ url_for('main.make_choice') }}" class="choice-form" data-form-type="choice">
+                            <input type="hidden" name="previous_choice" value="{{ choice.text }}">
+                            <input type="hidden" name="story_context" value="{{ node.narrative_text }}">
+                            <input type="hidden" name="story_id" value="{{ story_id }}">
+                            <input type="hidden" name="node_id" value="{{ node.id }}">
+                            <input type="hidden" name="choice_id" value="{{ choice.id or choice.choice_id }}">
+                            
+                            <!-- Include ALL characters from node.branch_metadata.characters -->
+                            {% if node.branch_metadata.characters %}
+                                {% for char_id in node.branch_metadata.characters %}
+                                <input type="hidden" name="characters[]" value="{{ char_id }}">
                                 {% endfor %}
-                            </div>
                             {% endif %}
-                        </button>
-                    </form>
-                    {% endfor %}
-
-                    <!-- Custom Choice Option -->
-                    <form action="{{ url_for('main.generate_story_route') }}" method="POST" class="choice-form custom-choice-form">
-                        <input type="hidden" name="story_context" value="{{ story.story }}">
-                        <input type="hidden" name="story_id" value="{{ story_id }}">
-                        <!-- Character selection data - include all characters -->
-                        {% for image in character_images %}
-                        <input type="hidden" name="selected_images[]" value="{{ image.id }}">
-                        {% endfor %}
-                        <!-- Include conflict/setting data from the initial story -->
-                        <input type="hidden" name="conflict" value="{{ story.conflict|default('Mysterious adventure') }}">
-                        <input type="hidden" name="setting" value="{{ story.setting|default('Enchanted world') }}">
-                        <input type="hidden" name="narrative_style" value="{{ story.narrative_style|default('Engaging modern style') }}">
-                        <input type="hidden" name="mood" value="{{ story.mood|default('Exciting and adventurous') }}">
-                        <input type="text" name="custom_choice" class="form-control custom-choice-input" placeholder="Write your own choice...">
-                        <button type="submit" class="choice-btn custom-choice-btn">
-                            <div class="choice-text">Make Your Own Choice</div>
-                            <div class="choice-currency-req">
-                                <span class="currency-req-item {% if user_progress.currency_balances.get('💎', 0) < 100 %}currency-req-insufficient{% endif %}">
-                                    💎100
+                            
+                            <!-- Include story metadata -->
+                            <input type="hidden" name="conflict" value="{{ story.primary_conflict|default('Unknown conflict') }}">
+                            <input type="hidden" name="setting" value="{{ story.setting|default('Unknown setting') }}">
+                            <input type="hidden" name="narrative_style" value="{{ story.narrative_style|default('Engaging modern style') }}">
+                            <input type="hidden" name="mood" value="{{ story.mood|default('Exciting and adventurous') }}">
+                            
+                            <button type="submit" class="choice-btn" 
+                                    {% if choice.currency_requirements %}data-currency-req='{{ choice.currency_requirements|tojson }}'{% endif %}
+                                    data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing...">
+                                {{ choice.text }}
+                                {% if choice.currency_requirements %}
+                                <span class="currency-req-item">
+                                    {% for currency, amount in choice.currency_requirements.items() %}
+                                    <span>{{ currency }}{{ amount }}</span>
+                                    {% endfor %}
                                 </span>
-                            </div>
-                        </button>
-                    </form>
+                                {% endif %}
+                            </button>
+                        </form>
+                        {% endfor %}
+                    {% else %}
+                        <div class="alert alert-warning">
+                            No choices available. Please refresh the page or contact support if this persists.
+                        </div>
+                    {% endif %}
                 </div>
 
-                {% if story.currency_trade_offer %}
-                <div class="currency-trade-offer">
-                    <div class="trade-offer-text">{{ story.currency_trade_offer.text }}</div>
-                    <div class="trade-offer-details">
-                        Trade {{ story.currency_trade_offer.from_currency }} for {{ story.currency_trade_offer.to_currency }} 
-                        at rate: {{ story.currency_trade_offer.rate }}
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        {% endfor %}
                     </div>
-                    <button class="btn btn-outline-primary accept-trade-btn" 
-                            data-from="{{ story.currency_trade_offer.from_currency }}"
-                            data-to="{{ story.currency_trade_offer.to_currency }}"
-                            data-rate="{{ story.currency_trade_offer.rate }}">
-                        Accept Trade Offer
-                    </button>
-                </div>
-                {% endif %}
-
+                    {% endif %}
+                {% endwith %}
             </div>
-
-            <!-- Navigation -->
-            <div class="navigation-area">
-                <!-- Home button removed -->
-            </div>
-        </div>
+        </div> <!-- new wrapper end -->
     </div>
 
-    <!-- Purchase Modal Removed -->
-
-    <!-- Trade Modal -->
-    <div class="modal fade" id="tradeModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Trade Currencies</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="tradeForm">
-                        <div class="mb-3">
-                            <label class="form-label">From Currency</label>
-                            <select class="form-select" id="fromCurrency">
-                                <option value="💎">💎 Diamonds</option>
-                                <option value="💷">💷 Pounds</option>
-                                <option value="💶">💶 Euros</option>
-                                <option value="💴">💴 Yen</option>
-                                <option value="💵">💵 Dollars</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Amount</label>
-                            <input type="number" class="form-control" id="tradeAmount" min="1">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">To Currency</label>
-                            <select class="form-select" id="toCurrency">
-                                <option value="💎">💎 Diamonds</option>
-                                <option value="💷">💷 Pounds</option>
-                                <option value="💶">💶 Euros</option>
-                                <option value="💴">💴 Yen</option>
-                                <option value="💵">💵 Dollars</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Trade</button>
-                    </form>
-                </div>
-            </div>
+    <footer class="site-footer bg-dark text-white py-3 mt-5">
+        <div class="container text-center">
+            <small>&copy; {{ current_year }} Spy Story. All rights reserved.</small>
         </div>
-    </div>
-
-    <!-- Toast notification -->
-    <div class="toast-container position-fixed bottom-0 end-0 p-3">
-        <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header">
-                <i class="fas fa-info-circle me-2"></i>
-                <strong class="me-auto" id="toastTitle">Notification</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body" id="toastMessage"></div>
-        </div>
-    </div>
+    </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- PayPal integration removed -->
-<!-- User Progress Modal removed -->
-
-
-    <!-- Mission Details Modal -->
-    <div class="modal fade" id="missionDetailsModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="missionTitle">Mission Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mission-loading">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="mt-2">Loading mission details...</p>
-                    </div>
-
-                    <div class="mission-content" style="display: none;">
-                        <div class="row">
-                            <div class="col-md-8">
-                                <h4 id="missionDetailTitle">Mission Title</h4>
-                                <p class="lead" id="missionObjective">Mission objective</p>
-                                <div class="card mb-3">
-                                    <div class="card-body">
-                                        <p id="missionDescription">Mission description goes here...</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="card mb-3">
-                                    <div class="card-header bg-info text-white">
-                                        <h6 class="mb-0">Mission Stats</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <p><strong>Difficulty:</strong> <span id="missionDifficulty">Medium</span></p>
-                                        <p><strong>Status:</strong> <span id="missionStatus">Active</span></p>
-                                        <p><strong>Deadline:</strong> <span id="missionDeadline">Soon</span></p>
-                                        <p><strong>Reward:</strong> <span id="missionReward">💵 1,000</span></p>
-                                        <div class="progress mb-2">
-                                            <div id="missionProgressBar" class="progress-bar bg-success" role="progressbar" style="width: 25%" 
-                                                aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">
-                                                25%
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="card">
-                                    <div class="card-header bg-primary text-white">
-                                        <h6 class="mb-0">Characters</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <p><strong>Mission Giver:</strong> <span id="missionGiver">Unknown</span></p>
-                                        <p><strong>Target:</strong> <span id="missionTarget">Unknown</span></p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mt-4" id="missionActions">
-                            <button id="completeBtn" class="btn btn-success me-2">
-                                <i class="fas fa-check-circle me-2"></i>Complete Mission
-                            </button>
-                            <button id="failBtn" class="btn btn-danger">
-                                <i class="fas fa-times-circle me-2"></i>Fail Mission
-                            </button>
-                        </div>
-
-                        <div id="progressUpdates" class="mt-4">
-                            <h5>Progress Updates</h5>
-                            <div class="list-group" id="progressUpdatesList">
-                                <!-- Progress updates will be inserted here -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

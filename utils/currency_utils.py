@@ -1,3 +1,80 @@
+"""
+currency_utils.py - Currency Management Utilities
+===========================================
+
+!!! IMPORTANT - READ BEFORE MODIFYING !!!
+This module manages all currency-related operations and transactions.
+Changes here directly affect the game's economy and player progression.
+
+Key Features:
+------------
+- Currency transaction processing
+- Balance validation
+- Transaction logging
+- Currency conversion
+- Reward distribution
+- Cost calculation
+
+Currency Types:
+-------------
+- 💎 Diamonds: Premium currency
+- 💵 Cash: Standard currency
+- 💷 Pounds: British currency
+- 💶 Euros: European currency
+- 💴 Yen: Japanese currency
+
+Transaction Types:
+---------------
+1. Story Choices:
+   - Custom choices
+   - Premium options
+   - Special outcomes
+
+2. Character Interactions:
+   - Relationship building
+   - Information buying
+   - Character unlocks
+
+3. Mission Operations:
+   - Equipment purchase
+   - Intel gathering
+   - Mission completion
+
+Usage Guidelines:
+---------------
+1. ALWAYS validate before transaction
+2. Process transactions atomically
+3. Log all currency operations
+4. Handle conversion rates properly
+5. Maintain transaction history
+
+Transaction Format:
+----------------
+{
+    'type': str,
+    'amount': Dict[str, int],
+    'description': str,
+    'timestamp': datetime,
+    'user_id': str,
+    'status': str
+}
+
+Integration Points:
+----------------
+- User progress system
+- Story generation
+- Mission system
+- Character system
+- Achievement system
+
+Security Notes:
+------------
+1. Validate all transactions
+2. Prevent negative balances
+3. Track unusual patterns
+4. Rate limit transactions
+5. Audit trail maintenance
+"""
 
 import logging
 from typing import Dict, Any, Tuple, Optional
