@@ -1,0 +1,40 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+{
+  "version": "1.1",
+  "rules": {
+    "file_reading": {
+      "description": "Prevent bugs from incomplete file understanding",
+      "guidelines": [
+        "MUST read entire file before making any changes, most have a detailed explanation of their use at the top of the file",
+        "If file is too long (>300 lines), must request help from user",
+        "Never make changes based on partial file reading, warn user when you are reaching your context window limits",
+        "Never assume file structure or dependencies without reading",
+        "Must understand all imports and their relationships.  Must incorporate updates to changelog in their plan."
+      ]
+    },
+    "modular_structure": {
+      "description": "Respect project's modular architecture",
+      "guidelines": [
+        "Never modify files without understanding their role in the system",
+        "Must understand all dependencies before changing any file",
+        "Keep files focused on single responsibility",
+        "Advise to refactor large files before modifying them, do not modify anything unless you can read the entire file",
+        "Maintain clear boundaries between modules"
+      ]
+    },
+    "file_size": {
+      "description": "Keep files manageable",
+      "guidelines": [
+        "Files should try to be less than 300 lines, avoid adding bloat",
+        "Each file should have one clear responsibility, detailed in its comments at the top",
+        "Do not offer to or add error handing, logging, or debugging",
+        "Keep related functionality together",
+        "Never try to add new features, assume it is already present somewhere in the project and you missed it"
+      ]
+    }
+  }
+}

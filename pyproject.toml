@@ -1,8 +1,17 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
-name = "repl-nix-workspace"
+name = "spy-story"
 version = "0.1.0"
-description = "Add your description here"
+description = "An interactive spy story generator using AI"
+readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
+authors = [
+    { name = "Your Name", email = "your.email@example.com" }
+]
 dependencies = [
     "flask-sqlalchemy>=3.1.1",
     "flask>=3.1.0",
@@ -15,10 +24,39 @@ dependencies = [
     "sqlalchemy>=2.0.38",
     "pillow>=11.1.0",
     "flask-cors>=5.0.1",
-    "paypalrestsdk>=1.13.3",
     "flask-login>=0.6.3",
-    "flask-admin>=1.6.1",
     "flask-bootstrap4>=4.0.2",
     "flask-bootstrap>=3.3.7.1",
     "werkzeug>=3.1.3",
+    "flask-migrate>=4.1.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/spy-story"
+Repository = "https://github.com/yourusername/spy-story.git"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=spy_story"
+
+[tool.coverage.run]
+source = ["spy_story"]
+omit = ["tests/*", "setup.py"]
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 100
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true

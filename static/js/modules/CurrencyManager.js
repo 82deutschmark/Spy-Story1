@@ -1,3 +1,62 @@
+/**
+ * CurrencyManager.js - In-Game Currency and Transactions
+ * ================================================
+ * 
+ * !!! IMPORTANT - READ BEFORE MODIFYING !!!
+ * This module manages all in-game currency operations and transactions.
+ * Changes here directly affect the game's economy and player progression.
+ * 
+ * Key Features:
+ * ------------
+ * - Currency balance tracking
+ * - Transaction processing
+ * - Purchase validation
+ * - Currency display updates
+ * 
+ * Dependencies:
+ * -----------
+ * - EventHandlers: For event coordination
+ * - UIUtils: For transaction feedback
+ * - API endpoints: For server-side validation
+ * 
+ * Currency Types:
+ * -------------
+ * - 💎 Diamonds: Premium currency
+ * - 💵 Cash: Standard currency
+ * - 💷 Pounds: British currency
+ * - 💶 Euros: European currency
+ * - 💴 Yen: Japanese currency
+ * - 🎭 Story Points: Narrative currency
+ * 
+ * Required DOM Elements:
+ * -------------------
+ * - '.currency-display': Currency balance displays
+ * - '.purchase-button': Transaction triggers
+ * - '.currency-requirement': Cost indicators
+ * 
+ * Integration Points:
+ * -----------------
+ * - Story choices for currency requirements
+ * - Character unlocks and upgrades
+ * - Mission rewards and penalties
+ * - Achievement system
+ * 
+ * Usage Guidelines:
+ * ---------------
+ * 1. ALWAYS validate transactions server-side
+ * 2. Maintain transaction atomicity
+ * 3. Handle all error cases gracefully
+ * 4. Update UI immediately after changes
+ * 
+ * Transaction Flow:
+ * --------------
+ * 1. Validate balance
+ * 2. Lock transaction
+ * 3. Process server-side
+ * 4. Update local state
+ * 5. Update UI
+ * 6. Unlock transaction
+ */
 
 /**
  * Currency Manager Module
@@ -58,7 +117,7 @@ export default {
         const loadingPercent = UIUtils.createLoadingOverlay('Processing trade...');
         UIUtils.updateLoadingPercent(loadingPercent, 50);
 
-        return fetch('/api/currency/trade', {
+        return fetch('/api/game/currency/trade', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

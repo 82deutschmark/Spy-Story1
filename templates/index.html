@@ -1,24 +1,49 @@
 <!DOCTYPE html>
 <html>
 <head>
+    {% from 'partials/character_card.html' import character_card %}
     <meta charset="UTF-8">
-
-<script type="module" src="/static/js/main.js"></script>
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Initialize Python variables for JavaScript -->
+    <script>
+        window.FLASK_CONFIG = {
+            staticUrl: "{{ url_for('static', filename='') }}",
+            apiBaseUrl: "{{ url_for('api_bp.index') if 'api_bp.index' in url_map else '/api' }}"
+        };
+    </script>
+
     <title>Choose Your Own Adventure</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/agent.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/character.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 </head>
-<body>
-    <!-- User Progress Button removed -->
-
+<body class="spy-theme">
     {% if background_image %}
-    <img src="{{ background_image }}" class="story-background" alt="Story Background">
+    <div class="story-background-container">
+        <img src="{{ background_image }}" class="story-background" alt="Story Background">
+        <div class="background-overlay"></div>
+    </div>
     {% endif %}
-    <div class="container mt-5">
+
+    <header class="site-header bg-dark text-white py-3">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="site-title m-0"><i class="fas fa-book-open me-2"></i>Global Espionage</h1>
+                <nav class="site-nav">
+                    <ul class="nav">
+                        <li class="nav-item"><a href="{{ url_for('main.index') }}" class="nav-link text-white">Home</a></li>
+                        <li class="nav-item"><a href="{{ url_for('main.index') }}" class="nav-link text-white">About</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-white">Contact</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <div class="container-fluid mt-5">
         <div class="row justify-content-center">
             <div class="col-md-10">
                 <div class="text-center mb-4">
@@ -75,11 +100,12 @@
                                                         <li><i class="fas fa-users me-2"></i>Character relationships</li>
                                                     </ul>
                                                 </div>
+                                                {% if user_progress %}
                                                 <div id="agent-details" style="display: none;">
                                                     <div class="agent-stats mb-3">
                                                         <div class="d-flex justify-content-between align-items-center mb-2">
-                                                            <span class="agent-level">Level: <span id="agent-level">1</span></span>
-                                                            <span class="agent-xp">XP: <span id="agent-xp">0</span></span>
+                                                            <span class="agent-level">Level: <span id="agent-level">{{ user_progress.level }}</span></span>
+                                                            <span class="agent-xp">XP: <span id="agent-xp">{{ user_progress.experience_points }}</span></span>
                                                         </div>
                                                         <div class="progress" style="height: 10px;">
                                                             <div id="agent-xp-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
@@ -87,14 +113,21 @@
                                                     </div>
                                                     <div class="currency-display mb-3">
                                                         <h6>Currency:</h6>
-                                                        <div id="agent-currency" class="d-flex flex-wrap gap-2"></div>
+                                                        <div id="agent-currency" class="d-flex flex-wrap gap-2">
+                                                            {% for currency, amount in user_progress.currency_balances.items() %}
+                                                            <span class="badge bg-secondary">{{ currency }}: {{ amount }}</span>
+                                                            {% endfor %}
+                                                        </div>
                                                     </div>
-                                                    <div id="continue-story-container" class="mt-3" style="display: none;">
+                                                    {% if user_progress.current_story_id %}
+                                                    <div id="continue-story-container" class="mt-3">
                                                         <button id="continueStoryBtn" class="btn btn-primary btn-sm w-100">
                                                             <i class="fas fa-book-reader me-2"></i>Continue Your Adventure
                                                         </button>
                                                     </div>
+                                                    {% endif %}
                                                 </div>
+                                                {% endif %}
                                             </div>
                                         </div>
                                     </div>
@@ -104,53 +137,20 @@
 
                         <hr class="my-4">
 
-                        <!-- Character Selection Section -->
-                        <h3 class="card-title mb-4 text-dark">
-                            <i class="fas fa-user me-2"></i>Select a Character
-                        </h3>
-
-                        <h4 class="text-dark text-center mb-4">Choose a Character (Select One)</h4>
-                        <div class="characters-grid mb-4">
-                            <div class="row justify-content-center">
-                                {% for img in images %}
-                                <div class="col-md-5 mb-4">
-                                    <div class="character-container">
-                                        <div class="character-select-card" data-id="{{ img.id }}">
-                                            <img src="{{ img.image_url }}" class="card-img" alt="{{ img.name }}">
-                                            <div class="selection-indicator position-absolute top-0 end-0 m-2 bg-primary text-white rounded-circle p-2" style="display: none;">
-                                                <i class="fas fa-check"></i>
-                                            </div>
-                                        </div>
-                                        <div class="character-info-box">
-                                            <h3 class="character-name">{{ img.name }}</h3>
-                                            <div class="character-traits-list">
-                                                {% if img.character_traits %}
-                                                    {% for trait in img.character_traits %}
-                                                    <span class="trait-badge">{{ trait }}</span>
-                                                    {% endfor %}
-                                                {% endif %}
-                                            </div>
-                                            <div class="character-controls d-flex justify-content-between align-items-center">
-                                                <button type="button" class="reroll-btn" data-card-index="{{ loop.index0 }}">
-                                                    <i class="fas fa-dice me-1"></i> Reroll Character
-                                                </button>
-                                                <button type="button" class="select-character-btn" data-character-id="{{ img.id }}">
-                                                    <i class="fas fa-check-circle me-1"></i> Select Character
-                                                </button>
-                                                <input type="radio" class="character-checkbox d-none" name="selectedCharacter" value="{{ img.id }}" id="character{{ img.id }}">
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                        <form id="character-selection-form" class="character-selection-form" 
+                              data-form-type="story" 
+                              action="{{ url_for('main.generate_story_route') }}" 
+                              method="POST">
+                            <input type="hidden" name="protagonist_name" id="protagonistNameInput">
+                            <input type="hidden" name="protagonist_gender" id="protagonistGenderInput">
+                            <input type="hidden" name="protagonist_level" id="protagonistLevelInput" value="1">
+                            <div class="character-grid">
+                                {% for character in images %}
+                                    {{ character_card(character, loop.index0) }}
                                 {% endfor %}
                             </div>
-                        </div>
-
-                        <form id="storyForm" method="POST" action="{{ url_for('main.generate_story_route') }}">
-                            <div class="selected-characters-container mb-3" style="display: none;">
-                                <h4>Selected Characters:</h4>
-                                <div class="selected-characters-list d-flex flex-wrap"></div>
-                            </div>
+                            <input type="hidden" name="selected_images" id="selectedImagesInput">
+                            <div class="error-message" style="display: none;"></div>
 
                             <div class="accordion" id="storyOptionsAccordion">
                                 <div class="accordion-item">
@@ -166,7 +166,7 @@
                                             <div class="row mb-3">
                                                 <div class="col-md-6">
                                                     <label class="form-label">Conflict:</label>
-                                                    <select class="form-select" name="conflict">
+                                                    <select class="form-select" name="conflict" data-option-type="conflict">
                                                         {% for emoji, name in story_options.conflicts %}
                                                         <option value="{{ name }}">{{ emoji }} {{ name }}</option>
                                                         {% endfor %}
@@ -176,7 +176,7 @@
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label class="form-label">Setting:</label>
-                                                    <select class="form-select" name="setting">
+                                                    <select class="form-select" name="setting" data-option-type="setting">
                                                         {% for emoji, name in story_options.settings %}
                                                         <option value="{{ name }}">{{ emoji }} {{ name }}</option>
                                                         {% endfor %}
@@ -188,7 +188,7 @@
                                             <div class="row">
                                                 <div class="col-md-6">
                                                     <label class="form-label">Narrative Style:</label>
-                                                    <select class="form-select" name="narrative_style">
+                                                    <select class="form-select" name="narrative_style" data-option-type="narrative">
                                                         {% for emoji, name in story_options.narrative_styles %}
                                                         <option value="{{ name }}">{{ emoji }} {{ name }}</option>
                                                         {% endfor %}
@@ -198,7 +198,7 @@
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label class="form-label">Mood:</label>
-                                                    <select class="form-select" name="mood">
+                                                    <select class="form-select" name="mood" data-option-type="mood">
                                                         {% for emoji, name in story_options.moods %}
                                                         <option value="{{ name }}">{{ emoji }} {{ name }}</option>
                                                         {% endfor %}
@@ -212,10 +212,6 @@
                                 </div>
                             </div>
 
-                            <div id="characterSelectionError" class="alert alert-danger mt-3" style="display: none;">
-                                Please select exactly 3 characters for your story.
-                            </div>
-
                             <div class="text-center mt-4">
                                 <button type="submit" class="btn btn-primary btn-lg" id="generateStoryBtn">
                                     <i class="fas fa-pen-fancy me-2"></i>Begin Your Adventure
@@ -224,102 +220,58 @@
                         </form>
                     </div>
                 </div>
-
-                <!-- Debug Link -->
-                <div class="text-center mt-4 mb-5">
-                    <a href="{{ url_for('debug.debug_dashboard') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-bug me-2"></i>Debug Tools
-                    </a>
-                </div>
             </div>
         </div>
     </div>
 
-    <!-- Purchase Modal -->
-    <div class="modal fade" id="purchaseModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Purchase Diamonds 💎</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="diamond-packages">
-                        <button class="btn btn-outline-primary diamond-package" data-amount="100" data-price="1">
-                            100 💎 for $1
-                        </button>
-                        <button class="btn btn-outline-primary diamond-package" data-amount="500" data-price="4">
-                            500 💎 for $4
-                        </button>
-                        <button class="btn btn-outline-primary diamond-package" data-amount="1000" data-price="7">
-                            1000 💎 for $7
-                        </button>
-                    </div>
-                    <div class="mt-3">
-                        <button class="btn btn-primary w-100 disabled">Currency Purchase Coming Soon</button>
-                    </div>
-                </div>
-            </div>
+    <footer class="site-footer bg-dark text-white py-3 mt-5">
+        <div class="container text-center">
+            <small>&copy; {{ current_year }} Spy Story. All rights reserved.</small>
         </div>
-    </div>
+    </footer>
 
-    <!-- Trade Modal -->
-
-    <!-- User Progress Modal removed -->
-
-    <div class="modal fade" id="tradeModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Trade Currencies</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="tradeForm">
-                        <div class="mb-3">
-                            <label class="form-label">From Currency</label>
-                            <select class="form-select" id="fromCurrency">
-                                <option value="💎">💎 Diamonds</option>
-                                <option value="💷">💷 Pounds</option>
-                                <option value="💶">💶 Euros</option>
-                                <option value="💴">💴 Yen</option>
-                                <option value="💵">💵 Dollars</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Amount</label>
-                            <input type="number" class="form-control" id="tradeAmount" min="1">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">To Currency</label>
-                            <select class="form-select" id="toCurrency">
-                                <option value="💎">💎 Diamonds</option>
-                                <option value="💷">💷 Pounds</option>
-                                <option value="💶">💶 Euros</option>
-                                <option value="💴">💴 Yen</option>
-                                <option value="💵">💵 Dollars</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Trade</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast notification -->
+    <!-- Toast for notifications -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3">
-        <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div id="notificationToast" class="toast" role="alert">
             <div class="toast-header">
-                <i class="fas fa-info-circle me-2"></i>
                 <strong class="me-auto" id="toastTitle">Notification</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
             </div>
-            <div class="toast-body" id="toastMessage"></div>
+            <div class="toast-body" id="toastMessage">
+            </div>
         </div>
     </div>
 
     <!-- Scripts at the bottom of the body -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="{{ url_for('static', filename='js/modules/CharacterMentions.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/modules/FormHandler.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Update hidden inputs when form fields change
+        document.getElementById('protagonistName').addEventListener('input', function(e) {
+            document.getElementById('protagonistNameInput').value = e.target.value;
+        });
+        
+        document.getElementById('protagonistGender').addEventListener('change', function(e) {
+            document.getElementById('protagonistGenderInput').value = e.target.value;
+        });
+
+        // Form validation
+        document.getElementById('character-selection-form').addEventListener('submit', function(e) {
+            const name = document.getElementById('protagonistNameInput').value;
+            const gender = document.getElementById('protagonistGenderInput').value;
+            const errorDiv = document.querySelector('.error-message');
+
+            if (!name || !gender) {
+                e.preventDefault();
+                errorDiv.textContent = 'Please enter both agent codename and gender.';
+                errorDiv.style.display = 'block';
+                return false;
+            }
+            errorDiv.style.display = 'none';
+            return true;
+        });
+    </script>
 </body>
 </html>

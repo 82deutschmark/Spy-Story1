@@ -1,25 +1,69 @@
-
 /* Main CSS file - imports all modularized components */
 
 /* Base theme variables and common styles */
 @import 'components/theme.css';
 
-/* Component styles */
-@import 'components/accordion.css';
+/* Core components */
 @import 'components/buttons.css';
-@import 'components/cards.css';
+@import 'components/forms.css';
+@import 'components/tables.css';
+@import 'components/modals.css';
+@import 'components/loading.css';
+@import 'components/accordion.css';
+
+/* Game-specific components */
 @import 'components/character.css';
 @import 'components/choices.css';
 @import 'components/currency.css';
-@import 'components/debug.css';
-@import 'components/forms.css';
-@import 'components/loading.css';
-@import 'components/modals.css';
 @import 'components/notebook.css';
-@import 'components/pagination.css';
 @import 'components/plot.css';
 @import 'components/story.css';
 @import 'components/storyboard.css';
-@import 'components/tables.css';
 
-/* Add any other component files here as we create them */
+/* Debug and development components */
+@import 'components/debug.css';
+
+/* Custom overrides and utilities */
+@import 'custom.css';
+
+/* Header and Footer styling */
+.site-header,
+.site-footer {
+    background-color: #1a1a1a;
+    color: #fff;
+}
+
+.site-header .site-title {
+    font-size: 1.8rem;
+    font-weight: bold;
+}
+
+.site-nav .nav-link {
+    font-size: 1rem;
+    padding: 0.5rem 1rem;
+}
+
+.site-footer {
+    font-size: 0.9rem;
+    text-align: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Reduce default container padding to use more horizontal space */
+.container,
+.container-fluid {
+    padding-left: 1rem;  /* Reduced value */
+    padding-right: 1rem;
+}
+
+/* Responsive adjustments for header and footer */
+@media (max-width: 768px) {
+    .site-header .site-title {
+        font-size: 1.5rem;
+    }
+    
+    .site-nav .nav-link {
+        font-size: 0.9rem;
+        padding: 0.5rem;
+    }
+}

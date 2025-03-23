@@ -1,90 +1,87 @@
+"""
+Main application entry point for the Spy Story game.
+"""
 
 import os
+import sys
 import logging
 from flask import Flask
-from database import db
 from flask_cors import CORS
-from config import get_config
-from admin_config import init_admin
-from flask_bootstrap import Bootstrap
-from werkzeug.middleware.proxy_fix import ProxyFix
+from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
+from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.pool import QueuePool
 
 # Configure logging
-config = get_config()
-logging.basicConfig(level=getattr(logging, config.LOG_LEVEL))
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Add the project root directory to Python path
+project_root = os.path.dirname(os.path.abspath(__file__))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
+# Load environment variables
+load_dotenv()
+
 def create_app():
-    """Create and configure the Flask application"""
+    """Create and configure the Flask application."""
     app = Flask(__name__)
-
-    # Load configuration
-    app_config = get_config()
-    app.config.from_object(app_config)
-    app.secret_key = app_config.SESSION_SECRET
-    app.config['SQLALCHEMY_DATABASE_URI'] = app_config.SQLALCHEMY_DATABASE_URI
-    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-        "pool_recycle": 300,
-        "pool_pre_ping": True,
-    }
     
-    # Initialize Bootstrap
-    Bootstrap(app)
+    # Configure the app
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
     
-    # Initialize database
-    db.init_app(app)
-
-    # Initialize CORS
-    CORS(app, resources={
-        r"/api/unity/*": {
-            "origins": "*",
-            "methods": ["GET", "POST", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"]
+    # Database configuration with connection pooling
+    database_url = os.environ.get('DATABASE_URL', 'sqlite:///app.db')
+    if database_url.startswith('postgresql'):
+        # Add connection pooling settings for PostgreSQL
+        engine = create_engine(
+            database_url,
+            poolclass=QueuePool,
+            pool_size=5,
+            max_overflow=10,
+            pool_timeout=30,
+            pool_recycle=1800,  # Recycle connections after 30 minutes
+            pool_pre_ping=True,  # Enable connection health checks
+            connect_args={
+                'connect_timeout': 10,
+                'keepalives': 1,
+                'keepalives_idle': 30,
+                'keepalives_interval': 10,
+                'keepalives_count': 5
+            }
+        )
+        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+            'poolclass': QueuePool,
+            'pool_size': 5,
+            'max_overflow': 10,
+            'pool_timeout': 30,
+            'pool_recycle': 1800,
+            'pool_pre_ping': True
         }
-    })
     
-    # Add request logger middleware first
-    from middleware.request_logger import RequestLoggerMiddleware
-    # We need to register the before_request and after_request hooks directly with Flask
-    # instead of trying to wrap the WSGI app
-    middleware = RequestLoggerMiddleware(app)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
-    # Apply ProxyFix middleware
-    app.wsgi_app = ProxyFix(app.wsgi_app)
-
-    # Register error handlers
-    from utils.error_handlers import register_error_handlers
-    register_error_handlers(app)
-
+    # Initialize extensions
+    from database import db, init_db
+    from flask_migrate import Migrate
+    
+    db.init_app(app)
+    migrate = Migrate(app, db)
+    
+    # Enable CORS
+    CORS(app)
+    
     # Register blueprints
-    with app.app_context():
-        # Import blueprint objects
-        from routes.main_routes import main_bp
-        from routes.debug_routes import debug_bp
-        from routes.api_routes import api_bp
-        from api.unity_routes import unity_api
-        from api.game_api import game_api
-        
-        # Register blueprints
-        app.register_blueprint(main_bp)
-        app.register_blueprint(debug_bp, url_prefix='/debug')
-        app.register_blueprint(api_bp, url_prefix='/api')
-        app.register_blueprint(unity_api, url_prefix='/api/unity')
-        app.register_blueprint(game_api, url_prefix='/api/game')
-
-        # Create database tables
-        db.create_all()
-
-        # Initialize Flask-Admin
-        init_admin(app)
-
-    # Ensure JS modules are served with correct MIME type
-    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
-    import mimetypes
-    mimetypes.add_type('application/javascript', '.js')
-
+    logger.info("Registering blueprints")
+    from routes.main_routes import main_bp
+    
+    app.register_blueprint(main_bp)
+    
     return app
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app = create_app()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(debug=True)

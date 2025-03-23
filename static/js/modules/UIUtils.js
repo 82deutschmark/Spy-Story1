@@ -1,21 +1,70 @@
+/**
+ * UIUtils.js - UI Utility Functions Module
+ * ======================================
+ * 
+ * !!! IMPORTANT - READ BEFORE MODIFYING !!!
+ * This module provides core UI functionality used throughout the application.
+ * Many components depend on these utilities for consistent UI behavior.
+ * 
+ * Key Features:
+ * ------------
+ * - Loading overlays and animations
+ * - Toast notifications
+ * - Loading percentage displays
+ * - General UI notifications
+ * 
+ * Integration Points:
+ * -----------------
+ * - DOM Elements: Creates and manages overlay elements
+ * - Bootstrap: Uses Bootstrap toast components
+ * - CSS Dependencies: Requires loading-related CSS classes
+ * 
+ * Usage Guidelines:
+ * ---------------
+ * 1. ALWAYS clean up UI elements after use (especially overlays)
+ * 2. Maintain consistent styling with existing UI components
+ * 3. Keep toast messages concise and user-friendly
+ * 4. Ensure proper error state handling in UI feedback
+ * 
+ * Common Usage Patterns:
+ * -------------------
+ * 1. Loading States:
+ *    ```js
+ *    const loadingEl = UIUtils.createLoadingOverlay('Loading...');
+ *    try {
+ *      // async operation
+ *    } finally {
+ *      UIUtils.removeLoadingOverlay(loadingEl);
+ *    }
+ *    ```
+ * 
+ * 2. Notifications:
+ *    ```js
+ *    UIUtils.showToast('Success', 'Operation completed');
+ *    ```
+ */
 
 /**
  * UI Utilities Module
  * Handles UI interactions like overlays, notifications and toasts
  */
-export default {
+export const UIUtils = {
     /**
-     * Creates a loading overlay with a spinner and percentage
-     * @param {string} message - Message to display in the overlay
-     * @returns {HTMLElement} - The percentage element for updating
+     * Creates a loading overlay on the page
+     * @param {string} message - Optional message to display
+     * @return {HTMLElement} - The loading percentage element
      */
     createLoadingOverlay(message = 'Loading...') {
+        // Remove any existing overlay first
+        this.removeLoadingOverlay();
+
         const overlay = document.createElement('div');
         overlay.className = 'loading-overlay';
         overlay.innerHTML = `
             <div class="loading-content">
                 <div class="loading-spinner"></div>
                 <div class="loading-percentage">0%</div>
+                <div class="loading-message">${message}</div>
             </div>
         `;
         document.body.appendChild(overlay);
@@ -24,9 +73,9 @@ export default {
     },
 
     /**
-     * Updates the loading percentage display
-     * @param {HTMLElement} element - The percentage element
-     * @param {number} percent - Percentage to display
+     * Updates the loading percentage
+     * @param {HTMLElement} element - The loading percentage element
+     * @param {number} percent - The percentage to display
      */
     updateLoadingPercent(element, percent) {
         if (element) {
@@ -35,19 +84,20 @@ export default {
     },
 
     /**
-     * Removes a loading overlay from the DOM
-     * @param {HTMLElement} overlay - The percentage element within the overlay
+     * Removes the loading overlay
+     * @param {HTMLElement} element - Any element within the overlay
      */
-    removeLoadingOverlay(overlay) {
-        if (overlay && overlay.closest('.loading-overlay')) {
-            overlay.closest('.loading-overlay').remove();
+    removeLoadingOverlay(element) {
+        const overlay = element ? element.closest('.loading-overlay') : document.querySelector('.loading-overlay');
+        if (overlay) {
+            overlay.remove();
         }
     },
 
     /**
      * Shows a toast notification
      * @param {string} title - Toast title
-     * @param {string} message - Toast message content
+     * @param {string} message - Toast message
      */
     showToast(title, message) {
         const toastEl = document.getElementById('notificationToast');
@@ -68,3 +118,6 @@ export default {
         this.showToast(title, message);
     }
 };
+
+// Export a default instance
+export default UIUtils;

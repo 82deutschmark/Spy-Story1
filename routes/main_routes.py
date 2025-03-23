@@ -1,13 +1,100 @@
+"""
+main_routes.py - Core Application Routes
+====================================
+
+!!! IMPORTANT - READ BEFORE MODIFYING !!!
+This module contains the primary route handlers for the story generation
+and user interaction flows. Changes here directly affect core gameplay.
+
+Key Features:
+------------
+- Story generation and continuation
+- Character selection and management
+- User progress tracking
+- Currency transactions
+- Plot arc management
+- Mission handling
+
+Dependencies:
+-----------
+- Database Models:
+  * AIInstruction: Story generation parameters
+  * StoryGeneration: Story content and state
+  * StoryNode/Choice: Story flow control
+  * UserProgress: User state and progress
+  * Character: Character data and traits
+  * Transaction: Currency operations
+  * PlotArc: Story arc tracking
+  * Mission: Mission management
+
+Required Services:
+---------------
+- story_maker.py: Story generation logic
+- validation_utils.py: Input validation
+- currency_utils.py: Transaction processing
+- db_utils.py: Database operations
+
+Route Structure:
+-------------
+1. Index Route ('/')
+   - Character selection
+   - Story options
+   - User progress initialization
+
+2. Storyboard Route ('/storyboard/<story_id>')
+   - Story display
+   - Character integration
+   - Progress tracking
+
+3. Story Generation ('/generate_story')
+   - Story creation
+   - Character integration
+   - Currency handling
+   - Progress updates
+
+4. Choice Processing ('/make_choice')
+   - Choice validation
+   - Currency requirements
+   - Story continuation
+   - Character evolution
+
+Usage Guidelines:
+---------------
+1. ALWAYS validate user input
+2. Maintain proper error handling
+3. Update user progress atomically
+4. Handle currency transactions safely
+5. Preserve story continuity
+
+Integration Points:
+----------------
+- Story generation system
+- Character management
+- Currency system
+- Progress tracking
+- Mission system
+"""
+
 import os
 import logging
 import json
-from flask import Blueprint, render_template, request, jsonify, url_for, redirect, flash, session
+from flask import Blueprint, render_template, request, jsonify, url_for, redirect, flash, session, render_template_string
 import uuid
+from datetime import datetime
+from typing import List, Dict, Any
 
 from database import db
-from models import (AIInstruction, ImageAnalysis, StoryGeneration, StoryNode, 
+from models import (AIInstruction, StoryGeneration, StoryNode, 
                    StoryChoice, UserProgress, Transaction, PlotArc, CharacterEvolution, Mission)
+from models.character_data import Character
+from models.scene_images import SceneImages
 from services.story_maker import generate_story, get_story_options
+from services.game_engine import GameEngine
+from services.mission_generator import update_mission_progress
+from services.state_manager import GameState
+from utils.validation_utils import validate_story_parameters, validate_string_length
+from utils.currency_utils import process_transaction
+from utils.db_utils import get_or_create_user_progress as db_get_or_create_user_progress
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -15,17 +102,20 @@ logger = logging.getLogger(__name__)
 # Create Blueprint
 main_bp = Blueprint('main', __name__)
 
+# Required character roles for story generation
+REQUIRED_ROLES = ['mission-giver', 'villain']
+
 def get_or_create_user_progress(protagonist_name=None):
     """Get or create user progress record for the current session. Uses protagonist_name for identification."""
     from utils.db_utils import get_or_create_user_progress as db_get_or_create_user_progress
-    
+
     if 'user_id' not in session:
         session['user_id'] = str(uuid.uuid4())
         logger.debug(f"Created new user session with ID: {session['user_id']}")
 
     # Use the enhanced db_utils version that handles protagonist name lookup
     user_progress = db_get_or_create_user_progress(session['user_id'], protagonist_name)
-    
+
     return user_progress
 
 # PayPal check removed
@@ -33,532 +123,445 @@ def get_or_create_user_progress(protagonist_name=None):
 def get_random_scene_background():
     """Get a random scene image suitable for background"""
     try:
-        # Try filtering by dimension first
-        scene = ImageAnalysis.query.filter(
-            ImageAnalysis.image_type == 'scene',
-            ImageAnalysis.image_width > ImageAnalysis.image_height
+        scene = SceneImages.query.filter_by(
+            image_type='scene'
         ).order_by(db.func.random()).first()
-
-        # Fallback if no scene images with right dimensions exist
-        if not scene:
-            scene = ImageAnalysis.query.filter(
-                ImageAnalysis.image_type == 'scene'
-            ).order_by(db.func.random()).first()
-
+        
         return scene.image_url if scene else None
-
     except Exception as e:
         logger.error(f"Error getting random scene background: {str(e)}")
-        # Return None on any error to ensure the application doesn't crash
         return None
+
+def get_random_characters_with_roles() -> List[Character]:
+    """Get random characters ensuring required roles are present."""
+    try:
+        # Get one random character for each required role
+        mission_giver = Character.query.filter_by(character_role='mission-giver').order_by(db.func.random()).first()
+        villain = Character.query.filter_by(character_role='villain').order_by(db.func.random()).first()
+        
+        if not mission_giver or not villain:
+            logger.error("Missing required character roles in database")
+            return []
+            
+        # Get a random neutral character if available
+        neutral_char = Character.query.filter_by(character_role='neutral').order_by(db.func.random()).first()
+        
+        # Combine characters
+        selected_characters = [mission_giver, villain]
+        if neutral_char:
+            selected_characters.append(neutral_char)
+            
+        return selected_characters
+        
+    except Exception as e:
+        logger.error(f"Error getting random characters: {str(e)}")
+        return []
 
 @main_bp.route('/')
 def index():
     """Main page showing character selection and story options"""
-    story_options = get_story_options()
-    background_image = get_random_scene_background()
-    user_progress = get_or_create_user_progress()
+    try:
+        story_options = get_story_options()
+        background_image = get_random_scene_background()
 
-    # Get 2 random images for character selection
-    images = ImageAnalysis.query.filter_by(image_type='character').order_by(db.func.random()).limit(2).all()
-    image_data = []
-    for img in images:
-        analysis = img.analysis_result or {}
-        char_name = img.character_name or ''
-        if not char_name and analysis:
-            if 'character' in analysis and 'name' in analysis['character']:
-                char_name = analysis['character'].get('name', '')
-            elif 'character_name' in analysis:
-                char_name = analysis.get('character_name', '')
-            elif 'name' in analysis:
-                char_name = analysis.get('name', '')
+        # Get random characters with required roles
+        characters = get_random_characters_with_roles()
+        if not characters:
+            logger.error("Failed to get characters with required roles")
+            return render_template(
+                'error.html',
+                error_message="Unable to load characters. Please try again later."
+            )
 
-        char_traits = []
-        plot_lines = []
-        try:
-            if hasattr(img, 'character_traits') and img.character_traits:
-                char_traits = img.character_traits
-            elif analysis and 'character_traits' in analysis:
-                char_traits = analysis.get('character_traits', [])
+        character_data = []
+        for char in characters:
+            # Ensure we're using standardized role values
+            role = char.character_role or 'neutral'
+            if role.lower() not in ['villain', 'neutral', 'mission-giver', 'undetermined']:
+                role = 'neutral'
 
-            if hasattr(img, 'plot_lines') and img.plot_lines:
-                plot_lines = img.plot_lines
-            elif analysis and 'plot_lines' in analysis:
-                plot_lines = analysis.get('plot_lines', [])
-        except:
-            pass
+            char_data = {
+                'id': char.id,
+                'image_url': char.image_url,
+                'name': char.character_name,
+                'story': char.description or '',
+                'character_traits': char.character_traits or [],
+                'plot_lines': char.plot_lines or [],
+                'character_role': role
+            }
+            character_data.append(char_data)
 
-        image_data.append({
-            'id': img.id,
-            'image_url': img.image_url,
-            'name': char_name,
-            'style': analysis.get('style', ''),
-            'story': analysis.get('story', ''),
-            'character_traits': char_traits,
-            'plot_lines': plot_lines
-        })
+        # Initialize user progress only if needed (e.g., form submission)
+        user_progress = None
+        if request.args.get('init_progress'):
+            user_progress = get_or_create_user_progress()
 
-    return render_template(
-        'index.html',
-        story_options=story_options,
-        images=image_data,
-        background_image=background_image,
-        user_progress=user_progress
-    )
+        return render_template(
+            'index.html',
+            story_options=story_options,
+            images=character_data,
+            background_image=background_image,
+            user_progress=user_progress
+        )
+    except Exception as e:
+        logger.error(f"Error in index route: {str(e)}", exc_info=True)
+        return render_template(
+            'error.html',
+            error_message="An error occurred while loading the page. Please try again."
+        )
 
 @main_bp.route('/storyboard/<int:story_id>')
 def storyboard(story_id):
     """Display the current story progress and choices"""
-    story = StoryGeneration.query.get_or_404(story_id)
-    story_data = json.loads(story.generated_story)
-    user_progress = get_or_create_user_progress()
+    try:
+        # Get story and initialize game state
+        story = StoryGeneration.query.get_or_404(story_id)
+        story_data = story.generated_story  # PostgreSQL automatically converts JSONB to dict
+        user_progress = get_or_create_user_progress()
+        game_state = GameState(user_progress.user_id)
 
-    # Update user progress to reflect current story
-    user_progress.current_story_id = story_id
-    db.session.commit()
-    logger.debug(f"Updated user progress with current_story_id: {story_id}")
+        # Debug logging
+        logger.info(f"Story data: {json.dumps(story_data, indent=2)}")
 
-    # Get random scene for background
-    background_image = get_random_scene_background()
+        # Update user progress to reflect current story
+        user_progress.current_story_id = story_id
+        
+        # Get random scene for background
+        background_image = get_random_scene_background()
 
-    # Get associated character images from the story and referenced characters
-    character_images = []
+        # Get associated character images from the story's characters
+        character_images = []
 
-    # Add direct story images first
-    for image in story.images:
-        analysis = image.analysis_result or {}
-        character_images.append({
-            'id': image.id,
-            'image_url': image.image_url,
-            'name': image.character_name or analysis.get('character_name', ''),
-            'traits': image.character_traits
-        })
+        try:
+            # Add characters from the story's character relationship
+            for character in story.characters:
+                try:
+                    character_images.append({
+                        'id': character.id,
+                        'image_url': character.image_url,
+                        'name': character.character_name,
+                        'traits': character.character_traits
+                    })
+                except Exception as e:
+                    logger.error(f"Error processing character {character.id}: {str(e)}")
+                    continue
+        except Exception as e:
+            logger.error(f"Error accessing story characters: {str(e)}")
+            # Continue without story characters
 
-    # Get all characters mentioned in the story
-    mentioned_characters = []
-    if 'characters' in story_data and isinstance(story_data['characters'], list):
-        mentioned_characters = story_data['characters']
+        # Get all characters mentioned in the story
+        mentioned_characters = []
+        # Handle both nested and flat story structures
+        if 'stories' in story_data and 'characters' in story_data['stories']:
+            mentioned_characters = story_data['stories']['characters']
+        elif 'characters' in story_data:
+            mentioned_characters = story_data['characters']
 
-    # Try to find images for any additional characters mentioned
-    for character_name in mentioned_characters:
-        # Skip characters we already have
-        if any(char['name'].lower() == character_name.lower() for char in character_images):
-            continue
+        # Add any missing characters from the mentioned list
+        for char_name in mentioned_characters:
+            if not any(char['name'] == char_name for char in character_images):
+                # Try to find the character in the database
+                character = Character.query.filter_by(character_name=char_name).first()
+                if character:
+                    character_images.append({
+                        'id': character.id,
+                        'image_url': character.image_url,
+                        'name': character.character_name,
+                        'traits': character.character_traits
+                    })
 
-        # Look for this character in the database
-        character_img = ImageAnalysis.query.filter(
-            ImageAnalysis.image_type == 'character',
-            ImageAnalysis.character_name.ilike(f'%{character_name}%')
-        ).first()
+        # Get current node and ensure it has choices
+        current_node = game_state.resolve_current_node()
+        if not current_node:
+            flash('Error: Could not resolve current story node', 'error')
+            return redirect(url_for('main.dashboard'))
+            
+        # Debug logging for node data
+        logger.info(f"Current node data: {json.dumps(current_node.to_dict(), indent=2)}")
+        logger.info(f"Node branch_metadata: {json.dumps(current_node.branch_metadata, indent=2)}")
 
-        if character_img:
-            character_images.append({
-                'id': character_img.id,
-                'image_url': character_img.image_url,
-                'name': character_img.character_name,
-                'traits': character_img.character_traits
-            })
+        # Add characters from node's choices
+        if current_node.branch_metadata and 'choices' in current_node.branch_metadata:
+            for choice in current_node.branch_metadata['choices']:
+                if choice.get('character_id'):
+                    # Only add if not already in character_images
+                    if not any(char['id'] == choice['character_id'] for char in character_images):
+                        character = Character.query.get(choice['character_id'])
+                        if character:
+                            character_images.append({
+                                'id': character.id,
+                                'image_url': character.image_url,
+                                'name': character.character_name,
+                                'traits': character.character_traits
+                            })
 
-    # Prepare story progress data for the template with proper field names
-    story_progress = {
-        'current_story_id': user_progress.current_story_id,
-        'completed_plot_arcs': user_progress.completed_plot_arcs or [],
-        'choice_history': user_progress.choice_history or [],
-        'active_missions': user_progress.active_missions or []
-    }
+        # Ensure node has branch_metadata with required fields
+        if not current_node.branch_metadata:
+            # For a new node, use story's initial choices
+            current_node.branch_metadata = {
+                "choices": story_data.get("choices", []),  # Get choices from story data if available
+                "timestamp": datetime.utcnow().isoformat(),
+                "character_relationships": {},
+                "active_missions": []
+            }
+            db.session.commit()
+            logger.info("Created new branch_metadata with choices from story_data")
+        else:
+            # For existing nodes, ensure all required fields exist
+            # but DO NOT overwrite existing choices
+            if "timestamp" not in current_node.branch_metadata:
+                current_node.branch_metadata["timestamp"] = datetime.utcnow().isoformat()
+            if "character_relationships" not in current_node.branch_metadata:
+                current_node.branch_metadata["character_relationships"] = {}
+            if "active_missions" not in current_node.branch_metadata:
+                current_node.branch_metadata["active_missions"] = []
+            if "choices" not in current_node.branch_metadata:
+                # Only set choices if they don't exist
+                current_node.branch_metadata["choices"] = story_data.get("choices", [])
+            db.session.commit()
 
-    return render_template(
-        'storyboard.html',
-        story=story_data,
-        story_id=story_id,
-        character_images=character_images,
-        background_image=background_image,
-        user_progress=user_progress,
-        story_progress=story_progress
-    )
+        # Update character relationships
+        for char_id, char_info in current_node.branch_metadata.get("character_relationships", {}).items():
+            for i, char in enumerate(character_images):
+                if str(char['id']) == char_id:
+                    character_images[i].update({
+                        'relationship_level': char_info.get('relationship_level', 0)
+                    })
+
+        # Prepare story progress data for the template
+        story_progress = {
+            'current_story_id': user_progress.current_story_id,
+            'current_node_id': current_node.id,
+            'completed_plot_arcs': user_progress.completed_plot_arcs or [],
+            'choice_history': user_progress.choice_history or [],
+            'active_missions': current_node.branch_metadata.get("active_missions", [])
+        }
+
+        # Prepare story data for template - handle both nested and flat structures
+        template_story_data = story_data
+        if 'stories' in story_data:
+            template_story_data = story_data['stories']
+
+        # Commit the transaction after all database operations are successful
+        db.session.commit()
+
+        return render_template(
+            'storyboard.html',
+            story=template_story_data,
+            story_id=story_id,
+            node=current_node,
+            character_images=character_images,
+            background_image=background_image,
+            user_progress=user_progress,
+            story_progress=story_progress
+        )
+
+    except Exception as e:
+        # Rollback the transaction on any error
+        db.session.rollback()
+        logger.error(f"Error in storyboard route: {str(e)}", exc_info=True)
+        return render_template(
+            'error.html',
+            error_message="An error occurred while loading the story. Please try again."
+        )
 
 @main_bp.route('/generate_story', methods=['POST'])
 def generate_story_route():
     """Generate a new story or continue an existing one"""
-    from utils.validation_utils import validate_story_parameters, validate_string_length
-    from utils.currency_utils import process_transaction
-
     try:
         # Get form data
-        data = request.form
-        selected_image_ids = request.form.getlist('selected_images[]')
-        protagonist_gender = request.form.get('protagonist_gender')
-        protagonist_name = request.form.get('protagonist_name')
-        custom_choice = data.get('custom_choice', '')
-
-        # Get previous story context
-        previous_story_id = data.get('story_id')
-        story_context = data.get('story_context', '')
-
-        # Get user progress with protagonist name for identification
-        user_progress = get_or_create_user_progress(protagonist_name)
-
-        # Validate input parameters
-        is_valid, errors = validate_story_parameters(data)
-        if not is_valid:
-            return jsonify({'error': 'Invalid story parameters', 'details': errors}), 400
-
-        # Validate character selection
-        if not selected_image_ids:
-            logger.error("No character selected - missing selected_images[] in form data")
-            return jsonify({'error': 'Please select a character for your story'}), 400
-
-        if len(selected_image_ids) < 1:
-            logger.error(f"No characters selected, got {len(selected_image_ids)}")
-            return jsonify({'error': 'Please select at least one character for your story'}), 400
-
-        # Check if this is a custom choice and process currency requirement
-        if custom_choice:
-            # Validate custom choice text length
-            is_valid, error = validate_string_length(
-                custom_choice, 
-                min_length=10, 
-                max_length=500,
-                field_name="Custom choice"
-            )
-            if not is_valid:
-                return jsonify({'error': error}), 400
-
-            # Process currency transaction
-            currency_requirements = {'💎': 100}
-            description = f'Custom choice: {custom_choice[:50]}...' if len(custom_choice) > 50 else custom_choice
-            success, error_message, _ = process_transaction(
-                user_progress=user_progress,
-                transaction_type='choice',
-                description=description,
-                currency_requirements=currency_requirements
-            )
-
-            if not success:
-                return jsonify({'error': error_message}), 400
-
-        logger.debug(f"Form data received: {data}")
-        logger.debug(f"Selected image IDs: {selected_image_ids}")
-
-        # Get the story parameters
-        story_params = {
-            'conflict': data.get('conflict', 'Mysterious adventure'),
-            'setting': data.get('setting', 'Enchanted world'),
-            'narrative_style': data.get('narrative_style', 'Engaging modern style'),
-            'mood': data.get('mood', 'Exciting and adventurous'),
-            'custom_conflict': data.get('custom_conflict', ''),
-            'custom_setting': data.get('custom_setting', ''),
-            'custom_narrative': data.get('custom_narrative', ''),
-            'custom_mood': data.get('custom_mood', ''),
-            'story_context': story_context
-        }
-
-        # Handle choice selection - either predefined or custom
-        if custom_choice:
-            story_params['previous_choice'] = f"Custom choice: {custom_choice}"
-        else:
-            story_params['previous_choice'] = data.get('previous_choice', '')
-
-        logger.debug(f"Story parameters: {story_params}")
-
-        # Get character information from selected images
-        selected_images = ImageAnalysis.query.filter(ImageAnalysis.id.in_(selected_image_ids)).all()
-        if not selected_images:
-            return jsonify({'error': 'Selected images not found'}), 404
-
-        # Get information for all selected characters - DIRECTLY from the database
-        # This avoids any unnecessary API calls for image analysis
-        selected_characters = []
-        for img in selected_images:
-            # Use only the data already in the database
-            char_data = {
-                'name': img.character_name or 'Unknown Character',
-                'role': img.character_role or 'protagonist',
-                'character_traits': img.character_traits or [],
-                'style': 'A mysterious character',  # Default description if none exists
-                'plot_lines': img.plot_lines or []
-            }
-
-            # Only if we already have analysis_result stored, get additional info from it
-            if img.analysis_result:
-                try:
-                    analysis = img.analysis_result
-                    if 'style' in analysis:
-                        char_data['style'] = analysis.get('style', char_data['style'])
-                except Exception as e:
-                    logger.error(f"Error parsing stored analysis result: {str(e)}")
-
-            selected_characters.append(char_data)
-
-        # Use the first character as the main character for backward compatibility
-        main_character_img = selected_images[0]
-        character_info = selected_characters[0]
-
-        # Get additional characters from database (excluding the selected characters)
-        additional_characters = []
-        selected_ids = [img.id for img in selected_images]
-        additional_chars_query = ImageAnalysis.query.filter_by(image_type='character') \
-            .filter(~ImageAnalysis.id.in_(selected_ids)) \
-            .filter(ImageAnalysis.character_name.isnot(None)) \
-            .order_by(db.func.random()) \
-            .limit(3) \
-            .all()  # Only get characters with names
-
-        for char in additional_chars_query:
-            # Use only data already in the database, no analysis needed
-            char_data = {
-                'name': char.character_name or 'Unknown Character',
-                'character_traits': char.character_traits or [],
-                'role': char.character_role or 'neutral',
-                'plot_lines': char.plot_lines or []
-            }
-            additional_characters.append(char_data)
-
-        # Add the selected characters (except the main one) to story_params
-        if len(selected_characters) > 1:
-            # Remove the main character from the list
-            secondary_characters = selected_characters[1:]
-            # Add them to additional characters
-            additional_characters = secondary_characters + additional_characters
-
-        # Generate the story
-        story_params['character_info'] = character_info
-        story_params['additional_characters'] = additional_characters
-        story_params['protagonist_name'] = protagonist_name
-        story_params['protagonist_gender'] = protagonist_gender
-        result = generate_story(**story_params)
-
-        # Store the generated story
-        story = StoryGeneration(
-            primary_conflict=result['conflict'],
-            setting=result['setting'],
-            narrative_style=result['narrative_style'],
-            mood=result['mood'],
-            generated_story=result['story']
-        )
-
-        # Associate selected images with the story
-        for image in selected_images:
-            story.images.append(image)
-
-        db.session.add(story)
-        db.session.commit()
-
-        # Update user progress with this new story
-        user_progress.current_story_id = story.id
-
-        # Create a default plot arc for this story
-        plot_arc = PlotArc(
-            title=f"{'Custom adventure' if custom_choice else result['conflict']}",
-            description=f"A story set in {result['setting']} with {result['mood']} mood",
-            arc_type="main",
-            story_id=story.id,
-            status="active",
-            primary_characters=selected_ids
-        )
-        db.session.add(plot_arc)
-
-        # Add this plot arc to user's active arcs
-        if not user_progress.active_plot_arcs:
-            user_progress.active_plot_arcs = []
-        user_progress.active_plot_arcs.append(plot_arc.id)
-
-        # Process character evolutions for all characters
-        for img in selected_images:
-            # Register this character encounter with the user
-            user_progress.encounter_character(
-                character_id=img.id,
-                character_name=img.character_name or "Unknown Character",
-                initial_relationship=5 if img.id == main_character_img.id else 0
-            )
-
-            # Create character evolution entry
-            char_evolution = CharacterEvolution(
-                user_id=user_progress.user_id,
-                character_id=img.id,
-                story_id=story.id,
-                role='protagonist' if img.id == main_character_img.id else 'supporting',
-                evolved_traits=img.character_traits or []
-            )
-            db.session.add(char_evolution)
-
-        # If this is a continuation of previous story
-        if previous_story_id and story_context:
-            # Check if there are any plot arcs from previous story to carry over
-            prev_arcs = PlotArc.query.filter_by(
-                story_id=previous_story_id,
-                status='active'
-            ).all()
-
-            # Carry over active plot arcs
-            for arc in prev_arcs:
-                arc.story_id = story.id  # Connect to new story
-                if arc.id in user_progress.active_plot_arcs:
-                    # This arc was already in user's active arcs
-                    pass
-                else:
-                    # Add to user's active arcs
-                    if not user_progress.active_plot_arcs:
-                        user_progress.active_plot_arcs = []
-                    user_progress.active_plot_arcs.append(arc.id)
-
-        # Award experience for generating a story
-        if not previous_story_id:
-            # New story creation
-            user_progress.add_experience_points(50, "Created a new story")
-        else:
-            # Story continuation
-            user_progress.add_experience_points(20, "Continued an existing story")
-
-        db.session.commit()
-
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            # If AJAX request, return JSON
+        data = request.form.to_dict()
+        
+        # Get random characters with required roles
+        selected_characters = get_random_characters_with_roles()
+        if not selected_characters:
             return jsonify({
-                'success': True,
-                'redirect': url_for('main.storyboard', story_id=story.id)
-            })
-        else:
-            # If regular form submit, redirect to storyboard
-            return redirect(url_for('main.storyboard', story_id=story.id))
-
+                'error': 'Unable to generate story: Missing required character roles'
+            }), 500
+            
+        # Add selected characters to form data
+        data['selected_characters'] = [char.id for char in selected_characters]
+        
+        # Get user progress
+        user_progress = get_or_create_user_progress()
+        
+        # Initialize game engine
+        game_engine = GameEngine(user_id=user_progress.user_id)
+        
+        try:
+            # Start new story using game engine
+            story_data = game_engine.start_new_story(form_data=data)
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'success': True,
+                    'redirect': url_for('main.storyboard', story_id=story_data['story_id'])
+                })
+            else:
+                return redirect(url_for('main.storyboard', story_id=story_data['story_id']))
+                
+        except Exception as e:
+            # Ensure transaction is rolled back
+            db.session.rollback()
+            raise
+            
     except Exception as e:
-        logger.error(f"Error generating story: {str(e)}")
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'error': str(e)}), 500
-        else:
-            flash('Error generating story: ' + str(e), 'error')
-            return redirect(url_for('main.index'))
+        logger.error(f"Error generating story: {str(e)}", exc_info=True)
+        # Ensure any open transaction is rolled back
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @main_bp.route('/make_choice', methods=['POST'])
 def make_choice():
-    """Process a story choice and handle currency requirements"""
+    """Process a story choice and generate continuation"""
     try:
-        data = request.json
-        choice_id = data.get('choice_id')
-        custom_choice = data.get('custom_choice')
-        story_id = data.get('story_id')
-        node_id = data.get('node_id')
-        characters = data.get('characters', [])  # Array of character IDs in the story
-
+        # Handle both JSON and form data
+        if request.is_json:
+            data = request.get_json()
+            story_id = data.get('story_id')
+            node_id = data.get('node_id')
+            choice_id = data.get('choice_id')
+            previous_choice = data.get('previous_choice')
+            story_context = data.get('story_context')
+            characters = data.get('characters', [])
+        else:
+            story_id = request.form.get('story_id')
+            node_id = request.form.get('node_id')
+            choice_id = request.form.get('choice_id')
+            previous_choice = request.form.get('previous_choice')
+            story_context = request.form.get('story_context')
+            characters = request.form.getlist('characters[]')
+        
+        # Log the received data for debugging
+        logger.debug(f"Received choice data: story_id={story_id}, node_id={node_id}, choice_id={choice_id}")
+        
+        # Validate required fields individually
+        if not story_id:
+            raise ValueError("Missing story_id")
+        if not node_id:
+            raise ValueError("Missing node_id")
+        if not choice_id:
+            raise ValueError("Missing choice_id")
+            
+        # Get story generation
+        story = StoryGeneration.query.get_or_404(story_id)
+        
         # Get user progress
         user_progress = get_or_create_user_progress()
-
-        if custom_choice:
-            # Validate diamond balance for custom choice
-            currency_requirements = {'💎': 100}
-            if not user_progress.can_afford(currency_requirements):
-                return jsonify({
-                    'error': 'Insufficient diamonds',
-                    'required': 100,
-                    'current_balance': user_progress.currency_balances.get('💎', 0)
-                }), 400
-
-            # Spend diamonds and record transaction
-            success = user_progress.spend_currency(
-                currency_requirements,
-                'choice',
-                f'Custom choice: {custom_choice[:50]}...' if len(custom_choice) > 50 else custom_choice
-            )
-            if not success:
-                return jsonify({'error': 'Failed to process currency transaction'}), 500
-
-            # Record the choice
-            if story_id and node_id:
-                user_progress.record_choice(
-                    choice_text=custom_choice,
-                    choice_id='custom',
-                    node_id=node_id,
-                    story_id=story_id
-                )
-
-                # Award experience for making a custom choice
-                user_progress.add_experience_points(25, "Made custom story choice")
-
-            # Return success for custom choice
+        
+        # Initialize game engine
+        game_engine = GameEngine(user_id=user_progress.user_id)
+        
+        # Process the choice and generate continuation
+        result = game_engine.make_choice(
+            choice_id=choice_id,
+            custom_choice_text=previous_choice,
+            story_context=story_context,
+            characters=[{"id": char_id} for char_id in characters]
+        )
+        
+        # Log the result for debugging
+        logger.debug(f"Game engine result: {json.dumps(result, indent=2)}")
+        
+        # Ensure the new node is properly saved and linked
+        new_node = StoryNode.query.get(result['current_node']['id'])
+        if not new_node:
+            raise ValueError("Failed to create new story node")
+            
+        # Update user progress with new node
+        user_progress.current_node_id = new_node.id
+        user_progress.last_active = datetime.utcnow()
+        
+        # Ensure the node has the new choices in its branch_metadata
+        if not new_node.branch_metadata:
+            new_node.branch_metadata = {}
+        new_node.branch_metadata['choices'] = result['available_choices']
+        
+        # Save all changes
+        db.session.commit()
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({
                 'success': True,
-                'new_balances': user_progress.currency_balances,
-                'message': 'Custom choice processed successfully'
+                'redirect_url': url_for('main.storyboard', story_id=story_id)
             })
-
-        else:
-            # For standard choices
-            choice_text = data.get('choice_text', 'Standard choice')
-
-            # Process currency requirements if any
-            currency_requirements = data.get('currency_requirements')
-            if currency_requirements and not user_progress.can_afford(currency_requirements):
-                return jsonify({
-                    'error': 'Insufficient funds',
-                    'requirements': currency_requirements,
-                    'current_balances': user_progress.currency_balances
-                }), 400
-
-            if currency_requirements:
-                success = user_progress.spend_currency(
-                    currency_requirements,
-                    'choice',
-                    f'Story choice: {choice_text[:50]}...' if len(choice_text) > 50 else choice_text,
-                    node_id
-                )
-                if not success:
-                    return jsonify({'error': 'Failed to process currency transaction'}), 500
-
-            # Record the choice in user progress
-            if story_id and node_id:
-                user_progress.record_choice(
-                    choice_text=choice_text,
-                    choice_id=choice_id,
-                    node_id=node_id,
-                    story_id=story_id
-                )
-
-                # Award experience for making a choice
-                user_progress.add_experience_points(10, "Made story choice")
-
-            # Track character evolution for each character in the story
-            if story_id and characters:
-                for char_id in characters:
-                    # Get character details
-                    character = ImageAnalysis.query.get(char_id)
-                    if not character:
-                        continue
-
-                    # Update user's character relationship
-                    user_progress.encounter_character(
-                        character_id=char_id, 
-                        character_name=character.character_name or "Unknown Character"
-                    )
-
-                    # Check if this character already has an evolution record
-                    char_evolution = CharacterEvolution.query.filter_by(
-                        user_id=user_progress.user_id,
-                        character_id=char_id,
-                        story_id=story_id
-                    ).first()
-
-                    # Create new evolution record if needed
-                    if not char_evolution:
-                        char_evolution = CharacterEvolution(
-                            user_id=user_progress.user_id,
-                            character_id=char_id,
-                            story_id=story_id,
-                            role='supporting',  # Default role
-                            evolved_traits=character.character_traits or []  # Start with original traits
-                        )
-                        db.session.add(char_evolution)
-                        db.session.commit()
-
-            # Return updated user information
+        
+        return redirect(url_for('main.storyboard', story_id=story_id))
+        
+    except ValueError as e:
+        logger.error(f"Validation error in make_choice: {str(e)}")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({
-                'success': True,
-                'new_balances': user_progress.currency_balances,
-                'level': user_progress.level,
-                'experience': user_progress.experience_points,
-                'message': 'Choice processed successfully'
-            })
-
+                'success': False,
+                'error': str(e)
+            }), 400
+        flash(str(e), 'error')
+        return redirect(url_for('main.storyboard', story_id=story_id))
     except Exception as e:
-        logger.error(f"Error processing choice: {str(e)}")
+        logger.error(f"Error processing choice: {str(e)}", exc_info=True)
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': False,
+                'error': 'An error occurred while processing your choice'
+            }), 500
+        flash('An error occurred while processing your choice', 'error')
+        return redirect(url_for('main.storyboard', story_id=story_id))
+
+@main_bp.route('/reroll_character', methods=['POST'])
+def reroll_character():
+    """Return a new random character to replace an existing one"""
+    try:
+        logger.info("Received reroll character request")
+        data = request.json
+        character_id = data.get('character_id')
+        logger.info(f"Reroll request for character_id: {character_id}")
+
+        if not character_id:
+            logger.error("No character ID provided for reroll")
+            return jsonify({'error': 'No character ID provided'}), 400
+
+        # Get a random character from the characters table
+        logger.info("Querying for random character")
+        new_character = Character.query.filter(Character.id != character_id)\
+            .filter(Character.character_name.isnot(None))\
+            .order_by(db.func.random()).first()
+
+        if not new_character:
+            logger.error("No alternative characters found for reroll")
+            return jsonify({'error': 'No alternative characters found'}), 404
+
+        logger.info(f"Found new character: {new_character.id} - {new_character.character_name}")
+
+        # Prepare character data
+        role = new_character.character_role or 'neutral'
+        if role.lower() not in ['villain', 'neutral', 'mission-giver', 'undetermined']:
+            role = 'neutral'
+
+        char_data = {
+            'id': new_character.id,
+            'image_url': new_character.image_url,
+            'name': new_character.character_name,
+            'story': new_character.description or '',
+            'character_traits': new_character.character_traits or [],
+            'plot_lines': new_character.plot_lines or [],
+            'character_role': role
+        }
+
+        # Generate HTML for the new character
+        character_html = render_template('partials/character_card.html')
+        character_html = render_template_string(
+            "{% from 'partials/character_card.html' import character_card %}"
+            "{{ character_card(img, index) }}",
+            img=char_data,
+            index=0
+        )
+
+        logger.info("Successfully prepared character data and HTML")
+        return jsonify({
+            'success': True,
+            'character': char_data,
+            'character_html': character_html
+        })
+    except Exception as e:
+        logger.error(f"Error rerolling character: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
