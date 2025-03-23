@@ -63,6 +63,8 @@
   height: 100%;
   background-color: var(--primary-color);
   width: 0;
+  /* NEW: Reduced animation duration for a quicker progress effect */
+  animation: progressAnimation 3s linear forwards;
   transition: width 0.3s ease;
 }
 
@@ -87,4 +89,10 @@
   background-color: var(--primary-color);
   width: 0;
   transition: width 0.3s ease;
+}
+
+/* NEW keyframes for progress animation */
+@keyframes progressAnimation {
+  from { width: 0; }
+  to { width: 100%; }
 }
