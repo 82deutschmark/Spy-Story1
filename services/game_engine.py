@@ -191,10 +191,10 @@ class GameEngine:
                 # Create initial story node
                 initial_node = StoryNode(
                     story_id=story.id,
-                    narrative_text=story_data["stories"]["story"],  # Access story from nested structure
+                    narrative_text=story_data["narrative_text"],  # Updated to use flattened field
                     is_endpoint=False,
                     branch_metadata={
-                        "choices": story_data["choices"],  # Use choices from root level
+                        "choices": story_data["choices"],  # Use choices from flattened structure
                         "characters": [char.id for char in selected_characters] if selected_character_ids else [],
                         "protagonist": {
                             "name": form_data.get('protagonist_name'),
@@ -322,10 +322,10 @@ class GameEngine:
             # Log the continuation data
             logger.debug(f"Generated continuation data: {json.dumps(next_segment, indent=2)}")
             
-            # Create new node with the generated content
+            # Create new node using updated continuation data from branch_metadata
             next_node = StoryNode(
                 story_id=story.id,
-                narrative_text=next_segment["narrative_text"],  # Now clean without duplication
+                narrative_text=next_segment["narrative_text"],  # Use the clean narrative text
                 parent_node_id=current_node.id,
                 generated_by_ai=True,
                 branch_metadata={
@@ -333,7 +333,8 @@ class GameEngine:
                     "branch_id": choice_id,
                     "choice_text": custom_choice_text or choice_id,
                     "timestamp": datetime.utcnow().isoformat(),
-                    "choices": next_segment["choices"]  # Use choices from root level
+                    "choices": next_segment["choices"],
+                    # ...existing branch metadata for characters, if any...
                 }
             )
             

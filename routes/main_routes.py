@@ -76,7 +76,6 @@ Integration Points:
 """
 
 import os
-import logging
 import json
 from flask import Blueprint, render_template, request, jsonify, url_for, redirect, flash, session, render_template_string
 import uuid
@@ -96,487 +95,239 @@ from utils.validation_utils import validate_story_parameters, validate_string_le
 from utils.currency_utils import process_transaction
 from utils.db_utils import get_or_create_user_progress as db_get_or_create_user_progress
 
-# Configure logging
-logger = logging.getLogger(__name__)
-
 # Create Blueprint
 main_bp = Blueprint('main', __name__)
 
-# Required character roles for story generation
 REQUIRED_ROLES = ['mission-giver', 'villain']
 
 def get_or_create_user_progress(protagonist_name=None):
-    """Get or create user progress record for the current session. Uses protagonist_name for identification."""
     from utils.db_utils import get_or_create_user_progress as db_get_or_create_user_progress
-
     if 'user_id' not in session:
         session['user_id'] = str(uuid.uuid4())
-        logger.debug(f"Created new user session with ID: {session['user_id']}")
-
-    # Use the enhanced db_utils version that handles protagonist name lookup
     user_progress = db_get_or_create_user_progress(session['user_id'], protagonist_name)
-
     return user_progress
 
-# PayPal check removed
-
 def get_random_scene_background():
-    """Get a random scene image suitable for background"""
-    try:
-        scene = SceneImages.query.filter_by(
-            image_type='scene'
-        ).order_by(db.func.random()).first()
-        
-        return scene.image_url if scene else None
-    except Exception as e:
-        logger.error(f"Error getting random scene background: {str(e)}")
-        return None
+    scene = SceneImages.query.filter_by(image_type='scene').order_by(db.func.random()).first()
+    return scene.image_url if scene else None
 
 def get_random_characters_with_roles() -> List[Character]:
-    """Get random characters ensuring required roles are present."""
-    try:
-        # Get one random character for each required role
-        mission_giver = Character.query.filter_by(character_role='mission-giver').order_by(db.func.random()).first()
-        villain = Character.query.filter_by(character_role='villain').order_by(db.func.random()).first()
-        
-        if not mission_giver or not villain:
-            logger.error("Missing required character roles in database")
-            return []
-            
-        # Get a random neutral character if available
-        neutral_char = Character.query.filter_by(character_role='neutral').order_by(db.func.random()).first()
-        
-        # Combine characters
-        selected_characters = [mission_giver, villain]
-        if neutral_char:
-            selected_characters.append(neutral_char)
-            
-        return selected_characters
-        
-    except Exception as e:
-        logger.error(f"Error getting random characters: {str(e)}")
+    mission_giver = Character.query.filter_by(character_role='mission-giver').order_by(db.func.random()).first()
+    villain = Character.query.filter_by(character_role='villain').order_by(db.func.random()).first()
+    if not mission_giver or not villain:
         return []
+    neutral_char = Character.query.filter_by(character_role='neutral').order_by(db.func.random()).first()
+    selected_characters = [mission_giver, villain]
+    if neutral_char:
+        selected_characters.append(neutral_char)
+    return selected_characters
 
 @main_bp.route('/')
 def index():
-    """Main page showing character selection and story options"""
-    try:
-        story_options = get_story_options()
-        background_image = get_random_scene_background()
-
-        # Get random characters with required roles
-        characters = get_random_characters_with_roles()
-        if not characters:
-            logger.error("Failed to get characters with required roles")
-            return render_template(
-                'error.html',
-                error_message="Unable to load characters. Please try again later."
-            )
-
-        character_data = []
-        for char in characters:
-            # Ensure we're using standardized role values
-            role = char.character_role or 'neutral'
-            if role.lower() not in ['villain', 'neutral', 'mission-giver', 'undetermined']:
-                role = 'neutral'
-
-            char_data = {
-                'id': char.id,
-                'image_url': char.image_url,
-                'name': char.character_name,
-                'story': char.description or '',
-                'character_traits': char.character_traits or [],
-                'plot_lines': char.plot_lines or [],
-                'character_role': role
-            }
-            character_data.append(char_data)
-
-        # Initialize user progress only if needed (e.g., form submission)
-        user_progress = None
-        if request.args.get('init_progress'):
-            user_progress = get_or_create_user_progress()
-
-        return render_template(
-            'index.html',
-            story_options=story_options,
-            images=character_data,
-            background_image=background_image,
-            user_progress=user_progress
-        )
-    except Exception as e:
-        logger.error(f"Error in index route: {str(e)}", exc_info=True)
-        return render_template(
-            'error.html',
-            error_message="An error occurred while loading the page. Please try again."
-        )
+    story_options = get_story_options()
+    background_image = get_random_scene_background()
+    characters = get_random_characters_with_roles()
+    if not characters:
+        return render_template('error.html', error_message="Unable to load characters. Please try again later.")
+    character_data = []
+    for char in characters:
+        role = char.character_role or 'neutral'
+        if role.lower() not in ['villain', 'neutral', 'mission-giver', 'undetermined']:
+            role = 'neutral'
+        char_data = {
+            'id': char.id,
+            'image_url': char.image_url,
+            'name': char.character_name,
+            'story': char.description or '',
+            'character_traits': char.character_traits or [],
+            'plot_lines': char.plot_lines or [],
+            'character_role': role
+        }
+        character_data.append(char_data)
+    user_progress = None
+    if request.args.get('init_progress'):
+        user_progress = get_or_create_user_progress()
+    return render_template('index.html',
+                           story_options=story_options,
+                           images=character_data,
+                           background_image=background_image,
+                           user_progress=user_progress)
 
 @main_bp.route('/storyboard/<int:story_id>')
 def storyboard(story_id):
-    """Display the current story progress and choices"""
-    try:
-        # Get story and initialize game state
-        story = StoryGeneration.query.get_or_404(story_id)
-        story_data = story.generated_story  # PostgreSQL automatically converts JSONB to dict
-        user_progress = get_or_create_user_progress()
-        game_state = GameState(user_progress.user_id)
+    story = StoryGeneration.query.get_or_404(story_id)
+    user_progress = get_or_create_user_progress()
+    game_state = GameState(user_progress.user_id)
+    user_progress.current_story_id = story_id
+    background_image = get_random_scene_background()
+    character_images = []
+    for character in story.characters:
+        character_images.append({
+            'id': character.id,
+            'image_url': character.image_url,
+            'name': character.character_name,
+            'traits': character.character_traits
+        })
+    current_node = game_state.resolve_current_node()
+    if not current_node:
+        flash('Error: Could not resolve current story node', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Debug logging removed
 
-        # Debug logging
-        logger.info(f"Story data: {json.dumps(story_data, indent=2)}")
-
-        # Update user progress to reflect current story
-        user_progress.current_story_id = story_id
-        
-        # Get random scene for background
-        background_image = get_random_scene_background()
-
-        # Get associated character images from the story's characters
-        character_images = []
-
-        try:
-            # Add characters from the story's character relationship
-            for character in story.characters:
-                try:
-                    character_images.append({
-                        'id': character.id,
-                        'image_url': character.image_url,
-                        'name': character.character_name,
-                        'traits': character.character_traits
-                    })
-                except Exception as e:
-                    logger.error(f"Error processing character {character.id}: {str(e)}")
-                    continue
-        except Exception as e:
-            logger.error(f"Error accessing story characters: {str(e)}")
-            # Continue without story characters
-
-        # Get all characters mentioned in the story
-        mentioned_characters = []
-        # Handle both nested and flat story structures
-        if 'stories' in story_data and 'characters' in story_data['stories']:
-            mentioned_characters = story_data['stories']['characters']
-        elif 'characters' in story_data:
-            mentioned_characters = story_data['characters']
-
-        # Add any missing characters from the mentioned list
-        for char_name in mentioned_characters:
-            if not any(char['name'] == char_name for char in character_images):
-                # Try to find the character in the database
-                character = Character.query.filter_by(character_name=char_name).first()
-                if character:
-                    character_images.append({
-                        'id': character.id,
-                        'image_url': character.image_url,
-                        'name': character.character_name,
-                        'traits': character.character_traits
-                    })
-
-        # Get current node and ensure it has choices
-        current_node = game_state.resolve_current_node()
-        if not current_node:
-            flash('Error: Could not resolve current story node', 'error')
-            return redirect(url_for('main.dashboard'))
-            
-        # Debug logging for node data
-        logger.info(f"Current node data: {json.dumps(current_node.to_dict(), indent=2)}")
-        logger.info(f"Node branch_metadata: {json.dumps(current_node.branch_metadata, indent=2)}")
-
-        # Add characters from node's choices
-        if current_node.branch_metadata and 'choices' in current_node.branch_metadata:
-            for choice in current_node.branch_metadata['choices']:
-                if choice.get('character_id'):
-                    # Only add if not already in character_images
-                    if not any(char['id'] == choice['character_id'] for char in character_images):
-                        character = Character.query.get(choice['character_id'])
-                        if character:
-                            character_images.append({
-                                'id': character.id,
-                                'image_url': character.image_url,
-                                'name': character.character_name,
-                                'traits': character.character_traits
-                            })
-
-        # Ensure node has branch_metadata with required fields
-        if not current_node.branch_metadata:
-            # For a new node, use story's initial choices
-            current_node.branch_metadata = {
-                "choices": story_data.get("choices", []),  # Get choices from story data if available
-                "timestamp": datetime.utcnow().isoformat(),
-                "character_relationships": {},
-                "active_missions": []
-            }
-            db.session.commit()
-            logger.info("Created new branch_metadata with choices from story_data")
-        else:
-            # For existing nodes, ensure all required fields exist
-            # but DO NOT overwrite existing choices
-            if "timestamp" not in current_node.branch_metadata:
-                current_node.branch_metadata["timestamp"] = datetime.utcnow().isoformat()
-            if "character_relationships" not in current_node.branch_metadata:
-                current_node.branch_metadata["character_relationships"] = {}
-            if "active_missions" not in current_node.branch_metadata:
-                current_node.branch_metadata["active_missions"] = []
-            if "choices" not in current_node.branch_metadata:
-                # Only set choices if they don't exist
-                current_node.branch_metadata["choices"] = story_data.get("choices", [])
-            db.session.commit()
-
-        # Update character relationships
-        for char_id, char_info in current_node.branch_metadata.get("character_relationships", {}).items():
-            for i, char in enumerate(character_images):
-                if str(char['id']) == char_id:
-                    character_images[i].update({
-                        'relationship_level': char_info.get('relationship_level', 0)
-                    })
-
-        # Prepare story progress data for the template
-        story_progress = {
-            'current_story_id': user_progress.current_story_id,
-            'current_node_id': current_node.id,
-            'completed_plot_arcs': user_progress.completed_plot_arcs or [],
-            'choice_history': user_progress.choice_history or [],
-            'active_missions': current_node.branch_metadata.get("active_missions", [])
+    if current_node.branch_metadata and 'choices' in current_node.branch_metadata:
+        for choice in current_node.branch_metadata['choices']:
+            if choice.get('character_id'):
+                if not any(char['id'] == choice['character_id'] for char in character_images):
+                    character = Character.query.get(choice['character_id'])
+                    if character:
+                        character_images.append({
+                            'id': character.id,
+                            'image_url': character.image_url,
+                            'name': character.character_name,
+                            'traits': character.character_traits
+                        })
+    if not current_node.branch_metadata:
+        current_node.branch_metadata = {
+            "choices": {},  # Removed legacy dependency on story_data
+            "timestamp": datetime.utcnow().isoformat(),
+            "character_relationships": {},
+            "active_missions": []
         }
-
-        # Prepare story data for template - handle both nested and flat structures
-        template_story_data = story_data
-        if 'stories' in story_data:
-            template_story_data = story_data['stories']
-
-        # Commit the transaction after all database operations are successful
         db.session.commit()
-
-        return render_template(
-            'storyboard.html',
-            story=template_story_data,
-            story_id=story_id,
-            node=current_node,
-            character_images=character_images,
-            background_image=background_image,
-            user_progress=user_progress,
-            story_progress=story_progress
-        )
-
-    except Exception as e:
-        # Rollback the transaction on any error
-        db.session.rollback()
-        logger.error(f"Error in storyboard route: {str(e)}", exc_info=True)
-        return render_template(
-            'error.html',
-            error_message="An error occurred while loading the story. Please try again."
-        )
+    else:
+        if "timestamp" not in current_node.branch_metadata:
+            current_node.branch_metadata["timestamp"] = datetime.utcnow().isoformat()
+        if "character_relationships" not in current_node.branch_metadata:
+            current_node.branch_metadata["character_relationships"] = {}
+        if "active_missions" not in current_node.branch_metadata:
+            current_node.branch_metadata["active_missions"] = []
+        if "choices" not in current_node.branch_metadata:
+            current_node.branch_metadata["choices"] = {}
+        db.session.commit()
+    
+    for char_id, char_info in current_node.branch_metadata.get("character_relationships", {}).items():
+        for i, char in enumerate(character_images):
+            if str(char['id']) == char_id:
+                character_images[i].update({'relationship_level': char_info.get('relationship_level', 0)})
+    
+    story_progress = {
+        'current_story_id': user_progress.current_story_id,
+        'current_node_id': current_node.id,
+        'completed_plot_arcs': user_progress.completed_plot_arcs or [],
+        'choice_history': user_progress.choice_history or [],
+        'active_missions': current_node.branch_metadata.get("active_missions", [])
+    }
+    template_story_data = {
+        "narrative_text": current_node.narrative_text,
+        "choices": current_node.branch_metadata.get("choices", [])
+    }
+    db.session.commit()
+    return render_template('storyboard.html',
+                           story=template_story_data,
+                           story_id=story_id,
+                           node=current_node,
+                           character_images=character_images,
+                           background_image=background_image,
+                           user_progress=user_progress,
+                           story_progress=story_progress)
 
 @main_bp.route('/generate_story', methods=['POST'])
 def generate_story_route():
-    """Generate a new story or continue an existing one"""
-    try:
-        # Get form data as a dictionary
-        data = request.form.to_dict()
-        
-        # Use user's selected character IDs if provided in hidden input "selected_images"
-        selected_chars_input = request.form.getlist('selected_images')
-        if selected_chars_input:
-            # Convert input values to integers and query the Character table
-            selected_characters = Character.query.filter(
-                Character.id.in_([int(cid) for cid in selected_chars_input])
-            ).all()
-            # Ensure required roles (mission-giver and villain) are present
-            required_roles = ['mission-giver', 'villain']
-            existing_roles = [char.character_role.lower() for char in selected_characters if char.character_role]
-            for role in required_roles:
-                if role not in existing_roles:
-                    missing_char = Character.query.filter_by(character_role=role).order_by(db.func.random()).first()
-                    if missing_char:
-                        selected_characters.append(missing_char)
-        else:
-            # Fall back to random characters for required roles
-            selected_characters = get_random_characters_with_roles()
-        
-        if not selected_characters:
-            return jsonify({
-                'error': 'Unable to generate story: Missing required character roles'
-            }), 500
-            
-        # Add selected characters (by their IDs) to form data
-        data['selected_characters'] = [char.id for char in selected_characters]
-        
-        # Get user progress
-        user_progress = get_or_create_user_progress()
-        
-        # Initialize game engine
-        game_engine = GameEngine(user_id=user_progress.user_id)
-        
-        try:
-            # Start new story using game engine
-            story_data = game_engine.start_new_story(form_data=data)
-            
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({
-                    'success': True,
-                    'redirect': url_for('main.storyboard', story_id=story_data['story_id'])
-                })
-            else:
-                return redirect(url_for('main.storyboard', story_id=story_data['story_id']))
-                
-        except Exception as e:
-            db.session.rollback()
-            raise
-            
-    except Exception as e:
-        logger.error(f"Error generating story: {str(e)}", exc_info=True)
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+    data = request.form.to_dict()
+    selected_chars_input = request.form.getlist('selected_images')
+    if selected_chars_input:
+        selected_characters = Character.query.filter(
+            Character.id.in_([int(cid) for cid in selected_chars_input])
+        ).all()
+        required_roles = ['mission-giver', 'villain']
+        existing_roles = [char.character_role.lower() for char in selected_characters if char.character_role]
+        for role in required_roles:
+            if role not in existing_roles:
+                missing_char = Character.query.filter_by(character_role=role).order_by(db.func.random()).first()
+                if missing_char:
+                    selected_characters.append(missing_char)
+    else:
+        selected_characters = get_random_characters_with_roles()
+    if not selected_characters:
+        return jsonify({'error': 'Missing required character roles'}), 500
+    data['selected_characters'] = [char.id for char in selected_characters]
+    user_progress = get_or_create_user_progress()
+    game_engine = GameEngine(user_id=user_progress.user_id)
+    story_data = game_engine.start_new_story(form_data=data)
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': True, 'redirect': url_for('main.storyboard', story_id=story_data['story_id'])})
+    else:
+        return redirect(url_for('main.storyboard', story_id=story_data['story_id']))
 
 @main_bp.route('/make_choice', methods=['POST'])
 def make_choice():
-    """Process a story choice and generate continuation"""
-    try:
-        # Handle both JSON and form data
-        if request.is_json:
-            data = request.get_json()
-            story_id = data.get('story_id')
-            node_id = data.get('node_id')
-            choice_id = data.get('choice_id')
-            previous_choice = data.get('previous_choice')
-            story_context = data.get('story_context')
-            characters = data.get('characters', [])
-        else:
-            story_id = request.form.get('story_id')
-            node_id = request.form.get('node_id')
-            choice_id = request.form.get('choice_id')
-            previous_choice = request.form.get('previous_choice')
-            story_context = request.form.get('story_context')
-            characters = request.form.getlist('characters[]')
-        
-        # Log the received data for debugging
-        logger.debug(f"Received choice data: story_id={story_id}, node_id={node_id}, choice_id={choice_id}")
-        
-        # Validate required fields individually
-        if not story_id:
-            raise ValueError("Missing story_id")
-        if not node_id:
-            raise ValueError("Missing node_id")
-        if not choice_id:
-            raise ValueError("Missing choice_id")
-            
-        # Get story generation
-        story = StoryGeneration.query.get_or_404(story_id)
-        
-        # Get user progress
-        user_progress = get_or_create_user_progress()
-        
-        # Initialize game engine
-        game_engine = GameEngine(user_id=user_progress.user_id)
-        
-        # Process the choice and generate continuation
-        result = game_engine.make_choice(
-            choice_id=choice_id,
-            custom_choice_text=previous_choice,
-            story_context=story_context,
-            characters=[{"id": char_id} for char_id in characters]
-        )
-        
-        # Log the result for debugging
-        logger.debug(f"Game engine result: {json.dumps(result, indent=2)}")
-        
-        # Ensure the new node is properly saved and linked
-        new_node = StoryNode.query.get(result['current_node']['id'])
-        if not new_node:
-            raise ValueError("Failed to create new story node")
-            
-        # Update user progress with new node
-        user_progress.current_node_id = new_node.id
-        user_progress.last_active = datetime.utcnow()
-        
-        # Ensure the node has the new choices in its branch_metadata
-        if not new_node.branch_metadata:
-            new_node.branch_metadata = {}
-        new_node.branch_metadata['choices'] = result['available_choices']
-        
-        # Save all changes
-        db.session.commit()
-        
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({
-                'success': True,
-                'redirect_url': url_for('main.storyboard', story_id=story_id)
-            })
-        
-        return redirect(url_for('main.storyboard', story_id=story_id))
-        
-    except ValueError as e:
-        logger.error(f"Validation error in make_choice: {str(e)}")
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({
-                'success': False,
-                'error': str(e)
-            }), 400
-        flash(str(e), 'error')
-        return redirect(url_for('main.storyboard', story_id=story_id))
-    except Exception as e:
-        logger.error(f"Error processing choice: {str(e)}", exc_info=True)
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({
-                'success': False,
-                'error': 'An error occurred while processing your choice'
-            }), 500
-        flash('An error occurred while processing your choice', 'error')
-        return redirect(url_for('main.storyboard', story_id=story_id))
+    if request.is_json:
+        data = request.get_json()
+        story_id = data.get('story_id')
+        node_id = data.get('node_id')
+        choice_id = data.get('choice_id')
+        previous_choice = data.get('previous_choice')
+        story_context = data.get('story_context')
+        characters = data.get('characters', [])
+    else:
+        story_id = request.form.get('story_id')
+        node_id = request.form.get('node_id')
+        choice_id = request.form.get('choice_id')
+        previous_choice = request.form.get('previous_choice')
+        story_context = request.form.get('story_context')
+        characters = request.form.getlist('characters[]')
+    if not story_id or not node_id or not choice_id:
+        raise ValueError("Missing required fields")
+    story = StoryGeneration.query.get_or_404(story_id)
+    user_progress = get_or_create_user_progress()
+    game_engine = GameEngine(user_id=user_progress.user_id)
+    result = game_engine.make_choice(
+        choice_id=choice_id,
+        custom_choice_text=previous_choice,
+        story_context=story_context,
+        characters=[{"id": char_id} for char_id in characters]
+    )
+    new_node = StoryNode.query.get(result['current_node']['id'])
+    if not new_node:
+        raise ValueError("Failed to create new story node")
+    user_progress.current_node_id = new_node.id
+    user_progress.last_active = datetime.utcnow()
+    if not new_node.branch_metadata:
+        new_node.branch_metadata = {}
+    new_node.branch_metadata['choices'] = result['available_choices']
+    db.session.commit()
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': True, 'redirect_url': url_for('main.storyboard', story_id=story_id)})
+    return redirect(url_for('main.storyboard', story_id=story_id))
 
 @main_bp.route('/reroll_character', methods=['POST'])
 def reroll_character():
-    """Return a new random character to replace an existing one"""
-    try:
-        logger.info("Received reroll character request")
-        data = request.json
-        character_id = data.get('character_id')
-        logger.info(f"Reroll request for character_id: {character_id}")
-
-        if not character_id:
-            logger.error("No character ID provided for reroll")
-            return jsonify({'error': 'No character ID provided'}), 400
-
-        # Get a random character from the characters table
-        logger.info("Querying for random character")
-        new_character = Character.query.filter(Character.id != character_id)\
-            .filter(Character.character_name.isnot(None))\
-            .order_by(db.func.random()).first()
-
-        if not new_character:
-            logger.error("No alternative characters found for reroll")
-            return jsonify({'error': 'No alternative characters found'}), 404
-
-        logger.info(f"Found new character: {new_character.id} - {new_character.character_name}")
-
-        # Prepare character data
-        role = new_character.character_role or 'neutral'
-        if role.lower() not in ['villain', 'neutral', 'mission-giver', 'undetermined']:
-            role = 'neutral'
-
-        char_data = {
-            'id': new_character.id,
-            'image_url': new_character.image_url,
-            'name': new_character.character_name,
-            'story': new_character.description or '',
-            'character_traits': new_character.character_traits or [],
-            'plot_lines': new_character.plot_lines or [],
-            'character_role': role
-        }
-
-        # Generate HTML for the new character
-        character_html = render_template('partials/character_card.html')
-        character_html = render_template_string(
-            "{% from 'partials/character_card.html' import character_card %}"
-            "{{ character_card(img, index) }}",
-            img=char_data,
-            index=0
-        )
-
-        logger.info("Successfully prepared character data and HTML")
-        return jsonify({
-            'success': True,
-            'character': char_data,
-            'character_html': character_html
-        })
-    except Exception as e:
-        logger.error(f"Error rerolling character: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+    data = request.json
+    character_id = data.get('character_id')
+    if not character_id:
+        return jsonify({'error': 'No character ID provided'}), 400
+    new_character = Character.query.filter(Character.id != character_id)\
+        .filter(Character.character_name.isnot(None))\
+        .order_by(db.func.random()).first()
+    if not new_character:
+        return jsonify({'error': 'No alternative characters found'}), 404
+    role = new_character.character_role or 'neutral'
+    if role.lower() not in ['villain', 'neutral', 'mission-giver', 'undetermined']:
+        role = 'neutral'
+    char_data = {
+        'id': new_character.id,
+        'image_url': new_character.image_url,
+        'name': new_character.character_name,
+        'story': new_character.description or '',
+        'character_traits': new_character.character_traits or [],
+        'plot_lines': new_character.plot_lines or [],
+        'character_role': role
+    }
+    character_html = render_template('partials/character_card.html')
+    character_html = render_template_string(
+        "{% from 'partials/character_card.html' import character_card %}{{ character_card(img, index) }}",
+        img=char_data,
+        index=0
+    )
+    return jsonify({'success': True, 'character': char_data, 'character_html': character_html})

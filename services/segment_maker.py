@@ -149,6 +149,7 @@ class StoryContinuationHandler:
         # NEW: Remove any embedded raw IDs from narrative_text using a regex cleanup.
         import re
         clean_text = re.sub(r'\(character_id:\s*\d+\)', '', story_data["story"])
+        # Return a flattened structure: only narrative_text, choices, and mission_update
         return {
             "narrative_text": clean_text,
             "choices": story_data["choices"],
