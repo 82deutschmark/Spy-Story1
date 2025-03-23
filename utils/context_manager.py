@@ -244,7 +244,7 @@ Your response MUST be valid JSON with this structure:
         narrative_style: str,
         mood: str,
         character_info: Dict[str, Any],
-        client = None,
+        client=None,
         temperature: float = INITIAL_STORY_TEMPERATURE
     ) -> Dict[str, Any]:
         """Generate the initial opening of a story.
@@ -283,8 +283,16 @@ Your response MUST be valid JSON with this structure:
             content = content[:-3]  # Remove ```
         content = content.strip()
         
-        # Parse the response
-        story_data = json.loads(content)
+        # Log the raw content to inspect what was returned:
+        logging.debug(f"Raw OpenAI response content: {content}")
+        try:
+            story_data = json.loads(content)
+        except json.JSONDecodeError as e:
+            logging.error(f"JSON decode error: {str(e)} with content: {content}")
+            # Escape problematic characters for debugging
+            escaped_content = content.replace("\n", "\\n").replace("\r", "\\r")
+            logging.error(f"Escaped JSON content for inspection: {escaped_content}")
+            raise
         
         # Add the response to conversation history
         self.add_assistant_message(content)

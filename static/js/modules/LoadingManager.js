@@ -81,16 +81,19 @@ class LoadingManager {
     startLoadingOverlay(message = 'Loading...') {
         const overlay = document.createElement('div');
         overlay.className = 'loading-overlay';
+        // Notice the spinner-border here comes from Bootstrap and auto-animates:
         overlay.innerHTML = `
             <div class="loading-content">
                 <div class="spinner-border text-primary mb-3" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
                 <div class="loading-message">${message}</div>
-                <div class="loading-percentage">0%</div>
-                <div class="progress mt-3" style="width: 200px;">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                         role="progressbar" style="width: 0%"></div>
+                <div class="loading-flair" style="font-style: italic; color: #28a745; margin-bottom: 10px;">
+                    Please wait, we’re making magic happen!
+                </div>
+                <div class="loading-percentage" style="font-weight: bold;">0%</div>
+                <div class="progress mt-3" style="width: 250px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
                 </div>
             </div>
         `;
@@ -102,8 +105,23 @@ class LoadingManager {
             progressBar: overlay.querySelector('.progress-bar'),
             percentage: overlay.querySelector('.loading-percentage'),
             message: overlay.querySelector('.loading-message'),
-            cleanup: () => this.stopLoadingOverlay(overlay)
+            fakeProgressInterval: null,
+            cleanup: () => {
+                clearInterval(loadingState.fakeProgressInterval);
+                this.stopLoadingOverlay(overlay);
+            }
         };
+
+        // Start fake progress update: increment every 150ms until reaching 100%
+        let fakeProgress = 0;
+        loadingState.fakeProgressInterval = setInterval(() => {
+            fakeProgress++;
+            if (fakeProgress >= 100) {
+                fakeProgress = 100;
+                clearInterval(loadingState.fakeProgressInterval);
+            }
+            this.updateProgress(loadingState, fakeProgress);
+        }, 150);
 
         this.loadingStates.set(overlay, loadingState);
         return loadingState;

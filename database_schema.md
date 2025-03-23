@@ -45,8 +45,6 @@ This document outlines all database tables in our project, their relationships, 
 - `character_role`: Role of the character (undetermined, villain, neutral, mission-giver)
 - `plot_lines`: JSON with potential plot lines
 - `backstory`: Character backstory
-- `description`: Character description
-- `created_at`, `updated_at`: Timestamps for creation and updates
 
 ### 4. SceneImages
 **Purpose**: Stores scene images and their metadata
