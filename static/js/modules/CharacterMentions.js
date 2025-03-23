@@ -35,6 +35,7 @@ class CharacterMentions {
      * Initialize the character mentions module
      */
     initialize() {
+        // Ensure initialization happens after DOM content is loaded
         this.storyContent = document.querySelector('.story-content');
         if (!this.storyContent) return;
 
@@ -62,6 +63,13 @@ class CharacterMentions {
         this.storyContent.querySelectorAll('.character-mention').forEach(mention => {
             mention.addEventListener('click', this.handleMentionClick);
         });
+    }
+
+    /**
+     * Method to reinitialize the highlights when story content updates
+     */
+    refresh() {
+        this.initialize();
     }
 
     /**
@@ -139,6 +147,12 @@ class CharacterMentions {
         }
     }
 }
+
+// Optional: Auto-initialize on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+    const cm = new CharacterMentions();
+    cm.initialize();
+});
 
 // Export the CharacterMentions class
 export default CharacterMentions;

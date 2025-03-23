@@ -231,7 +231,7 @@ class StoryPromptBuilder:
             "You are a master narrative generator for our adventure game.",
             f"Create highly detailed, layered narratives in a {mood} tone with a {narrative_style} storytelling style.",
             "",
-            "This game is set in the high-stakes world of international espionage, luxury, and intrigue.",
+            "This game is set in the high-stakes world of ruthless business, international espionage, luxury, and intrigue.",
             "Players take on missions, develop relationships with various characters, and navigate complex scenarios",
             "where betrayal, romance, and action are common themes. The game engine tracks character relationships,",
             "story progress, and mission progress.",
@@ -244,12 +244,12 @@ class StoryPromptBuilder:
             "   - Mission-giver: MUST be the one giving the mission to the player",
             "   - Villain: MUST be the primary antagonist",
             "   - Neutral: Can be used in supporting roles",
-            "   - Undetermined: Role is flexible but must align with traits",
+            "   - Undetermined: Role is flexible",
             "5. The mission-giver must remain the mission-giver",
             "6. The villain must remain the primary antagonist",
             "",
             "NARRATIVE STYLE GUIDELINES:",
-            "1. Create a LENGTHY, DETAILED story introduction (at least 16000-20000 words) with good story structure",
+            "1. Create a LENGTHY, DETAILED story introduction (at least 22000-25000 words) with good story structure",
             "2. ALWAYS tell the story in second person, addressing the player directly and alluding to their name and gender in the introduction",
             "3. Use vivid sensory details, atmospheric descriptions, but do not reference a character's physical features or clothing",
             "4. This segment should set the stage for the story, introduce the characters, and provide a clear objective for the player",
@@ -311,20 +311,20 @@ class StoryPromptBuilder:
             "2. The mission should have a clear objective like to steal something, kill someone, or obtain info or all three.",
             "3. The mission should have a deadline and a consequence for failure.",
             "4. The villain should not appear directly in the story until later in the game, introduce them first via other character dialogue",
-            "5. You MUST NOT invent or create any important new characters, select from the characters provided in the character prompts",
+            "5. You MUST NOT invent or create any unsourced characters, select from the characters provided in the character prompts",
             "6. The protagonist should encounter the other characters by seeking them out or they will seek the protagonist out",
-            "7. The other characters should have a reason to be hostile or helpful to the protagonist, and use their traits and backstory to enrich the story",
+            "7. The other characters should have a reason to be hostile or helpful to the protagonist, and use their traits, plot_lines, and backstory to enrich the story",
             "8. The mission-giver reluctantly agrees to give the player the mission and reminds them not to screw it up again, alluding to a previous fiasco.",
             "9. The villain must be well-protected and pose a significant challenge, but also be pathetic and incompetent and the object of disgust not fear.",
             "10. The villain is hated by the mission-giver for reasons that are business or political or ideological or personal or any combination.",
             "11. The villain should have a weakness that the player can exploit",
-            "12. The villain should have a backstory that explains their motivation, but generally they are a super rich scumbag who will stop at nothing to get what they want.",
+            "12. The villain should have a backstory that explains their plan or motivation, but generally they are a super rich scumbag who will stop at nothing to get what they want.",
             "13. Do not describe the villain's physical appearance, only their role and motivation.",
             "14. The mission-giver is a rich person, or a high-level spy or a government agent with a lot of resources and a lot of power. They need the protagonist for a discreet job",
             "15. The mission-giver should already have a strained relationship with the player character, who they view as a reckless and impulsive amateur.",
             "16. The mission-giver is always talking about geopolitical tensions and macroeconomic trends and esoteric financial strategies in niche industries, frequently in one or two complex and convoluted sentences.",
             "",
-            "Please generate a story that follows these requirements exactly."
+            "Please generate a story that follows these requirements exactly and is 25000-28000 words long."
         ]
         
         return "\n".join(filter(None, prompt_parts))
@@ -415,7 +415,19 @@ def get_story_options() -> Dict[str, List[Tuple[str, str]]]:
 
 def generate_story(**kwargs) -> Dict[str, Any]:
     """Generate a new story with the given parameters."""
-    # Extract client from kwargs if present
     client = kwargs.pop('client', None)
     generator = StoryGenerator(client=client)
-    return generator.generate_story(**kwargs)
+    story_data = generator.generate_story(**kwargs)
+    # NEW: Flatten the generated story data by extracting narrative_text and choices
+    flattened = {
+        "narrative_text": story_data.get("stories", {}).get("story", story_data.get("story")) or "",
+        "choices": story_data.get("stories", {}).get("choices", story_data.get("choices", []))
+    }
+    # Merge remaining top-level fields if needed (e.g., conflict, setting)
+    flattened.update({
+        "conflict": story_data.get("conflict"),
+        "setting": story_data.get("setting"),
+        "narrative_style": story_data.get("narrative_style"),
+        "mood": story_data.get("mood")
+    })
+    return flattened
