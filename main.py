@@ -13,6 +13,12 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.pool import QueuePool
 
+# Configure basic logging to display INFO messages on the console
+logging.basicConfig(level=logging.INFO)
+
+# Optionally, set the specific logger for httpx to DEBUG for more detail
+logging.getLogger("httpx").setLevel(logging.DEBUG)
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

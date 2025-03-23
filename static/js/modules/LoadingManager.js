@@ -150,7 +150,7 @@ class LoadingManager {
      * @param {number} duration - Duration in milliseconds
      * @param {number} targetProgress - Target progress percentage
      */
-    startProgressAnimation(loadingState, duration = 5000, targetProgress = 90) {
+    startProgressAnimation(loadingState, duration = 3000, targetProgress = 100) { // modified duration and targetProgress
         const startTime = Date.now();
         const startProgress = 0;
 

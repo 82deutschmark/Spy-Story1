@@ -17,6 +17,10 @@ from datetime import datetime
 from models.character_data import Character
 from models.base import db
 from sqlalchemy import func
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("httpx").setLevel(logging.DEBUG)
 
 class CharacterFormatter:
     """Handles character formatting for story prompts."""
@@ -45,11 +49,23 @@ CHARACTER USAGE REQUIREMENTS:
 """
 
     @staticmethod
-    def get_random_character() -> Optional[Character]:
-        """Get a random character suitable for story choices."""
-        return Character.query.filter(
+    def get_random_characters(n: int = 3) -> List[Character]:
+        """Retrieve up to n eligible characters from the DB."""
+        eligible = Character.query.filter(
             Character.character_role.in_(['neutral', 'undetermined', 'mission-giver'])
-        ).order_by(func.random()).first()
+        ).all()
+        import random
+        if not eligible:
+            logging.error("No eligible characters found in DB.")
+            return []
+        return random.sample(eligible, min(n, len(eligible)))
+
+    @staticmethod
+    def get_random_character() -> Optional[Character]:
+        """Return one randomly selected character from eligible candidates."""
+        import random
+        characters = CharacterFormatter.get_random_characters()
+        return random.choice(characters) if characters else None
 
     @staticmethod
     def validate_character_choice(choice: Dict[str, Any], expected_character_id: Optional[int]) -> bool:
@@ -186,7 +202,7 @@ class StoryContinuationHandler:
             f"STORY CONTEXT:\n{story_context}\n" if story_context else '',
             "",
             "STORY REQUIREMENTS:",
-            "1. Create a compelling continuation of 15000-18000 words that builds upon the player's choice",
+            "1. Create a compelling continuation of 18000-19000 words that builds upon the player's choice",
             "2. Show immediate consequences of their decision",
             "3. Advance the mission in some way (progress, setback, or complication)",
             "4. Create three distinct choices for how to proceed:",
@@ -223,8 +239,11 @@ class StoryContinuationHandler:
         story_context: Optional[str] = None
     ) -> Dict[str, Any]:
         """Generate a story continuation based on the player's choice."""
-        # Get a random character for choices
-        random_character = CharacterFormatter.get_random_character()
+        # Retrieve multiple eligible characters
+        random_characters = CharacterFormatter.get_random_characters()
+        import random
+        selected_random = random.choice(random_characters) if random_characters else None
+        available_npc_names = ", ".join([char.character_name for char in random_characters]) if random_characters else "None"
         
         # Initialize context manager if needed
         if not self.context_manager:
@@ -246,13 +265,45 @@ class StoryContinuationHandler:
             self.context_manager.add_system_message("\n".join(system_parts))
         
         # Build and add the continuation prompt
-        continuation_prompt = self.build_continuation_prompt(
-            previous_story=previous_story,
-            chosen_choice=chosen_choice,
-            mission_info=mission_info,
-            random_character=random_character,
-            story_context=story_context
-        )
+        prompt_parts = [
+            "Continue the story based on the following details:",
+            "",
+            "PLAYER'S CHOICE:",
+            chosen_choice,
+            "",
+            "CURRENT MISSION:",
+            f"Title: {mission_info.get('title', 'Unknown')}",
+            f"Objective: {mission_info.get('objective', 'Unknown')}",
+            f"Current Status: {mission_info.get('status', 'In Progress')}",
+            "",
+            CharacterFormatter.format_character_info(selected_random) if selected_random else '',
+            f"AVAILABLE NPC CHOICES for assistance: {available_npc_names}",
+            f"STORY CONTEXT:\n{story_context}\n" if story_context else '',
+            "",
+            "STORY REQUIREMENTS:",
+            "1. Create a compelling continuation of 18000-19000 words that builds upon the player's choice",
+            "2. Show immediate consequences of their decision",
+            "3. Advance the mission in some way (progress, setback, or complication)",
+            "4. Create three distinct choices for how to proceed:",
+            f"   - One that advances the mission directly or indirectly",
+            f"   - One that takes a risky approach, involving gunplay or car chases",
+            f"   - One that involves asking {selected_random.character_name if selected_random else 'a previously introduced character'} for help (MUST include character_id: {selected_random.id if selected_random else 'null'})",
+            "5. Maintain narrative consistency with previous events",
+            "6. Include rich descriptions of guns and cars and atmospheric details, but not of characters or their look or clothing",
+            "7. Show character development through actions and dialogue",
+            "8. Create unexpected twists or revelations",
+            "9. Balance action, dialogue, and intrigue",
+            "10. Avoid repeating previous scenarios or story beats",
+            "11. Create escalating stakes and tension",
+            "12. Ensure all character interactions reflect their traits and relationships",
+            "13. Make dialogue choices impact the story's direction",
+            "14. Show how the protagonist's choices affect other characters",
+            "15. Keep the mission-giver and villain roles consistent with their previous appearances",
+            "",
+            "Your response MUST be valid JSON with this structure:",
+            StoryPromptBuilder.get_json_structure()
+        ]
+        continuation_prompt = "\n".join(prompt_parts)
         self.context_manager.add_user_message(continuation_prompt)
         
         # Get the response
@@ -264,7 +315,7 @@ class StoryContinuationHandler:
         
         # Parse and validate the response
         story_data = json.loads(response.choices[0].message.content)
-        return self.validate_response(story_data, random_character)
+        return self.validate_response(story_data, selected_random)
 
 def get_openai_client():
     """Get an OpenAI client with the current API key."""
@@ -302,7 +353,7 @@ def generate_continuation(
     protagonist_gender: Optional[str] = None,
     story_context: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Generate a story continuation of 8000-11000 words based on the player's choice."""
+    """Generate a story continuation of 18000-19000 words based on the player's choice."""
     handler = StoryContinuationHandler(context_manager)
     return handler.generate_continuation(
         previous_story=previous_story,

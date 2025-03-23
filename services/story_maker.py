@@ -52,6 +52,8 @@ from utils.constants import DEFAULT_TEMPERATURE
 
 # Configure logging
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("httpx").setLevel(logging.DEBUG)
 
 def get_openai_client():
     """Get an OpenAI client with the current API key."""
@@ -87,23 +89,36 @@ STORY_OPTIONS = {
         ("🧠", "Mind control experiment"),
     ],
     "settings": [
-        ("🗼", "Europe"),
-        ("🏝️", "Private Island"),
-        ("🏙️", "Dubai"),
+        ("🗼", "Modern Europe"),
+        ("🌌", "Space Station"),
+        ("🏝️", "Chain of Private Islands"),
+        ("🏙️", "New York City"),
         ("🚢", "Luxury Cruise Liner"),
         ("❄️", "Arctic Research Base"),
-        ("🏰", "Moscow"),
-        ("🏜️", "New York City"),
+        ("🏰", "Moscow Underworld"),
+        ("🏜️", "1920s Europe"),
         ("🌋", "Volcanic Lair"),
     ],
     "narrative_styles": [
-        ("🤪", "Absurdist wacky comedy"),
-        ("😎", "Masterful spy thriller"),
-        ("🔥", "Steamy romance novel"),
-        ("🤪", "Absurdist wacky comedy"),
-        ("🎭", "Surreal hallucination"),
-        ("🎬", "High-budget action movie"),
-        ("🤵", "Classic Bond film"),
+    ("🤪", "Modern irreverence (e.g., Christopher Moore)"),
+    ("🤪", "Metafictional absurdity (e.g., Jasper Fforde)"),
+    ("🤪", "Contemporary satire (e.g., Gary Shteyngart)"),
+    ("🤪", "Historical playfulness (e.g., Tom Holt)"),
+    ("🤪", "Darkly absurd (e.g., David Wong)"),
+    ("🤪", "Quirky offbeat humor (e.g., Simon Rich)"),
+    ("🤪", "Absurdist Comedy (e.g., Douglas Adams, Terry Pratchett)"),
+    ("😎", "Spy Thriller (e.g., John le Carré, Ian Fleming)"),
+    ("🔥", "Steamy Romance (e.g., Nora Roberts, E.L. James)"),
+    ("🎭", "Surreal Narrative (e.g., Haruki Murakami, Franz Kafka)"),
+    ("🎬", "Action Adventure (e.g., Tom Clancy, Robert Ludlum)"),
+    ("🕵️", "Noir Detective (e.g., Dennis Lehane, Michael Connelly)"),
+    ("🏙️", "Urban Grit (e.g., S. A. Cosby, Colson Whitehead)"),
+    ("👽", "Dystopian Sci-Fi (e.g., George Orwell, Aldous Huxley)"),
+    ("⚔️", "Epic Fantasy (e.g., J.R.R. Tolkien, George R.R. Martin)"),
+    ("🎻", "Literary Drama (e.g., Fyodor Dostoevsky, Virginia Woolf)"),
+    ("🧙", "Magical Adventure (e.g., J.K. Rowling, C.S. Lewis)"),
+    ("🪐", "Cosmic Horror (e.g., H.P. Lovecraft, Clive Barker)"),
+    ("🗺️", "Mythic Quest (e.g., Robert Jordan, Guy Gavriel Kay)"),
     ],
     "moods": [
         ("😂", "Light and funny with ridiculously over-the-top plot twists"),
