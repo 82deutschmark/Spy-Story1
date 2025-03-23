@@ -49,6 +49,7 @@ from models import StoryGeneration, Character, PlotArc, Mission
 from utils.validation_utils import validate_story_parameters
 from utils.context_manager import OpenAIContextManager
 from utils.constants import DEFAULT_TEMPERATURE
+import random  # NEW import added
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -79,8 +80,8 @@ state_manager = GameStateManager()
 # Story generation options
 STORY_OPTIONS = {
     "conflicts": [
-        ("🤵", "Double agent exposed"),
         ("💼", "Corporate espionage"),
+        ("🤵", "Double agent exposed"),
         ("🧪", "Bioweapon heist"),
         ("💰", "Trillion-dollar ransom"),
         ("🔍", "Hidden conspiracy"),
@@ -90,6 +91,7 @@ STORY_OPTIONS = {
     ],
     "settings": [
         ("🗼", "Modern Europe"),
+        ("🏙️", "Neo-noir Cyber Metropolis"),
         ("🌌", "Space Station"),
         ("🏝️", "Chain of Private Islands"),
         ("🏙️", "New York City"),
@@ -135,6 +137,28 @@ STORY_OPTIONS = {
 
 # Export the functions that should be available to other modules
 __all__ = ['generate_story', 'get_story_options']
+
+# NEW: Updated helper to retrieve a full cast of characters from our DB (including villain)
+def get_random_characters(n: int = 3) -> List[dict]:
+    eligible = Character.query.filter(
+        Character.character_role.in_(["neutral", "undetermined", "mission-giver", "villain"])
+    ).all()
+    if not eligible:
+        logger.error("No characters found in DB.")
+        return []
+    selected = random.sample(eligible, min(n, len(eligible)))
+    result = []
+    for char in selected:
+        result.append({
+            "name": char.character_name,
+            "character_traits": getattr(char, 'character_traits', []),
+            "backstory": getattr(char, 'backstory', ""),
+            "plot_lines": getattr(char, 'plot_lines', []),
+            "role": char.character_role,
+            "role_requirements": "",  # adjust as needed if available
+            "id": char.id
+        })
+    return result
 
 class CharacterPromptBuilder:
     """Handles building character-related prompts."""
@@ -215,20 +239,26 @@ class CharacterPromptBuilder:
         prompt_parts = ["\nSECONDARY NPC CHARACTERS - INCORPORATE AT LEAST ONE INTO THE NARRATIVE:\n"]
         
         for char in additional_characters:
+            # ...existing code for traits...
             char_traits = extract_character_traits(char)
             if isinstance(char_traits, str):
                 char_traits = [char_traits]
-
             char_name = extract_character_name(char)
             char_role = extract_character_role(char)
             role_requirements = char.get("role_requirements", "")
             traits_str = ", ".join(char_traits) if char_traits else "No specified traits"
-
+            # NEW: Retrieve backstory and plot_lines from the character data.
+            backstory = char.get("backstory", "No backstory provided")
+            plot_lines = char.get("plot_lines", [])
+            plot_lines_str = ", ".join(plot_lines) if plot_lines else "No plot lines provided"
+            
             char_parts = [
                 f"- Name: {char_name}",
                 f"  Role: {char_role}",
                 f"  Role Requirements: {role_requirements}",
                 f"  Traits: {traits_str}",
+                f"  Backstory: {backstory}",
+                f"  Plot Lines: {plot_lines_str}",
                 "  Suggested Usage: Include in a meaningful choice for the player character",
                 "  Important: This character should introduce one of thier plot_lines into the story"
             ]
@@ -253,22 +283,22 @@ class StoryPromptBuilder:
             "",
             "CRITICAL CHARACTER ROLE REQUIREMENTS:",
             "1. You MUST ONLY use characters that are explicitly provided to you in the character prompts",
-            "2. NEVER invent or create new characters that are not in the database",
+            "2. NEVER invent or create new characters that are not in the prompts",
             "3. If a character is not provided in the prompts, they cannot appear in the story",
-            "4. Each character has a specific role that MUST be respected:",
+            "4. Each character has a specific role that should be respected:",
             "   - Mission-giver: MUST be the one giving the mission to the player",
-            "   - Villain: MUST be the primary antagonist",
+            "   - Villain: MUST be the primary antagonists",
             "   - Neutral: Can be used in supporting roles",
-            "   - Undetermined: Role is flexible",
+            "   - Undetermined: Role is flexible and might change based on the story or betray the player",
             "5. The mission-giver must remain the mission-giver",
-            "6. The villain must remain the primary antagonist",
+            "6. The villains must remain the primary antagonist",
             "",
             "NARRATIVE STYLE GUIDELINES:",
             "1. Create a LENGTHY, DETAILED story introduction (at least 22000-25000 words) with good story structure",
-            "2. ALWAYS tell the story in second person, addressing the player directly and alluding to their name and gender in the introduction",
-            "3. Use vivid sensory details, atmospheric descriptions, but do not reference a character's physical features or clothing",
+            "2. ALWAYS tell the story in second person, addressing the player directly and alluding to their name and gender naturally through dialogue",
+            "3. Use vivid sensory details, atmospheric descriptions, action packed fight scenes, but do not reference a character's physical features or clothing",
             "4. This segment should set the stage for the story, introduce the characters, and provide a clear objective for the player",
-            "5. The story should be a thriller with a lot of action, intrigue, and suspense",
+            "5. The story should be mission driven but true to the narrative style, mood, and setting",
             "6. Incorporate dynamic character interactions with dialogue that reveals personality",
             "7. Balance action, dialogue, intrigue, and character development, ending with a cliffhanger with three choices"
         ]
@@ -304,7 +334,7 @@ class StoryPromptBuilder:
 
         # Build the main prompt parts
         prompt_parts = [
-            "Generate the first segment of the thriller story with the following parameters:",
+            "Generate the first segment of the choose your own adventure game story with the following parameters:",
             "",
             f"CONFLICT: {conflict}",
             f"SETTING: {setting}",
@@ -319,15 +349,15 @@ class StoryPromptBuilder:
             CharacterPromptBuilder.build_additional_characters_prompt(additional_characters),
             "",
             "STORY CONTEXT:",
-            story_context if story_context else "This is the first segment of the story, the protagonist is a charismatic, reckless, fearless rouge agent with a checkered past, introduce characters slowly and use 12000-14000 words.",
+            story_context if story_context else "This is the first segment of the story, the protagonist is a charismatic, reckless, fearless rouge agent with a checkered past, and devil-may-care attitude. They are recruited by a mission-giver who claims to have powerful friends and work for a secret organization to take down a powerful villain who is threatening the world with a diabolical plan.",
             "",
             "IMPORTANT CHARACTER USAGE RULES:",
             "1. You MUST use the mission-giver character to give the initial mission, which targets one of the villain characters.",
             "2. The mission should have a clear objective like to steal something, kill someone, or obtain info or all three.",
-            "3. The mission should have a deadline and a consequence for failure.",
+            "3. The mission should have a deadline of two weeks and a consequence for failure.",
             "4. The villain should not appear directly in the story until later in the game, introduce them first via other character dialogue",
             "5. You MUST NOT invent or create any unsourced characters, select from the characters provided in the character prompts",
-            "6. The protagonist should encounter the other characters by seeking them out or they will seek the protagonist out",
+            "6. The protagonist should communicate with the other characters by seeking them out or they will seek the protagonist out",
             "7. The other characters should have a reason to be hostile or helpful to the protagonist, and use their traits, plot_lines, and backstory to enrich the story",
             "8. The mission-giver reluctantly agrees to give the player the mission and reminds them not to screw it up again, alluding to a previous fiasco.",
             "9. The villain must be well-protected and pose a significant challenge, but also be pathetic and incompetent and the object of disgust not fear.",
@@ -387,6 +417,10 @@ class StoryGenerator:
         final_setting = custom_setting or setting
         final_narrative = custom_narrative or narrative_style
         final_mood = custom_mood or mood
+        
+        # NEW: If no additional characters provided, pull a robust cast from our DB
+        if additional_characters is None:
+            additional_characters = get_random_characters(3)
         
         # Build the story prompt
         story_prompt = StoryPromptBuilder.build_story_prompt(
