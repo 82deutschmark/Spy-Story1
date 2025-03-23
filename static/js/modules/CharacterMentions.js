@@ -79,39 +79,58 @@ class CharacterMentions {
     processNode(node) {
         // Skip processing if node is already inside a character mention
         if (node.parentNode && node.parentNode.closest('.character-mention')) return;
-
+        
         if (node.nodeType === Node.TEXT_NODE) {
             let text = node.textContent;
-            let lastIndex = 0;
-            let fragments = [];
-
+            let matches = [];
+            // Collect matches for all characters
             this.characterPortraits.forEach(character => {
                 const regex = new RegExp(`\\b${character.name}\\b`, 'g');
                 let match;
-
                 while ((match = regex.exec(text)) !== null) {
-                    // Add text before match
-                    if (match.index > lastIndex) {
-                        fragments.push(text.substring(lastIndex, match.index));
-                    }
-
-                    // Add highlighted character name
-                    fragments.push(`<span class="character-mention" data-character="${character.id}">${match[0]}<span class="character-tooltip"><img src="${character.image}" alt="${match[0]}"><div>${match[0]}</div></span></span>`);
-
-                    lastIndex = regex.lastIndex;
+                    matches.push({
+                        index: match.index,
+                        end: regex.lastIndex,
+                        matched: match[0],
+                        character
+                    });
                 }
             });
-
-            // Add remaining text
-            if (lastIndex < text.length) {
-                fragments.push(text.substring(lastIndex));
+            // No matches? Do nothing.
+            if (!matches.length) return;
+            
+            // Sort matches by starting index and longer matches first if equal
+            matches.sort((a, b) => {
+                if (a.index === b.index) return (b.end - b.index) - (a.end - a.index);
+                return a.index - b.index;
+            });
+            
+            // Eliminate overlapping matches
+            let filtered = [];
+            let lastEnd = 0;
+            matches.forEach(match => {
+                if (match.index >= lastEnd) {
+                    filtered.push(match);
+                    lastEnd = match.end;
+                }
+            });
+            
+            // Rebuild the text with highlighted character names
+            let result = [];
+            let cursor = 0;
+            filtered.forEach(match => {
+                if (match.index > cursor) {
+                    result.push(text.substring(cursor, match.index));
+                }
+                result.push(`<span class="character-mention" data-character="${match.character.id}">${match.matched}<span class="character-tooltip"><img src="${match.character.image}" alt="${match.matched}"><div>${match.matched}</div></span></span>`);
+                cursor = match.end;
+            });
+            if (cursor < text.length) {
+                result.push(text.substring(cursor));
             }
-
-            if (fragments.length > 1) {
-                const span = document.createElement('span');
-                span.innerHTML = fragments.join('');
-                node.parentNode.replaceChild(span, node);
-            }
+            const span = document.createElement('span');
+            span.innerHTML = result.join('');
+            node.parentNode.replaceChild(span, node);
         } else {
             // Process child nodes
             Array.from(node.childNodes).forEach(child => this.processNode(child));
