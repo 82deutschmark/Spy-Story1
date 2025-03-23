@@ -16,9 +16,9 @@
     <title>Choose Your Own Adventure</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/agent.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/character.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 </head>
 <body class="spy-theme">
     {% if background_image %}
@@ -28,7 +28,22 @@
     </div>
     {% endif %}
 
-    <div class="container mt-5">
+    <header class="site-header bg-dark text-white py-3">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="site-title m-0"><i class="fas fa-book-open me-2"></i>Global Espionage</h1>
+                <nav class="site-nav">
+                    <ul class="nav">
+                        <li class="nav-item"><a href="{{ url_for('main.index') }}" class="nav-link text-white">Home</a></li>
+                        <li class="nav-item"><a href="{{ url_for('main.index') }}" class="nav-link text-white">About</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link text-white">Contact</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <div class="container-fluid mt-5">
         <div class="row justify-content-center">
             <div class="col-md-10">
                 <div class="text-center mb-4">
@@ -128,6 +143,7 @@
                               method="POST">
                             <input type="hidden" name="protagonist_name" id="protagonistNameInput">
                             <input type="hidden" name="protagonist_gender" id="protagonistGenderInput">
+                            <input type="hidden" name="protagonist_level" id="protagonistLevelInput" value="1">
                             <div class="character-grid">
                                 {% for character in images %}
                                     {{ character_card(character, loop.index0) }}
@@ -208,6 +224,12 @@
         </div>
     </div>
 
+    <footer class="site-footer bg-dark text-white py-3 mt-5">
+        <div class="container text-center">
+            <small>&copy; {{ current_year }} Spy Story. All rights reserved.</small>
+        </div>
+    </footer>
+
     <!-- Toast for notifications -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3">
         <div id="notificationToast" class="toast" role="alert">
@@ -233,6 +255,22 @@
         
         document.getElementById('protagonistGender').addEventListener('change', function(e) {
             document.getElementById('protagonistGenderInput').value = e.target.value;
+        });
+
+        // Form validation
+        document.getElementById('character-selection-form').addEventListener('submit', function(e) {
+            const name = document.getElementById('protagonistNameInput').value;
+            const gender = document.getElementById('protagonistGenderInput').value;
+            const errorDiv = document.querySelector('.error-message');
+
+            if (!name || !gender) {
+                e.preventDefault();
+                errorDiv.textContent = 'Please enter both agent codename and gender.';
+                errorDiv.style.display = 'block';
+                return false;
+            }
+            errorDiv.style.display = 'none';
+            return true;
         });
     </script>
 </body>

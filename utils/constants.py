@@ -62,6 +62,16 @@ CHARACTER_ROLES = [
 
 # OpenAI
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
-DEFAULT_TEMPERATURE = 0.7
-DEFAULT_MAX_TOKENS = 2000
+DEFAULT_TEMPERATURE = 0.4
+DEFAULT_MAX_TOKENS = 8000
+INITIAL_STORY_TEMPERATURE = 0.3  # Lower temperature for more focused, instruction-following responses
+STORY_SEGMENT_TEMPERATURE = 0.3
+CHARACTER_INTERACTION_TEMPERATURE = 0.3
+
+# Model configuration dictionary for easy reference
+MODEL_CONFIG = {
+    "model": DEFAULT_OPENAI_MODEL,
+    "temperature": DEFAULT_TEMPERATURE,
+    "max_tokens": DEFAULT_MAX_TOKENS
+}
 

@@ -37,6 +37,7 @@ Usage Notes:
 from datetime import datetime
 from .base import db
 from sqlalchemy.dialects.postgresql import JSONB
+from typing import Dict, Any
 
 # Association table for stories and characters
 story_characters = db.Table('story_characters',
@@ -53,6 +54,7 @@ class StoryGeneration(db.Model):
     
     Attributes:
         id (int): Primary key
+        user_id (str): ID of the user who owns this story
         primary_conflict (str): Main conflict driving the story
         setting (str): Story's setting/location
         narrative_style (str): Writing style of the story
@@ -65,6 +67,7 @@ class StoryGeneration(db.Model):
     __tablename__ = 'story_generation'
     
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(255), nullable=False)  # Add user_id field
     primary_conflict = db.Column(db.String(255))
     setting = db.Column(db.String(255))
     narrative_style = db.Column(db.String(255))
@@ -98,6 +101,8 @@ class StoryNode(db.Model):
         achievement_id (int): Associated achievement if any
         branch_metadata (JSONB): Additional branch-specific data
         parent_node_id (int): Reference to parent node
+        branch_id (str): Unique identifier for this story branch
+        choice_id (str): Identifier for the choice that led to this node
         character (relationship): Associated character
         achievement (relationship): Associated achievement
         parent_node (relationship): Parent node in story tree
@@ -117,6 +122,8 @@ class StoryNode(db.Model):
     achievement_id = db.Column(db.Integer, db.ForeignKey('achievement.id'))
     branch_metadata = db.Column(JSONB)  # Store branch-specific metadata
     parent_node_id = db.Column(db.Integer, db.ForeignKey('story_node.id'))
+    branch_id = db.Column(db.String(255))  # Unique identifier for this story branch
+    choice_id = db.Column(db.String(255))  # Identifier for the choice that led to this node
 
     # Relationships
     character = db.relationship('Character')
@@ -127,6 +134,27 @@ class StoryNode(db.Model):
                             backref='source_node',
                             lazy=True,
                             primaryjoin="StoryNode.id == StoryChoice.node_id")
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the story node to a dictionary representation.
+        
+        Returns:
+            Dict[str, Any]: Dictionary containing node data
+        """
+        return {
+            "id": self.id,
+            "story_id": self.story_id,
+            "narrative_text": self.narrative_text,
+            "is_endpoint": self.is_endpoint,
+            "generated_by_ai": self.generated_by_ai,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "branch_metadata": self.branch_metadata or {},
+            "parent_node_id": self.parent_node_id,
+            "branch_id": self.branch_id,
+            "choice_id": self.choice_id,
+            "character_id": self.character_id,
+            "achievement_id": self.achievement_id
+        }
 
 class StoryChoice(db.Model):
     """

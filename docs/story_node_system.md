@@ -13,13 +13,47 @@
    - Represents individual story segments
    - Contains `narrative_text`, `branch_metadata`
    - Links to parent nodes via `parent_node_id`
-   - Contains `branch_metadata` with story_id, choice_id, etc.
+   - Contains `branch_metadata` with:
+     - story_id
+     - choice_id
+     - character_ids: List of character IDs involved in this node
+     - character_relationships: Character relationship states
    - Forms tree structure of narrative
+   - Implements `to_dict()` for state serialization with fields:
+     - Basic information (id, story_id, narrative_text)
+     - Status flags (is_endpoint, generated_by_ai)
+     - Timestamps (created_at)
+     - Metadata (branch_metadata)
+     - Relationships (parent_node_id, character_id, achievement_id)
+     - Branch information (branch_id, choice_id)
+     - Character tracking (character_ids, character_relationships)
 
 3. `StoryChoice`
    - Connects story nodes
    - Contains `node_id` (source) and `next_node_id` (target)
    - Has `choice_text` and `currency_requirements`
+   - Now includes `character_id` for character-specific choices
+
+### Character Integration
+```python
+# Example branch_metadata structure
+branch_metadata = {
+    "story_id": 123,
+    "choice_id": "choice_1",
+    "character_ids": [1, 2, 3],  # All characters involved in this node
+    "character_relationships": {
+        "1": {"relationship_level": 3, "trust": 75},
+        "2": {"relationship_level": 2, "trust": 45}
+    },
+    "choices": [
+        {
+            "choice_id": "unique_id",
+            "text": "Ask for help",
+            "character_id": 1  # Character involved in this choice
+        }
+    ]
+}
+```
 
 ### Node Resolution System
 The system now uses a priority-based approach to resolve the current story node:
@@ -250,4 +284,16 @@ class ChoiceHandler {
 - Consider adding database constraints
 - Add logging for state transitions
 - Consider adding node validation middleware
-- Document all state transitions 
+- Document all state transitions
+
+## Storyboard File Overview
+
+The storyboard template is responsible for rendering the current state of the narrative. Key aspects include:
+- It is rendered by the `/storyboard/<story_id>` route, which provides context including the story content, current node, character images, background image, and user progress.
+- The template displays:
+  • A dynamic background image.
+  • A primary character showcase and a gallery of character portraits.
+  • The narrative text (from the current story node).
+  • A list of choice forms that submit required state (story_id, node_id, choice_id, etc.) to the `/make_choice` route.
+  • Flash messages to inform the user of success or errors.
+- Client-side JavaScript (in main.js and related modules) further augments user interaction through character highlighting and dynamic form handling.
