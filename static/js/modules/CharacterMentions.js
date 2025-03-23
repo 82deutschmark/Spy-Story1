@@ -35,7 +35,7 @@ class CharacterMentions {
      * Initialize the character mentions module
      */
     initialize() {
-        // Ensure initialization happens after DOM content is loaded
+        // Ensure initialization happens after full page load
         this.storyContent = document.querySelector('.story-content');
         if (!this.storyContent) return;
 
@@ -77,11 +77,9 @@ class CharacterMentions {
      * @param {Node} node - The node to process
      */
     processNode(node) {
-        // If the node is already wrapped by a character mention, skip processing its children
-        if (node.nodeType !== Node.TEXT_NODE && node.querySelector('.character-tooltip')) {
-            return;
-        }
-        
+        // Skip processing if node is already inside a character mention
+        if (node.parentNode && node.parentNode.closest('.character-mention')) return;
+
         if (node.nodeType === Node.TEXT_NODE) {
             let text = node.textContent;
             let lastIndex = 0;
@@ -148,8 +146,8 @@ class CharacterMentions {
     }
 }
 
-// Optional: Auto-initialize on DOM ready
-document.addEventListener('DOMContentLoaded', () => {
+// Change initialization to run on load
+window.addEventListener('load', () => {
     const cm = new CharacterMentions();
     cm.initialize();
 });
