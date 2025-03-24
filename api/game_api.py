@@ -30,7 +30,23 @@ def get_game_state(user_id):
 def start_story():
     """Start a new story"""
     try:
-        data = request.json
+        # Validate incoming JSON
+        try:
+            data = request.get_json(force=True)
+            if data is None:
+                logger.error("Invalid JSON received: None")
+                return jsonify({
+                    "status": "error",
+                    "message": "Invalid JSON data received"
+                }), 400
+        except Exception as e:
+            logger.error(f"Error parsing JSON: {str(e)}")
+            return jsonify({
+                "status": "error",
+                "message": f"Invalid JSON format: {str(e)}"
+            }), 400
+        
+        # Extract fields with validation
         user_id = data.get('user_id')
         conflict = data.get('conflict')
         setting = data.get('setting')
@@ -39,6 +55,32 @@ def start_story():
         character_id = data.get('character_id')
         custom_conflict = data.get('custom_conflict')
         custom_setting = data.get('custom_setting') 
+        custom_narrative = data.get('custom_narrative')
+        custom_mood = data.get('custom_mood')
+        
+        # Ensure text fields are properly encoded strings
+        for field_name, field_value in [
+            ('conflict', conflict),
+            ('setting', setting),
+            ('narrative_style', narrative_style),
+            ('mood', mood),
+            ('custom_conflict', custom_conflict),
+            ('custom_setting', custom_setting),
+            ('custom_narrative', custom_narrative),
+            ('custom_mood', custom_mood)
+        ]:
+            if field_value is not None and not isinstance(field_value, str):
+                logger.warning(f"Field {field_name} has unexpected type: {type(field_value)}")
+                # Convert to string
+                data[field_name] = str(field_value)
+        
+        # Update variable values after potential conversion
+        conflict = data.get('conflict')
+        setting = data.get('setting')
+        narrative_style = data.get('narrative_style')
+        mood = data.get('mood')
+        custom_conflict = data.get('custom_conflict')
+        custom_setting = data.get('custom_setting')
         custom_narrative = data.get('custom_narrative')
         custom_mood = data.get('custom_mood')
         
