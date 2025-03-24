@@ -125,7 +125,7 @@ def validate_json_structure(data: Any, required_fields: Optional[Dict[str, type]
 
 def handle_jsonb_fields(data: Any) -> Any:
     """
-    Specially handle JSONB fields from database models
+    Specially handle JSONB fields from database models.
     
     Args:
         data: The data structure that may contain JSONB fields
