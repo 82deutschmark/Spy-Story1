@@ -235,9 +235,9 @@ def storyboard(story_id):
                            user_progress=user_progress,
                            story_progress=story_progress)
 
-@main_bp.route('/generate_story', methods=['POST'])
+@main_bp.route('/generate_story/', methods=['POST'])
 def generate_story_route():
-    logger.info(f"Received {request.method} request at /generate_story")
+    logger.info(f"Received {request.method} request at /generate_story/")
     data = request.form.to_dict()
     selected_chars_input = request.form.getlist('selected_images')
     if selected_chars_input:
