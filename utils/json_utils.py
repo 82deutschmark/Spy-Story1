@@ -133,6 +133,10 @@ def handle_jsonb_fields(data: Any) -> Any:
     Returns:
         Sanitized data structure with proper JSON handling
     """
+        
+    Returns:
+        Sanitized data structure with proper JSON handling
+    """
     import json
     from sqlalchemy.dialects.postgresql import JSONB
     
