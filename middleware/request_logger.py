@@ -35,3 +35,22 @@ class RequestLoggerMiddleware:
             logger.error(f"Error in after_request: {str(e)}")
         
         return response
+import time
+import logging
+
+logger = logging.getLogger(__name__)
+
+class RequestLoggerMiddleware:
+    def __init__(self, app):
+        self.app = app
+        logger.info("RequestLoggerMiddleware initialized")
+        
+        @app.before_request
+        def before_request():
+            request_id = time.time()
+            logger.info(f"Request started: {request_id}")
+            
+        @app.after_request
+        def after_request(response):
+            logger.info(f"Request completed with status: {response.status_code}")
+            return response
