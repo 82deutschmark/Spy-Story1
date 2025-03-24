@@ -61,14 +61,13 @@ def get_openai_client():
     try:
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
-            logger.error("OpenAI API key is missing")
-            raise ValueError("OpenAI API key is required for story generation")
-        
+            error_msg = "OPENAI_API_KEY is missing. Ensure it is configured in the production environment."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
         client = OpenAI(api_key=api_key)
         if client is None:
             logger.error("Failed to create OpenAI client")
             raise ValueError("Failed to create OpenAI client")
-            
         return client
     except Exception as e:
         logger.error(f"Error initializing OpenAI client: {str(e)}")

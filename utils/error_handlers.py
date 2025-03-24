@@ -10,27 +10,15 @@ def register_error_handlers(app):
     @app.errorhandler(Exception)
     def handle_exception(e):
         """Handle all unhandled exceptions"""
-        # Get detailed error info
         import traceback
         error_details = traceback.format_exc()
         logger.error(f"Unhandled exception: {str(e)}\nTraceback:\n{error_details}")
-        
-        # If it's an HTTP exception, use its error code
-        if isinstance(e, HTTPException):
-            response = {
-                'success': False,
-                'error': str(e),
-                'status_code': e.code,
-                'details': str(e)
-            }
-            return jsonify(response), e.code
-        
-        # For all other exceptions, return a 500 error with more detail
+        # Always return JSON even in production
         response = {
             'success': False,
             'error': str(e),
             'status_code': 500,
-            'details': error_details if app.debug else 'An unexpected error occurred'
+            'details': error_details if app.debug else 'An internal error occurred'
         }
         return jsonify(response), 500
     
