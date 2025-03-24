@@ -85,16 +85,55 @@ def create_app():
     from flask.json.provider import DefaultJSONProvider
     
     class ImprovedJSONProvider(DefaultJSONProvider):
-        """Custom JSON provider with better handling of special characters"""
+        """Custom JSON provider with better handling of special characters and complex data types"""
         def dumps(self, obj, **kwargs):
+            from utils.json_utils import normalize_strings_in_dict
+            
             try:
                 return super().dumps(obj, **kwargs)
-            except TypeError:
-                # Convert objects that can't be serialized to strings
-                if isinstance(obj, dict):
-                    obj = {k: str(v) if not isinstance(v, (dict, list, str, int, float, bool, type(None))) else v 
-                          for k, v in obj.items()}
-                return super().dumps(obj, **kwargs)
+            except TypeError as e:
+                logger.warning(f"JSON serialization error in first attempt: {str(e)}")
+                
+                # Apply more advanced normalization from json_utils
+                try:
+                    normalized_data = normalize_strings_in_dict(obj)
+                    return super().dumps(normalized_data, **kwargs)
+                except Exception as e2:
+                    logger.error(f"JSON normalization failed: {str(e2)}")
+                    
+                    # Fallback serialization for complex objects
+                    if isinstance(obj, dict):
+                        sanitized = {}
+                        for k, v in obj.items():
+                            if isinstance(v, (dict, list)):
+                                try:
+                                    # Try to convert nested structures
+                                    json.dumps(v)
+                                    sanitized[k] = v
+                                except TypeError:
+                                    sanitized[k] = str(v)
+                            elif isinstance(v, (str, int, float, bool, type(None))):
+                                sanitized[k] = v
+                            else:
+                                sanitized[k] = str(v)
+                        return super().dumps(sanitized, **kwargs)
+                    elif isinstance(obj, list):
+                        sanitized = []
+                        for item in obj:
+                            if isinstance(item, (dict, list)):
+                                try:
+                                    json.dumps(item)
+                                    sanitized.append(item)
+                                except TypeError:
+                                    sanitized.append(str(item))
+                            elif isinstance(item, (str, int, float, bool, type(None))):
+                                sanitized.append(item)
+                            else:
+                                sanitized.append(str(item))
+                        return super().dumps(sanitized, **kwargs)
+                    
+                    # Last resort: return a JSON error message
+                    return super().dumps({"error": "Serialization failed", "message": str(e)}, **kwargs)
     
     # Apply the improved JSON provider
     app.json_provider_class = ImprovedJSONProvider
