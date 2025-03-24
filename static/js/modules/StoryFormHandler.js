@@ -76,6 +76,9 @@ class StoryFormHandler {
                 window.location.href = result.redirect;
             } else if (result.success && result.story_id) {
                 window.location.href = `/storyboard/${result.story_id}`;
+            } else if (response.redirected) {
+                // Handle direct redirects from the server
+                window.location.href = response.url;
             } else {
                 throw new Error('Invalid response from server');
             }
