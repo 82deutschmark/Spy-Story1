@@ -169,4 +169,16 @@ export default {
         const choices = this.getChoiceHistory();
         return choices.some(choice => choice.choice_id === choiceId);
     },
+    /**
+     * Initialize the user progress tracking
+     * TEMPORARILY DISABLED - See CHANGELOG.md
+     */
+    initialize() {
+        console.log("UserProgress initialization skipped (temporarily disabled)");
+        /*
+        // Setup event listeners or any initialization logic
+        console.log("UserProgress initialized");
+        // Additional initialization code...
+        */
+    }
 };
