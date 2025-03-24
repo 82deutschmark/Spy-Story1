@@ -93,8 +93,11 @@ def fix_character_json_data():
     """
     Main function to examine and fix JSON data in characters table.
     """
-    # Import app here to avoid circular imports
-    from app import app
+    # Import the create_app function from main.py
+    from main import create_app
+    
+    # Create the Flask app instance
+    app = create_app()
     
     # Use app context to access database properly
     with app.app_context():
