@@ -1,3 +1,17 @@
+
+# Changelog
+
+## [Unreleased]
+
+### Fixed
+- Added script to fix invalid JSON in character data:
+  - Checks and repairs plot_lines column (JSONB field)
+  - Examines backstory column for JSON formatting issues
+  - Logs all changes for auditing
+  - Prevents database corruption from malformed JSON
+
+## Previously Released
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
