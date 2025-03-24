@@ -41,6 +41,18 @@ def validate_json(text):
     if isinstance(text, (dict, list)):
         return True, text, text
     
+    # Import the utility functions from json_utils
+    try:
+        from utils.json_utils import safe_json_loads, normalize_strings_in_dict
+        
+        # Try using the project's existing JSON utilities first
+        success, error_msg, parsed_data = safe_json_loads(text if isinstance(text, str) else json.dumps(text))
+        if success:
+            return True, text, parsed_data
+    except ImportError:
+        logger.warning("Could not import json_utils, falling back to local implementation")
+    
+    # Fallback to local implementation if json_utils is not available
     # If it's a string, try to parse it
     if isinstance(text, str):
         try:
@@ -163,17 +175,45 @@ def fix_character_json_data():
                 # Save changes if needed
                 if character_changed:
                     try:
+                        # Make sure we have permission to modify the character
+                        if not hasattr(character, '_sa_instance_state') or not character._sa_instance_state.persistent:
+                            logger.error(f"Character ID {character.id} is not in a persistent state, cannot update")
+                            continue
+                            
+                        # Explicitly mark as modified to ensure the ORM picks up changes
+                        db.session.add(character)
+                        db.session.flush()  # Check for immediate errors
+                        
+                        # Now commit the transaction
                         db.session.commit()
                         fixed_count += 1
+                        logger.info(f"Successfully saved changes for character ID {character.id}")
                     except Exception as e:
                         db.session.rollback()
                         logger.error(f"Error saving changes for character ID {character.id}: {str(e)}")
+                        logger.error(traceback.format_exc())
             
             logger.info(f"Fixed {fixed_count} characters out of {len(characters)}")
+            # Ensure all changes are committed
+            try:
+                db.session.commit()
+                logger.info("Final commit successful")
+            except Exception as e:
+                logger.error(f"Error on final commit: {str(e)}")
+                db.session.rollback()
+            
             return fixed_count, plot_lines_fixes, backstory_fixes
         except Exception as e:
             logger.error(f"Database query error: {str(e)}")
             logger.error(traceback.format_exc())
+            
+            # Try to recover database session
+            try:
+                db.session.rollback()
+                logger.info("Session rolled back successfully")
+            except:
+                logger.error("Could not rollback session, database may be in inconsistent state")
+            
             raise
 
 if __name__ == "__main__":
