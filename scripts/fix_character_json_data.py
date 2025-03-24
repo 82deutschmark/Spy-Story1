@@ -14,15 +14,11 @@ import sys
 import os
 import json
 import logging
+import traceback
 from datetime import datetime
 
 # Add the parent directory to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from flask import Flask
-from models.base import db
-from models.character_data import Character
-from utils.json_utils import safe_json_loads, normalize_strings_in_dict, ensure_valid_json_response
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, 
@@ -33,145 +29,157 @@ logging.basicConfig(level=logging.INFO,
                     ])
 logger = logging.getLogger(__name__)
 
-# Create a small Flask app to work with the database
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'  # Update with your actual DB URI
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db.init_app(app)
-
-def validate_json_field(field_data, field_name):
-    """Validate a JSON field and attempt to fix it if invalid."""
-    if field_data is None:
-        return True, None, field_data
+def validate_json(text):
+    """
+    Validate JSON string and attempt to fix it if invalid.
+    Returns tuple (is_valid, original_text, fixed_data)
+    """
+    if text is None:
+        return True, None, None
     
     # If it's already a dict or list, it's valid
-    if isinstance(field_data, (dict, list)):
-        return True, None, field_data
+    if isinstance(text, (dict, list)):
+        return True, text, text
     
     # If it's a string, try to parse it
-    if isinstance(field_data, str):
-        success, error, parsed_data = safe_json_loads(field_data)
-        if success:
-            return True, None, parsed_data
-        else:
-            return False, error, field_data
-    
-    # Any other type is invalid for JSONB
-    return False, f"Invalid type for JSONB field: {type(field_data)}", field_data
-
-def fix_character_traits(traits_data):
-    """Fix character_traits field to ensure valid JSON structure."""
-    # If traits is None, provide an empty list
-    if traits_data is None:
-        return []
-    
-    # If traits is already a list, ensure all items are strings
-    if isinstance(traits_data, list):
-        return [str(item) if not isinstance(item, str) else item for item in traits_data]
-    
-    # If traits is a string, try to parse it as JSON
-    if isinstance(traits_data, str):
+    if isinstance(text, str):
         try:
-            parsed = json.loads(traits_data)
-            if isinstance(parsed, list):
-                return parsed
-            elif isinstance(parsed, dict):
-                # Convert dict to a formatted structure if needed
-                return parsed
-            else:
-                # If it's some other parsed type, convert to list
-                return [str(parsed)]
-        except json.JSONDecodeError:
-            # If it's not valid JSON, treat as a single trait
-            return [traits_data]
-    
-    # If traits is a dict, return as is
-    if isinstance(traits_data, dict):
-        return traits_data
-    
-    # Any other type, convert to string and wrap in list
-    return [str(traits_data)]
-
-def fix_plot_lines(plot_lines_data):
-    """Fix plot_lines field to ensure valid JSON structure."""
-    # If plot_lines is None, provide an empty list
-    if plot_lines_data is None:
-        return []
-    
-    # If plot_lines is already a list, ensure all items are strings
-    if isinstance(plot_lines_data, list):
-        return [str(item) if not isinstance(item, str) else item for item in plot_lines_data]
-    
-    # If plot_lines is a string, try to parse it as JSON
-    if isinstance(plot_lines_data, str):
-        try:
-            parsed = json.loads(plot_lines_data)
-            if isinstance(parsed, list):
-                return parsed
-            else:
-                # If it's some other parsed type, convert to list
-                return [str(parsed)]
-        except json.JSONDecodeError:
-            # If it's not valid JSON, treat as a single plot line
-            return [plot_lines_data]
-    
-    # Any other type, convert to string and wrap in list
-    return [str(plot_lines_data)]
-
-def validate_and_fix_character(character):
-    """Validate and fix JSONB fields for a character."""
-    changes = {}
-    
-    # Validate and fix character_traits
-    traits_valid, traits_error, traits_data = validate_json_field(character.character_traits, 'character_traits')
-    if not traits_valid:
-        logger.warning(f"Character {character.id} has invalid character_traits: {traits_error}")
-        fixed_traits = fix_character_traits(character.character_traits)
-        changes['character_traits'] = fixed_traits
-    
-    # Validate and fix plot_lines
-    plot_lines_valid, plot_lines_error, plot_lines_data = validate_json_field(character.plot_lines, 'plot_lines')
-    if not plot_lines_valid:
-        logger.warning(f"Character {character.id} has invalid plot_lines: {plot_lines_error}")
-        fixed_plot_lines = fix_plot_lines(character.plot_lines)
-        changes['plot_lines'] = fixed_plot_lines
-    
-    return changes
-
-def fix_all_characters():
-    """Fix JSONB fields for all characters in the database."""
-    with app.app_context():
-        characters = Character.query.all()
-        logger.info(f"Found {len(characters)} characters in the database")
-        
-        fixed_count = 0
-        error_count = 0
-        
-        for character in characters:
+            # Try to load the JSON
+            parsed = json.loads(text)
+            return True, text, parsed
+        except json.JSONDecodeError as e:
+            logger.warning(f"JSON validation error: {str(e)}")
+            # Try to fix common JSON errors
+            fixed_text = text
+            
+            # Replace single quotes with double quotes
+            if "'" in fixed_text and '"' not in fixed_text:
+                fixed_text = fixed_text.replace("'", '"')
+            
+            # Add missing quotes around keys
+            # This is a simplified fix and might not work for all cases
+            if "{" in fixed_text:
+                for key_match in ["{", ",", ": "]:
+                    fixed_text = fixed_text.replace(f"{key_match} ", key_match)
+            
             try:
-                changes = validate_and_fix_character(character)
+                fixed_data = json.loads(fixed_text)
+                return False, text, fixed_data
+            except json.JSONDecodeError:
+                # If still invalid, try a more aggressive fix by extracting what looks like JSON
+                logger.warning(f"Advanced JSON fixing attempt for: {text[:50]}...")
+                try:
+                    # For lists that might be missing brackets
+                    if ',' in text and '[' not in text and '{' not in text:
+                        items = text.split(',')
+                        items = [item.strip() for item in items]
+                        items = [f'"{item}"' if not (item.startswith('"') and item.endswith('"')) else item for item in items]
+                        fixed_text = '[' + ','.join(items) + ']'
+                        fixed_data = json.loads(fixed_text)
+                        return False, text, fixed_data
+                except:
+                    pass
                 
-                if changes:
-                    # Apply changes to the character
-                    for field, value in changes.items():
-                        setattr(character, field, value)
-                    
-                    # Save changes to database
-                    db.session.commit()
-                    fixed_count += 1
-                    logger.info(f"Fixed character {character.id} ({character.character_name}): {list(changes.keys())}")
-            except Exception as e:
-                error_count += 1
-                logger.error(f"Error fixing character {character.id}: {str(e)}")
-                db.session.rollback()
-        
-        logger.info(f"Character fix complete. Fixed: {fixed_count}, Errors: {error_count}")
+                logger.error(f"Could not fix JSON: {text[:100]}...")
+                return False, text, None
+    
+    # If it's not a string, dict, or list, convert to string representation
+    try:
+        return False, text, str(text)
+    except:
+        return False, text, None
 
-def main():
-    """Main function to run the script."""
-    logger.info("Starting character JSON field validation and fixing...")
-    fix_all_characters()
-    logger.info("Character JSON field validation and fixing complete.")
+def fix_character_json_data():
+    """
+    Main function to examine and fix JSON data in characters table.
+    """
+    # Import app here to avoid circular imports
+    from app import app
+    
+    # Use app context to access database properly
+    with app.app_context():
+        # Import database models inside app context
+        from models.character_data import Character
+        from database import db
+        
+        logger.info("Database connection established")
+        
+        try:
+            characters = Character.query.all()
+            logger.info(f"Found {len(characters)} characters to examine")
+            
+            fixed_count = 0
+            plot_lines_fixes = 0
+            backstory_fixes = 0
+            
+            for character in characters:
+                character_changed = False
+                
+                # Check plot_lines column
+                if character.plot_lines is not None:
+                    is_valid, original, fixed = validate_json(character.plot_lines)
+                    if not is_valid and fixed is not None:
+                        logger.info(f"Fixing plot_lines for character ID {character.id} ({character.character_name})")
+                        logger.debug(f"Original: {original}")
+                        logger.debug(f"Fixed: {fixed}")
+                        character.plot_lines = fixed
+                        character_changed = True
+                        plot_lines_fixes += 1
+                
+                # Check backstory column
+                if character.backstory is not None:
+                    try:
+                        # Only try to fix if it looks like it might be intended as JSON
+                        if (character.backstory.strip().startswith('{') and 
+                            character.backstory.strip().endswith('}')) or (
+                            character.backstory.strip().startswith('[') and 
+                            character.backstory.strip().endswith(']')):
+                            
+                            is_valid, original, fixed = validate_json(character.backstory)
+                            if not is_valid and fixed is not None:
+                                logger.info(f"Fixing backstory for character ID {character.id} ({character.character_name})")
+                                logger.debug(f"Original: {original}")
+                                logger.debug(f"Fixed: {json.dumps(fixed)}")
+                                # Store as JSON string since backstory is a Text column
+                                character.backstory = json.dumps(fixed)
+                                character_changed = True
+                                backstory_fixes += 1
+                    except Exception as e:
+                        logger.error(f"Error processing backstory for character ID {character.id}: {str(e)}")
+                
+                # Check character_traits column if it exists
+                if hasattr(character, 'character_traits') and character.character_traits is not None:
+                    is_valid, original, fixed = validate_json(character.character_traits)
+                    if not is_valid and fixed is not None:
+                        logger.info(f"Fixing character_traits for character ID {character.id} ({character.character_name})")
+                        logger.debug(f"Original: {original}")
+                        logger.debug(f"Fixed: {fixed}")
+                        character.character_traits = fixed
+                        character_changed = True
+                
+                # Save changes if needed
+                if character_changed:
+                    try:
+                        db.session.commit()
+                        fixed_count += 1
+                    except Exception as e:
+                        db.session.rollback()
+                        logger.error(f"Error saving changes for character ID {character.id}: {str(e)}")
+            
+            logger.info(f"Fixed {fixed_count} characters out of {len(characters)}")
+            return fixed_count, plot_lines_fixes, backstory_fixes
+        except Exception as e:
+            logger.error(f"Database query error: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise
 
 if __name__ == "__main__":
-    main()
+    try:
+        logger.info("Starting character JSON data fix script")
+        fixed_count, plot_lines_fixes, backstory_fixes = fix_character_json_data()
+        logger.info(f"Script completed successfully. Fixed {fixed_count} characters " +
+                    f"({plot_lines_fixes} plot_lines, {backstory_fixes} backstories)")
+    except Exception as e:
+        logger.error(f"Script failed with error: {str(e)}")
+        logger.error(traceback.format_exc())
+        sys.exit(1)
