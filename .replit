@@ -9,7 +9,7 @@ run = ["sh", "-c", "gunicorn --bind 0.0.0.0:80 'main:create_app()' --access-logf
 build = ["sh", "-c", "pip install -r requirements.txt"]
 
 [workflows]
-runButton = "Run with Debug"
+runButton = "Production"
 
 [[workflows.workflow]]
 name = "Project"
@@ -69,7 +69,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "FLASK_ENV=production gunicorn --bind 0.0.0.0:3000 'main:create_app()'"
+args = "gunicorn --bind 0.0.0.0:80 'wsgi:app' --access-logfile '-' --log-level info"
 
 [[workflows.workflow]]
 name = "Development Server"
@@ -87,7 +87,16 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "FLASK_ENV=production gunicorn --bind 0.0.0.0:80 'main:create_app()' --access-logfile '-'"
+args = "FLASK_ENV=production gunicorn --bind 0.0.0.0:80 'main:create_app()' --workers=2 --timeout=120 --max-requests=1000 --max-requests-jitter=50 --log-level=info --error-logfile='-' --access-logfile='-'"
+
+[[workflows.workflow]]
+name = "Production"
+author = 38813642
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "FLASK_ENV=production gunicorn --bind 0.0.0.0:80 'main:create_app()' --access-logfile '-' --log-level info"
 
 [[ports]]
 localPort = 80
