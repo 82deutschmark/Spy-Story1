@@ -9,6 +9,7 @@ run = ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 'main:create_app()'"]
 build = ["sh", "-c", "pip install -r requirements.txt"]
 
 [workflows]
+runButton = "Run"
 
 [[workflows.workflow]]
 name = "Project"
@@ -42,6 +43,15 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python -m main"
+
+[[workflows.workflow]]
+name = "Run"
+author = 38813642
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
 
 [[ports]]
 localPort = 3000
