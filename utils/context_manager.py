@@ -192,7 +192,7 @@ CRITICAL CHARACTER ROLE REQUIREMENTS:
 10. The villain must remain the primary antagonist
 
 NARRATIVE STYLE GUIDELINES:
-1. Create a LENGTHY, DETAILED story introduction (at least 16000-20000 words) with rich descriptions
+1. Create a LENGTHY, DETAILED story introduction (at least 600-2000 words) with rich descriptions
 2. ALWAYS tell the story in second person, addressing the player directly and alluding to their name and gender in the introduction
 3. Use vivid sensory details, atmospheric descriptions, but do not reference a character's physical features or clothing
 4. Each segment should advance the plot significantly with unexpected twists or revelations

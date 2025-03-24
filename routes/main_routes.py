@@ -95,6 +95,9 @@ from utils.validation_utils import validate_story_parameters, validate_string_le
 from utils.currency_utils import process_transaction
 from utils.db_utils import get_or_create_user_progress as db_get_or_create_user_progress
 
+import logging
+logger = logging.getLogger(__name__)
+
 # Create Blueprint
 main_bp = Blueprint('main', __name__)
 
@@ -234,6 +237,7 @@ def storyboard(story_id):
 
 @main_bp.route('/generate_story', methods=['POST'])
 def generate_story_route():
+    logger.info(f"Received {request.method} request at /generate_story")
     data = request.form.to_dict()
     selected_chars_input = request.form.getlist('selected_images')
     if selected_chars_input:

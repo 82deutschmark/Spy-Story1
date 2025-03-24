@@ -1,4 +1,3 @@
-
 import logging
 from flask import jsonify
 from werkzeug.exceptions import HTTPException
@@ -54,3 +53,11 @@ def register_error_handlers(app):
             'status_code': 400
         }
         return jsonify(response), 400
+
+    @app.errorhandler(405)
+    def method_not_allowed(error):
+        return jsonify({"error": "405 Method Not Allowed: The method is not allowed for the requested URL.", "success": False}), 405
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        return jsonify({"error": "500 Internal Server Error", "success": False}), 500

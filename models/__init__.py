@@ -1,6 +1,6 @@
 # Models package
 
-from app import db
+from database import db
 from models.currency import Currency, Transaction
 from models.scene_images import SceneImages
 from models.stories import StoryGeneration, StoryNode, StoryChoice
