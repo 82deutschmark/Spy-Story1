@@ -459,6 +459,13 @@ All notable changes to the Story Creator project will be documented in this file
   - Fixed circular import issues in model relationships
   - Ensured all required models are properly exported in __all__
 
+### Temporary Changes
+- Disabled UserProgressManager and UserProgress initialization in JavaScript modules:
+  - Commented out initialization code in UserProgressManager.js
+  - Commented out initialization code in UserProgress.js
+  - Left console.log messages to indicate skipped initialization
+  - Functionality to be re-implemented in future updates
+
 ### Improved
 - Enhanced error handling and user feedback:
   - Added proper flash messages for form submission errors

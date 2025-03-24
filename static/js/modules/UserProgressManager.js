@@ -79,8 +79,11 @@ class UserProgressManager {
 
     /**
      * Initialize the user progress manager
+     * TEMPORARILY DISABLED - See CHANGELOG.md
      */
     initialize() {
+        console.log("UserProgressManager initialization skipped (temporarily disabled)");
+        /* 
         // Setup event listeners
         this.setupEventListeners();
         console.log("User progress manager initialized");
@@ -95,6 +98,7 @@ class UserProgressManager {
                 this.loadAgentData(storedCodename);
             }
         }
+        */
     }
 
     /**
