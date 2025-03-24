@@ -2,7 +2,7 @@
 Flask application factory for the Spy Story game.
 """
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
@@ -72,6 +72,18 @@ def create_app():
             return jsonify(safe_config)
     
     return app
+
+@app.errorhandler(404)
+def not_found_error(error):
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify(error="Not found"), 404
+    return render_template("404.html"), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify(error="Internal server error"), 500
+    return render_template("500.html"), 500
 
 if __name__ == '__main__':
     app = create_app()
