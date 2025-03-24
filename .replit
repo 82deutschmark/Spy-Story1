@@ -5,7 +5,7 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "gunicorn --bind 0.0.0.0:80 'main:create_app()' --access-logfile '-'"]
+run = ["sh", "-c", "gunicorn --bind 0.0.0.0:80 'main:create_app()' --workers=2 --timeout=120 --max-requests=1000 --max-requests-jitter=50 --log-level=info --error-logfile='-' --access-logfile='-'"]
 build = ["sh", "-c", "pip install -r requirements.txt"]
 
 [workflows]
@@ -87,7 +87,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "FLASK_ENV=production gunicorn --bind 0.0.0.0:80 'main:create_app()' --access-logfile '-'"
+args = "FLASK_ENV=production gunicorn --bind 0.0.0.0:80 'main:create_app()' --workers=2 --timeout=120 --max-requests=1000 --max-requests-jitter=50 --log-level=info --error-logfile='-' --access-logfile='-'"
 
 [[ports]]
 localPort = 80

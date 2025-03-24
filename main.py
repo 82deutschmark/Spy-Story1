@@ -80,6 +80,14 @@ def create_app():
 
     # Enable CORS
     CORS(app)
+    
+    # Initialize middleware
+    try:
+        from middleware.request_logger import RequestLoggerMiddleware
+        RequestLoggerMiddleware(app)
+        logger.info("Request logger middleware initialized")
+    except ImportError:
+        logger.warning("Request logger middleware not available")
 
     # Configure Flask JSON encoder for better Unicode handling
     from flask.json.provider import DefaultJSONProvider
