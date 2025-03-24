@@ -63,6 +63,21 @@ class RequestLoggerMiddleware:
                     if hasattr(g, '_cached_data'):
                         g._cached_data = {}
                     
+                    # Get detailed diagnostics only in critical situations
+                    try:
+                        memory_info = self.process.memory_info()
+                        logger.warning(f"Critical memory situation: {current_memory:.2f}MB - RSS={memory_info.rss/1024/1024:.2f}MB")
+                        
+                        # Only collect detailed memory maps when absolutely necessary (>550MB)
+                        if current_memory > 550:
+                            memory_maps = self.process.memory_maps()
+                            if memory_maps:
+                                top_maps = sorted(memory_maps, key=lambda x: getattr(x, 'private', 0), reverse=True)[:3]
+                                for i, m in enumerate(top_maps):
+                                    logger.critical(f"Top memory consumer #{i+1}: {getattr(m, 'path', 'unknown')} - {getattr(m, 'private', 0)/1024/1024:.2f}MB")
+                    except Exception as e:
+                        logger.error(f"Failed to collect memory diagnostics: {str(e)}")
+                    
                     # Second pass of garbage collection with different generation
                     gc.collect(2)
                     logger.warning(f"Critical memory situation: {current_memory:.2f}MB - Running aggressive cleanup")
