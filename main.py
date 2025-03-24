@@ -82,17 +82,23 @@ def create_app():
     CORS(app)
 
     # Configure Flask JSON encoder for better Unicode handling
-    class ImprovedJSONEncoder(json.JSONEncoder):
-        """Custom JSON encoder with better handling of special characters"""
-        def default(self, obj):
+    from flask.json.provider import DefaultJSONProvider
+    
+    class ImprovedJSONProvider(DefaultJSONProvider):
+        """Custom JSON provider with better handling of special characters"""
+        def dumps(self, obj, **kwargs):
             try:
-                return super().default(obj)
+                return super().dumps(obj, **kwargs)
             except TypeError:
-                # Fall back to string representation for objects that can't be serialized
-                return str(obj)
-
-    # Apply the improved JSON encoder
-    app.json_encoder = ImprovedJSONEncoder
+                # Convert objects that can't be serialized to strings
+                if isinstance(obj, dict):
+                    obj = {k: str(v) if not isinstance(v, (dict, list, str, int, float, bool, type(None))) else v 
+                          for k, v in obj.items()}
+                return super().dumps(obj, **kwargs)
+    
+    # Apply the improved JSON provider
+    app.json_provider_class = ImprovedJSONProvider
+    app.json = ImprovedJSONProvider(app)
 
     # Configure JSON error handling
     @app.before_request
