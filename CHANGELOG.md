@@ -1,14 +1,13 @@
-
 # Changelog
 
 ## [Unreleased]
 
 ### Fixed
-- Added script to fix invalid JSON in character data:
-  - Checks and repairs plot_lines column (JSONB field)
-  - Examines backstory column for JSON formatting issues
-  - Logs all changes for auditing
-  - Prevents database corruption from malformed JSON
+- Fixed critical port configuration issues that were preventing successful deployments:
+  - Resolved port mismatch between development (5000) and production (80)
+  - Fixed duplicate port entries in `.replit` configuration 
+  - Updated application to use PORT environment variable for flexibility
+  - Added comprehensive documentation in `/docs/port_configuration_guide.md`
 
 ## Previously Released
 
