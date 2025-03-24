@@ -1,6 +1,7 @@
 import logging
 from flask import Blueprint, request, jsonify
 from models.character_data import Character
+import os
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -15,6 +16,20 @@ def status():
         'status': 'success',
         'message': 'API is operational'
     })
+
+@api_bp.route('/config_dump', methods=['GET'])
+def config_dump():
+    """
+    Temporary route for diagnostics: Dump sanitized configuration if in debug mode.
+    """
+    if not request.args.get('admin'):
+        return jsonify({"error": "Unauthorized"}), 403
+    safe_config = {
+        "FLASK_CONFIG": os.environ.get('FLASK_CONFIG', 'not set'),
+        "OPENAI_API_KEY_PRESENT": bool(os.environ.get("OPENAI_API_KEY"))
+    }
+    logger.info(f"Configuration dump: {safe_config}")
+    return jsonify(safe_config)
 
 @api_bp.route('/random_character', methods=['GET'])
 def random_character():

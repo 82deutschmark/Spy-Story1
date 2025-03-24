@@ -2,13 +2,16 @@
 Flask application factory for the Spy Story game.
 """
 
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
 import logging
+from routes.api_routes import api_bp
+from routes.main_routes import main_bp
+from utils.error_handlers import register_error_handlers
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -33,6 +36,7 @@ def create_app():
         "pool_recycle": 300,
         "pool_pre_ping": True,
     }
+    app.config['DEBUG'] = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
     
     # Initialize extensions
     db.init_app(app)
@@ -47,12 +51,25 @@ def create_app():
         }
     })
     
-    # Register blueprints
-    from routes import main_bp
-    from api.unity_routes import unity_api
+    # Register error handlers
+    register_error_handlers(app)
     
+    # Register blueprints
+    app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(main_bp)
-    app.register_blueprint(unity_api, url_prefix='/api/unity')
+    
+    # Optional: Add a temporary diagnostics route
+    if app.config['DEBUG']:
+        @app.route('/config_dump')
+        def config_dump():
+            # Dump selected config keys for diagnosis
+            safe_config = {
+                "DEBUG": app.config.get("DEBUG"),
+                "FLASK_CONFIG": app.config.get("FLASK_CONFIG", {}),
+                "API_BASE_URL": os.environ.get("API_BASE_URL", "not set"),
+                "OPENAI_API_KEY_PRESENT": bool(os.environ.get("OPENAI_API_KEY"))
+            }
+            return jsonify(safe_config)
     
     return app
 

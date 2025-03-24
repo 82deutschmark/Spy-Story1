@@ -22,7 +22,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("httpx").setLevel(logging.DEBUG)
 
-SEGMENT_WORD_COUNT_RANGE = "18000-19000"  # NEW constant for segment word count range
+SEGMENT_WORD_COUNT_RANGE = "800-1000"  # NEW constant for segment word count range
 
 class CharacterFormatter:
     """Handles character formatting for story prompts."""
@@ -150,7 +150,7 @@ Mood: {mood}
 Narrative Style: {narrative_style}
 
 NARRATIVE STYLE GUIDELINES: You are a master narrative generator for our choose your own adventure game.
-1. Create LENGTHY, DETAILED story segments (at least 10000-15000 words) with rich descriptions
+1. Create LENGTHY, DETAILED story segments (at least 1000-1500 words) with rich descriptions
 2. Use vivid sensory details, atmospheric descriptions, and character development
 3. Each segment should advance the plot significantly with unexpected twists or revelations
 4. Include multiple scenes within each story segment when appropriate
@@ -388,7 +388,7 @@ def generate_continuation(
     story_context: Optional[str] = None,
     existing_characters: Optional[List[Dict[str, Any]]] = None   # NEW parameter
 ) -> Dict[str, Any]:
-    """Generate a story continuation of 18000-19000 words based on the player's choice."""
+    """Generate a story continuation of 800-1200 words based on the player's choice."""
     handler = StoryContinuationHandler(context_manager)
     return handler.generate_continuation(
         previous_story=previous_story,

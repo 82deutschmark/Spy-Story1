@@ -294,7 +294,7 @@ class StoryPromptBuilder:
             "6. The villains must remain the primary antagonist",
             "",
             "NARRATIVE STYLE GUIDELINES:",
-            "1. Create a LENGTHY, DETAILED story introduction (at least 22000-25000 words) with good story structure",
+            "1. Create a LENGTHY, DETAILED story introduction (at least 12000-15000 words) with good story structure",
             "2. ALWAYS tell the story in second person, addressing the player directly and alluding to their name and gender naturally through dialogue",
             "3. Use vivid sensory details, atmospheric descriptions, action packed fight scenes, but do not reference a character's physical features or clothing",
             "4. This segment should set the stage for the story, introduce the characters, and provide a clear objective for the player",
@@ -369,7 +369,7 @@ class StoryPromptBuilder:
             "15. The mission-giver should already have a strained relationship with the player character, who they view as a reckless and impulsive amateur.",
             "16. The mission-giver is always talking about geopolitical tensions and macroeconomic trends and esoteric financial strategies in niche industries, frequently in one or two complex and convoluted sentences.",
             "",
-            "Please generate a story that follows these requirements exactly and is 25000-28000 words long."
+            "Please generate a story that follows these requirements exactly and try to be at least 1500-2000 words long."
         ]
         
         return "\n".join(filter(None, prompt_parts))
