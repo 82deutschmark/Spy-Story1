@@ -62,6 +62,24 @@ mode = "sequential"
 task = "shell.exec"
 args = "FLASK_ENV=development FLASK_DEBUG=1 python main.py"
 
+[[workflows.workflow]]
+name = "Production Server"
+author = 38813642
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "FLASK_ENV=production gunicorn --bind 0.0.0.0:3000 'main:create_app()'"
+
+[[workflows.workflow]]
+name = "Development Server"
+author = 38813642
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "FLASK_ENV=development python main.py"
+
 [[ports]]
 localPort = 3000
 externalPort = 3000
