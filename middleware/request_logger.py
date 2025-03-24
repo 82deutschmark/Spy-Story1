@@ -50,13 +50,26 @@ class RequestLoggerMiddleware:
             
             logger.info(f"Request completed: {method} {path} {status_code} in {duration:.2f}s | Memory: {current_memory:.2f}MB (Δ{memory_diff:+.2f}MB)")
             
-            # Alert on high memory usage
-            if current_memory > 500:  # If using more than 500MB
-                logger.warning(f"High memory usage: {current_memory:.2f}MB | Consider manual garbage collection")
-                # Suggest manual garbage collection if memory usage is too high
-                if current_memory > 700:  # If using more than 700MB
-                    gc.collect()
-                    logger.info("Manual garbage collection triggered")
+            # Alert on high memory usage and force garbage collection more aggressively
+            if current_memory > 400:  # Lower threshold to 400MB
+                logger.warning(f"High memory usage: {current_memory:.2f}MB | Memory management activated")
+                # Force garbage collection at lower thresholds
+                gc.collect()
+                logger.info(f"Manual garbage collection triggered at {current_memory:.2f}MB")
+                
+                # More aggressive memory cleanup for higher thresholds
+                if current_memory > 500:  # If memory is critically high
+                    # Clear any caches or temporary data that might be stored in the application
+                    if hasattr(g, '_cached_data'):
+                        g._cached_data = {}
+                    
+                    # Second pass of garbage collection with different generation
+                    gc.collect(2)
+                    logger.warning(f"Critical memory situation: {current_memory:.2f}MB - Running aggressive cleanup")
+                    
+                    # Get memory usage after collection
+                    post_gc_memory = self.process.memory_info().rss / 1024 / 1024
+                    logger.info(f"Memory after cleanup: {post_gc_memory:.2f}MB (Δ{post_gc_memory-current_memory:+.2f}MB)")
         except Exception as e:
             logger.error(f"Error in after_request: {str(e)}")
         
@@ -68,3 +81,21 @@ class RequestLoggerMiddleware:
             logger.error(f"Request error: {str(exception)}")
             # Force garbage collection on error
             gc.collect()
+            
+            # Check if this is a memory-related error
+            error_str = str(exception).lower()
+            if any(term in error_str for term in ['memory', 'allocation', 'out of memory', 'killed']):
+                logger.critical(f"MEMORY-RELATED ERROR DETECTED: {str(exception)}")
+                # Log process details for diagnosis
+                try:
+                    memory_info = self.process.memory_info()
+                    logger.critical(f"Process memory details: RSS={memory_info.rss/1024/1024:.2f}MB, VMS={memory_info.vms/1024/1024:.2f}MB")
+                    
+                    # Get top memory consumers in the process
+                    memory_maps = self.process.memory_maps()
+                    if memory_maps:
+                        top_maps = sorted(memory_maps, key=lambda x: x.private, reverse=True)[:5]
+                        for i, m in enumerate(top_maps):
+                            logger.critical(f"Top memory consumer #{i+1}: {m.path} - Private: {m.private/1024/1024:.2f}MB")
+                except Exception as e:
+                    logger.error(f"Failed to collect memory diagnostics: {str(e)}")
