@@ -80,18 +80,9 @@ def create_app():
 
     # Enable CORS
     CORS(app)
-    
-    # Initialize middleware
-    try:
-        from middleware.request_logger import RequestLoggerMiddleware
-        RequestLoggerMiddleware(app)
-        logger.info("Request logger middleware initialized")
-    except ImportError:
-        logger.warning("Request logger middleware not available")
 
     # Configure Flask JSON encoder for better Unicode handling
     from flask.json.provider import DefaultJSONProvider
-    import traceback
     
     class ImprovedJSONProvider(DefaultJSONProvider):
         """Custom JSON provider with better handling of special characters and complex data types"""
@@ -99,14 +90,9 @@ def create_app():
             from utils.json_utils import normalize_strings_in_dict
             
             try:
-                # Ensure encoding is properly handled
-                if 'ensure_ascii' not in kwargs:
-                    kwargs['ensure_ascii'] = False  # Allow non-ASCII characters
-                
                 return super().dumps(obj, **kwargs)
             except TypeError as e:
                 logger.warning(f"JSON serialization error in first attempt: {str(e)}")
-                logger.debug(f"JSON serialization failed for object: {type(obj)}")
                 
                 # Apply more advanced normalization from json_utils
                 try:
@@ -114,7 +100,6 @@ def create_app():
                     return super().dumps(normalized_data, **kwargs)
                 except Exception as e2:
                     logger.error(f"JSON normalization failed: {str(e2)}")
-                    logger.error(f"Traceback: {traceback.format_exc()}")
                     
                     # Fallback serialization for complex objects
                     if isinstance(obj, dict):
