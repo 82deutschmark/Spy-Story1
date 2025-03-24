@@ -382,10 +382,38 @@ class StoryGenerator:
 
     def process_choices(self, story_data: Dict[str, Any]) -> Dict[str, Any]:
         """Process and validate story choices."""
+        if not isinstance(story_data, dict):
+            logger.error(f"Invalid story_data type: {type(story_data)}")
+            return {"choices": [], "story": "Error processing story data"}
+            
+        # Ensure choices exist and are properly formatted
         if "choices" in story_data:
-            for i, choice in enumerate(story_data["choices"]):
-                if "id" not in choice and "choice_id" not in choice:
-                    choice["choice_id"] = f"choice_{i}_{datetime.utcnow().timestamp()}"
+            if not isinstance(story_data["choices"], list):
+                logger.error(f"Invalid choices type: {type(story_data['choices'])}")
+                story_data["choices"] = []
+            else:
+                # Process each choice
+                for i, choice in enumerate(story_data["choices"]):
+                    if not isinstance(choice, dict):
+                        logger.error(f"Invalid choice type at index {i}: {type(choice)}")
+                        continue
+                        
+                    # Ensure each choice has an ID
+                    if "id" not in choice and "choice_id" not in choice:
+                        choice["choice_id"] = f"choice_{i}_{datetime.utcnow().timestamp()}"
+                    
+                    # Ensure text is properly encoded
+                    if "text" in choice and isinstance(choice["text"], str):
+                        # Handle potential encoding issues
+                        try:
+                            # Normalize unicode characters
+                            choice["text"] = choice["text"].encode('utf-8', errors='replace').decode('utf-8')
+                        except Exception as e:
+                            logger.error(f"Error encoding choice text: {str(e)}")
+                            choice["text"] = "Choice option (encoding error)"
+        else:
+            story_data["choices"] = []
+            
         return story_data
 
     def generate_story(

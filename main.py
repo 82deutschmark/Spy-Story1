@@ -5,13 +5,14 @@ Main application entry point for the Spy Story game.
 import os
 import sys
 import logging
-from flask import Flask
+from flask import Flask, json, jsonify
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.pool import QueuePool
+import traceback
 
 # Configure basic logging to display INFO messages on the console
 logging.basicConfig(level=logging.INFO)
@@ -34,10 +35,10 @@ load_dotenv()
 def create_app():
     """Create and configure the Flask application."""
     app = Flask(__name__)
-    
+
     # Configure the app
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
-    
+
     # Database configuration with connection pooling
     database_url = os.environ.get('DATABASE_URL', 'sqlite:///app.db')
     if database_url.startswith('postgresql'):
@@ -66,28 +67,58 @@ def create_app():
             'pool_recycle': 1800,
             'pool_pre_ping': True
         }
-    
+
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
+
     # Initialize extensions
     from database import db, init_db
     from flask_migrate import Migrate
-    
+
     db.init_app(app)
     migrate = Migrate(app, db)
-    
+
     # Enable CORS
     CORS(app)
-    
+
+    # Configure Flask JSON encoder for better Unicode handling
+    class ImprovedJSONEncoder(json.JSONEncoder):
+        """Custom JSON encoder with better handling of special characters"""
+        def default(self, obj):
+            try:
+                return super().default(obj)
+            except TypeError:
+                # Fall back to string representation for objects that can't be serialized
+                return str(obj)
+
+    # Apply the improved JSON encoder
+    app.json_encoder = ImprovedJSONEncoder
+
+    # Configure JSON error handling
+    @app.before_request
+    def handle_json_error():
+        """Set up improved JSON request handling"""
+        # Will be handled by error handlers if JSON is invalid
+        pass
+
+
     # Register blueprints
     logger.info("Registering blueprints")
     from routes.main_routes import main_bp
-    
+
     app.register_blueprint(main_bp)
-    
+
+    #Error Handling (Example - Needs expansion for a complete solution)
+    @app.errorhandler(400)
+    def bad_request(error):
+        return jsonify({'error': 'Bad Request'}), 400
+
+    @app.errorhandler(500)
+    def internal_server_error(error):
+        return jsonify({'error': 'Internal Server Error'}), 500
+
     return app
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')
