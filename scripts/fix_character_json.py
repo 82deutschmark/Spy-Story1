@@ -10,11 +10,10 @@ proper format for database storage.
 """
 
 import sys
+import os
 import json
 import logging
 from datetime import datetime
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
 
 # Setup logging
 logging.basicConfig(
@@ -28,10 +27,12 @@ logging.basicConfig(
 logger = logging.getLogger("character_json_fix")
 
 # Add project root to path to allow imports
-sys.path.insert(0, '.')
-from models.base import db
-from models.character_data import Character
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Import app factory function
 from app import create_app
+from models.character_data import Character
+from utils.json_utils import handle_jsonb_fields
 
 def validate_json(text):
     """
@@ -48,7 +49,7 @@ def validate_json(text):
     
     # Check if already valid JSON
     try:
-        if isinstance(text, dict) or isinstance(text, list):
+        if isinstance(text, (dict, list)):
             # Already parsed JSON object, just stringify
             return True, text, text
         
@@ -77,8 +78,13 @@ def fix_character_json_data():
     """
     Main function to examine and fix JSON data in characters table.
     """
+    # Create and configure the app
     app = create_app()
+    
+    # Using app context to access database
     with app.app_context():
+        from database import db
+        
         characters = Character.query.all()
         logger.info(f"Found {len(characters)} characters to examine")
         
@@ -144,4 +150,6 @@ if __name__ == "__main__":
                     f"({plot_lines_fixes} plot_lines, {backstory_fixes} backstories)")
     except Exception as e:
         logger.error(f"Script failed with error: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         sys.exit(1)
