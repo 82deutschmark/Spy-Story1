@@ -9,7 +9,7 @@ run = ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 'main:create_app()'"]
 build = ["sh", "-c", "pip install -r requirements.txt"]
 
 [workflows]
-runButton = "Run"
+runButton = "Run with Debug"
 
 [[workflows.workflow]]
 name = "Project"
@@ -52,6 +52,15 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python main.py"
+
+[[workflows.workflow]]
+name = "Run with Debug"
+author = 38813642
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "FLASK_ENV=development FLASK_DEBUG=1 python main.py"
 
 [[ports]]
 localPort = 3000
