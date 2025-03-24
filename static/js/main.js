@@ -36,16 +36,19 @@
  * 4. Keep the DOMContentLoaded event handler clean and organized
  */
 
-// Main JavaScript file
-import ChoiceHandler from '/static/js/modules/ChoiceHandler.js';
-import CharacterSelector from '/static/js/modules/CharacterSelector.js';
-import CharacterMentions from '/static/js/modules/CharacterMentions.js';
-import LoadingManager from '/static/js/modules/LoadingManager.js';
-import ErrorHandler from '/static/js/modules/ErrorHandler.js';
-import { UIUtils } from '/static/js/modules/UIUtils.js';
-import StoryFormHandler from '/static/js/modules/StoryFormHandler.js';
-import UserProgressManager from '/static/js/modules/UserProgressManager.js';
-import UserProgress from '/static/js/modules/UserProgress.js';
+// Read server base URL from window.FLASK_CONFIG (set in index.html); fallback to '/static/'
+const SERVER_BASE_URL = (window.FLASK_CONFIG && window.FLASK_CONFIG.staticUrl) || '/static/';
+
+// Updated import paths to be relative
+import ChoiceHandler from './modules/ChoiceHandler.js';
+import CharacterSelector from './modules/CharacterSelector.js';
+import CharacterMentions from './modules/CharacterMentions.js';
+import LoadingManager from './modules/LoadingManager.js';
+import ErrorHandler from './modules/ErrorHandler.js';
+import { UIUtils } from './modules/UIUtils.js';
+import StoryFormHandler from './modules/StoryFormHandler.js';
+import UserProgressManager from './modules/UserProgressManager.js';
+import UserProgress from './modules/UserProgress.js';
 
 // Wait for DOM content and modules to load
 document.addEventListener('DOMContentLoaded', async () => {
