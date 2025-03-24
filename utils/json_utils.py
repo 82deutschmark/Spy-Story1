@@ -122,6 +122,27 @@ def validate_json_structure(data: Any, required_fields: Optional[Dict[str, type]
     
     Args:
         data: The data to validate
+        required_fields: Dictionary mapping field names to expected types
+        
+    Returns:
+        Tuple of (is_valid, error_dict)
+    """
+    if not isinstance(data, dict):
+        return False, {"_general": f"Expected dictionary, got {type(data).__name__}"}
+        
+    if not required_fields:
+        return True, None
+        
+    errors = {}
+    
+    # Check required fields and types
+    for field, expected_type in required_fields.items():
+        if field not in data:
+            errors[field] = f"Missing required field: {field}"
+        elif not isinstance(data[field], expected_type):
+            errors[field] = f"Expected {expected_type.__name__}, got {type(data[field]).__name__}"
+            
+    return len(errors) == 0, errors if errors else None
 
 def handle_jsonb_fields(data: Any) -> Any:
     """
@@ -133,13 +154,6 @@ def handle_jsonb_fields(data: Any) -> Any:
     Returns:
         Sanitized data structure with proper JSON handling
     """
-        
-    Returns:
-        Sanitized data structure with proper JSON handling
-    """
-    import json
-    from sqlalchemy.dialects.postgresql import JSONB
-    
     if data is None:
         return None
         
@@ -169,28 +183,6 @@ def handle_jsonb_fields(data: Any) -> Any:
     else:
         # Return primitive types as is
         return data
-
-        required_fields: Dictionary mapping field names to expected types
-        
-    Returns:
-        Tuple of (is_valid, error_dict)
-    """
-    if not isinstance(data, dict):
-        return False, {"_general": f"Expected dictionary, got {type(data).__name__}"}
-        
-    if not required_fields:
-        return True, None
-        
-    errors = {}
-    
-    # Check required fields and types
-    for field, expected_type in required_fields.items():
-        if field not in data:
-            errors[field] = f"Missing required field: {field}"
-        elif not isinstance(data[field], expected_type):
-            errors[field] = f"Expected {expected_type.__name__}, got {type(data[field]).__name__}"
-            
-    return len(errors) == 0, errors if errors else None
 
 def ensure_valid_json_response(data: Any) -> Dict[str, Any]:
     """
