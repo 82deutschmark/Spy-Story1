@@ -75,16 +75,18 @@ def fix_character_json_data():
     """
     Main function to examine and fix JSON data in characters table.
     """
-    # Import here to avoid circular imports
+    # Import here to avoid circular imports - IMPORTANT!
     from app import create_app
-    from database import db
-    from models.character_data import Character
     
-    # Create the Flask app
+    # Create the Flask app instance
     app = create_app()
     
-    # Use app context to access database
+    # Use app context to access database properly
     with app.app_context():
+        # Import database and models inside app context
+        from database import db
+        from models.character_data import Character
+        
         logger.info("Database connection established")
         
         try:
