@@ -5,7 +5,7 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 'main:create_app()' --access-logfile '-'"]
+run = ["sh", "-c", "gunicorn --bind 0.0.0.0:80 wsgi:app --access-logfile '-'"]
 build = ["sh", "-c", "pip install -r requirements.txt"]
 
 [workflows]
