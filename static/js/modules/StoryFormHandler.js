@@ -29,6 +29,18 @@ class StoryFormHandler {
         let loadingState = null;
 
         try {
+            // Validate required fields
+            const name = form.querySelector('#protagonistNameInput').value;
+            const gender = form.querySelector('#protagonistGenderInput').value;
+            const errorDiv = form.querySelector('.error-message');
+
+            if (!name || !gender) {
+                errorDiv.textContent = 'Please enter both agent codename and gender.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            errorDiv.style.display = 'none';
+
             loadingState = this.loadingManager.startButtonLoading(
                 submitButton,
                 'Generating your adventure...'

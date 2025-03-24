@@ -245,9 +245,8 @@
     <!-- Scripts at the bottom of the body -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="{{ url_for('static', filename='js/modules/CharacterMentions.js') }}"></script>
-    <script type="module" src="{{ url_for('static', filename='js/modules/FormHandler.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
-    <script>
+    <script type="module">
         // Update hidden inputs when form fields change
         document.getElementById('protagonistName').addEventListener('input', function(e) {
             document.getElementById('protagonistNameInput').value = e.target.value;
@@ -257,21 +256,7 @@
             document.getElementById('protagonistGenderInput').value = e.target.value;
         });
 
-        // Form validation
-        document.getElementById('character-selection-form').addEventListener('submit', function(e) {
-            const name = document.getElementById('protagonistNameInput').value;
-            const gender = document.getElementById('protagonistGenderInput').value;
-            const errorDiv = document.querySelector('.error-message');
-
-            if (!name || !gender) {
-                e.preventDefault();
-                errorDiv.textContent = 'Please enter both agent codename and gender.';
-                errorDiv.style.display = 'block';
-                return false;
-            }
-            errorDiv.style.display = 'none';
-            return true;
-        });
+        // Remove old form validation code since StoryFormHandler handles this now
     </script>
 </body>
 </html>

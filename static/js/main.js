@@ -37,7 +37,6 @@
  */
 
 // Main JavaScript file
-import FormHandler from '/static/js/modules/FormHandler.js';
 import ChoiceHandler from '/static/js/modules/ChoiceHandler.js';
 import CharacterSelector from '/static/js/modules/CharacterSelector.js';
 import CharacterMentions from '/static/js/modules/CharacterMentions.js';
@@ -116,12 +115,10 @@ async function initializeApplication() {
         }
         console.log("UserProgress initialized");
 
-        // Form handling initialization
-        if (!document.querySelector('.storyboard-body')) {
-            const formHandler = new FormHandler();
-            formHandler.initialize();
-            console.log("FormHandler initialized");
-        }
+        // Form handling initialization - UPDATED
+        const storyFormHandler = new StoryFormHandler();
+        storyFormHandler.initialize();
+        console.log("StoryFormHandler initialized");
 
         // Story handling initialization
         if (document.querySelector('.storyboard-body')) {
@@ -129,10 +126,6 @@ async function initializeApplication() {
             choiceHandler.initialize();
             console.log("ChoiceHandler initialized");
         }
-
-        const storyFormHandler = new StoryFormHandler();
-        storyFormHandler.initialize();
-        console.log("StoryFormHandler initialized");
 
         // Setup global event listeners
         setupGlobalListeners();
