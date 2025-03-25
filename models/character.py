@@ -1,4 +1,6 @@
-"""
+"""#####NOT IMPLEMENTED YET#####
+
+
 Character Evolution Model
 Tracks how characters change and develop through user stories.
 Works in conjunction with the base Character model from character_data.py

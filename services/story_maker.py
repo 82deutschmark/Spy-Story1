@@ -316,8 +316,7 @@ class StoryPromptBuilder:
             protagonist_parts = [
                 "PROTAGONIST DETAILS:",
                 f"Name: {protagonist_name}",
-                f"Gender: {protagonist_gender}",
-                f"Experience Level: {protagonist_level}"
+                f"Gender: {protagonist_gender}"
             ]
 
         # Build the main prompt parts
@@ -345,7 +344,7 @@ class StoryPromptBuilder:
             "3. All character traits, backstories, and plot lines must remain unmodified.",
             "4. You MUST use the mission-giver character to give the initial mission, which targets one of the villain characters.",
             "5. The mission should have a clear objective like to steal something, kill someone, or obtain info or all three.",
-            "6. The mission should have a deadline of two weeks and a consequence for failure.",
+            "6. The mission should have a deadline of two days and a consequence for failure.",
             "7. The villain should not appear directly in the story until later in the game, introduce them first via other character dialogue",
             "8. You MUST NOT invent or create any unsourced characters, select from the characters provided in the character prompts",
             "9. The protagonist should communicate with the other characters by seeking them out or they will seek the protagonist out",
@@ -359,8 +358,8 @@ class StoryPromptBuilder:
             "17. The mission-giver is a rich person, or a high-level spy or a government agent with a lot of resources and a lot of power. They need the protagonist for a discreet job",
             "18. The mission-giver should already have a strained relationship with the player character, who they view as a reckless and impulsive amateur.",
             "19. The mission-giver is always talking about geopolitical tensions and macroeconomic trends and esoteric financial strategies in niche industries, frequently in one or two complex and convoluted sentences.",
-            "",
-            "Please generate a story that follows these requirements exactly and try to be at least 1500-2000 words long."
+            "Please generate a story that follows these requirements exactly and try to be at least 1500-2000 words long.",
+            "End the segment by providing exactly three distinct choices for how to proceed."
         ]
         
         return "\n".join(filter(None, prompt_parts))

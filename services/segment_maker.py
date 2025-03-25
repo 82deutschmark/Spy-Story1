@@ -228,8 +228,8 @@ class StoryContinuationHandler:
         """Generate a story continuation based on the player's choice."""
         existing_ids = {char.get("id") for char in existing_characters} if existing_characters else set()
         fresh_chars = get_random_characters(3)
-        fresh_candidates = [char for char in fresh_chars if char.id not in existing_ids]
-        random_characters = fresh_candidates if fresh_candidates else fresh_chars
+        fresh_candidates = [char for char in fresh_chars if char.id not in existing_ids and char.character_role.lower() != "villain"]
+        random_characters = fresh_candidates if fresh_candidates else [char for char in fresh_chars if char.character_role.lower() != "villain"]
         selected_random = random.choice(random_characters) if random_characters else None
         available_npc_names = ", ".join([char.character_name for char in random_characters]) if random_characters else "None"
         

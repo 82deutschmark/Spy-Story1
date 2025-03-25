@@ -271,6 +271,8 @@ class GameEngine:
         try:
             # Start transaction
             db.session.begin_nested()
+            # Reload the game state from the database to ensure latest conflict, setting, etc.
+            self.state.reload_state()
             
             # Get context manager for story continuation
             context_manager = self.state.get_context_manager()
@@ -295,6 +297,14 @@ class GameEngine:
                 "objective": "Continue the story",
                 "status": "in_progress"
             }
+            
+            # Augment story_context with conflict and setting from the current story
+            conflict = story.primary_conflict if hasattr(story, 'primary_conflict') else "Unknown conflict"
+            setting = story.setting if hasattr(story, 'setting') else "Unknown setting"
+            if story_context:
+                story_context = f"CONFLICT: {conflict}\nSETTING: {setting}\n{story_context}"
+            else:
+                story_context = f"CONFLICT: {conflict}\nSETTING: {setting}"
             
             # Generate next story segment using segment_maker
             # Extract protagonist details from the branch metadata of the current node

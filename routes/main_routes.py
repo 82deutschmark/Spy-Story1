@@ -249,6 +249,7 @@ def generate_story_route():
     data = request.form.to_dict()
     selected_chars_input = request.form.getlist('selected_images')
     if selected_chars_input:
+        # Query selected characters by ID from form data
         selected_characters = Character.query.filter(
             Character.id.in_([int(cid) for cid in selected_chars_input])
         ).all()
@@ -259,11 +260,35 @@ def generate_story_route():
                 missing_char = Character.query.filter_by(character_role=role).order_by(db.func.random()).first()
                 if missing_char:
                     selected_characters.append(missing_char)
+        # Save both IDs and full details in the form data
+        data['selected_characters'] = [char.id for char in selected_characters]
+        # Also attach full details for use later in story generation:
+        data['protagonist_info'] = {
+            "id": selected_characters[0].id,
+            "character_name": selected_characters[0].character_name,
+            "character_traits": selected_characters[0].character_traits or {},
+            "backstory": getattr(selected_characters[0], 'backstory', ""),
+            "plot_lines": getattr(selected_characters[0], 'plot_lines', []),
+            "character_role": selected_characters[0].character_role
+        }
+        # And if additional characters exist:
+        if len(selected_characters) > 1:
+            data['additional_characters'] = [
+                {
+                    "id": char.id,
+                    "name": char.character_name,
+                    "character_traits": char.character_traits or {},
+                    "backstory": getattr(char, 'backstory',""),
+                    "plot_lines": getattr(char, 'plot_lines', []),
+                    "role": char.character_role,
+                    "role_requirements": ""
+                } for char in selected_characters[1:]
+            ]
     else:
         selected_characters = get_random_characters_with_roles()
+        data['selected_characters'] = [char.id for char in selected_characters]
     if not selected_characters:
         return jsonify({'error': 'Missing required character roles'}), 500
-    data['selected_characters'] = [char.id for char in selected_characters]
     user_progress = get_or_create_user_progress()
     game_engine = GameEngine(user_id=user_progress.user_id)
     story_data = game_engine.start_new_story(form_data=data)

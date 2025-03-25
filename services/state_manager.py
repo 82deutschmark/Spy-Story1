@@ -201,18 +201,17 @@ class GameState:
     def reload_state(self):
         """Refresh game state from database"""
         db.session.refresh(self.user_progress)
-
         if self.user_progress.current_story_id:
             self.current_story = StoryGeneration.query.get(self.user_progress.current_story_id)
-
         if self.user_progress.current_node_id:
             self.current_node = StoryNode.query.get(self.user_progress.current_node_id)
-
         if self.user_progress.active_missions:
             self.active_missions = Mission.query.filter(
                 Mission.id.in_(self.user_progress.active_missions),
                 Mission.user_id == self.user_id
             ).all()
+        # Debug log to confirm state reload
+        logging.debug(f"Reloaded state: Story - {self.current_story}, Node - {self.current_node}")
 
     def resolve_current_node(self, story_id: Optional[int] = None) -> Optional[StoryNode]:
         """
