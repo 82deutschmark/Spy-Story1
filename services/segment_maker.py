@@ -252,9 +252,7 @@ class StoryContinuationHandler:
         base_prompt = self._build_prompt(chosen_choice, mission_info, help_instruction, extra)
         self.context_manager.add_user_message(base_prompt)
         response = self.context_manager.process_function_calling(
-            client=self.client,
-            model=MODEL_CONFIG["model"],
-            temperature=MODEL_CONFIG["temperature"]
+            client=self.client
         )
         story_data = json.loads(response.choices[0].message.content)
         return self.validate_response(story_data, selected_random)

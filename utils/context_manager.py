@@ -60,8 +60,7 @@ class OpenAIContextManager:
             # No system message, just keep the most recent ones
             self.messages = self.messages[-max_messages:]
 
-    def process_function_calling(self, client, model: str = "gpt-4o-mini", tools: Optional[List] = None, 
-                                 temperature: float = DEFAULT_TEMPERATURE) -> Dict[str, Any]:
+    def process_function_calling(self, client, model: str = MODEL_CONFIG["model"], tools: Optional[List] = None) -> Dict[str, Any]:
         """
         Handle a complete conversation flow with function calling
 
@@ -69,7 +68,6 @@ class OpenAIContextManager:
             client: OpenAI client instance
             model: Model name to use
             tools: List of tool definitions for function calling
-            temperature: Temperature for generation (defaults to DEFAULT_TEMPERATURE)
 
         Returns:
             The final response from the API
@@ -80,7 +78,6 @@ class OpenAIContextManager:
                 model=model,
                 messages=self.messages,
                 tools=tools,
-                temperature=temperature,
                 response_format={"type": "json_object"}
             )
 
@@ -136,7 +133,6 @@ class OpenAIContextManager:
                     model=model,
                     messages=self.messages,
                     tools=tools,
-                    temperature=temperature,
                     response_format={"type": "json_object"}
                 )
 
@@ -257,8 +253,7 @@ Your response MUST be valid JSON with this structure:
         # Get response
         response = self.process_function_calling(
             client=client,
-            model=MODEL_CONFIG["model"],
-            temperature=MODEL_CONFIG["temperature"]
+            model=MODEL_CONFIG["model"]
         )
 
         # Parse and validate the response
