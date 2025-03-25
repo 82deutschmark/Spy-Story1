@@ -73,30 +73,6 @@ def create_app():
     
     return app
 
-@app.errorhandler(404)
-def not_found_error(error):
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return jsonify(error="Not found"), 404
-    return render_template("404.html"), 404
-
-@app.errorhandler(500)
-def internal_error(error):
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return jsonify(error="Internal server error"), 500
-    return render_template("500.html"), 500
-
 if __name__ == '__main__':
     app = create_app()
     app.run(debug=True)
-
-# Dummy database.py file
-# database.py
-import os
-from flask_sqlalchemy import SQLAlchemy
-
-db = SQLAlchemy()
-
-def init_db(app):
-    db.init_app(app)
-    with app.app_context():
-        db.create_all()

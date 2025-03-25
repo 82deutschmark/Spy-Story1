@@ -1,4 +1,10 @@
-"""
+"""#####DEPRECATED#####
+This module is no longer used in the application and is kept for reference purposes only.
+
+Please refer to the updated character data model in models/character_data.py for the current implementation.
+####DEPRECATED####"""   
+""
+""""
 character_utils.py - Character Data Extraction Utilities
 ====================================================
 

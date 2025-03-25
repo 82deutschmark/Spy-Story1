@@ -1,6 +1,12 @@
 """
 Character Evolution Service for Spy Story Game
 ===========================================
+#############NOT YET IMPLEMENTED#############
+#############NOT YET IMPLEMENTED#############
+#############NOT YET IMPLEMENTED#############
+#############NOT YET IMPLEMENTED#############
+#############NOT YET IMPLEMENTED#############
+
 
 This module manages the dynamic evolution of characters in the spy story game,
 handling character relationships, trait development, and story-driven changes.

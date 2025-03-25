@@ -35,12 +35,15 @@ from services.character_evolution_service import (
     update_character_relationships,
     create_character_evolution
 )
-from utils.character_utils import (
+from utils.character_manager import (
     extract_character_traits,
     extract_plot_lines,
     extract_character_style,
     extract_character_name,
     extract_character_role,
+    extract_character_backstory,
+    extract_character_plot_lines,
+    get_random_characters  # NEW: Use same function from character_manager
 )
 import logging
 from datetime import datetime
@@ -49,7 +52,7 @@ from models import StoryGeneration, Character, PlotArc, Mission
 from utils.validation_utils import validate_story_parameters
 from utils.context_manager import OpenAIContextManager
 from utils.constants import DEFAULT_TEMPERATURE
-import random  # NEW import added
+import random  # Existing import
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -137,28 +140,6 @@ STORY_OPTIONS = {
 # Export the functions that should be available to other modules
 __all__ = ['generate_story', 'get_story_options']
 
-# NEW: Updated helper to retrieve a full cast of characters from our DB (including villain)
-def get_random_characters(n: int = 3) -> List[dict]:
-    eligible = Character.query.filter(
-        Character.character_role.in_(["neutral", "undetermined", "mission-giver", "villain"])
-    ).all()
-    if not eligible:
-        logger.error("No characters found in DB.")
-        return []
-    selected = random.sample(eligible, min(n, len(eligible)))
-    result = []
-    for char in selected:
-        result.append({
-            "name": char.character_name,
-            "character_traits": getattr(char, 'character_traits', []),
-            "backstory": getattr(char, 'backstory', ""),
-            "plot_lines": getattr(char, 'plot_lines', []),
-            "role": char.character_role,
-            "role_requirements": "",  # adjust as needed if available
-            "id": char.id
-        })
-    return result
-
 class CharacterPromptBuilder:
     """Handles building character-related prompts."""
     
@@ -189,14 +170,14 @@ class CharacterPromptBuilder:
         # Build the prompt parts
         prompt_parts = [
             "FEATURED NPC CHARACTER:",
-            f"Name: {character_info.get('name', 'Unknown')}",
+            f"Name: {extract_character_name(character_info)}",  # Modified line
             f"Role: {role}",
             f"Role Requirements: {role_requirements}",
             "",
             "CHARACTER DETAILS:",
             f"Traits: {', '.join(trait_descriptions) if trait_descriptions else 'Not specified'}",
             f"Backstory: {backstory if backstory else 'Not specified'}",
-            f"Plot Lines: {', '.join(plot_lines) if plot_lines else 'Not specified'}",
+            f"Plot Lines: {', '.join(plot_lines) if plot_lines else 'Tries to get the protagonist to help with their own mission or plan'}",
             "",
             "CHARACTER INTEGRATION REQUIREMENTS:",
             "1. This NPC MUST be used in the story according to their specified role",
@@ -238,7 +219,7 @@ class CharacterPromptBuilder:
         prompt_parts = ["\nSECONDARY NPC CHARACTERS - INCORPORATE AT LEAST ONE INTO THE NARRATIVE:\n"]
         
         for char in additional_characters:
-            # ...existing code for traits...
+            # Use our centralized extraction functions:
             char_traits = extract_character_traits(char)
             if isinstance(char_traits, str):
                 char_traits = [char_traits]
@@ -246,11 +227,9 @@ class CharacterPromptBuilder:
             char_role = extract_character_role(char)
             role_requirements = char.get("role_requirements", "")
             traits_str = ", ".join(char_traits) if char_traits else "No specified traits"
-            # NEW: Retrieve backstory and plot_lines from the character data.
-            backstory = char.get("backstory", "No backstory provided")
-            plot_lines = char.get("plot_lines", [])
+            backstory = extract_character_backstory(char) or "No backstory provided"
+            plot_lines = extract_character_plot_lines(char)
             plot_lines_str = ", ".join(plot_lines) if plot_lines else "No plot lines provided"
-            
             char_parts = [
                 f"- Name: {char_name}",
                 f"  Role: {char_role}",

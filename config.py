@@ -136,3 +136,5 @@ def get_config():
     """
     env = os.environ.get("FLASK_ENV", "development")
     return config.get(env, config['default'])
+
+# All character functionality is centralized in utils/character_manager.py.

@@ -94,6 +94,7 @@ from services.state_manager import GameState
 from utils.validation_utils import validate_story_parameters, validate_string_length
 from utils.currency_utils import process_transaction
 from utils.db_utils import get_or_create_user_progress as db_get_or_create_user_progress
+from utils.character_manager import get_random_characters  # NEW import
 
 import logging
 logger = logging.getLogger(__name__)
@@ -115,15 +116,22 @@ def get_random_scene_background():
     return scene.image_url if scene else None
 
 def get_random_characters_with_roles() -> List[Character]:
-    mission_giver = Character.query.filter_by(character_role='mission-giver').order_by(db.func.random()).first()
-    villain = Character.query.filter_by(character_role='villain').order_by(db.func.random()).first()
-    if not mission_giver or not villain:
-        return []
-    neutral_char = Character.query.filter_by(character_role='neutral').order_by(db.func.random()).first()
-    selected_characters = [mission_giver, villain]
-    if neutral_char:
-        selected_characters.append(neutral_char)
-    return selected_characters
+    """
+    Select at least one mission-giver and one villain.
+    Uses the central module's get_random_characters() then supplements missing roles.
+    """
+    selected = get_random_characters(3)
+    # Ensure mission-giver and villain are present:
+    roles = [char.character_role.lower() for char in selected if char.character_role]
+    if 'mission-giver' not in roles:
+        mg = Character.query.filter_by(character_role='mission-giver').order_by(db.func.random()).first()
+        if mg and mg not in selected:
+            selected.append(mg)
+    if 'villain' not in roles:
+        vil = Character.query.filter_by(character_role='villain').order_by(db.func.random()).first()
+        if vil and vil not in selected:
+            selected.append(vil)
+    return selected
 
 @main_bp.route('/')
 def index():

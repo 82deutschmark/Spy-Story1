@@ -49,6 +49,7 @@ from services.mission_generator import (
 from services.character_interaction import CharacterInteractionService
 from services.state_manager import GameState, state_manager
 from utils.context_manager import OpenAIContextManager
+from utils.character_manager import format_character_info
 import json
 
 logger = logging.getLogger(__name__)
@@ -76,37 +77,6 @@ class GameEngine:
         self.state = GameState(user_id)
         self.character_service = CharacterInteractionService()
 
-    def format_character_data(self, character: Character) -> Dict[str, Any]:
-        """
-        Format character data with proper role information and NPC marking.
-        
-        Args:
-            character (Character): The character to format
-            
-        Returns:
-            Dict[str, Any]: Formatted character data with role information
-        """
-        # Get standardized role value
-        role = character.character_role or 'neutral'
-        if role.lower() not in ['villain', 'neutral', 'mission-giver', 'undetermined']:
-            role = 'neutral'
-            
-        return {
-            "character_traits": character.character_traits or {},
-            "backstory": character.backstory or "",
-            "plot_lines": character.plot_lines or [],
-            "role": role,
-            "is_npc": True,  # Explicitly mark as NPC
-            "id": character.id,
-            "name": character.character_name,
-            "role_requirements": {
-                "mission-giver": "This NPC MUST be the one giving the mission to the player character. They should be authoritative and knowledgeable about the mission details.",
-                "villain": "This NPC MUST be the primary antagonist or villain of the story. They should be threatening and pose a significant challenge to the player character.",
-                "neutral": "This NPC can be used in any supporting role, but their actions should align with their traits and backstory.",
-                "undetermined": "This NPC's role is flexible, but they must be used in a way that makes sense given their traits and backstory."
-            }.get(role, "This NPC should be used in a way that makes sense given their traits and backstory.")
-        }
-
     def start_new_story(self, form_data=None) -> Dict[str, Any]:
         """
         Start a new story for the user.
@@ -125,6 +95,9 @@ class GameEngine:
                 - available_missions: List of available missions
         """
         try:
+            # If form_data is a string, parse it to a dict
+            if (form_data and isinstance(form_data, str)):
+                form_data = json.loads(form_data)
             # Get story parameters from form data
             story_params = {
                 'conflict': form_data.get('conflict', 'Mysterious adventure'),
@@ -145,14 +118,29 @@ class GameEngine:
                 ).all()
                 
                 if selected_characters:
-                    # Use the first character as the primary character info
                     main_character = selected_characters[0]
-                    story_params['character_info'] = self.format_character_data(main_character)
+                    # Replace format_character_info with an inline dict to ensure proper type
+                    story_params['character_info'] = {
+                        "id": main_character.id,
+                        "character_name": main_character.character_name,
+                        "character_traits": main_character.character_traits or {},
+                        "backstory": getattr(main_character, 'backstory', ""),
+                        "plot_lines": getattr(main_character, 'plot_lines', []),
+                        "character_role": main_character.character_role
+                    }
                     
                     # Add any additional characters to additional_characters
                     if len(selected_characters) > 1:
                         story_params['additional_characters'] = [
-                            self.format_character_data(char)
+                            {
+                                "id": char.id,
+                                "name": char.character_name,
+                                "character_traits": char.character_traits,
+                                "backstory": getattr(char, 'backstory', ""),
+                                "plot_lines": getattr(char, 'plot_lines', []),
+                                "role": char.character_role,
+                                "role_requirements": ""
+                            }
                             for char in selected_characters[1:]
                         ]
             
@@ -309,6 +297,9 @@ class GameEngine:
             }
             
             # Generate next story segment using segment_maker
+            # Extract protagonist details from the branch metadata of the current node
+            protagonist = current_node.branch_metadata.get("protagonist", {})
+            
             next_segment = generate_continuation(
                 previous_story=current_node.narrative_text,
                 chosen_choice=custom_choice_text or choice_id,
@@ -316,7 +307,16 @@ class GameEngine:
                 context_manager=context_manager,
                 mood=story.mood,
                 narrative_style=story.narrative_style,
-                story_context=story_context
+                protagonist_name=protagonist.get("name"),
+                protagonist_gender=protagonist.get("gender"),
+                protagonist_level=protagonist.get("level"),
+                story_context=story_context or "",
+                existing_characters=[{
+                    "id": char.id,
+                    "name": char.character_name,
+                    "backstory": getattr(char, "backstory", ""),
+                    "plot_lines": getattr(char, "plot_lines", [])
+                } for char in story.characters] if story.characters else []
             )
             
             # Log the continuation data
@@ -340,13 +340,19 @@ class GameEngine:
             
             # Maintain character relationships from the story
             if characters:
-                # Convert character IDs to integers
+                # Convert character IDs to integers and query the characters
                 character_ids = [int(char["id"]) for char in characters]
-                # Query the characters
                 story_characters = Character.query.filter(Character.id.in_(character_ids)).all()
-                # Add character IDs to branch_metadata
                 next_node.branch_metadata["characters"] = [char.id for char in story_characters]
-                # Set the first character as the primary character for this node
+                # NEW: Save encountered character details in branch metadata
+                next_node.branch_metadata["encountered_characters"] = [
+                    {
+                        "id": char.id,
+                        "name": char.character_name,
+                        "backstory": getattr(char, "backstory", ""),
+                        "plot_lines": getattr(char, "plot_lines", [])
+                    } for char in story_characters
+                ]
                 if story_characters:
                     next_node.character_id = story_characters[0].id
                     

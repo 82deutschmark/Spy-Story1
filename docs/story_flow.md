@@ -1,7 +1,7 @@
 # Story Flow Documentation
 
 ## Game Overview
-Global Espionage is an interactive spy thriller where players navigate complex missions as secret agents. Players build relationships with AI-generated characters, make high-stakes decisions that affect the story's direction, and earn currencies and experience points. The game combines narrative choice-based gameplay with character relationship management and mission progression systems.
+This is an interactive spy thriller where players navigate complex missions as secret agents. Players build relationships with AI-generated characters, make high-stakes decisions that affect the story's direction, and earn currencies and experience points. The game combines narrative choice-based gameplay with character relationship management and mission progression systems.
 
 ## Post-Story Generation Flow
 
