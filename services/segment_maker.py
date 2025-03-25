@@ -149,7 +149,10 @@ NARRATIVE STYLE GUIDELINES: You are a master narrative generator for our choose 
             "15. Keep the mission-giver and villain roles consistent with their previous appearances",
             # --- Added integration requirements to match story_maker ---
             "16. Use each provided NPC exactly as given: their traits, backstory, and plot lines must remain unaltered.",
-            "17. Do not invent or modify character roles; all NPCs must fulfill their stated integration requirements."
+            "17. Do not invent or modify character roles; all NPCs must fulfill their stated integration requirements.",
+            # --- Added integration requirements ---
+            "16. Use only the characters provided in the prompts. DO NOT invent any new characters.",
+            "17. All provided NPC details (traits, backstory, plot lines) must remain unaltered."
         ]
         return requirements
 

@@ -169,7 +169,7 @@ class OpenAIContextManager:
         """Build the system message for story generation."""
         additional_instructions = (
             "IMPORTANT: Only use characters provided explicitly in the prompts. "
-            "Characters must come directly from the database entries and no new characters may be invented."
+            "DO NOT invent or introduce any new characters under any circumstances."
         )
         return f"""You are a master narrative generator for our adventure game.
 Create highly detailed, layered narratives in a {mood} tone with a {narrative_style} storytelling style.
@@ -179,40 +179,22 @@ Players take on missions, develop relationships with various characters, and nav
 {additional_instructions}
 
 CRITICAL CHARACTER ROLE REQUIREMENTS:
-1. You MUST ONLY use characters that are provided in the character prompts.
-2. NEVER invent or create new characters that are not from the database.
+1. You MUST ONLY use characters that are directly provided in the character prompts.
+2. NEVER invent or create new characters that are not from the provided data.
 3. Each character's role must be strictly maintained.
 
 NARRATIVE STYLE GUIDELINES:
 1. Create a LENGTHY, DETAILED story introduction (at least 600-2000 words) with rich descriptions
-2. ALWAYS tell the story in second person, addressing the player directly and alluding to their name and gender in the introduction
-3. Use vivid sensory details, atmospheric descriptions, but do not reference a character's physical features or clothing
-4. Each segment should advance the plot significantly with unexpected twists or revelations
-5. Include multiple scenes within each story segment when appropriate
-6. Incorporate dynamic character interactions with dialogue that reveals personality
-7. Balance action, dialogue, intrigue, and character development
-8. Never repeat the same scenarios, settings, or dialogue patterns
-9. Create a sense of escalating stakes and tension throughout the narrative
-
-CHARACTER INTEGRATION GUIDELINES:
-1. Make character traits manifest in their dialogue, actions, and decisions
-2. Show how character traits influence their relationships and interactions
-3. Ensure each character's unique traits affect their role in the story
-4. Make character traits visible through specific behaviors and choices
-5. Use character traits to drive plot developments and conflicts
-6. Make character relationships reflect their individual traits
-7. When introducing characters, ONLY use those provided in the character prompts
-8. Each character's role must be clearly evident in their actions and dialogue
-9. Character interactions must align with their assigned roles
-10. The mission-giver must be authoritative and knowledgeable
-11. The villain must be threatening and pose a significant challenge
+2. ALWAYS tell the story in second person, addressing the player directly
+3. Use vivid sensory details and atmospheric descriptions
+4. Advance the plot with unexpected twists and developments
 
 Your response MUST be valid JSON with this structure:
 {{
     "story": "Main narrative text",
     "choices": [
         {{
-            "choice_id": "unique_choice_id",  # REQUIRED: Unique identifier for this choice
+            "choice_id": "unique_choice_id",
             "text": "Choice description",
             "consequence": "Brief outcome description",
             "type": "direct/risky/social",
@@ -237,7 +219,8 @@ Your response MUST be valid JSON with this structure:
         mood: str,
         character_info: Dict[str, Any],
         client=None,
-        temperature: float = INITIAL_STORY_TEMPERATURE
+        temperature: float = INITIAL_STORY_TEMPERATURE,
+        custom_system_prompt: str = ""  # NEW parameter for custom instructions
     ) -> Dict[str, Any]:
         """Generate the initial opening of a story.
 
@@ -254,10 +237,21 @@ Your response MUST be valid JSON with this structure:
         Returns:
             Dict containing the generated story data
         """
-        # Add system message
-        self.add_system_message(self._build_system_message(mood, narrative_style))
+        # Build the default system message
+        default_sys = self._build_system_message(mood, narrative_style)
+        # Merge with custom system instructions if provided
+        if custom_system_prompt:
+            merged_sys = f"{default_sys}\n{custom_system_prompt}"
+        else:
+            merged_sys = default_sys
 
-        # Use the provided user_message which contains the detailed character information
+        # Instead of overwriting, check if there is already a system message
+        if self.messages and self.messages[0]["role"] == "system":
+            # Merge with the existing system prompt
+            self.messages[0]["content"] = f"{self.messages[0]['content']}\n{merged_sys}"
+        else:
+            self.add_system_message(merged_sys)
+
         self.add_user_message(user_message)
 
         # Get response
