@@ -129,4 +129,6 @@ The story generation system needed improvements in two areas:
 - Character consistency maintained across segments
 - ID tracking enables proper relationship management
 - Text processing preserves HTML structure
-- Character highlighting handles dynamic content updates 
+- Character highlighting handles dynamic content updates
+
+Note: All character formatting and extraction functions are now centralized in utils/character_manager.py.

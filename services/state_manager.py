@@ -301,12 +301,25 @@ class GameState:
             if update_progress:
                 self.user_progress.current_node_id = node_id
                 self.user_progress.last_active = datetime.utcnow()
-                
-                # Add to choice history if this is a new node
                 if not self.user_progress.choice_history:
                     self.user_progress.choice_history = []
                 if node_id not in self.user_progress.choice_history:
                     self.user_progress.choice_history.append(node_id)
+                # NEW: Merge encountered characters into user progress
+                if self.current_node and self.current_node.branch_metadata:
+                    new_chars = self.current_node.branch_metadata.get("encountered_characters", [])
+                    if new_chars:
+                        if not self.user_progress.encountered_characters:
+                            self.user_progress.encountered_characters = {}
+                        for char in new_chars:
+                            cid = str(char.get("id"))
+                            # Only add if not already present
+                            if cid not in self.user_progress.encountered_characters:
+                                self.user_progress.encountered_characters[cid] = {
+                                    "name": char.get("name", "Unknown"),
+                                    "backstory": char.get("backstory", ""),
+                                    "plot_lines": char.get("plot_lines", [])
+                                }
             
             # Log successful transition
             logger.debug(f"Successfully transitioned to node {node_id}")
@@ -394,3 +407,5 @@ class UnityStateListener:
 # Register web UI listener by default
 web_listener = WebUIStateListener()
 state_manager.add_listener(web_listener)
+
+# Note: When handling character data in state transitions, use functions from utils/character_manager.py.

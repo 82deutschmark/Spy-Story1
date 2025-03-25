@@ -9,6 +9,7 @@ coherent story continuations based on player choices.
 
 import os
 import json
+import random  # Added import for random
 from typing import Dict, Any, List, Optional
 from openai import OpenAI
 from utils.context_manager import OpenAIContextManager
@@ -18,126 +19,65 @@ from models.character_data import Character
 from models.base import db
 from sqlalchemy import func
 import logging
+from utils.character_manager import extract_character_traits, extract_character_name, extract_character_role, extract_character_backstory, extract_character_plot_lines, format_character_info, get_random_characters  # NEW import
 
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("httpx").setLevel(logging.DEBUG)
 
 SEGMENT_WORD_COUNT_RANGE = "800-1000"  # NEW constant for segment word count range
 
-class CharacterFormatter:
-    """Handles character formatting for story prompts."""
+def build_additional_characters_prompt(additional_characters: Optional[List[Dict[str, Any]]] = None) -> str:
+    """Build the prompt section for additional characters."""
+    if not additional_characters:
+        return ""
+
+    prompt_parts = ["\nSECONDARY NPC CHARACTERS - INCORPORATE AT LEAST ONE INTO THE NARRATIVE:\n"]
     
-    @staticmethod
-    def format_character_info(character: Character) -> str:
-        """Format a character's information for story prompts."""
-        if not character:
-            return ""
-            
-        traits_str = ', '.join(character.character_traits) if character.character_traits else 'None'
+    for char in additional_characters:
+        # Use central module functions for extraction
+        char_traits = extract_character_traits(char)
+        if isinstance(char_traits, str):
+            char_traits = [char_traits]
+        char_name = extract_character_name(char)
+        char_role = extract_character_role(char)
+        role_requirements = char.get("role_requirements", "")
+        traits_str = ", ".join(char_traits) if char_traits else "No specified traits"
+        # Retrieve backstory and plot_lines using central module functions
+        backstory = extract_character_backstory(char) or "No backstory provided"
+        plot_lines = extract_character_plot_lines(char)
+        plot_lines_str = ", ".join(plot_lines) if plot_lines else "No plot lines provided"
         
-        return f"""
-AVAILABLE CHARACTER FOR CHOICE:
-Name: {character.character_name}
-Role: {character.character_role}
-ID: {character.id}  # CRITICAL: This ID must be included in the character_id field of the choice
-Traits: {traits_str}
-Backstory: {character.backstory or 'Unknown'}
+        char_parts = [
+            f"- Name: {char_name}",
+            f"  Role: {char_role}",
+            f"  Role Requirements: {role_requirements}",
+            f"  Traits: {traits_str}",
+            f"  Backstory: {backstory}",
+            f"  Plot Lines: {plot_lines_str}",
+            "  Suggested Usage: Include in a meaningful choice for the player character",
+            "  Important: This character should introduce one of thier plot_lines into the story"
+        ]
+        prompt_parts.extend(char_parts)
 
-CHARACTER USAGE REQUIREMENTS:
-1. This character MUST be used in one of the choices as "Ask {character.character_name} for help" or similar
-2. The choice MUST include the character's ID ({character.id}) in its character_id field
-3. The character's ID must be preserved exactly as shown above
-4. Do not modify or change the character's ID in any way
-"""
-
-    @staticmethod
-    def get_random_characters(n: int = 3) -> List[Character]:
-        """Retrieve up to n eligible characters from the DB."""
-        eligible = Character.query.filter(
-            Character.character_role.in_(["neutral", "undetermined", "mission-giver", "villain"])
-        ).all()
-        import random
-        if not eligible:
-            logging.error("No eligible characters found in DB.")
-            return []
-        return random.sample(eligible, min(n, len(eligible)))
-
-    @staticmethod
-    def get_random_character() -> Optional[Character]:
-        """Return one randomly selected character from eligible candidates."""
-        import random
-        characters = CharacterFormatter.get_random_characters()
-        return random.choice(characters) if characters else None
-
-    @staticmethod
-    def validate_character_choice(choice: Dict[str, Any], expected_character_id: Optional[int]) -> bool:
-        """Validate a choice's character ID."""
-        if not expected_character_id:
-            return True
-            
-        choice_character_id = choice.get('character_id')
-        return not (choice_character_id and str(choice_character_id) != str(expected_character_id))
-
-    @staticmethod
-    def build_additional_characters_prompt(additional_characters: Optional[List[Dict[str, Any]]] = None) -> str:
-        """Build the prompt section for additional characters."""
-        if not additional_characters:
-            return ""
-
-        prompt_parts = ["\nSECONDARY NPC CHARACTERS - INCORPORATE AT LEAST ONE INTO THE NARRATIVE:\n"]
-        
-        for char in additional_characters:
-            # ...existing code for traits...
-            char_traits = extract_character_traits(char)
-            if isinstance(char_traits, str):
-                char_traits = [char_traits]
-            char_name = extract_character_name(char)
-            char_role = extract_character_role(char)
-            role_requirements = char.get("role_requirements", "")
-            traits_str = ", ".join(char_traits) if char_traits else "No specified traits"
-            # NEW: Retrieve backstory and plot_lines fields
-            backstory = char.get("backstory", "No backstory provided")
-            plot_lines = char.get("plot_lines", [])
-            plot_lines_str = ", ".join(plot_lines) if plot_lines else "No plot lines provided"
-            
-            char_parts = [
-                f"- Name: {char_name}",
-                f"  Role: {char_role}",
-                f"  Role Requirements: {role_requirements}",
-                f"  Traits: {traits_str}",
-                f"  Backstory: {backstory}",
-                f"  Plot Lines: {plot_lines_str}",
-                "  Suggested Usage: Include in a meaningful choice for the player character",
-                "  Important: This character should introduce one of thier plot_lines into the story"
-            ]
-            prompt_parts.extend(char_parts)
-
-        return "\n".join(prompt_parts)
+    return "\n".join(prompt_parts)
 
 class StoryPromptBuilder:
     """Handles building story prompts."""
     
+    # Modified to include protagonist_level
     @staticmethod
-    def build_protagonist_info(name: Optional[str] = None, gender: Optional[str] = None) -> str:
+    def build_protagonist_info(name: Optional[str] = None, gender: Optional[str] = None, level: Optional[int] = None) -> str:
         """Build the protagonist information section."""
-        if not name and not gender:
+        if not name and not gender and not level:
             return ""
-            
-        return f"""PROTAGONIST DETAILS:
-Name: {name}
-Gender: {gender}
-
-PROTAGONIST INTEGRATION REQUIREMENTS:
-1. Address the protagonist directly as "you" throughout the narrative
-2. Make the protagonist's gender influence their interactions and experiences
-3. Ensure the protagonist's name is used naturally in dialogue and descriptions
-4. Mission information is provided to you, and you must use it to create a story that is consistent with the mission.
-5. Make the protagonist's choices feel meaningful and impactful
-
-PROTAGONIST PERSPECTIVE GUIDELINES:
-1. Write in second person, addressing the player directly as "you"
-2. The protagonist is a user of the game, and the story is about their adventures.
-3. Create situations that challenge the protagonist's beliefs and values"""
+        info_lines = [
+            "PROTAGONIST DETAILS:",
+            f"Name: {name}" if name else "",
+            f"Gender: {gender}" if gender else ""
+        ]
+        if level is not None:
+            info_lines.append(f"Experience Level: {level}")
+        return "\n".join(filter(None, info_lines))
 
     @staticmethod
     def build_style_info(mood: Optional[str] = None, narrative_style: Optional[str] = None) -> str:
@@ -188,7 +128,7 @@ NARRATIVE STYLE GUIDELINES: You are a master narrative generator for our choose 
     @staticmethod
     def build_story_requirements(word_count_range: str, help_instruction: str) -> List[str]:
         """Build the story requirements instructions with a custom help option."""
-        return [
+        requirements = [
             f"1. Create a compelling continuation of {word_count_range} words that builds upon the player's choice",
             "2. Show immediate consequences of their decision",
             "3. Advance the mission in some way (progress, setback, or complication)",
@@ -197,7 +137,7 @@ NARRATIVE STYLE GUIDELINES: You are a master narrative generator for our choose 
             "   - One that takes a risky approach, involving gunplay or car chases",
             help_instruction,  # custom help instruction supplied by caller
             "5. Maintain narrative consistency with previous events",
-            "6. Include rich descriptions of guns and cars and atmospheric details, but not of characters or their look or clothing",
+            "6. Include rich descriptions of guns and cars and atmospheric details",
             "7. Show character development through actions and dialogue",
             "8. Create unexpected twists or revelations",
             "9. Balance action, dialogue, and intrigue",
@@ -206,8 +146,12 @@ NARRATIVE STYLE GUIDELINES: You are a master narrative generator for our choose 
             "12. Ensure all character interactions reflect their traits and relationships",
             "13. Make dialogue choices impact the story's direction",
             "14. Show how the protagonist's choices affect other characters",
-            "15. Keep the mission-giver and villain roles consistent with their previous appearances"
+            "15. Keep the mission-giver and villain roles consistent with their previous appearances",
+            # --- Added integration requirements to match story_maker ---
+            "16. Use each provided NPC exactly as given: their traits, backstory, and plot lines must remain unaltered.",
+            "17. Do not invent or modify character roles; all NPCs must fulfill their stated integration requirements."
         ]
+        return requirements
 
 class StoryContinuationHandler:
     """Handles story continuation generation and validation."""
@@ -234,8 +178,14 @@ class StoryContinuationHandler:
             "mission_update": story_data.get("mission_update", {})
         }
     
-    def _build_base_prompt(self, chosen_choice: str, mission_info: Dict[str, Any], help_instruction: str, additional_message: str = "") -> str:
-        """Build base continuation prompt to avoid duplication."""
+    def _build_prompt(
+        self,
+        chosen_choice: str,
+        mission_info: Dict[str, Any],
+        help_instruction: str,
+        story_context: Optional[str] = ""
+    ) -> str:
+        """Build a consolidated prompt for story continuation."""
         prompt_parts = [
             "Continue the story based on the following details:",
             "",
@@ -247,8 +197,8 @@ class StoryContinuationHandler:
             f"Objective: {mission_info.get('objective', 'Unknown')}",
             f"Current Status: {mission_info.get('status', 'In Progress')}"
         ]
-        if additional_message:
-            prompt_parts.extend(["", additional_message])
+        if story_context:
+            prompt_parts.extend(["", f"STORY CONTEXT:\n{story_context}"])
         prompt_parts.extend([
             "",
             "STORY REQUIREMENTS:",
@@ -258,33 +208,7 @@ class StoryContinuationHandler:
             StoryPromptBuilder.get_json_structure()
         ])
         return "\n".join(prompt_parts)
-    
-    def build_continuation_prompt(
-        self,
-        previous_story: str,
-        chosen_choice: str,
-        mission_info: Dict[str, Any],
-        random_character: Optional[Character] = None,
-        story_context: Optional[str] = None
-    ) -> str:
-        """Build the continuation prompt."""
-        random_char_name = random_character.character_name if random_character else 'a previously introduced character'
-        help_instruction = f"   - One that involves asking {random_char_name} for help (MUST include character_id: {random_character.id if random_character else 'null'})"
-        extra = ""
-        if story_context:
-            extra = f"STORY CONTEXT:\n{story_context}\n"
-        # Preserve character info if available
-        character_info = ""
-        if random_character:
-            character_info = CharacterFormatter.format_character_info(random_character)
-        prompt_parts = [
-            "",
-            character_info,
-            extra,
-        ]
-        base_prompt = self._build_base_prompt(chosen_choice, mission_info, help_instruction)
-        return "\n".join(prompt_parts) + "\n" + base_prompt
-    
+
     def generate_continuation(
         self,
         previous_story: str,
@@ -294,60 +218,41 @@ class StoryContinuationHandler:
         narrative_style: Optional[str] = None,
         protagonist_name: Optional[str] = None,
         protagonist_gender: Optional[str] = None,
+        protagonist_level: Optional[int] = None,
         story_context: Optional[str] = None,
-        existing_characters: Optional[List[Dict[str, Any]]] = None   # NEW parameter
+        existing_characters: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         """Generate a story continuation based on the player's choice."""
-        # Use existing_characters if provided, otherwise fallback
-        import random
-        if existing_characters and len(existing_characters) > 0:
-            # Convert provided dictionary data to a simple object with needed attributes
-            class SimpleChar:
-                pass
-            derived_chars = []
-            for char in existing_characters:
-                obj = SimpleChar()
-                obj.character_name = char.get("name", "Unknown")
-                obj.id = char.get("id", None)
-                derived_chars.append(obj)
-            random_characters = derived_chars
-        else:
-            random_characters = CharacterFormatter.get_random_characters()
-        
+        existing_ids = {char.get("id") for char in existing_characters} if existing_characters else set()
+        fresh_chars = get_random_characters(3)
+        fresh_candidates = [char for char in fresh_chars if char.id not in existing_ids]
+        random_characters = fresh_candidates if fresh_candidates else fresh_chars
         selected_random = random.choice(random_characters) if random_characters else None
         available_npc_names = ", ".join([char.character_name for char in random_characters]) if random_characters else "None"
         
-        # Initialize context manager if needed
         if not self.context_manager:
-            # ...existing system message code...
-            system_parts = [
+            system_message = "\n".join([
                 "You are a master narrative generator for our choose your own adventure game.",
-                "You excel at continuing stories based on player choices, maintaining narrative",
-                "consistency while introducing fresh developments and unexpected twists.",
-                "",
-                StoryPromptBuilder.build_protagonist_info(protagonist_name, protagonist_gender),
-                "",
+                "You excel at continuing stories based on player choices, maintaining narrative consistency while introducing fresh developments and unexpected twists.",
+                StoryPromptBuilder.build_protagonist_info(protagonist_name, protagonist_gender, protagonist_level),
                 StoryPromptBuilder.build_style_info(mood, narrative_style),
-                "",
                 "Your response MUST be valid JSON with this structure:",
                 StoryPromptBuilder.get_json_structure()
-            ]
-            self.context_manager = OpenAIContextManager()
-            self.context_manager.add_system_message("\n".join(system_parts))
+            ])
+            self.context_manager = OpenAIContextManager(system_message)
         
         help_instruction = f"   - One that involves asking {selected_random.character_name if selected_random else 'a previously introduced character'} for help (MUST include character_id: {selected_random.id if selected_random else 'null'})"
         extra = f"AVAILABLE NPC CHOICES for assistance: {available_npc_names}\n"
         if story_context:
             extra += f"STORY CONTEXT:\n{story_context}\n"
-        base_prompt = self._build_base_prompt(chosen_choice, mission_info, help_instruction, extra)
-        self.context_manager.add_user_message(base_prompt)
         
+        base_prompt = self._build_prompt(chosen_choice, mission_info, help_instruction, extra)
+        self.context_manager.add_user_message(base_prompt)
         response = self.context_manager.process_function_calling(
             client=self.client,
             model=MODEL_CONFIG["model"],
             temperature=MODEL_CONFIG["temperature"]
         )
-        
         story_data = json.loads(response.choices[0].message.content)
         return self.validate_response(story_data, selected_random)
 
@@ -385,19 +290,20 @@ def generate_continuation(
     narrative_style: Optional[str] = None,
     protagonist_name: Optional[str] = None,
     protagonist_gender: Optional[str] = None,
+    protagonist_level: Optional[int] = None,
     story_context: Optional[str] = None,
-    existing_characters: Optional[List[Dict[str, Any]]] = None   # NEW parameter
+    existing_characters: Optional[List[Dict[str, Any]]] = None
 ) -> Dict[str, Any]:
-    """Generate a story continuation of 800-1200 words based on the player's choice."""
     handler = StoryContinuationHandler(context_manager)
     return handler.generate_continuation(
-        previous_story=previous_story,
-        chosen_choice=chosen_choice,
-        mission_info=mission_info,
-        mood=mood,
-        narrative_style=narrative_style,
-        protagonist_name=protagonist_name,
-        protagonist_gender=protagonist_gender,
-        story_context=story_context,
-        existing_characters=existing_characters   # NEW pass-through
+        previous_story,
+        chosen_choice,
+        mission_info,
+        mood,
+        narrative_style,
+        protagonist_name,
+        protagonist_gender,
+        protagonist_level,
+        story_context,
+        existing_characters
     )

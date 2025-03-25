@@ -35,6 +35,7 @@
    - Now includes `character_id` for character-specific choices
 
 ### Character Integration
+(Note: Characters are now managed exclusively via utils/character_manager.py)
 ```python
 # Example branch_metadata structure
 branch_metadata = {

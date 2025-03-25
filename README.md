@@ -11,6 +11,14 @@ An interactive spy thriller game engine that generates dynamic narratives with b
 - Better validation of character usage in stories
 - Consistent character relationship tracking
 
+### New Features & Updates
+
+- **Central Character Manager:**  
+  All character-related functions have been consolidated into `utils/character_manager.py`. This ensures that every character (i.e., a DB entry from models/character_data.py) is handled consistently, while the user/protagonist remains separate via UserProgress.
+
+- **Game Engine Enhancements:**  
+  The game engine now validates and formats character data inline, preventing type mismatches when passing character info to the story generation service.
+
 ### Key Features
 - Dynamic story generation with branching narratives
 - Character relationship system

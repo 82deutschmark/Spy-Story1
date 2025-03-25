@@ -492,3 +492,8 @@ All notable changes to the Story Creator project will be documented in this file
 - Resolved circular reference issue in story generation by properly structuring the story data response
 - Fixed syntax error in story_maker.py by correcting docstring formatting
 - Improved story data structure to maintain OpenAI response format under "stories" key while preserving metadata at root level
+
+## [Unreleased]
+- Implemented Central Character Manager consolidation in utils/character_manager.py.
+- Refactored character handling in GameEngine and main_routes to ensure character data is properly formatted as a dictionary.
+- Updated logging and error handling in story generation to support the new character system.

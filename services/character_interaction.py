@@ -1,7 +1,13 @@
 """
 Character Interaction Service for Spy Story Game
 =============================================
+#############NOT YET IMPLEMENTED#############
+#############NOT YET IMPLEMENTED#############
+    
+        #############NOT YET IMPLEMENTED#############
 
+
+        
 This module manages character interactions and relationships in the spy story game.
 It integrates with the character evolution service and user progress tracking to
 provide a cohesive character interaction system.

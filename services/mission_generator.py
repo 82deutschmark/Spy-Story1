@@ -472,3 +472,5 @@ def fail_mission(mission_id: int, user_id: str, reason: Optional[str] = None) ->
     
     db.session.commit()
     return True
+
+# Note: Use utils/character_manager.py for all character functions.

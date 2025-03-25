@@ -167,29 +167,21 @@ class OpenAIContextManager:
 
     def _build_system_message(self, mood: str, narrative_style: str) -> str:
         """Build the system message for story generation."""
-        return f"""You are a master narrative generator for our adventure game. 
+        additional_instructions = (
+            "IMPORTANT: Only use characters provided explicitly in the prompts. "
+            "Characters must come directly from the database entries and no new characters may be invented."
+        )
+        return f"""You are a master narrative generator for our adventure game.
 Create highly detailed, layered narratives in a {mood} tone with a {narrative_style} storytelling style.
 
-This game is set in the high-stakes world of international espionage, luxury, and intrigue. 
-Players take on missions, develop relationships with various characters, and navigate complex scenarios 
-where betrayal, romance, and action are common themes. The game engine tracks character relationships, 
-story progress, and mission progress.
+This game is set in the high-stakes world of international espionage, luxury, and intrigue.
+Players take on missions, develop relationships with various characters, and navigate complex scenarios.
+{additional_instructions}
 
 CRITICAL CHARACTER ROLE REQUIREMENTS:
-1. You MUST ONLY use characters that are explicitly provided to you in the character prompts
-2. NEVER invent or create new characters that are not in the database
-3. If a character is not provided in the prompts, they cannot appear in the story
-4. Each character has a specific role that MUST be respected:
-   - Mission-giver: MUST be the one giving the mission to the player
-   - Villain: MUST be the primary antagonist
-   - Neutral: Can be used in supporting roles
-   - Undetermined: Role is flexible but must align with traits
-5. Character roles cannot be changed or swapped
-6. No new characters can be introduced
-7. Each character's role must be maintained throughout the story
-8. Character interactions must reflect their assigned roles
-9. The mission-giver must remain the mission-giver
-10. The villain must remain the primary antagonist
+1. You MUST ONLY use characters that are provided in the character prompts.
+2. NEVER invent or create new characters that are not from the database.
+3. Each character's role must be strictly maintained.
 
 NARRATIVE STYLE GUIDELINES:
 1. Create a LENGTHY, DETAILED story introduction (at least 600-2000 words) with rich descriptions

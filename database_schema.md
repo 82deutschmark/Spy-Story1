@@ -34,7 +34,7 @@ This document outlines all database tables in our project, their relationships, 
 - `story_node_id`: Reference to the story node where transaction occurred
 - `created_at`: Timestamp of transaction
 
-### 3. Character
+### 3. Characters
 **Purpose**: Stores core character information
 **Usage**: Central model for character data used in stories
 **Key Fields**:
