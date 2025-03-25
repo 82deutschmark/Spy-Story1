@@ -1,5 +1,30 @@
 # Changelog
 
+## vX.Y.Z (Current Release)
+- **General Refactoring**
+  - Consolidated duplicate instructions and prompts into shared constants in `utils/constants.py`.
+  - Centralized character prompt generation in `utils/character_manager.py`.
+
+- **Story Generation & Continuation**
+  - Refactored `services/story_maker.py` to use helper functions for building system messages and story prompts.
+  - Updated `services/segment_maker.py` for improved story continuation with expanded story requirements.
+  - Enhanced payload consistency: added conflict, setting, mood, and narrative style information when processing choices.
+
+- **Game Engine & State Management**
+  - Revised `services/game_engine.py` to integrate the new story generation service and ensure proper state transitions.
+  - Updated `services/state_manager.py` for consistent reloading and merging of user progress and node transitions.
+
+- **API & Main Routes**
+  - Updated `routes/api_routes.py` and `routes/main_routes.py` to support the new data structure and service improvements.
+  - Ensured proper character role handling with additional role fulfillment if missing.
+
+- **OpenAI Context Manager**
+  - Improved `utils/context_manager.py` to handle markdown wrapping and function calling in a loop until complete.
+
+## Future Plans
+- Continue to refine the narrative generation prompts.
+- Enhance error logging and add more granular state tracking.
+
 ## [Unreleased]
 
 ### Fixed
@@ -8,6 +33,27 @@
   - Fixed duplicate port entries in `.replit` configuration 
   - Updated application to use PORT environment variable for flexibility
   - Added comprehensive documentation in `/docs/port_configuration_guide.md`
+- Updated `GameState.reload_state()` in `services/state_manager.py` to backfill missing story parameters (conflict, setting, narrative_style, mood) using the stored `generated_story` JSON.
+- Modified `services/story_maker.py` and `services/game_engine.py` to ensure user‐provided values override missing fields in the generated story response.
+- These changes ensure that the payload sent during a choice includes the correct values, eliminating “Unknown…” defaults.
+- Fixed critical issue with story parameters not being preserved throughout story progression:
+  - Added story parameter storage in `OpenAIContextManager` to ensure parameters are included in continuation responses
+  - Updated context manager to merge stored parameters into each API response
+  - Modified `generate_initial_story` to preserve original user-provided parameters
+  - This ensures that conflict, setting, mood, and narrative style are properly maintained during choices
+
+### Investigations & Ongoing Issues
+- Documented persistent problems with story parameters (conflict, setting, narrative_style, mood) not being preserved during continuation.
+- Noted that narrative text and choices are duplicated rather than extended.
+- Multiple solutions attempted:
+  - Parameter injection and explicit DB record updates.
+  - Enhancements in OpenAIContextManager for merging parameters.
+  - Extended function signatures and prompt adjustments in segment_maker.py.
+  - State manager backfill improvements to restore missing parameters.
+- Next steps:
+  - Refine continuation prompt to force genuine narrative extension.
+  - Experiment with context history trimming in OpenAIContextManager.
+  - Analyze API responses in depth to identify any inconsistencies.
 
 ## Previously Released
 
@@ -379,31 +425,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # Changelog
 
 All notable changes to the Story Creator project will be documented in this file.
-
-
-- Enhanced storyboard page styling for dynamically generated pages:
-  - Improved styling for story buttons and content area.
-  - Updated `story.css` for better visual alignment.
-  - Adjustments to HTML templates to match new style requirements.
-
-## [Unreleased]
-
-### Fixed
-- Fixed Flask-Admin integration by updating CharacterView to properly reflect Character model attributes
-- Removed references to deprecated ImageAnalysis model throughout the application 
-- Updated unity_routes.py to use SceneImages instead of ImageAnalysis
-- Updated debug_routes.py to use SceneImages model
-- Fixed mission_generator.py to use SceneImages model
-- Updated remaining service files to use new model structure
-- Fixed references in scripts/debugging/debug_associations.py to use Character model
-- Updated game_engine.py to properly use Character model from character_data.py
-- Fixed data integrity and database fix scripts to use the proper Character model
-- Updated utils/db_utils.py to use Character and SceneImages models instead of deprecated ImageAnalysis
-- Fixed error handling in get_random_scene_background to provide a fallback image
-- Fixed storyboard route to use Character model instead of ImageAnalysis
-- Fixed story_images association table to properly link StoryGeneration with SceneImages
-- Fixed StoryNode model by removing ImageAnalysis relationship references
-- Fixed CharacterEvolution model to reference characters table instead of image_analysis
 
 ### Security
 - Removed debug tools access from main interface for improved security

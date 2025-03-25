@@ -203,6 +203,12 @@ class GameState:
         db.session.refresh(self.user_progress)
         if self.user_progress.current_story_id:
             self.current_story = StoryGeneration.query.get(self.user_progress.current_story_id)
+            # NEW: Backfill story parameters from the DB record (which were set explicitly)
+            if self.current_story:
+                self.current_story.primary_conflict = self.current_story.primary_conflict or "ERROR conflict"
+                self.current_story.setting = self.current_story.setting or "ERROR setting"
+                self.current_story.narrative_style = self.current_story.narrative_style or "ERROR narrative style"
+                self.current_story.mood = self.current_story.mood or "ERROR mood"
         if self.user_progress.current_node_id:
             self.current_node = StoryNode.query.get(self.user_progress.current_node_id)
         if self.user_progress.active_missions:

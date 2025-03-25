@@ -189,15 +189,31 @@ def storyboard(story_id):
     if current_node.branch_metadata and 'choices' in current_node.branch_metadata:
         for choice in current_node.branch_metadata['choices']:
             if choice.get('character_id'):
-                if not any(char['id'] == choice['character_id'] for char in character_images):
-                    character = Character.query.get(choice['character_id'])
-                    if character:
-                        character_images.append({
-                            'id': character.id,
-                            'image_url': character.image_url,
-                            'name': character.character_name,
-                            'traits': character.character_traits
-                        })
+                # Try to ensure the character ID is an integer; if not, attempt a lookup by name.
+                try:
+                    cid = int(choice['character_id'])
+                    exists = any(char['id'] == cid for char in character_images)
+                    if not exists:
+                        character = Character.query.get(cid)
+                        if character:
+                            character_images.append({
+                                'id': character.id,
+                                'image_url': character.image_url,
+                                'name': character.character_name,
+                                'traits': character.character_traits
+                            })
+                except ValueError:
+                    # Not a valid integer—assume it's a character name and look it up by name.
+                    exists = any(char['name'] == choice['character_id'] for char in character_images)
+                    if not exists:
+                        character = Character.query.filter_by(character_name=choice['character_id']).first()
+                        if character:
+                            character_images.append({
+                                'id': character.id,
+                                'image_url': character.image_url,
+                                'name': character.character_name,
+                                'traits': character.character_traits
+                            })
     if not current_node.branch_metadata:
         current_node.branch_metadata = {
             "choices": {},  # Removed legacy dependency on story_data
@@ -314,17 +330,32 @@ def make_choice():
         previous_choice = request.form.get('previous_choice')
         story_context = request.form.get('story_context')
         characters = request.form.getlist('characters[]')
+
     if not story_id or not node_id or not choice_id:
         raise ValueError("Missing required fields")
+
+    # Always fetch the StoryGeneration record from the DB
     story = StoryGeneration.query.get_or_404(story_id)
+    # Extract truth parameters from DB record
+    story_params = {
+        'conflict': story.primary_conflict,
+        'setting': story.setting,
+        'narrative_style': story.narrative_style,
+        'mood': story.mood
+    }
+    
     user_progress = get_or_create_user_progress()
     game_engine = GameEngine(user_id=user_progress.user_id)
+    
+    # Pass only DB-based story parameters into make_choice
     result = game_engine.make_choice(
         choice_id=choice_id,
         custom_choice_text=previous_choice,
         story_context=story_context,
-        characters=[{"id": char_id} for char_id in characters]
+        characters=[{"id": char_id} for char_id in characters],
+        **story_params  # Only use database values (the truth)
     )
+
     new_node = StoryNode.query.get(result['current_node']['id'])
     if not new_node:
         raise ValueError("Failed to create new story node")

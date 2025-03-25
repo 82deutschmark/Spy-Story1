@@ -14,6 +14,7 @@ class OpenAIContextManager:
     def __init__(self, system_prompt: str = ""):
         """Initialize with an optional system prompt"""
         self.messages = []
+        self.story_parameters = {}  # NEW: Store story parameters
         if system_prompt:
             self.messages.append({"role": "system", "content": system_prompt})
 
@@ -60,6 +61,16 @@ class OpenAIContextManager:
             # No system message, just keep the most recent ones
             self.messages = self.messages[-max_messages:]
 
+    def _inject_story_parameters(self) -> None:
+        # Inject latest story parameters as part of the system message.
+        if self.story_parameters:
+            injection = f"Story Parameters: {json.dumps(self.story_parameters)}"
+            if self.messages and self.messages[0]["role"] == "system":
+                if injection not in self.messages[0]["content"]:
+                    self.messages[0]["content"] += "\n" + injection
+            else:
+                self.add_system_message(injection)
+
     def process_function_calling(self, client, model: str = MODEL_CONFIG["model"], tools: Optional[List] = None) -> Dict[str, Any]:
         """
         Handle a complete conversation flow with function calling
@@ -73,6 +84,8 @@ class OpenAIContextManager:
             The final response from the API
         """
         try:
+            # NEW: Always inject latest story parameters before making API call.
+            self._inject_story_parameters()
             # Initial API call
             response = client.chat.completions.create(
                 model=model,
@@ -155,6 +168,15 @@ class OpenAIContextManager:
                     if content:
                         self.add_assistant_message(content)
 
+            # NEW: Only inject story_parameters if not already provided in response JSON
+            try:
+                content_json = json.loads(response.choices[0].message.content)
+                if not all(key in content_json for key in ['conflict', 'setting', 'narrative_style', 'mood']):
+                    content_json.update(self.story_parameters)
+                    response.choices[0].message.content = json.dumps(content_json)
+            except Exception:
+                pass
+
             return response
 
         except Exception as e:
@@ -233,6 +255,13 @@ Your response MUST be valid JSON with this structure:
         Returns:
             Dict containing the generated story data
         """
+        # NEW: Store parameters for later use
+        self.story_parameters = {
+            "conflict": conflict,
+            "setting": setting,
+            "narrative_style": narrative_style,
+            "mood": mood
+        }
         # Build the default system message
         default_sys = self._build_system_message(mood, narrative_style)
         # Merge with custom system instructions if provided
@@ -279,6 +308,20 @@ Your response MUST be valid JSON with this structure:
         self.add_assistant_message(content)
 
         return story_data
+
+    def update_story_parameters(self, new_params: Dict[str, str]) -> None:
+        """
+        Force-update the story parameters so they are always injected into the API call.
+        """
+        self.story_parameters = new_params
+        updated_system = (
+            f"CONFLICT: {new_params.get('conflict')}\n"
+            f"SETTING: {new_params.get('setting')}\n"
+            f"NARRATIVE STYLE: {new_params.get('narrative_style')}\n"
+            f"MOOD: {new_params.get('mood')}"
+        )
+        # Guarantee the updated system message is in place.
+        self.add_system_message(updated_system)
 
 class GameState:
     def __init__(self, user_id: str):

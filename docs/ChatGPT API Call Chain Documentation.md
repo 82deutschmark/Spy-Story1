@@ -102,6 +102,25 @@ The duplication of the narrative text and choices suggests that our prompt and c
 
 ---
 
+## Story Parameter Preservation
+The OpenAIContextManager now maintains story parameters throughout the API call chain:
+
+1. **Initial Storage:**
+   - Parameters captured during `generate_initial_story`
+   - Stored in context manager's `story_parameters` dict
+
+2. **Response Processing:**
+   - Each API response is augmented with stored parameters
+   - Parameters merged into JSON response before returning
+   - Ensures continuation payload includes original parameters
+
+3. **Validation Points:**
+   - Parameters checked before each API call
+   - Missing parameters trigger fallback to stored values
+   - Response validation includes parameter presence check
+
+---
+
 # Plan for Resolution
 
 **Phase 1: Analysis and Planning**  
@@ -112,7 +131,6 @@ The duplication of the narrative text and choices suggests that our prompt and c
 - Modify `StoryPromptBuilder.build_continuation_prompt` to emphasize “continue from here” and require an extended narrative.
 - Consider adding a directive that the continuation narrative must differ from the current node's narrative_text.
 - Remove redundant duplicates (if possible, include only one copy of the choices array).
-
 
 **Phase 4: Documentation and Deployment**  
 - Update system documentation as needed.

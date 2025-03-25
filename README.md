@@ -1,100 +1,44 @@
-# Spy Story Game Engine
+# Spy Story Game
 
-## Overview
-An interactive spy thriller game engine that generates dynamic narratives with branching storylines, character relationships, and mission-based gameplay.
+Spy Story is an interactive, narrative-driven game that uses OpenAI's API to generate and continue an espionage-themed story. The project is designed with modularity and maintainability in mind.
 
-## Recent Updates
+## Latest Critical Fixes
+- **Story Parameter Persistence:**
+  The system now properly maintains story parameters (conflict, setting, mood, narrative style) throughout the entire story lifecycle:
+  1. Parameters are stored in OpenAIContextManager during initial story generation
+  2. These parameters are merged into each API response during story continuation
+  3. This ensures consistent story atmosphere and setting across all choices
+  4. Fixed previous issue where parameters were lost during story continuation
 
-### Character System Improvements
-- Enhanced character ID tracking throughout story flow
-- Improved character role enforcement
-- Better validation of character usage in stories
-- Consistent character relationship tracking
+## Key Updates
+- **Payload Consistency:**  
+  The game now ensures that user-specified parameters such as conflict, setting, narrative style, and mood are preserved throughout the story lifecycle. Missing values in the initial API response are backfilled from the user input via changes in `services/state_manager.py`, `services/story_maker.py`, and `services/game_engine.py`.
 
-### New Features & Updates
+## Overview of Recent Changes
+- **Refactoring:** Consolidated duplicated instructions and prompt texts to improve maintainability.
+- **Payload Consistency:** Ensured user-provided parameters (conflict, setting, mood, narrative style) are carried through the entire story progression.
+- **Enhanced Context Management:** Improved the OpenAIContextManager to handle markdown and function calls reliably.
+- **State Synchronization:** Refined state management to merge story progress with user choices and character interactions.
 
-- **Central Character Manager:**  
-  All character-related functions have been consolidated into `utils/character_manager.py`. This ensures that every character (i.e., a DB entry from models/character_data.py) is handled consistently, while the user/protagonist remains separate via UserProgress.
+## Getting Started
+1. **Environment Setup:**
+   - Ensure Python 3.8+ is installed.
+   - Set required environment variables (e.g., `OPENAI_API_KEY`, `FLASK_CONFIG`).
 
-- **Game Engine Enhancements:**  
-  The game engine now validates and formats character data inline, preventing type mismatches when passing character info to the story generation service.
+2. **Database Migration:**
+   - Set up PostgreSQL and run migrations as defined in the models.
 
-### Key Features
-- Dynamic story generation with branching narratives
-- Character relationship system
-- Mission-based gameplay
-- Currency and experience system
-- Rich story continuation
+3. **Running the Application:**
+   - Start the Flask server using: `flask run`
+   - Access the web UI via your browser.
 
-## Architecture
+4. **Testing:**
+   - Use provided API endpoints to test story generation and state transitions.
 
-### Core Components
-1. Story Generation
-   - Initial story creation
-   - Dynamic continuation
-   - Choice processing
-   - Character integration
-
-2. Character System
-   - Role-based characters (mission-giver, villain, neutral)
-   - Relationship tracking
-   - Character evolution
-   - ID-based reference system
-
-3. Mission System
-   - Dynamic mission generation
-   - Progress tracking
-   - Reward system
-   - Character-specific missions
-
-4. State Management
-   - User progress tracking
-   - Story node management
-   - Character relationship states
-   - Mission states
-
-## Documentation
-- [Story Node System](docs/story_node_system.md)
-- [Character Role Handling](docs/character_role_handling.md)
-- [Story Flow](docs/story_flow.md)
-
-## Technical Requirements
-- Python 3.8+
-- PostgreSQL
-- OpenAI API key
-- Flask web framework
-
-## Setup
-1. Clone the repository
-2. Install dependencies: `pip install -r requirements.txt`
-3. Set up environment variables:
-   ```
-   OPENAI_API_KEY=your_api_key
-   DATABASE_URL=your_database_url
-   ```
-4. Initialize database: `flask db upgrade`
-5. Run the application: `flask run`
-
-## Development Guidelines
-1. Always read entire files before making changes
-2. Maintain proper character ID tracking
-3. Ensure role consistency in story generation
-4. Follow modular architecture principles
-5. Keep files under 300 lines
-6. Document all changes in CHANGELOG.md
-
-## Testing
-1. Run tests: `pytest`
-2. Check character ID validation
-3. Verify story continuation flow
-4. Test character role enforcement
-5. Validate mission updates
-
-## Contributing
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+## Future Work
+- Further refine narrative prompts for richer story arcs.
+- Improve error handling and logging across services.
+- Explore additional character customization and mission branching.
 
 ## License
-MIT License - See LICENSE file for details
+[Include your project's license information here.]

@@ -194,6 +194,23 @@ stateDiagram-v2
 - Secure custom choice input
 - Rate limit story generations
 
+### Story Parameter Flow
+```mermaid
+graph TD
+    A[User Provides Parameters] --> B[Initial Story Generation]
+    B --> C[Store in OpenAIContextManager]
+    C --> D[Include in Each Response]
+    D --> E[Story Continuation]
+    E --> F[Merge with New Content]
+```
+
+Key Parameter Preservation Points:
+1. Initial capture in story generation
+2. Storage in context manager
+3. Inclusion in all API responses
+4. Persistence through state management
+5. Verification in continuation payload
+
 ## Future Considerations
 
 ### Planned Features
@@ -207,4 +224,4 @@ stateDiagram-v2
 - Shard story data
 - Cache popular paths
 - Optimize node traversal
-- Implement story archiving 
+- Implement story archiving

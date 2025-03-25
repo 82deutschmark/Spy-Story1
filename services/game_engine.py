@@ -159,14 +159,14 @@ class GameEngine:
                 # Start database transaction
                 db.session.begin_nested()
                 
-                # Create story in database
+                # Create story in database using provided parameters if generated data is missing any details
                 story = StoryGeneration(
                     user_id=self.user_id,
-                    primary_conflict=story_data["conflict"],
-                    setting=story_data["setting"],
-                    narrative_style=story_data["narrative_style"],
-                    mood=story_data["mood"],
-                    generated_story=story_data  # Store data directly, let PostgreSQL handle JSONB conversion
+                    primary_conflict=story_params['conflict'],     # Use user-provided values explicitly
+                    setting=story_params['setting'],
+                    narrative_style=story_params['narrative_style'],
+                    mood=story_params['mood'],
+                    generated_story=story_data  # Store full generated data
                 )
                 db.session.add(story)
                 
@@ -263,51 +263,66 @@ class GameEngine:
         choice_id: str,
         custom_choice_text: Optional[str] = None,
         story_context: Optional[str] = None,
-        characters: Optional[List[Dict[str, Any]]] = None
+        characters: Optional[List[Dict[str, Any]]] = None,
+        conflict: Optional[str] = None,  # NEW: Add story parameters
+        setting: Optional[str] = None,
+        narrative_style: Optional[str] = None,
+        mood: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Process a user's story choice and update game state.
         """
         try:
-            # Start transaction
             db.session.begin_nested()
-            # Reload the game state from the database to ensure latest conflict, setting, etc.
-            self.state.reload_state()
+            self.state.reload_state()  # Force state from DB
             
-            # Get context manager for story continuation
-            context_manager = self.state.get_context_manager()
-            
-            # Get current story and node
-            story = self.state.current_story
-            if not story:
+            if not self.state.current_story:
                 raise ValueError("No active story found")
-                
-            # Resolve current node
-            current_node = self.state.resolve_current_node(story.id)
+            story = self.state.current_story
+            
+            # Retrieve or resolve the current node from DB truth
+            current_node = self.state.current_node
             if not current_node:
-                raise ValueError("Could not resolve current node")
+                current_node = self.state.resolve_current_node(story.id)
+                if not current_node:
+                    raise ValueError("No valid current node found")
             
-            # Get node context for story continuation
-            node_context = self.state.get_node_context(current_node.id)
-            
-            # Safely get mission info, using a default empty mission if none exists
-            active_missions = node_context.get("active_missions", [])
-            mission_info = active_missions[0] if active_missions else {
-                "title": "Unknown Mission",
-                "objective": "Continue the story",
-                "status": "in_progress"
+            # Extract DB truth parameters from the StoryGeneration record
+            truth_params = {
+                "conflict": story.primary_conflict,
+                "setting": story.setting,
+                "narrative_style": story.narrative_style,
+                "mood": story.mood
             }
+            context_manager = self.state.get_context_manager()
+            context_manager.update_story_parameters(truth_params)
             
-            # Augment story_context with conflict and setting from the current story
-            conflict = story.primary_conflict if hasattr(story, 'primary_conflict') else "Unknown conflict"
-            setting = story.setting if hasattr(story, 'setting') else "Unknown setting"
-            if story_context:
-                story_context = f"CONFLICT: {conflict}\nSETTING: {setting}\n{story_context}"
+            # Get mission info from node context (single active mission)
+            node_context = self.state.get_node_context(current_node.id)
+            mission_info = node_context.get("active_missions", [])
+            if mission_info:
+                mission_info = mission_info[0]
             else:
-                story_context = f"CONFLICT: {conflict}\nSETTING: {setting}"
+                mission_info = {"title": "Unknown Mission", "objective": "Continue the story", "status": "in_progress"}
             
-            # Generate next story segment using segment_maker
-            # Extract protagonist details from the branch metadata of the current node
+            # Augment story_context using DB parameters (the truth)
+            if story_context:
+                story_context = (
+                    f"CONFLICT: {truth_params['conflict']}\n"
+                    f"SETTING: {truth_params['setting']}\n"
+                    f"MOOD: {truth_params['mood']}\n"
+                    f"NARRATIVE STYLE: {truth_params['narrative_style']}\n"
+                    f"{story_context}"
+                )
+            else:
+                story_context = (
+                    f"CONFLICT: {truth_params['conflict']}\n"
+                    f"SETTING: {truth_params['setting']}\n"
+                    f"MOOD: {truth_params['mood']}\n"
+                    f"NARRATIVE STYLE: {truth_params['narrative_style']}"
+                )
+            
+            # Get protagonist details from current node branch_metadata
             protagonist = current_node.branch_metadata.get("protagonist", {})
             
             next_segment = generate_continuation(
@@ -315,8 +330,10 @@ class GameEngine:
                 chosen_choice=custom_choice_text or choice_id,
                 mission_info=mission_info,
                 context_manager=context_manager,
-                mood=story.mood,
-                narrative_style=story.narrative_style,
+                conflict=truth_params['conflict'],
+                setting=truth_params['setting'],
+                narrative_style=truth_params['narrative_style'],
+                mood=truth_params['mood'],
                 protagonist_name=protagonist.get("name"),
                 protagonist_gender=protagonist.get("gender"),
                 protagonist_level=protagonist.get("level"),
