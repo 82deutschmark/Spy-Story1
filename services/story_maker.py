@@ -51,7 +51,6 @@ from database import db
 from models import StoryGeneration, Character, PlotArc, Mission
 from utils.validation_utils import validate_story_parameters
 from utils.context_manager import OpenAIContextManager
-from utils.constants import DEFAULT_TEMPERATURE
 import random  # Existing import
 
 # Configure logging
