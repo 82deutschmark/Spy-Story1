@@ -98,12 +98,12 @@ class GameEngine:
             # If form_data is a string, parse it to a dict
             if (form_data and isinstance(form_data, str)):
                 form_data = json.loads(form_data)
-            # Get story parameters from form data
+            # Get story parameters from form data with defaults:
             story_params = {
-                'conflict': form_data.get('conflict', 'Mysterious adventure'),
-                'setting': form_data.get('setting', 'Unknown location'),
-                'narrative_style': form_data.get('narrative_style', 'Engaging modern style'),
-                'mood': form_data.get('mood', 'Exciting and adventurous'),
+                'conflict': form_data.get('conflict', 'GAME ENGINE ERROR DUMMY!!!'),
+                'setting': form_data.get('setting', 'GAME ENGINE ERROR DUMMY!!!'),
+                'narrative_style': form_data.get('narrative_style', 'GAME ENGINE ERROR DUMMY!!!'),
+                'mood': form_data.get('mood', 'GAME ENGINE ERROR DUMMY!!!'),
                 'protagonist_name': form_data.get('protagonist_name'),
                 'protagonist_gender': form_data.get('protagonist_gender'),
                 'protagonist_level': form_data.get('protagonist_level', 1)
@@ -271,17 +271,25 @@ class GameEngine:
         try:
             # Start transaction
             db.session.begin_nested()
-            # Reload the game state from the database to ensure latest conflict, setting, etc.
+            # Reload the game state from the database to ensure latest parameters
             self.state.reload_state()
             
             # Get context manager for story continuation
             context_manager = self.state.get_context_manager()
             
-            # Get current story and node
-            story = self.state.current_story
+            # Get current story from DB using stored story id to ensure fresh parameters
+            story = StoryGeneration.query.get(self.state.user_progress.current_story_id)
             if not story:
                 raise ValueError("No active story found")
-                
+            
+            # NEW: Update conversation context with persistent story parameters
+            context_manager.update_story_parameters({
+                "conflict": story.primary_conflict,
+                "setting": story.setting,
+                "narrative_style": story.narrative_style,
+                "mood": story.mood
+            })
+            
             # Resolve current node
             current_node = self.state.resolve_current_node(story.id)
             if not current_node:
@@ -420,13 +428,17 @@ class GameEngine:
             # Update state manager
             state_manager.update_state(self.state.to_dict())
             
-            # Return updated game state
-            return {
+            # NEW: Log the complete outgoing response from make_choice
+            final_response = {
                 "current_node": next_node.to_dict(),
-                "available_choices": next_segment["choices"],  # Use choices from root level
+                "available_choices": next_segment["choices"],
                 "mission_updates": mission_updates,
                 "character_updates": character_updates
             }
+            logger.debug("Final response from make_choice: %s", json.dumps(final_response, indent=2))
+            
+            # Return updated game state
+            return final_response
             
         except Exception as e:
             logger.error(f"Error in make_choice: {str(e)}", exc_info=True)

@@ -3,7 +3,7 @@ currency_utils.py - Currency Management Utilities
 ===========================================
 
 !!! IMPORTANT - READ BEFORE MODIFYING !!!
-This module manages all currency-related operations and transactions.
+This module manages all currency-related operations and transactions in the game.
 Changes here directly affect the game's economy and player progression.
 
 Key Features:
@@ -27,18 +27,21 @@ Transaction Types:
 ---------------
 1. Story Choices:
    - Custom choices
-   - Premium options
-   - Special outcomes
+   - Premium options (diamonds)
+   - Special outcomes (pounds, euros, yen) with a large additional cost
+   - Story progression has a base cost in cash
 
 2. Character Interactions:
    - Relationship building
-   - Information buying
-   - Character unlocks
+   - Trade transactions
+   - Information or equipment buying
+   - Bribery
+
 
 3. Mission Operations:
    - Equipment purchase
    - Intel gathering
-   - Mission completion
+   - Mission completion rewards
 
 Usage Guidelines:
 ---------------

@@ -302,19 +302,17 @@ def make_choice():
     if request.is_json:
         data = request.get_json()
         story_id = data.get('story_id')
-        node_id = data.get('node_id')
         choice_id = data.get('choice_id')
         previous_choice = data.get('previous_choice')
         story_context = data.get('story_context')
         characters = data.get('characters', [])
     else:
         story_id = request.form.get('story_id')
-        node_id = request.form.get('node_id')
         choice_id = request.form.get('choice_id')
         previous_choice = request.form.get('previous_choice')
         story_context = request.form.get('story_context')
         characters = request.form.getlist('characters[]')
-    if not story_id or not node_id or not choice_id:
+    if not story_id or not choice_id:
         raise ValueError("Missing required fields")
     story = StoryGeneration.query.get_or_404(story_id)
     user_progress = get_or_create_user_progress()
@@ -330,9 +328,6 @@ def make_choice():
         raise ValueError("Failed to create new story node")
     user_progress.current_node_id = new_node.id
     user_progress.last_active = datetime.utcnow()
-    if not new_node.branch_metadata:
-        new_node.branch_metadata = {}
-    new_node.branch_metadata['choices'] = result['available_choices']
     db.session.commit()
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'success': True, 'redirect_url': url_for('main.storyboard', story_id=story_id)})
@@ -368,3 +363,13 @@ def reroll_character():
         index=0
     )
     return jsonify({'success': True, 'character': char_data, 'character_html': character_html})
+
+@main_bp.route('/api/user/progress')
+def api_user_progress():
+    user_progress = get_or_create_user_progress()
+    progress_data = {
+       "active_missions": user_progress.active_missions or [],
+       "currency": user_progress.currency_balances,
+       "notes": user_progress.game_state.get("notes", "No notes yet")
+    }
+    return jsonify(progress_data)

@@ -5,7 +5,7 @@
 ### Core Models
 1. `StoryGeneration`
    - Main container for story content
-   - Contains metadata (conflict, setting, style, mood)
+   - Contains metadata (conflict, setting, narrative_style, mood)
    - Has `generated_story` JSONB field storing story text and choices
    - Links to current node via `current_node_id`
 
