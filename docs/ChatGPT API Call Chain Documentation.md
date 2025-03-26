@@ -79,7 +79,7 @@ When a player makes a choice in the game, the following steps occur:
   - All these copies are identical because our prompt formulation and response processing do not differentiate the initial choices from the continuation choices.
 - **Narrative Text Duplication:**
   - The “story” field inside “stories” always matches the `narrative_text` of the current node.
-  - This indicates the continuation generator is reusing the same text (rather than extending or altering it) because the prompt does not force it to create a different segment.
+  - This indicates a duplication somewhere.
 
 ---
 
@@ -89,16 +89,16 @@ When a player makes a choice in the game, the following steps occur:
 - It gathers state and context, builds a continuation prompt with detailed instructions (including narratives and role/ID requirements), and calls ChatGPT.
 - The ChatGPT API returns a JSON string that must conform to the expected structure.
 - The backend parses this response and creates a new StoryNode, updates missions, and alters character relationships.
-- The new node’s metadata ends up replicating the previous narrative text and choice options.
+- TO BE DETERMINED:  IF new node’s metadata ends up replicating the previous narrative text and choice options or if it is duplicating something else?
 
 ---
 
 ## 4. Next Steps / Considerations
 
-The duplication of the narrative text and choices suggests that our prompt and context might not be “pushing” ChatGPT to generate an extension. We may need to:
+ We may need to:
 - Refine the continuation prompt to differentiate from the prior node’s content.
-- Pass an updated history or trim previous messages appropriately.
-- Ensure that the JSON structure sent back does not simply mirror the input but actually includes extended narrative.
+- Pass an updated history or trim previous messages to only the last 500 words.
+-
 
 ---
 
@@ -106,19 +106,10 @@ The duplication of the narrative text and choices suggests that our prompt and c
 
 **Phase 1: Analysis and Planning**  
 - Review and compare the context history sent in `OpenAIContextManager.messages` between initial generation and continuation.
-- Identify whether history trimming or a change in prompt instructions is required.
+- add logging to determine the payloads being sent to openAI
 
 **Phase 2: Update Prompt Templates**  
-- Modify `StoryPromptBuilder.build_continuation_prompt` to emphasize “continue from here” and require an extended narrative.
-- Consider adding a directive that the continuation narrative must differ from the current node's narrative_text.
+- Modify `StoryPromptBuilder.build_continuation_prompt` to emphasize “continue from here” and require an extended narrative within the mission context based on the choice.
+
 - Remove redundant duplicates (if possible, include only one copy of the choices array).
 
-
-**Phase 4: Documentation and Deployment**  
-- Update system documentation as needed.
-- Roll out changes with additional logging for further analysis.
-- Monitor backend logs for any discrepancies in state updates.
-
----
-
-This document and plan outline our understanding of the issue and the steps needed to fix it. Please review and approve the plan.
