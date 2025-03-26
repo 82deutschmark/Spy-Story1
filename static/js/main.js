@@ -61,6 +61,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+document.addEventListener('DOMContentLoaded', function(){
+    fetch('/api/user/progress')
+       .then(response => response.json())
+       .then(data => {
+           document.getElementById('active-missions-display').textContent = data.active_missions.length;
+           const currencyText = Object.entries(data.currency)
+              .map(([symbol, amount]) => `${symbol}: ${amount}`)
+              .join(' | ');
+           document.getElementById('currency-display').textContent = currencyText;
+           document.getElementById('notebook-notes').textContent = data.notes;
+       })
+       .catch(err => console.error('Error fetching user progress:', err));
+});
+
 // Setup global event listeners
 function setupGlobalListeners() {
     // Back to top button

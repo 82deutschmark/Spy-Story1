@@ -47,7 +47,6 @@ class ChoiceHandler {
         const form = event.target;
         const submitButton = form.querySelector('button[type="submit"]');
         let loadingState = null;
-
         try {
             // Disable all choice buttons
             document.querySelectorAll('.choice-btn').forEach(btn => {
@@ -60,14 +59,24 @@ class ChoiceHandler {
                 submitButton.dataset.loadingText || 'Processing your choice...'
             );
 
-            // Submit the form data
+            // Create a form data object and merge in story parameters from data attributes
+            let formDataObj = Object.fromEntries(new FormData(form));
+            // Append story parameters if available as data attributes on the form
+            if (form.dataset.conflict) {
+                formDataObj.conflict = form.dataset.conflict;
+                formDataObj.setting = form.dataset.setting;
+                formDataObj.narrative_style = form.dataset.narrativeStyle;
+                formDataObj.mood = form.dataset.mood;
+            }
+
+            // Submit the form data with the additional story parameters
             const response = await fetch(form.action, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
                 },
-                body: JSON.stringify(Object.fromEntries(new FormData(form)))
+                body: JSON.stringify(formDataObj)
             });
 
             const result = await response.json();
@@ -76,19 +85,7 @@ class ChoiceHandler {
                 throw new Error(result.error || `HTTP error! status: ${response.status}`);
             }
 
-            // NEW: Based on the revised backend, expect result.narrative_text only once.
-            if (result.narrative_text) {
-                // Update story content with parsed narrative text.
-                this.updateStoryContent(result.narrative_text);
-                // Optionally update choices if returning new ones:
-                const choicesContainer = document.querySelector('.choices-container');
-                if (choicesContainer && result.choices) {
-                    choicesContainer.innerHTML = ''; 
-                    result.choices.forEach(choice => {
-                        // ...existing code to rebuild the choice forms...
-                    });
-                }
-            } else if (result.redirect_url) {
+            if (result.redirect_url) {
                 window.location.href = result.redirect_url;
             } else if (result.success && result.story_id) {
                 window.location.href = `/storyboard/${result.story_id}`;

@@ -2,7 +2,7 @@
  * CurrencyManager.js - In-Game Currency and Transactions
  * ================================================
  * 
- * !!! IMPORTANT - READ BEFORE MODIFYING !!!
+ * !!! IMPORTANT - READ BEFORE MODIFYING !!!   THIS FILE MAY BE DEPRECATED OR OUT OF DATE.
  * This module manages all in-game currency operations and transactions.
  * Changes here directly affect the game's economy and player progression.
  * 

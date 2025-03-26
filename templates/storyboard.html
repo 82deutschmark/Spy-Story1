@@ -58,6 +58,13 @@
 
     <!-- Changed main container wrapper from fluid to fixed -->
     <div class="container"> <!-- replaced container-fluid -->
+        <!-- NEW: Added progress panel to show active missions, currency, and notes -->
+        <div id="user-progress-panel" class="my-3 p-3 border rounded bg-light">
+            <h5>Your Progress</h5>
+            <p><strong>Active Missions:</strong> <span id="active-missions-display">Loading...</span></p>
+            <p><strong>Currency:</strong> <span id="currency-display">Loading...</span></p>
+            <p><strong>Notes:</strong> <span id="notebook-notes">No notes yet</span></p>
+        </div>
         <div class="storyboard-layout"> <!-- new wrapper start -->
             <!-- Primary Character -->
             <div class="character-showcase">
@@ -138,42 +145,21 @@
                     {% if node.branch_metadata and node.branch_metadata.choices %}
                         {% for choice in node.branch_metadata.choices %}
                         <form method="POST" action="{{ url_for('main.make_choice') }}" class="choice-form" data-form-type="choice">
-                            <input type="hidden" name="previous_choice" value="{{ choice.text }}">
-                            <input type="hidden" name="story_context" value="{{ node.narrative_text }}">
+                            <!-- Only include the necessary fields -->
                             <input type="hidden" name="story_id" value="{{ story_id }}">
                             <input type="hidden" name="node_id" value="{{ node.id }}">
                             <input type="hidden" name="choice_id" value="{{ choice.id or choice.choice_id }}">
-                            
-                            <!-- Include ALL characters from node.branch_metadata.characters -->
-                            {% if node.branch_metadata.characters %}
-                                {% for char_id in node.branch_metadata.characters %}
-                                <input type="hidden" name="characters[]" value="{{ char_id }}">
-                                {% endfor %}
-                            {% endif %}
-                            
-                            <!-- Include story metadata -->
-                            <input type="hidden" name="conflict" value="{{ story.primary_conflict|default('Unknown conflict') }}">
-                            <input type="hidden" name="setting" value="{{ story.setting|default('Unknown setting') }}">
-                            <input type="hidden" name="narrative_style" value="{{ story.narrative_style|default('Engaging modern style') }}">
-                            <input type="hidden" name="mood" value="{{ story.mood|default('Exciting and adventurous') }}">
                             
                             <button type="submit" class="choice-btn" 
                                     {% if choice.currency_requirements %}data-currency-req='{{ choice.currency_requirements|tojson }}'{% endif %}
                                     data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing...">
                                 {{ choice.text }}
-                                {% if choice.currency_requirements %}
-                                <span class="currency-req-item">
-                                    {% for currency, amount in choice.currency_requirements.items() %}
-                                    <span>{{ currency }}{{ amount }}</span>
-                                    {% endfor %}
-                                </span>
-                                {% endif %}
                             </button>
                         </form>
                         {% endfor %}
                     {% else %}
                         <div class="alert alert-warning">
-                            No choices available. Please refresh the page or contact support if this persists.
+                            No choices available. Please refresh the page or dance in a circle if this persists.
                         </div>
                     {% endif %}
                 </div>
@@ -197,11 +183,15 @@
 
     <footer class="site-footer bg-dark text-white py-3 mt-5">
         <div class="container text-center">
-            <small>&copy; {{ current_year }} Spy Story. All rights reserved.</small>
+            <small>&copy; {{ current_year }} @82deutschmark . All rights reserved.</small>
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+
+
+
+</html></body>    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

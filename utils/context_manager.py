@@ -280,6 +280,20 @@ Your response MUST be valid JSON with this structure:
 
         return story_data
 
+    def update_story_parameters(self, parameters: Dict[str, Any]) -> None:
+        """Update the system message with fresh story parameters from the DB."""
+        param_block = (
+            f"\n\nUpdated Story Parameters:\n"
+            f"CONFLICT: {parameters.get('conflict')}\n"
+            f"SETTING: {parameters.get('setting')}\n"
+            f"NARRATIVE_STYLE: {parameters.get('narrative_style')}\n"
+            f"MOOD: {parameters.get('mood')}"
+        )
+        if self.messages and self.messages[0]["role"] == "system":
+            self.messages[0]["content"] += param_block
+        else:
+            self.add_system_message(param_block)
+
 class GameState:
     def __init__(self, user_id: str):
         self.user_id = user_id
