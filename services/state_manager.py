@@ -66,12 +66,57 @@ class GameState:
         self.current_story = None
         self.current_node = None
         self.active_missions = []
+        # Create a stateless context manager for API interactions
         self._context_manager = OpenAIContextManager()
+        # Track story node count separately (not in context manager)
+        self._node_count = 0
         self.reload_state()
 
     def get_context_manager(self) -> OpenAIContextManager:
         """Get the OpenAIContextManager for this story."""
         return self._context_manager
+        
+    def get_node_count(self) -> int:
+        """Get the current node count in the story."""
+        return self._node_count
+        
+    def increment_node_count(self) -> int:
+        """Increment and return the node count."""
+        self._node_count += 1
+        return self._node_count
+
+    def get_story_parameters(self) -> dict:
+        """
+        Get parameters needed for story continuation from the current state.
+        
+        Returns:
+            dict: Dictionary containing:
+                - mood: Story mood
+                - narrative_style: Narrative style
+                - conflict: Story conflict
+                - setting: Story setting
+                - protagonist_name: Name of protagonist
+                - protagonist_gender: Gender of protagonist
+                - protagonist_level: Level of protagonist 
+                - node_count: Current depth in story
+        """
+        if not self.current_story:
+            return {}
+            
+        protagonist = {}
+        if self.current_node and self.current_node.branch_metadata:
+            protagonist = self.current_node.branch_metadata.get("protagonist", {})
+            
+        return {
+            "mood": self.current_story.mood if self.current_story else None,
+            "narrative_style": self.current_story.narrative_style if self.current_story else None,
+            "conflict": self.current_story.primary_conflict if self.current_story else None,
+            "setting": self.current_story.setting if self.current_story else None,
+            "protagonist_name": protagonist.get("name"),
+            "protagonist_gender": protagonist.get("gender"),
+            "protagonist_level": protagonist.get("level", 1),
+            "node_count": self._node_count
+        }
 
     def get_node_context(self, node_id: int) -> Dict[str, Any]:
         """

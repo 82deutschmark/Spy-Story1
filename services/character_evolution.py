@@ -214,7 +214,7 @@ def create_character_evolution(user_id: int, character_id: int, story_id: int, r
         raise ValueError("Missing required character_id")
 
     # Check if character exists using the Character model
-    from models.character import Character
+    from models.character_evolution import Character
     character = Character.query.get(character_id)
     if not character:
         raise ValueError(f"Character with ID {character_id} not found")

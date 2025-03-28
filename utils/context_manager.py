@@ -7,237 +7,30 @@ logger = logging.getLogger(__name__)
 
 class OpenAIContextManager:
     """
-    Helper class to manage conversation context for OpenAI API calls.
-    This ensures that history is maintained between related API calls.
+    Stateless helper class for OpenAI API interactions.
+    
+    This class handles formatting requests, building appropriate prompts,
+    and processing responses for story generation and continuation.
+    It does NOT store state between requests - all state must be
+    provided by the caller for each operation.
     """
 
-    def __init__(self, system_prompt: str = ""):
-        """Initialize with an optional system prompt"""
-        self.messages = []
-        if system_prompt:
-            self.messages.append({"role": "system", "content": system_prompt})
+    def __init__(self):
+        """Initialize a stateless context manager."""
+        # No internal state is stored
 
-    def add_user_message(self, content: str) -> None:
-        """Add a user message to the conversation history"""
-        self.messages.append({"role": "user", "content": content})
-
-    def add_assistant_message(self, content: str) -> None:
-        """Add an assistant message to the conversation history"""
-        self.messages.append({"role": "assistant", "content": content})
-
-    def add_system_message(self, content: str) -> None:
-        """Add or update the system message while preserving existing parameters"""
-        # If there's already a system message, extract any existing parameters
-        existing_params = ""
-        if self.messages and self.messages[0]["role"] == "system":
-            existing_content = self.messages[0]["content"]
-            # Look for the "Stored Story Parameters" section
-            if "Stored Story Parameters:" in existing_content:
-                param_start = existing_content.find("Stored Story Parameters:")
-                existing_params = existing_content[param_start:]
-                # Remove the parameters from the existing content
-                existing_content = existing_content[:param_start].strip()
-                # Only merge if the new content is different
-                if content != existing_content:
-                    content = f"{existing_content}\n\n{content}"
-                else:
-                    content = existing_content
-            else:
-                # If no parameters section, only merge if different
-                if content != existing_content:
-                    content = f"{existing_content}\n\n{content}"
-                else:
-                    content = existing_content
-
-        # Add the parameters back if they existed
-        if existing_params:
-            content = f"{content}\n\n{existing_params}"
-
-        # Update or insert the system message
-        if self.messages and self.messages[0]["role"] == "system":
-            self.messages[0]["content"] = content
-        else:
-            self.messages.insert(0, {"role": "system", "content": content})
-
-    def get_messages(self) -> List[Dict[str, str]]:
-        """Get the current conversation history"""
-        return self.messages
-
-    def clear_context(self) -> None:
-        """Clear the conversation history except for the system message"""
-        if self.messages and self.messages[0]["role"] == "system":
-            system_message = self.messages[0]
-            self.messages = [system_message]
-        else:
-            self.messages = []
-
-    def truncate_context(self, max_messages: int = 10) -> None:
-        """Truncate the conversation history to avoid token limits"""
-        if len(self.messages) <= max_messages:
-            return
-
-        # Always keep the system message if present
-        if self.messages[0]["role"] == "system":
-            system_message = self.messages[0]
-            # Keep the most recent messages up to max_messages-1
-            self.messages = [system_message] + self.messages[-(max_messages-1):]
-        else:
-            # No system message, just keep the most recent ones
-            self.messages = self.messages[-max_messages:]
-
-    def process_function_calling(self, client, model: str = MODEL_CONFIG["model"], tools: Optional[List] = None) -> Dict[str, Any]:
-        """
-        Handle a complete conversation flow with function calling
-
-        Args:
-            client: OpenAI client instance
-            model: Model name to use
-            tools: List of tool definitions for function calling
-
-        Returns:
-            The final response from the API
-        """
-        try:
-            # Log the messages being sent to OpenAI
-            logger.info("=== OpenAI API Request ===")
-            logger.info(f"Model: {model}")
-            logger.info("Messages:")
-            for msg in self.messages:
-                logger.info(f"Role: {msg['role']}")
-                logger.info(f"Content: {msg['content']}")
-                logger.info("---")
-            if tools:
-                logger.info(f"Tools: {json.dumps(tools, indent=2)}")
-            logger.info("========================")
-
-            # Initial API call - ensure at least one message contains 'json' for response_format compatibility
-            # Check if any message contains the word 'json'
-            json_keyword_present = any('json' in msg.get('content', '').lower() for msg in self.messages if isinstance(msg.get('content'), str))
-            
-            # Create API call parameters
-            api_params = {
-                "model": model,
-                "messages": self.messages,
-            }
-            
-            # Only add response_format if json keyword is present
-            if json_keyword_present:
-                api_params["response_format"] = {"type": "json_object"}
-            
-            # Add tools if provided
-            if tools:
-                api_params["tools"] = tools
-                
-            # Make the API call with the prepared parameters
-            response = client.chat.completions.create(**api_params)
-
-            # Log the raw response from OpenAI
-            logger.info("=== OpenAI API Response ===")
-            logger.info(f"Response: {response}")
-            logger.info("=========================")
-
-            # Clean the response content if it contains markdown
-            content = response.choices[0].message.content
-            if content.startswith('```json'):
-                content = content[7:]  # Remove ```json
-            if content.endswith('```'):
-                content = content[:-3]  # Remove ```
-            content = content.strip()
-
-            # Update the response with cleaned content
-            response.choices[0].message.content = content
-
-            # Add assistant's response to conversation history
-            if content:
-                self.add_assistant_message(content)
-
-            # Check if function calling was triggered
-            tool_calls = response.choices[0].message.tool_calls
-
-            if not tool_calls:
-                # No function calling, return the response directly
-                return response
-
-            # Process function calls
-            is_completed = False
-
-            while not is_completed:
-                # Add the tool call to the conversation
-                self.messages.append({
-                    "role": "assistant",
-                    "content": None,
-                    "tool_calls": [
-                        {
-                            "id": tool_call.id,
-                            "type": tool_call.type,
-                            "function": {
-                                "name": tool_call.function.name,
-                                "arguments": tool_call.function.arguments
-                            }
-                        } for tool_call in tool_calls
-                    ]
-                })
-
-                # Here you would execute the actual functions
-                # For now, just log that we'd process them
-                logger.info(f"Would process function calls: {tool_calls}")
-
-                # Make another API call with the function results
-                # Check if any message contains the word 'json'
-                json_keyword_present = any('json' in msg.get('content', '').lower() for msg in self.messages if isinstance(msg.get('content'), str))
-                
-                # Create API call parameters
-                api_params = {
-                    "model": model,
-                    "messages": self.messages,
-                }
-                
-                # Only add response_format if json keyword is present
-                if json_keyword_present:
-                    api_params["response_format"] = {"type": "json_object"}
-                
-                # Add tools if provided
-                if tools:
-                    api_params["tools"] = tools
-                    
-                # Make the API call with the prepared parameters
-                response = client.chat.completions.create(**api_params)
-
-                # Clean the response content again
-                content = response.choices[0].message.content
-                if content.startswith('```json'):
-                    content = content[7:]
-                if content.endswith('```'):
-                    content = content[:-3]
-                content = content.strip()
-
-                # Update the response with cleaned content
-                response.choices[0].message.content = content
-
-                # Check if we're done with function calling
-                tool_calls = response.choices[0].message.tool_calls
-                if not tool_calls:
-                    is_completed = True
-                    # Add the final response to the conversation
-                    if content:
-                        self.add_assistant_message(content)
-
-            return response
-
-        except Exception as e:
-            logger.error(f"Error in process_function_calling: {str(e)}")
-            raise
-
-    def _build_system_message(self, mood: str, narrative_style: str) -> str:
+    def build_initial_system_message(self, mood: str, narrative_style: str) -> str:
+        """Build system message for initial story creation."""
         message_parts = [
-            "You are a master narrative generator for our adventure game, always talk to the user in the second person as the protagonist of the story.",
-            f"Create a highly detailed, layered narrative in a {mood} tone with a {narrative_style} storytelling style.",
+            "You are a master narrative generator for our spy thriller adventure game.",
+            f"Create highly detailed, layered narratives in a {mood} tone with a {narrative_style} storytelling style.",
             "",
-            "This game is set in a high-stakes world of high tech crime,espionage and intrigue. Follow these instructions exactly:",
+            "This game is set in the high-stakes world of espionage, luxury, and international intrigue.",
+            "Follow these instructions exactly:",
             "",
-            "1. Generate a narrative continuation that is engaging and coherent based on the previous story, plot lines, missions and choices.",
+            "1. Generate a NEW STORY OPENING that is engaging and compelling.",
             "2. Your output MUST be valid JSON with exactly the following keys:",
-            "   - narrative_text: A string containing the full narrative segment.",
+            "   - story: A string containing the full narrative segment.",
             "   - choices: An array of exactly three choice objects. Each choice object MUST include:",
             "         * choice_id: A unique identifier for the choice.",
             "         * text: The choice description.",
@@ -255,142 +48,335 @@ class OpenAIContextManager:
             "1. Use only the characters provided in the character prompts. Do not invent any new characters.",
             "2. The protagonist should not have a character_id in choices.",
             "3. Only include character_id for NPCs involved in the choice.",
+            "4. Respect character roles: mission-givers give missions, villains oppose the player, etc.",
+            "5. Maintain character traits, backstories, and plot lines exactly as provided.",
+            "",
+            "NARRATIVE STYLE REQUIREMENTS:",
+            "1. Tell the story in second person, addressing the player directly.",
+            "2. Use vivid sensory details and atmospheric descriptions.",
+            "3. Balance action, dialogue, intrigue, and character development.",
+            "4. Create meaningful consequences for player choices.",
+            "5. Advance the mission in some way (progress, setback, or complication).",
             "",
             "Please produce only the JSON response as specified above."
         ]
+        
         return "\n".join(message_parts)
+        
+    def build_continuation_system_message(self, mood: str, narrative_style: str, node_count: int) -> str:
+        """Build system message for story continuation."""
+        message_parts = [
+            "You are a master narrative generator for our spy thriller adventure game.",
+            f"Create highly detailed, layered narratives in a {mood} tone with a {narrative_style} storytelling style.",
+            f"This is CONTINUATION #{node_count} of an existing story, not a new story.",
+            "",
+            "This game is set in the high-stakes world of espionage, luxury, and international intrigue.",
+            "Follow these instructions exactly:",
+            "",
+            "1. Generate a narrative CONTINUATION that is engaging and coherent based on the player's choice.",
+            "2. Your output MUST be valid JSON with exactly the following keys:",
+            "   - story: A string containing the full narrative segment.",
+            "   - choices: An array of exactly three choice objects. Each choice object MUST include:",
+            "         * choice_id: A unique identifier for the choice.",
+            "         * text: The choice description.",
+            "         * consequence: A brief description of the outcome if chosen.",
+            "         * type: One of 'direct', 'risky', or 'social'.",
+            "         * requirements: An object for any additional requirements (or empty).",
+            "         * character_id: The ID of the NPC involved in the choice (omit for protagonist choices)",
+            "   - mission_update: An object with keys:",
+            "         * status: One of 'unchanged', 'progressed', 'completed', or 'failed'.",
+            "         * progress_details: A string detailing mission progress.",
+            "",
+            "3. Do not include any keys besides these three in your response.",
+            "",
+            "CRITICAL CHARACTER ROLE REQUIREMENTS:",
+            "1. Use only the characters provided in the character prompts. Do not invent any new characters.",
+            "2. The protagonist should not have a character_id in choices.",
+            "3. Only include character_id for NPCs involved in the choice.",
+            "4. Respect character roles: mission-givers give missions, villains oppose the player, etc.",
+            "5. Maintain character traits, backstories, and plot lines exactly as provided.",
+            "",
+            "NARRATIVE STYLE REQUIREMENTS:",
+            "1. Tell the story in second person, addressing the player directly.",
+            "2. Use vivid sensory details and atmospheric descriptions.",
+            "3. Balance action, dialogue, intrigue, and character development.",
+            "4. Create meaningful consequences for player choices.",
+            "5. Advance the mission in some way (progress, setback, or complication).",
+            "",
+            "Please produce only the JSON response as specified above."
+        ]
+        
+        return "\n".join(message_parts)
+
+    def build_story_context(self, conflict: str, setting: str, mission_info: Optional[Dict[str, Any]] = None, characters: Optional[Dict[str, Any]] = None) -> str:
+        """Build a context string with story parameters."""
+        context_parts = [
+            "Stored Story Parameters:",
+            f"CONFLICT: {conflict}",
+            f"SETTING: {setting}"
+        ]
+
+        # Add mission information if available
+        if mission_info:
+            context_parts.extend([
+                "",
+                "Current Mission:",
+                f"TITLE: {mission_info.get('title', 'Unknown')}",
+                f"OBJECTIVE: {mission_info.get('objective', 'Unknown')}",
+                f"STATUS: {mission_info.get('status', 'in_progress')}",
+                f"PROGRESS: {mission_info.get('progress', 0)}"
+            ])
+
+        # Add character information if available
+        if characters:
+            context_parts.append("")
+            context_parts.append("Active Characters:")
+            for char in characters:
+                if isinstance(char, dict):
+                    char_id = char.get('id', '')
+                    name = char.get('name', '') or char.get('character_name', '')
+                    role = char.get('role', '') or char.get('character_role', '')
+                    context_parts.append(f"{char_id}: {name} - {role}")
+
+        return "\n".join(context_parts)
 
     def generate_initial_story(
         self,
+        client,
         user_message: str,
         conflict: str,
         setting: str,
         narrative_style: str,
         mood: str,
-        character_info: Dict[str, Any],
-        client=None,
-        temperature: float = INITIAL_STORY_TEMPERATURE,
-        custom_system_prompt: str = "",
-        mission_info: Optional[Dict[str, Any]] = None
+        character_info: Optional[Dict[str, Any]] = None,
+        temperature: float = None,
+        mission_info: Optional[Dict[str, Any]] = None,
+        model: str = None
     ) -> Dict[str, Any]:
-        """Generate the initial opening of a story."""
-        # Clear previous conversation context to ensure a fresh prompt
-        self.clear_context()
+        """
+        Generate the initial opening of a story.
         
-        # Use the custom system prompt directly when provided, instead of merging
-        if custom_system_prompt:
-            system_prompt = custom_system_prompt
-        else:
-            # Only fall back to our internal method if no custom prompt
-            system_prompt = self._build_system_message(mood, narrative_style)
-
-        # Add the system message
-        self.add_system_message(system_prompt)
-
-        # Add story parameters including mission info if available
-        story_params = {
-            'conflict': conflict,
-            'setting': setting,
-            'narrative_style': narrative_style,
-            'mood': mood,
-            'characters': character_info
+        This method is stateless - all required data must be provided.
+        
+        Args:
+            client: OpenAI client instance
+            user_message: User prompt for story generation
+            conflict: Primary story conflict
+            setting: Story setting
+            narrative_style: Narrative style
+            mood: Story mood
+            character_info: Optional character information
+            temperature: Optional temperature parameter for OpenAI
+            mission_info: Optional mission information
+            model: Optional model name
+            
+        Returns:
+            Dict containing the generated story data
+        """
+        from utils.constants import MODEL_CONFIG, INITIAL_STORY_TEMPERATURE
+        import json
+        import logging
+        
+        # Set defaults
+        if model is None:
+            model = MODEL_CONFIG.get("model", "gpt-4")
+        if temperature is None:
+            temperature = INITIAL_STORY_TEMPERATURE
+            
+        # Build messages
+        system_message = self.build_initial_system_message(mood, narrative_style)
+        context = self.build_story_context(conflict, setting, mission_info, character_info)
+        
+        messages = [
+            {"role": "system", "content": f"{system_message}\n\n{context}"},
+            {"role": "user", "content": user_message}
+        ]
+        
+        # Log the request
+        logging.info("=== OpenAI API Request (Initial Story) ===")
+        logging.info(f"Model: {model}")
+        logging.info(f"Temperature: {temperature}")
+        
+        # Make API call
+        api_params = {
+            "model": model,
+            "messages": messages,
+            "response_format": {"type": "json_object"}
         }
-        if mission_info:
-            story_params['mission'] = mission_info
         
-        self.update_story_parameters(story_params)
-
-        # Add the user message
-        self.add_user_message(user_message)
-
-        # Get response
-        response = self.process_function_calling(
-            client=client,
-            model=MODEL_CONFIG["model"]
-        )
-
-        # Parse and validate the response
+        # Only include temperature for models that support it (o3-mini doesn't)
+        if not model.startswith("o3-"):
+            api_params["temperature"] = temperature
+        
+        response = client.chat.completions.create(**api_params)
+        
+        # Process the response
         content = response.choices[0].message.content
+        
+        # Clean the content if needed
         if content.startswith('```json'):
             content = content[7:]  # Remove ```json
         if content.endswith('```'):
             content = content[:-3]  # Remove ```
+            
         content = content.strip()
-
-        # Log the raw content to inspect what was returned:
-        logging.debug(f"Raw OpenAI response content: {content}")
+        
         try:
             story_data = json.loads(content)
+            
+            # Normalize: if the API returned key "story" but not "narrative_text", rename it
+            if "story" in story_data and "narrative_text" not in story_data:
+                story_data["narrative_text"] = story_data.pop("story")
+                
+            return story_data
         except json.JSONDecodeError as e:
             logging.error(f"JSON decode error: {str(e)} with content: {content}")
-            # Escape problematic characters for debugging
             escaped_content = content.replace("\n", "\\n").replace("\r", "\\r")
             logging.error(f"Escaped JSON content for inspection: {escaped_content}")
             raise
 
-        # Normalize: if the API returned key "story" but not "narrative_text", rename it.
-        if "story" in story_data and "narrative_text" not in story_data:
-            story_data["narrative_text"] = story_data.pop("story")
+    def generate_continuation(
+        self,
+        client,
+        user_message: str,
+        conflict: str,
+        setting: str,
+        narrative_style: str,
+        mood: str,
+        node_count: int,
+        mission_info: Optional[Dict[str, Any]] = None,
+        character_info: Optional[Dict[str, Any]] = None,
+        temperature: float = None,
+        model: str = None
+    ) -> Dict[str, Any]:
+        """
+        Generate a continuation of a story.
+        
+        This method is stateless - all required data must be provided.
+        
+        Args:
+            client: OpenAI client instance
+            user_message: User prompt including the chosen choice
+            conflict: Primary story conflict
+            setting: Story setting
+            narrative_style: Narrative style
+            mood: Story mood
+            node_count: Current story progression node count
+            mission_info: Optional mission information
+            character_info: Optional character information
+            temperature: Optional temperature parameter for OpenAI
+            model: Optional model name
+            
+        Returns:
+            Dict containing the generated continuation data
+        """
+        from utils.constants import MODEL_CONFIG, DEFAULT_TEMPERATURE
+        import json
+        import logging
+        
+        # Set defaults
+        if model is None:
+            model = MODEL_CONFIG.get("model", "gpt-4")
+        if temperature is None:
+            temperature = DEFAULT_TEMPERATURE
+            
+        # Build messages
+        system_message = self.build_continuation_system_message(mood, narrative_style, node_count)
+        context = self.build_story_context(conflict, setting, mission_info, character_info)
+        
+        messages = [
+            {"role": "system", "content": f"{system_message}\n\n{context}"},
+            {"role": "user", "content": user_message}
+        ]
+        
+        # Log the request
+        logging.info("=== OpenAI API Request (Continuation) ===")
+        logging.info(f"Model: {model}")
+        logging.info(f"Temperature: {temperature}")
+        logging.info(f"Node count: {node_count}")
+        
+        # Make API call
+        api_params = {
+            "model": model,
+            "messages": messages,
+            "response_format": {"type": "json_object"}
+        }
+        
+        # Only include temperature for models that support it (o3-mini doesn't)
+        if not model.startswith("o3-"):
+            api_params["temperature"] = temperature
+        
+        response = client.chat.completions.create(**api_params)
+        
+        # Process the response
+        content = response.choices[0].message.content
+        
+        # Clean the content if needed
+        if content.startswith('```json'):
+            content = content[7:]  # Remove ```json
+        if content.endswith('```'):
+            content = content[:-3]  # Remove ```
+            
+        content = content.strip()
+        
+        try:
+            story_data = json.loads(content)
+            
+            # Normalize: if the API returned key "story" but not "narrative_text", rename it
+            if "story" in story_data and "narrative_text" not in story_data:
+                story_data["narrative_text"] = story_data.pop("story")
+                
+            return story_data
+        except json.JSONDecodeError as e:
+            logging.error(f"JSON decode error: {str(e)} with content: {content}")
+            escaped_content = content.replace("\n", "\\n").replace("\r", "\\r")
+            logging.error(f"Escaped JSON content for inspection: {escaped_content}")
+            raise
 
-        # Add the response to conversation history
-        self.add_assistant_message(content)
-
-        return story_data
-
-    def update_story_parameters(self, parameters: Dict[str, Any]) -> None:
-        """Update the system message with stored story parameters from the DB."""
-        param_block = (
-            f"\n\nStored Story Parameters:\n"
-            f"CONFLICT: {parameters.get('conflict')}\n"
-            f"SETTING: {parameters.get('setting')}\n"
-            f"NARRATIVE_STYLE: {parameters.get('narrative_style')}\n"
-            f"MOOD: {parameters.get('mood')}"
-        )
-
-        # Add mission information if available
-        if 'mission' in parameters:
-            mission = parameters['mission']
-            param_block += (
-                f"\n\nCurrent Mission:\n"
-                f"NAME: {mission.get('name')}\n"
-                f"DESCRIPTION: {mission.get('description')}\n"
-                f"STATUS: {mission.get('status')}\n"
-                f"OBJECTIVES: {', '.join(mission.get('objectives', []))}\n"
-                f"COMPLETION_CRITERIA: {mission.get('completion_criteria')}"
-            )
-
-        # Add character information if available
-        if 'characters' in parameters:
-            param_block += "\n\nActive Characters:"
-            characters = parameters['characters']
-            if isinstance(characters, dict):
-                for char_id, char_info in characters.items():
-                    if isinstance(char_info, dict):
-                        # Handle dictionary format
-                        name = char_info.get('name', str(char_info))
-                        role = char_info.get('role', '')
-                        param_block += f"\n{char_id}: {name} - {role}"
-                    else:
-                        # Handle simple value format
-                        param_block += f"\n{char_id}: {str(char_info)}"
-            elif isinstance(characters, list):
-                # Handle list format
-                for char_info in characters:
-                    if isinstance(char_info, dict):
-                        char_id = char_info.get('id', str(char_info))
-                        name = char_info.get('name', str(char_info))
-                        role = char_info.get('role', '')
-                        param_block += f"\n{char_id}: {name} - {role}"
-                    else:
-                        param_block += f"\n{str(char_info)}"
-
-        # Add the parameters to the system message
-        if self.messages and self.messages[0]["role"] == "system":
-            # Check if parameters already exist to avoid duplication
-            if "Stored Story Parameters:" not in self.messages[0]["content"]:
-                self.messages[0]["content"] += param_block
-        else:
-            self.add_system_message(param_block)
+    # Simplified API call method for flexibility
+    def process_api_call(self, client, messages: List[Dict[str, str]], model: str = None, temperature: float = None, response_format: str = "json_object") -> Dict[str, Any]:
+        """
+        Process a generic API call to OpenAI.
+        
+        Args:
+            client: OpenAI client instance
+            messages: List of message dictionaries
+            model: Model name (optional)
+            temperature: Temperature parameter (optional)
+            response_format: Response format type (optional)
+            
+        Returns:
+            The raw API response
+        """
+        from utils.constants import MODEL_CONFIG, DEFAULT_TEMPERATURE
+        import logging
+        
+        # Set defaults
+        if model is None:
+            model = MODEL_CONFIG.get("model", "gpt-4")
+        if temperature is None:
+            temperature = DEFAULT_TEMPERATURE
+            
+        # Log the request
+        logging.info("=== OpenAI API Request (Generic) ===")
+        logging.info(f"Model: {model}")
+        logging.info(f"Temperature: {temperature}")
+        
+        # Make API call
+        api_params = {
+            "model": model,
+            "messages": messages,
+        }
+        
+        # Only include temperature for models that support it (o3-mini doesn't)
+        if not model.startswith("o3-"):
+            api_params["temperature"] = temperature
+            
+        # Add response_format if json is requested
+        if response_format == "json_object":
+            api_params["response_format"] = {"type": "json_object"}
+            
+        return client.chat.completions.create(**api_params)
 
 class GameState:
     def __init__(self, user_id: str):

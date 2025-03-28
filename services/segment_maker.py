@@ -105,7 +105,7 @@ NARRATIVE STYLE GUIDELINES: You are a master narrative generator for our choose 
         """Get the expected JSON response structure."""
         # Use raw string to avoid backslash issues
         return r'''{
-    "story": "Continuation narrative text",
+    "narrative_text": "Continuation narrative text",
     "choices": [
         {
             "choice_id": "unique_choice_id",
@@ -167,14 +167,14 @@ NARRATIVE STYLE GUIDELINES: You are a master narrative generator for our choose 
             "",
             "1. Generate a narrative continuation that is engaging and coherent based on the player's choice.",
             "2. Your output MUST be valid JSON with exactly the following keys:",
-            "   - story: A string containing the full narrative segment.",
+            "   - narrative_text: A string containing the full narrative segment. (This is the key you MUST use)",
             "   - choices: An array of exactly three choice objects. Each choice object MUST include:",
             "         * choice_id: A unique identifier for the choice.",
             "         * text: The choice description.",
             "         * consequence: A brief description of the outcome if chosen.",
             "         * type: One of 'direct', 'risky', or 'social'.",
             "         * requirements: An object for any additional requirements (or empty).",
-            "         * character_id: The ID of the NPC involved in the choice (omit for protagonist choices)",
+            "         * character_id: The ID of the NPC involved in the choice (must be a numeric ID, not a name)",
             "   - mission_update: An object with keys:",
             "         * status: One of 'unchanged', 'progressed', 'completed', or 'failed'.",
             "         * progress_details: A string detailing mission progress.",
@@ -184,7 +184,7 @@ NARRATIVE STYLE GUIDELINES: You are a master narrative generator for our choose 
             "CRITICAL CHARACTER ROLE REQUIREMENTS:",
             "1. Use only the characters provided in the character prompts. Do not invent any new characters.",
             "2. The protagonist should not have a character_id in choices.",
-            "3. Only include character_id for NPCs involved in the choice.",
+            "3. Only include character_id for NPCs involved in the choice, and always use their numeric ID value, not their name.",
             "4. Respect character roles: mission-givers give missions, villains oppose the player, etc.",
             "5. Maintain character traits, backstories, and plot lines exactly as provided.",
             "",
@@ -206,8 +206,9 @@ NARRATIVE STYLE GUIDELINES: You are a master narrative generator for our choose 
 class StoryContinuationHandler:
     """Handles story continuation generation and validation."""
     
-    def __init__(self, context_manager: Optional[OpenAIContextManager] = None):
-        self.context_manager = context_manager or OpenAIContextManager()
+    def __init__(self):
+        """Initialize with a stateless context manager."""
+        self.context_manager = OpenAIContextManager()
         self.client = get_openai_client()
     
     def validate_response(self, story_data: Dict[str, Any], random_character: Optional[Character] = None) -> Dict[str, Any]:
@@ -216,8 +217,26 @@ class StoryContinuationHandler:
         for i, choice in enumerate(story_data['choices']):
             if 'choice_id' not in choice:
                 choice['choice_id'] = f"choice_{i}_{datetime.utcnow().timestamp()}"
+                
+            # Ensure character_id is properly formatted: either None or an integer
             if 'character_id' not in choice:
                 choice['character_id'] = None
+            elif choice['character_id'] is not None:
+                # If it's a string but not a digit, try to find the character by name
+                if isinstance(choice['character_id'], str) and not choice['character_id'].isdigit():
+                    # Look up by name
+                    char_name = choice['character_id']
+                    char = Character.query.filter_by(character_name=char_name).first()
+                    if char:
+                        choice['character_id'] = char.id
+                    else:
+                        choice['character_id'] = None
+                # If it's a digit string, convert to int
+                elif isinstance(choice['character_id'], str) and choice['character_id'].isdigit():
+                    choice['character_id'] = int(choice['character_id'])
+                # If it's not an int at this point, set to None
+                elif not isinstance(choice['character_id'], int):
+                    choice['character_id'] = None
                 
             # Clean up any character IDs from choice text
             if 'text' in choice:
@@ -230,8 +249,20 @@ class StoryContinuationHandler:
                 
         # Clean up any embedded raw IDs from narrative_text using regex cleanup
         import re
+        
+        # Handle different key names for the story/narrative text
+        story_text = ""
+        if "narrative_text" in story_data:
+            story_text = story_data["narrative_text"]
+        elif "story" in story_data:
+            story_text = story_data["story"]
+        else:
+            # If neither key exists, log error and return empty narrative
+            logger.error(f"Neither 'story' nor 'narrative_text' key found in response: {story_data.keys()}")
+            story_text = "Error: Story generation failed. Please try again."
+            
         # Remove character IDs
-        clean_text = re.sub(r'\(character_id:\s*\d+\)', '', story_data["story"])
+        clean_text = re.sub(r'\(character_id:\s*\d+\)', '', story_text)
         # Remove choice IDs
         clean_text = re.sub(r'choice_\d+', '', clean_text)
         # Clean up any double spaces or awkward punctuation that might result
@@ -244,7 +275,7 @@ class StoryContinuationHandler:
             "choices": story_data["choices"],
             "mission_update": story_data.get("mission_update", {})
         }
-    
+
     def _build_prompt(
         self,
         chosen_choice: str,
@@ -269,38 +300,9 @@ class StoryContinuationHandler:
         
         # Add character details if available - use the build_additional_characters_prompt function
         if existing_characters:
-            # First, ensure character data is in the expected format for build_additional_characters_prompt
-            formatted_characters = []
-            for char in existing_characters:
-                # Format character data to ensure proper field names for extraction functions
-                formatted_char = {
-                    "id": char.get("id"),
-                    "character_name": char.get("character_name") or char.get("name", "Unknown"),
-                    "character_role": char.get("character_role") or char.get("role", "neutral"),
-                    "character_traits": char.get("character_traits", {}),
-                    "backstory": char.get("backstory", ""),
-                    "plot_lines": char.get("plot_lines", []),
-                    "description": char.get("description", "")
-                }
-                formatted_characters.append(formatted_char)
-            
-            character_prompt = build_additional_characters_prompt(formatted_characters)
+            character_prompt = build_additional_characters_prompt(existing_characters)
             if character_prompt:
                 prompt_parts.extend(["", "EXISTING CHARACTERS IN STORY:", character_prompt])
-        
-        # Add story parameters for context continuity
-        story_params = []
-        if "story_parameters" in (existing_characters[0] if existing_characters else {}):
-            params = existing_characters[0]["story_parameters"]
-            story_params.extend([
-                "",
-                "STORY PARAMETERS:",
-                f"Conflict: {params.get('conflict', 'Unknown')}",
-                f"Setting: {params.get('setting', 'Unknown')}",
-                f"Style: {params.get('narrative_style', 'Unknown')}",
-                f"Mood: {params.get('mood', 'Unknown')}"
-            ])
-            prompt_parts.extend(story_params)
         
         if story_context:
             prompt_parts.extend(["", f"STORY CONTEXT:\n{story_context}"])
@@ -325,10 +327,14 @@ class StoryContinuationHandler:
         protagonist_name: Optional[str] = None,
         protagonist_gender: Optional[str] = None,
         protagonist_level: Optional[int] = None,
+        conflict: Optional[str] = None,
+        setting: Optional[str] = None,
         story_context: Optional[str] = None,
-        existing_characters: Optional[List[Dict[str, Any]]] = None
+        existing_characters: Optional[List[Dict[str, Any]]] = None,
+        node_count: int = 1
     ) -> Dict[str, Any]:
         """Generate a story continuation based on the player's choice."""
+        # Get random characters to use for assistance choices
         existing_ids = {char.get("id") for char in existing_characters} if existing_characters else set()
         fresh_chars = get_random_characters(3)
         fresh_candidates = [char for char in fresh_chars if char.id not in existing_ids and char.character_role.lower() != "villain"]
@@ -336,33 +342,71 @@ class StoryContinuationHandler:
         selected_random = random.choice(random_characters) if random_characters else None
         available_npc_names = ", ".join([char.character_name for char in random_characters]) if random_characters else "None"
         
-        # Ensure the context manager is initialized with our properly built system message
-        if not self.context_manager or not self.context_manager.get_messages():
-            # Use our dedicated system message builder
-            system_message_obj = StoryPromptBuilder.build_system_message(
-                mood or "default mood", narrative_style or "default narrative style"
-            )
-            self.context_manager = OpenAIContextManager(system_message_obj["content"])
+        # Ensure selected_random.id is an integer
+        char_id = selected_random.id if selected_random else 'null'
+        if isinstance(char_id, str) and char_id.isdigit():
+            char_id = int(char_id)
+            
+        # Modified help instruction to be clearer about character_id format
+        help_instruction = (f"   - One that involves asking {selected_random.character_name if selected_random else 'a previously introduced character'} " +
+                           f"for help (make sure the choice includes character_id field set to numeric value {char_id} and not the character name)")
         
-        help_instruction = f"   - One that involves asking {selected_random.character_name if selected_random else 'a previously introduced character'} for help (MUST include character_id: {selected_random.id if selected_random else 'null'})"
-        extra = f"AVAILABLE NPC CHOICES for assistance: {available_npc_names}\n"
+        # Build story context 
+        context_additions = []
+        context_additions.append(f"AVAILABLE NPC CHOICES for assistance: {available_npc_names}")
         if story_context:
-            extra += f"STORY CONTEXT:\n{story_context}\n"
+            context_additions.append(f"STORY CONTEXT:\n{story_context}")
         
-        # Include existing characters in the prompt
-        base_prompt = self._build_prompt(
+        # Format existing characters for the context manager
+        formatted_characters = []
+        if existing_characters:
+            for char in existing_characters:
+                formatted_char = {
+                    "id": char.get("id"),
+                    "name": char.get("character_name") or char.get("name", "Unknown"),
+                    "character_role": char.get("character_role") or char.get("role", "neutral"),
+                    "character_traits": char.get("character_traits", {}),
+                    "backstory": char.get("backstory", ""),
+                    "plot_lines": char.get("plot_lines", []),
+                    "description": char.get("description", "")
+                }
+                formatted_characters.append(formatted_char)
+                
+        # Extract story parameters if available
+        story_params = {}
+        if existing_characters and existing_characters[0].get("story_parameters"):
+            params = existing_characters[0]["story_parameters"]
+            conflict = conflict or params.get("conflict")
+            setting = setting or params.get("setting")
+            mood = mood or params.get("mood")
+            narrative_style = narrative_style or params.get("narrative_style")
+        
+        # Ensure we have required parameters
+        if not all([conflict, setting, mood, narrative_style]):
+            raise ValueError("Missing required story parameters")
+        
+        # Build prompt
+        prompt = self._build_prompt(
             chosen_choice=chosen_choice,
             mission_info=mission_info,
             help_instruction=help_instruction,
-            story_context=extra,
-            existing_characters=existing_characters
+            story_context="\n".join(context_additions),
+            existing_characters=formatted_characters
         )
         
-        self.context_manager.add_user_message(base_prompt)
-        response = self.context_manager.process_function_calling(
-            client=self.client
+        # Generate story continuation using the stateless context manager
+        story_data = self.context_manager.generate_continuation(
+            client=self.client,
+            user_message=prompt,
+            conflict=conflict,
+            setting=setting, 
+            narrative_style=narrative_style,
+            mood=mood,
+            node_count=node_count,
+            mission_info=mission_info,
+            character_info=formatted_characters
         )
-        story_data = json.loads(response.choices[0].message.content)
+        
         return self.validate_response(story_data, selected_random)
 
 def get_openai_client():
@@ -385,25 +429,31 @@ def generate_continuation(
     previous_story: str,
     chosen_choice: str,
     mission_info: Dict[str, Any],
-    context_manager: Optional[OpenAIContextManager] = None,
     mood: Optional[str] = None,
     narrative_style: Optional[str] = None,
     protagonist_name: Optional[str] = None,
     protagonist_gender: Optional[str] = None,
     protagonist_level: Optional[int] = None,
+    conflict: Optional[str] = None,
+    setting: Optional[str] = None,
     story_context: Optional[str] = None,
-    existing_characters: Optional[List[Dict[str, Any]]] = None
+    existing_characters: Optional[List[Dict[str, Any]]] = None,
+    node_count: int = 1
 ) -> Dict[str, Any]:
-    handler = StoryContinuationHandler(context_manager)
+    """Public function to generate story continuation."""
+    handler = StoryContinuationHandler()
     return handler.generate_continuation(
-        previous_story,
-        chosen_choice,
-        mission_info,
-        mood,
-        narrative_style,
-        protagonist_name,
-        protagonist_gender,
-        protagonist_level,
-        story_context,
-        existing_characters
+        previous_story=previous_story,
+        chosen_choice=chosen_choice,
+        mission_info=mission_info,
+        mood=mood,
+        narrative_style=narrative_style,
+        protagonist_name=protagonist_name,
+        protagonist_gender=protagonist_gender,
+        protagonist_level=protagonist_level,
+        conflict=conflict,
+        setting=setting,
+        story_context=story_context,
+        existing_characters=existing_characters,
+        node_count=node_count
     )

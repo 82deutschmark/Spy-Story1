@@ -311,21 +311,13 @@ class GameEngine:
             # Reload the game state from the database to ensure latest parameters
             self.state.reload_state()
             
-            # Get context manager for story continuation
+            # Get context manager as a stateless service
             context_manager = self.state.get_context_manager()
             
             # Get current story from DB using stored story id to ensure fresh parameters
             story = StoryGeneration.query.get(self.state.user_progress.current_story_id)
             if not story:
                 raise ValueError("No active story found")
-            
-            # NEW: Update conversation context with persistent story parameters
-            context_manager.update_story_parameters({
-                "conflict": story.primary_conflict,
-                "setting": story.setting,
-                "narrative_style": story.narrative_style,
-                "mood": story.mood
-            })
             
             # Resolve current node
             current_node = self.state.resolve_current_node(story.id)
@@ -351,22 +343,16 @@ class GameEngine:
             else:
                 story_context = f"CONFLICT: {conflict}\nSETTING: {setting}"
             
-            # Generate next story segment using segment_maker
             # Extract protagonist details from the branch metadata of the current node
             protagonist = current_node.branch_metadata.get("protagonist", {})
             
-            next_segment = generate_continuation(
-                previous_story=current_node.narrative_text,
-                chosen_choice=custom_choice_text or choice_id,
-                mission_info=mission_info,
-                context_manager=context_manager,
-                mood=story.mood,
-                narrative_style=story.narrative_style,
-                protagonist_name=protagonist.get("name"),
-                protagonist_gender=protagonist.get("gender"),
-                protagonist_level=protagonist.get("level"),
-                story_context=story_context or "",
-                existing_characters=[{
+            # Increment node count in the game state
+            node_count = self.state.increment_node_count()
+            
+            # Format characters for the context manager
+            char_info = []
+            if story.characters:
+                char_info = [{
                     "id": char.id,
                     "name": char.character_name,
                     "character_name": char.character_name,
@@ -376,7 +362,35 @@ class GameEngine:
                     "backstory": getattr(char, "backstory", ""),
                     "description": getattr(char, "description", ""),
                     "role": char.character_role  # Include both formats for compatibility
-                } for char in story.characters] if story.characters else []
+                } for char in story.characters]
+            
+            # Build user message for continuation
+            user_message = f"""
+PLAYER'S CHOICE:
+{custom_choice_text or choice_id}
+
+CURRENT MISSION:
+Title: {mission_info.get('title', 'Unknown')}
+Objective: {mission_info.get('objective', 'Unknown')}
+Status: {mission_info.get('status', 'In Progress')}
+Progress: {mission_info.get('progress', 0)}%
+
+STORY CONTEXT:
+{story_context or ""}
+"""
+            
+            # Generate next story segment using segment_maker with stateless approach
+            next_segment = generate_continuation(
+                previous_story=current_node.narrative_text,
+                chosen_choice=custom_choice_text or choice_id,
+                mission_info=mission_info,
+                mood=story.mood,
+                narrative_style=story.narrative_style,
+                conflict=conflict,
+                setting=setting,
+                story_context=story_context or "",
+                existing_characters=char_info,
+                node_count=node_count
             )
             
             # Log the continuation data
@@ -426,7 +440,8 @@ class GameEngine:
                         "conflict": story.primary_conflict,
                         "setting": story.setting,
                         "narrative_style": story.narrative_style,
-                        "mood": story.mood
+                        "mood": story.mood,
+                        "node_count": node_count  # Store current node count
                     },
                     
                     # Previous node reference for context

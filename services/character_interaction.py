@@ -34,7 +34,7 @@ from datetime import datetime
 from database import db
 from models import UserProgress, CharacterEvolution
 from models.character_data import Character
-from services.character_evolution_service import (
+from services.character_evolution import (
     evolve_character_traits,
     update_character_relationships,
     create_character_evolution

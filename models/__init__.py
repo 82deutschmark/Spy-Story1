@@ -5,7 +5,7 @@ from models.currency import Currency, Transaction
 from models.scene_images import SceneImages
 from models.stories import StoryGeneration, StoryNode, StoryChoice
 from models.user import UserProgress
-from models.character import CharacterEvolution
+from models.character_evolution import CharacterEvolution
 from models.missions import Mission
 from models.achievements import Achievement
 from models.plot import PlotArc

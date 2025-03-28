@@ -30,7 +30,7 @@ import json
 from typing import Dict, List, Tuple, Optional, Any
 from openai import OpenAI
 from services.state_manager import GameStateManager
-from services.character_evolution_service import (
+from services.character_evolution import (
     evolve_character_traits,
     update_character_relationships,
     create_character_evolution
@@ -216,7 +216,9 @@ class StoryPromptBuilder:
             "",
             "OUTPUT FORMAT REQUIREMENTS:",
             "24. Your response MUST be valid JSON with narrative_text, choices, and mission_update fields",
-            "25. Each choice in the JSON must have a unique choice_id, descriptive text, and consequence"
+            "25. Each choice in the JSON must have a unique choice_id, descriptive text, and consequence",
+            "26. If a choice involves a character, set the character_id field to that character's numeric ID (an integer, not a name)",
+            "27. Character IDs are numbers that identify characters in the database - NEVER use character names as character_id values"
         ]
         
         return {
@@ -253,6 +255,8 @@ class StoryPromptBuilder:
             "",
             f"CONFLICT: {conflict}",
             f"SETTING: {setting}",
+            # Still include these in the user prompt for the initial story
+            # since it's critical for setting the tone and style
             f"NARRATIVE STYLE: {narrative_style}",
             f"MOOD: {mood}",
             "",
@@ -277,9 +281,9 @@ class StoryPromptBuilder:
 class StoryGenerator:
     """Handles story generation and processing."""
     
-    def __init__(self, context_manager: Optional[OpenAIContextManager] = None, client: Optional[OpenAI] = None):
-        self.context_manager = context_manager or OpenAIContextManager()
+    def __init__(self, client: Optional[OpenAI] = None):
         self.client = client or get_openai_client()
+        self.context_manager = OpenAIContextManager()
 
     def process_choices(self, story_data: Dict[str, Any]) -> Dict[str, Any]:
         """Process and validate story choices."""
@@ -309,6 +313,32 @@ class StoryGenerator:
                     # Ensure each choice has an ID
                     if "id" not in choice and "choice_id" not in choice:
                         story_data["choices"][i]["choice_id"] = f"choice_{i}_{datetime.utcnow().timestamp()}"
+                    
+                    # Validate character_id - ensure it's an integer or null, never a name
+                    if "character_id" in choice:
+                        char_id = choice["character_id"]
+                        if char_id is not None:
+                            # If it's a string but not a digit, try to find the character by name
+                            if isinstance(char_id, str) and not char_id.isdigit():
+                                logger.info(f"Found possible character name instead of ID: {char_id}")
+                                # Look up by name
+                                char = Character.query.filter_by(character_name=char_id).first()
+                                if char:
+                                    choice["character_id"] = char.id
+                                    logger.info(f"Converted character name '{char_id}' to ID: {char.id}")
+                                else:
+                                    choice["character_id"] = None
+                                    logger.warning(f"Character name '{char_id}' not found, setting to None")
+                            # If it's a digit string, convert to int
+                            elif isinstance(char_id, str) and char_id.isdigit():
+                                choice["character_id"] = int(char_id)
+                            # If it's not an int at this point, set to None
+                            elif not isinstance(char_id, int):
+                                choice["character_id"] = None
+                                logger.warning(f"Invalid character_id type: {type(char_id)}, setting to None")
+                    else:
+                        # Set default if missing
+                        choice["character_id"] = None
                         
                     # Encode the text properly
                     if "text" in choice and isinstance(choice["text"], str):
@@ -352,7 +382,8 @@ class StoryGenerator:
         # NEW: If no additional characters provided, pull a robust cast from our DB
         if additional_characters is None:
             additional_characters = get_random_characters(3)
-        
+            
+        # Build the story prompt
         story_prompt = StoryPromptBuilder.build_story_prompt(
             conflict=final_conflict,
             setting=final_setting,
@@ -366,25 +397,23 @@ class StoryGenerator:
             story_context=story_context
         )
         
-        # Get our properly built system message
-        system_message = StoryPromptBuilder.build_system_message(
-            mood=final_mood,
-            narrative_style=final_narrative
-        )
+        # Get protagonist info for context
+        protagonist = {"name": protagonist_name, "gender": protagonist_gender, "level": protagonist_level}
         
-        # Pass the system message to generate_initial_story
+        # Generate initial story using stateless context manager
         story_data = self.context_manager.generate_initial_story(
+            client=self.client,
+            user_message=story_prompt,
             conflict=final_conflict,
             setting=final_setting,
             narrative_style=final_narrative,
             mood=final_mood,
-            character_info=character_info,
-            client=self.client,
-            user_message=story_prompt,
-            custom_system_prompt=system_message["content"]  # Pass our system message
+            character_info=character_info
         )
         
+        # Process and validate choices
         story_data = self.process_choices(story_data)
+        
         return {
             "conflict": final_conflict,
             "setting": final_setting,

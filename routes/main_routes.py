@@ -138,15 +138,46 @@ def storyboard(story_id):
     if current_node.branch_metadata and 'choices' in current_node.branch_metadata:
         for choice in current_node.branch_metadata['choices']:
             if choice.get('character_id'):
-                if not any(char['id'] == choice['character_id'] for char in character_images):
-                    character = Character.query.get(choice['character_id'])
-                    if character:
-                        character_images.append({
-                            'id': character.id,
-                            'image_url': character.image_url,
-                            'name': character.character_name,
-                            'traits': character.character_traits
-                        })
+                try:
+                    # Fix for character_id sometimes being a string name instead of integer ID
+                    character_id = choice['character_id']
+                    # If character_id is not an integer, try to find the character by name
+                    if not isinstance(character_id, int) and not (isinstance(character_id, str) and character_id.isdigit()):
+                        # Looks like character_id is a name, search by name
+                        logger.warning(f"Found character name instead of ID in choice: {character_id}")
+                        character = Character.query.filter_by(character_name=character_id).first()
+                        if character:
+                            # Update the choice with the correct ID
+                            choice['character_id'] = character.id
+                            db.session.commit()  # Save the updated branch_metadata
+                            logger.info(f"Converted character name '{character_id}' to ID: {character.id}")
+                        else:
+                            # If character not found by name, set to None to avoid errors
+                            choice['character_id'] = None
+                            db.session.commit()  # Save the updated branch_metadata
+                            logger.warning(f"Character name '{character_id}' not found, setting to None")
+                            continue
+                    
+                    # Now try to get character with the corrected ID (ensure it's an integer)
+                    if isinstance(choice['character_id'], str) and choice['character_id'].isdigit():
+                        choice['character_id'] = int(choice['character_id'])
+                        db.session.commit()
+                    
+                    # Only proceed if we have a valid ID and character not already loaded
+                    if not any(char['id'] == choice['character_id'] for char in character_images):
+                        character = Character.query.get(choice['character_id'])
+                        if character:
+                            character_images.append({
+                                'id': character.id,
+                                'image_url': character.image_url,
+                                'name': character.character_name,
+                                'traits': character.character_traits
+                            })
+                except Exception as e:
+                    logger.error(f"Error processing character_id: {str(e)}")
+                    # Handle the error gracefully, continue with other choices
+                    choice['character_id'] = None
+                    db.session.commit()
     if not current_node.branch_metadata:
         current_node.branch_metadata = {
             "choices": {},  # Removed legacy dependency on story_data
