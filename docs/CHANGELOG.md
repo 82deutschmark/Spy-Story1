@@ -39,7 +39,7 @@
   - Improved character list compilation
   - Better character relationship tracking
   - Enhanced character data validation
-- Introduced a helper function “extractStoryData” in multiple JS modules (FormHandler.js, EventHandlers.js, MissionManager.js, UserProgressManager.js, UserProgress.js, UIUtils.js, StoryFormHandler.js, and ChoiceHandler.js)
+- Introduced a helper function "extractStoryData" in multiple JS modules (FormHandler.js, EventHandlers.js, MissionManager.js, UserProgressManager.js, UserProgress.js, UIUtils.js, StoryFormHandler.js, and ChoiceHandler.js)
   - This function standardizes extraction of narrative_text and choices from API payloads, supporting both top-level fields and nesting under a "stories" key.
 - Updated main.js to use fallback logic when rendering narrative_text and choices to ensure the storyboard displays fully formatted HTML with line breaks.
 
@@ -79,6 +79,21 @@
 - Ensured that all modules now expect narrative_text to already contain HTML (e.g., <br/> tags) for proper rendering in our complex Java UI.
 
 ### Fixed
+- Fixed module import error with CharacterEvolution:
+  - Corrected import paths in root-level models.py
+  - Resolved circular import issue between models.py and models/ package
+- Fixed character_id type mismatch in story choices:
+  - Added validation to convert character names to ID integers
+  - Improved AI prompt clarity regarding character_id format
+  - Enhanced error handling for invalid character_id values
+  - Added lookups to resolve character names to IDs when necessary
+- Fixed response key name inconsistency between "story" and "narrative_text":
+  - Made code more robust to handle both key names
+  - Standardized on "narrative_text" in system prompts and examples
+  - Added fallback handling when expected keys are missing
+- Fixed OpenAI API compatibility with o3-mini model:
+  - Conditionally include temperature parameter only for supporting models
+  - Enhanced error handling for API parameter incompatibilities
 - Fixed critical node resolution issues in storyboard route
 - Improved error handling in state transitions
 - Enhanced character relationship tracking
