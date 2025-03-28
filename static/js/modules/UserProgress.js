@@ -182,3 +182,14 @@ export default {
         */
     }
 };
+
+/**
+ * Extracts story data from the response
+ * @param {Object} responseData - The response data from the server
+ * @returns {Object} - An object containing narrative and choices
+ */
+function extractStoryData(responseData) {
+    const narrative = responseData.narrative_text || (responseData.stories && responseData.stories.narrative_text) || "";
+    const choices = responseData.choices || (responseData.stories && responseData.stories.choices) || [];
+    return { narrative, choices };
+}

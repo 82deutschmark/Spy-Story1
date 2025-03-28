@@ -154,5 +154,13 @@ class FormHandler {
     }
 }
 
+// Helper function to extract story data
+function extractStoryData(responseData) {
+    // Use narrative_text if present; otherwise check under "stories"
+    const narrative = responseData.narrative_text || (responseData.stories && responseData.stories.narrative_text) || "";
+    const choices = responseData.choices || (responseData.stories && responseData.stories.choices) || [];
+    return { narrative, choices };
+}
+
 // Export the FormHandler class
-export default FormHandler; 
+export default FormHandler;

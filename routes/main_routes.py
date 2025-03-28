@@ -1,78 +1,27 @@
 """
-main_routes.py - Core Application Routes
-====================================
+Main Web Routes Module
+=====================
 
-!!! IMPORTANT - READ BEFORE MODIFYING !!!
-This module contains the primary route handlers for the story generation
-and user interaction flows. Changes here directly affect core gameplay.
+This module handles all web UI routes and template rendering. It manages user sessions
+and provides the interactive story experience through HTML templates.
 
-Key Features:
-------------
-- Story generation and continuation
-- Character selection and management
-- User progress tracking
-- Currency transactions
-- Plot arc management
-- Mission handling
-
-Dependencies:
------------
-- Database Models:
-  * AIInstruction: Story generation parameters
-  * StoryGeneration: Story content and state
-  * StoryNode/Choice: Story flow control
-  * UserProgress: User state and progress
-  * Character: Character data and traits
-  * Transaction: Currency operations
-  * PlotArc: Story arc tracking
-  * Mission: Mission management
-
-Required Services:
----------------
-- story_maker.py: Story generation logic
-- validation_utils.py: Input validation
-- currency_utils.py: Transaction processing
-- db_utils.py: Database operations
-
-Route Structure:
--------------
-1. Index Route ('/')
-   - Character selection
-   - Story options
-   - User progress initialization
-
-2. Storyboard Route ('/storyboard/<story_id>')
-   - Story display
-   - Character integration
-   - Progress tracking
-
-3. Story Generation ('/generate_story')
-   - Story creation
-   - Character integration
-   - Currency handling
-   - Progress updates
-
-4. Choice Processing ('/make_choice')
-   - Choice validation
-   - Currency requirements
-   - Story continuation
-   - Character evolution
-
-Usage Guidelines:
----------------
-1. ALWAYS validate user input
-2. Maintain proper error handling
-3. Update user progress atomically
-4. Handle currency transactions safely
-5. Preserve story continuity
+Key Responsibilities:
+- Web page rendering with templates
+- Session management
+- Form handling
+- User progress tracking through sessions
+- Story state management for web UI
+- Character selection interface
+- Story progression through web forms
 
 Integration Points:
-----------------
-- Story generation system
-- Character management
-- Currency system
-- Progress tracking
-- Mission system
+- Templates: Renders HTML templates from /templates
+- Session: Manages Flask session data
+- GameEngine: Core game logic but accessed through web context
+- Database: Queries through SQLAlchemy models 
+
+Note: This module should NOT be imported by API routes. All shared logic
+should go through the GameEngine or other service classes.
 """
 
 import os
@@ -229,13 +178,13 @@ def storyboard(story_id):
         'choice_history': user_progress.choice_history or [],
         'active_missions': current_node.branch_metadata.get("active_missions", [])
     }
-    template_story_data = {
-        "narrative_text": current_node.narrative_text,
-        "choices": current_node.branch_metadata.get("choices", [])
-    }
+    
+    # Update the story object with current node's narrative text
+    story.narrative_text = current_node.narrative_text
+    
     db.session.commit()
     return render_template('storyboard.html',
-                           story=template_story_data,
+                           story=story,  # Pass the full story object
                            story_id=story_id,
                            node=current_node,
                            character_images=character_images,

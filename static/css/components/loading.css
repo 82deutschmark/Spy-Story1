@@ -65,7 +65,7 @@
   width: 0;
   /* Removed custom animation override to use Bootstrap's progress bar animation */
   /* animation: progressAnimation 3s linear forwards; */
-  transition: width 0.3s ease;
+  transition: width 0.2s ease;
 }
 
 @keyframes spin {

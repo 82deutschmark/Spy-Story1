@@ -154,7 +154,8 @@ class GameState:
                 "setting": self.current_story.setting if self.current_story else None,
                 "narrative_style": self.current_story.narrative_style if self.current_story else None,
                 "mood": self.current_story.mood if self.current_story else None,
-                "generated_story": self.current_story.generated_story if self.current_story else None
+                "generated_story": self.current_story.generated_story if self.current_story else None,
+                "narrative_text": self.current_node.narrative_text if self.current_node else None
             } if self.current_story else None,
             "current_node": {
                 "id": self.current_node.id if self.current_node else None,

@@ -31,11 +31,6 @@ Mission Status Values:
 - completed: Mission has been successfully completed
 - failed: Mission has failed or been abandoned
 
-Difficulty Levels:
----------------
-- easy: Beginner-friendly missions
-- medium: Standard difficulty
-- hard: Challenging missions
 
 Usage Notes:
 ----------

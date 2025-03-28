@@ -78,75 +78,6 @@ def get_openai_client():
 # Initialize state manager
 state_manager = GameStateManager()
 
-# Story generation options
-STORY_OPTIONS = {
-    "conflicts": [
-        ("💼", "Corporate espionage"),
-        ("🤵", "Double agent exposed"),
-        ("🧪", "Bioweapon heist"),
-        ("💰", "Trillion-dollar ransom"),
-        ("🔍", "Hidden conspiracy"),
-        ("🕵️", "Government overthrow"),
-        ("🌌", "Space station takeover"),
-        ("🧠", "Mind control experiment"),
-    ],
-    "settings": [
-        ("🗼", "Modern Europe"),
-        ("🏙️", "Neo-noir Cyber Metropolis"),
-        ("🌌", "Space Station"),
-        ("🏝️", "Chain of Private Islands"),
-        ("🏙️", "New York City"),
-        ("🚢", "Luxury Cruise Liner"),
-        ("❄️", "Arctic Research Base"),
-        ("🏰", "Moscow Underworld"),
-        ("🏜️", "1920s Europe"),
-        ("🌋", "Volcanic Lair"),
-    ],
-    "narrative_styles": [
-    ("🤪", "Modern irreverence (e.g., Christopher Moore)"),
-    ("🤪", "Metafictional absurdity (e.g., Jasper Fforde)"),
-    ("🤪", "Contemporary satire (e.g., Gary Shteyngart)"),
-    ("🤪", "Historical playfulness (e.g., Tom Holt)"),
-    ("🤪", "Darkly absurd (e.g., David Wong)"),
-    ("🤪", "Quirky offbeat humor (e.g., Simon Rich)"),
-    ("🤪", "Absurdist Comedy (e.g., Douglas Adams, Terry Pratchett)"),
-    ("😎", "Spy Thriller (e.g., John le Carré, Ian Fleming)"),
-    ("🔥", "Steamy Romance (e.g., Nora Roberts, E.L. James)"),
-    ("🎭", "Surreal Narrative (e.g., Haruki Murakami, Franz Kafka)"),
-    ("🎬", "Action Adventure (e.g., Tom Clancy, Robert Ludlum)"),
-    ("🕵️", "Noir Detective (e.g., Dennis Lehane, Michael Connelly)"),
-    ("🏙️", "Urban Grit (e.g., S. A. Cosby, Colson Whitehead)"),
-    ("👽", "Dystopian Sci-Fi (e.g., George Orwell, Aldous Huxley)"),
-    ("⚔️", "Epic Fantasy (e.g., J.R.R. Tolkien, George R.R. Martin)"),
-    ("🎻", "Literary Drama (e.g., Fyodor Dostoevsky, Virginia Woolf)"),
-    ("🧙", "Magical Adventure (e.g., J.K. Rowling, C.S. Lewis)"),
-    ("🪐", "Cosmic Horror (e.g., H.P. Lovecraft, Clive Barker)"),
-    ("🗺️", "Mythic Quest (e.g., Robert Jordan, Guy Gavriel Kay)"),
-    ],
-    "moods": [
-    ("😜", "Witty and irreverent with offbeat humor"),
-    ("🤯", "Mind-bending and playful with layered meta humor"),
-    ("😏", "Sharp, satirical, and cutting with modern wit"),
-    ("🏰", "Lighthearted and whimsical with a nod to history"),
-    ("😈", "Gritty, dark, and absurdly humorous"),
-    ("🤡", "Eccentric, quirky, and delightfully offbeat"),
-    ("🤣", "Wildly imaginative and hilariously absurd"),
-    ("🕶️", "Tense, secretive, and cool"),
-    ("💋", "Passionate, sensual, and emotionally charged"),
-    ("🌌", "Dreamlike, enigmatic, and surreal"),
-    ("💥", "High-octane, thrilling, and adventurous"),
-    ("🕵️", "Mysterious, brooding, and gritty"),
-    ("🏙️", "Raw, edgy, and distinctly urban"),
-    ("🤖", "Bleak, dystopic, and thought-provoking"),
-    ("🐉", "Grand, epic, and full of adventure"),
-    ("📖", "Deep, introspective, and emotionally profound"),
-    ("✨", "Enchanting, whimsical, and full of wonder"),
-    ("👻", "Eerily unsettling and cosmic in scale"),
-    ("🗺️", "Legendary, epic, and mythic")
-],
-
-}
-
 # Export the functions that should be available to other modules
 __all__ = ['generate_story', 'get_story_options']
 
@@ -155,16 +86,16 @@ class CharacterPromptBuilder:
     
     @staticmethod
     def build_character_prompt(character_info: Optional[Dict[str, Any]] = None) -> str:
-        """Build the character prompt for story generation."""
+        """Build the character prompt for story generation with basic details only."""
         if not character_info:
             return ""
 
-        # Get the exact fields from the database
+        # Get the exact fields from the DB (note: no role_requirements in DB)
         character_traits = character_info.get("character_traits", {})
         backstory = character_info.get("backstory", "")
         plot_lines = character_info.get("plot_lines", [])
-        role = character_info.get("role", "Unknown")
-        role_requirements = character_info.get("role_requirements", "")
+        # Use the DB column 'character_role' via extraction function
+        role = extract_character_role(character_info)
 
         # Build trait descriptions
         trait_descriptions = []
@@ -177,78 +108,44 @@ class CharacterPromptBuilder:
             for trait in traits_list:
                 trait_descriptions.append(str(trait))
 
-        # Build the prompt parts
+        # Build the prompt parts with basic details only (removed role_requirements)
         prompt_parts = [
             "FEATURED NPC CHARACTER:",
-            f"Name: {extract_character_name(character_info)}",  # Modified line
+            f"Name: {extract_character_name(character_info)}",
             f"Role: {role}",
-            f"Role Requirements: {role_requirements}",
             "",
             "CHARACTER DETAILS:",
             f"Traits: {', '.join(trait_descriptions) if trait_descriptions else 'Not specified'}",
             f"Backstory: {backstory if backstory else 'Not specified'}",
-            f"Plot Lines: {', '.join(plot_lines) if plot_lines else 'Tries to get the protagonist to help with their own mission or plan'}",
-            "",
-            "CHARACTER INTEGRATION REQUIREMENTS:",
-            "1. This NPC MUST be used in the story according to their specified role",
-            "2. Make this NPC's traits manifest in their dialogue and actions",
-            "3. Show their backstory through their experiences and knowledge",
-            "4. Reflect their plot lines in their motivations and actions",
-            "5. Ensure their traits influence their decisions and reactions",
-            "6. Make their presence meaningful to the plot",
-            "7. Show how their traits affect their relationship with the player character",
-            "8. Use their traits to create interesting conflicts or opportunities",
-            "9. Do not modify or change this NPC's role or personality",
-            "10. This NPC must remain consistent with their provided traits and backstory",
-            "11. This NPC's role must be clearly evident in their actions and dialogue",
-            "12. This NPC must maintain their assigned role throughout the story",
-            "13. This NPC's interactions must align with their role requirements",
-            "14. This NPC cannot be replaced or substituted with other characters",
-            "",
-            "CHARACTER DIALOGUE GUIDELINES:",
-            "1. Make their speech patterns reflect their traits",
-            "2. Show their backstory through their expertise in conversations",
-            "3. Reveal their plot lines through their motivations and goals",
-            "4. Let their backstory influence their perspective and opinions",
-            "5. Make their dialogue choices reflect their values",
-            "6. Show their emotional intelligence through social interactions",
-            "7. Reveal their motivations through their words and actions",
-            "8. Make their dialogue choices impact the story's direction",
-            "9. Ensure their dialogue reflects their assigned role",
-            "10. Make their speech patterns match their role requirements"
+            f"Plot Lines: {', '.join(plot_lines) if plot_lines else 'Tries to get the protagonist to help them with a personal mission'}"
         ]
         
         return "\n".join(prompt_parts)
 
     @staticmethod
     def build_additional_characters_prompt(additional_characters: Optional[List[Dict[str, Any]]] = None) -> str:
-        """Build the prompt section for additional characters."""
+        """Build the prompt section for additional characters with basic details only."""
         if not additional_characters:
             return ""
 
-        prompt_parts = ["\nSECONDARY NPC CHARACTERS - INCORPORATE AT LEAST ONE INTO THE NARRATIVE:\n"]
+        prompt_parts = ["\nSECONDARY NPC CHARACTERS:"]
         
         for char in additional_characters:
-            # Use our centralized extraction functions:
             char_traits = extract_character_traits(char)
             if isinstance(char_traits, str):
                 char_traits = [char_traits]
             char_name = extract_character_name(char)
             char_role = extract_character_role(char)
-            role_requirements = char.get("role_requirements", "")
-            traits_str = ", ".join(char_traits) if char_traits else "No specified traits"
-            backstory = extract_character_backstory(char) or "No backstory provided"
+            backstory = extract_character_backstory(char) or "Not specified"
             plot_lines = extract_character_plot_lines(char)
-            plot_lines_str = ", ".join(plot_lines) if plot_lines else "No plot lines provided"
+            plot_lines_str = ", ".join(plot_lines) if plot_lines else "Not specified"
+            traits_str = ", ".join(char_traits) if char_traits else "Not specified"
             char_parts = [
                 f"- Name: {char_name}",
                 f"  Role: {char_role}",
-                f"  Role Requirements: {role_requirements}",
                 f"  Traits: {traits_str}",
                 f"  Backstory: {backstory}",
-                f"  Plot Lines: {plot_lines_str}",
-                "  Suggested Usage: Include in a meaningful choice for the player character",
-                "  Important: This character should introduce one of thier plot_lines into the story"
+                f"  Plot Lines: {plot_lines_str}"
             ]
             prompt_parts.extend(char_parts)
 
@@ -272,8 +169,8 @@ class StoryPromptBuilder:
             "CRITICAL CHARACTER ROLE REQUIREMENTS:",
             "1. You MUST ONLY use characters that are explicitly provided to you in the character prompts",
             "2. NEVER invent or create new characters that are not in the prompts",
-            "3. If a character is not provided in the prompts, they cannot appear in the story",
-            "4. Each character has a specific role that should be respected:",
+            "3. If a character is a villain they should not suddenly enter a scene or location, they need to be well protected and hard to locate ",
+            "4. Each character has a specific {char_role} that should be respected:",
             "   - Mission-giver: MUST be the one giving the mission to the player",
             "   - Villain: MUST be the primary antagonists",
             "   - Neutral: Can be used in supporting roles",
@@ -281,14 +178,27 @@ class StoryPromptBuilder:
             "5. The mission-giver must remain the mission-giver",
             "6. The villains must remain the primary antagonist",
             "",
-            "NARRATIVE STYLE GUIDELINES:",
-            "1. Create a LENGTHY, DETAILED story introduction (at least 12000-15000 words) with good story structure",
-            "2. ALWAYS tell the story in second person, addressing the player directly and alluding to their name and gender naturally through dialogue",
-            "3. Use vivid sensory details, atmospheric descriptions, action packed fight scenes, but do not reference a character's physical features or clothing",
-            "4. This segment should set the stage for the story, introduce the characters, and provide a clear objective for the player",
-            "5. The story should be mission driven but true to the narrative style, mood, and setting",
-            "6. Incorporate dynamic character interactions with dialogue that reveals personality",
-            "7. Balance action, dialogue, intrigue, and character development, ending with a cliffhanger with three choices"
+            "CHARACTER AUTHENTICITY:",
+            "7. Maintain all {traits_str}, backstories, and plot lines exactly as provided",
+            "8. Use character traits to influence dialogue and actions",
+            "9. Weave backstories into experiences and knowledge",
+            "10. Express plot lines through motivations and goals",
+            "11. Create meaningful character interactions and conflicts",
+            "",
+            "MISSION AND RELATIONSHIP GUIDELINES:",
+            "12. Mission must have clear objectives (steal/kill/obtain/destroy) and target one of the villains",
+            "13. Include a reasonable deadline and failure consequences",
+            "14. Make villain well-protected but pathetically incompetent",
+            "15. Mission-giver should be exasperated but reluctant and reference past failures",
+            "16. Mission-giver uses complex language about geopolitics/economics that bores the protagonist",
+            "17. Characters must express reasons for helping or opposing the protagonist",
+            "",
+            "NARRATIVE REQUIREMENTS:",
+            "19. ALWAYS tell the story in second person, alluding to their {protagonist_name} and {protagonist_gender} naturally via dialogue",
+            "20. Use vivid sensory details and atmospheric descriptions",
+            
+            "22. Balance action, dialogue, intrigue, and character development",
+            "23. End with a cliffhanger and exactly three distinct choices"
         ]
         
         return {
@@ -336,29 +246,11 @@ class StoryPromptBuilder:
             CharacterPromptBuilder.build_additional_characters_prompt(additional_characters),
             "",
             "STORY CONTEXT:",
-            story_context if story_context else "This is the first segment of the story, the protagonist is a charismatic, reckless, fearless rouge agent with a checkered past, and devil-may-care attitude. They are recruited by a mission-giver who claims to have powerful friends and work for a secret organization to take down a powerful villain who is threatening the world with a diabolical plan.",
+            story_context if story_context else "This is the first segment of the story, the protagonist is a charismatic, reckless, fearless rogue agent with a checkered past, and a devil-may-care attitude. They are recruited by a mission-giver who claims to have powerful friends and works for a secret organization to take down a powerful villain who is threatening the world with a diabolical plan.",
             "",
-            "IMPORTANT CHARACTER USAGE RULES:",
-            "1. You MUST use only the characters provided in the prompts; do not invent new characters.",
-            "2. The mission-giver must remain as given and the villain must be used as provided.",
-            "3. All character traits, backstories, and plot lines must remain unmodified.",
-            "4. You MUST use the mission-giver character to give the initial mission, which targets one of the villain characters.",
-            "5. The mission should have a clear objective like to steal something, kill someone, or obtain info or all three.",
-            "6. The mission should have a deadline of two days and a consequence for failure.",
-            "7. The villain should not appear directly in the story until later in the game, introduce them first via other character dialogue",
-            "8. You MUST NOT invent or create any unsourced characters, select from the characters provided in the character prompts",
-            "9. The protagonist should communicate with the other characters by seeking them out or they will seek the protagonist out",
-            "10. The other characters should have a reason to be hostile or helpful to the protagonist, and use their traits, plot_lines, and backstory to enrich the story",
-            "11. The mission-giver reluctantly agrees to give the player the mission and reminds them not to screw it up again, alluding to a previous fiasco.",
-            "12. The villain must be well-protected and pose a significant challenge, but also be pathetic and incompetent and the object of disgust not fear.",
-            "13. The villain is hated by the mission-giver for reasons that are business or political or ideological or personal or any combination.",
-            "14. The villain should have a weakness that the player can exploit",
-            "15. The villain should have a backstory that explains their plan or motivation, but generally they are a super rich scumbag who will stop at nothing to get what they want.",
-            "16. Do not describe the villain's physical appearance, only their role and motivation.",
-            "17. The mission-giver is a rich person, or a high-level spy or a government agent with a lot of resources and a lot of power. They need the protagonist for a discreet job",
-            "18. The mission-giver should already have a strained relationship with the player character, who they view as a reckless and impulsive amateur.",
-            "19. The mission-giver is always talking about geopolitical tensions and macroeconomic trends and esoteric financial strategies in niche industries, frequently in one or two complex and convoluted sentences.",
-            "Please generate a story that follows these requirements exactly and try to be at least 1500-2000 words long.",
+            "Create a LENGTHY, DETAILED story introduction (at least 5000-8000 words) with good story structure",","
+            "Introduce the character selected by the user after the mission has been given",
+            "Begin with {protagonist_name} receiving a {mission} from the mission-giver",
             "End the segment by providing exactly three distinct choices for how to proceed."
         ]
         
@@ -377,27 +269,32 @@ class StoryGenerator:
             logger.error(f"Invalid story_data type: {type(story_data)}")
             return {"choices": [], "story": "Error processing story data"}
             
-        # Ensure choices exist and are properly formatted
         if "choices" in story_data:
             if not isinstance(story_data["choices"], list):
                 logger.error(f"Invalid choices type: {type(story_data['choices'])}")
                 story_data["choices"] = []
             else:
-                # Process each choice
                 for i, choice in enumerate(story_data["choices"]):
-                    if not isinstance(choice, dict):
+                    # If choice is a string, try to parse it as JSON
+                    if isinstance(choice, str):
+                        try:
+                            choice_parsed = json.loads(choice)
+                            story_data["choices"][i] = choice_parsed
+                        except Exception as ex:
+                            logger.error(f"Error parsing choice at index {i}: {str(ex)}")
+                            story_data["choices"][i] = {}
+                            continue
+                    elif not isinstance(choice, dict):
                         logger.error(f"Invalid choice type at index {i}: {type(choice)}")
                         continue
                         
                     # Ensure each choice has an ID
                     if "id" not in choice and "choice_id" not in choice:
-                        choice["choice_id"] = f"choice_{i}_{datetime.utcnow().timestamp()}"
-                    
-                    # Ensure text is properly encoded
+                        story_data["choices"][i]["choice_id"] = f"choice_{i}_{datetime.utcnow().timestamp()}"
+                        
+                    # Encode the text properly
                     if "text" in choice and isinstance(choice["text"], str):
-                        # Handle potential encoding issues
                         try:
-                            # Normalize unicode characters
                             choice["text"] = choice["text"].encode('utf-8', errors='replace').decode('utf-8')
                         except Exception as e:
                             logger.error(f"Error encoding choice text: {str(e)}")
@@ -426,11 +323,9 @@ class StoryGenerator:
         client: Optional[OpenAI] = None
     ) -> Dict[str, Any]:
         """Generate a new story with the given parameters."""
-        # Update client if provided
         if client:
             self.client = client
 
-        # Get final values, using custom if provided
         final_conflict = custom_conflict or conflict
         final_setting = custom_setting or setting
         final_narrative = custom_narrative or narrative_style
@@ -440,7 +335,6 @@ class StoryGenerator:
         if additional_characters is None:
             additional_characters = get_random_characters(3)
         
-        # Build the story prompt
         story_prompt = StoryPromptBuilder.build_story_prompt(
             conflict=final_conflict,
             setting=final_setting,
@@ -454,7 +348,6 @@ class StoryGenerator:
             story_context=story_context
         )
         
-        # Generate the story
         story_data = self.context_manager.generate_initial_story(
             conflict=final_conflict,
             setting=final_setting,
@@ -465,7 +358,6 @@ class StoryGenerator:
             user_message=story_prompt
         )
         
-        # Process choices and create final story data
         story_data = self.process_choices(story_data)
         return {
             "conflict": final_conflict,
@@ -485,12 +377,16 @@ def generate_story(**kwargs) -> Dict[str, Any]:
     client = kwargs.pop('client', None)
     generator = StoryGenerator(client=client)
     story_data = generator.generate_story(**kwargs)
-    # NEW: Flatten the generated story data by extracting narrative_text and choices
+    
+    # Extract narrative text from the correct location in the response
+    stories = story_data.get("stories", {})
+    narrative = stories.get("narrative_text") or stories.get("story") or story_data.get("narrative_text") or story_data.get("story") or ""
+    
+    # Flatten the response consistently
     flattened = {
-        "narrative_text": story_data.get("stories", {}).get("story", story_data.get("story")) or "",
-        "choices": story_data.get("stories", {}).get("choices", story_data.get("choices", []))
+        "narrative_text": narrative,
+        "choices": stories.get("choices", []) or story_data.get("choices", [])
     }
-    # Merge remaining top-level fields if needed (e.g., conflict, setting)
     flattened.update({
         "conflict": story_data.get("conflict"),
         "setting": story_data.get("setting"),
@@ -498,3 +394,72 @@ def generate_story(**kwargs) -> Dict[str, Any]:
         "mood": story_data.get("mood")
     })
     return flattened
+
+# --- STORY_OPTIONS moved to the end of the file ---
+
+STORY_OPTIONS = {
+    "conflicts": [
+        ("💼", "Corporate espionage"),
+        ("🤵", "Double agent exposed"),
+        ("🧪", "Bioweapon heist"),
+        ("💰", "Trillion-dollar ransom"),
+        ("🔍", "Hidden conspiracy"),
+        ("🕵️", "Government overthrow"),
+        ("🌌", "Space station takeover"),
+        ("🧠", "Mind control experiment"),
+    ],
+    "settings": [
+        ("🗼", "Modern Europe"),
+        ("🏙️", "Neo-noir Cyber Metropolis"),
+        ("🌌", "Space Station"),
+        ("🏝️", "Chain of Private Islands"),
+        ("🏙️", "New York City"),
+        ("🚢", "Luxury Cruise Liner"),
+        ("❄️", "Arctic Research Base"),
+        ("🏰", "Moscow Underworld"),
+        ("🏜️", "1920s Europe"),
+        ("🌋", "Volcanic Lair"),
+    ],
+    "narrative_styles": [
+        ("🤪", "Modern irreverence (e.g., Christopher Moore)"),
+        ("🤪", "Metafictional absurdity (e.g., Jasper Fforde)"),
+        ("🤪", "Contemporary satire (e.g., Gary Shteyngart)"),
+        ("🤪", "Historical playfulness (e.g., Tom Holt)"),
+        ("🤪", "Darkly absurd (e.g., David Wong)"),
+        ("🤪", "Quirky offbeat humor (e.g., Simon Rich)"),
+        ("🤪", "Absurdist Comedy (e.g., Douglas Adams, Terry Pratchett)"),
+        ("😎", "Spy Thriller (e.g., John le Carré, Ian Fleming)"),
+        ("🔥", "Steamy Romance (e.g., Nora Roberts, E.L. James)"),
+        ("🎭", "Surreal Narrative (e.g., Haruki Murakami, Franz Kafka)"),
+        ("🎬", "Action Adventure (e.g., Tom Clancy, Robert Ludlum)"),
+        ("🕵️", "Noir Detective (e.g., Dennis Lehane, Michael Connelly)"),
+        ("🏙️", "Urban Grit (e.g., S. A. Cosby, Colson Whitehead)"),
+        ("👽", "Dystopian Sci-Fi (e.g., George Orwell, Aldous Huxley)"),
+        ("⚔️", "Epic Fantasy (e.g., J.R.R. Tolkien, George R.R. Martin)"),
+        ("🎻", "Literary Drama (e.g., Fyodor Dostoevsky, Virginia Woolf)"),
+        ("🧙", "Magical Adventure (e.g., J.K. Rowling, C.S. Lewis)"),
+        ("🪐", "Cosmic Horror (e.g., H.P. Lovecraft, Clive Barker)"),
+        ("🗺️", "Mythic Quest (e.g., Robert Jordan, Guy Gavriel Kay)"),
+    ],
+    "moods": [
+        ("😜", "Witty and irreverent with offbeat humor"),
+        ("🤯", "Mind-bending and playful with layered meta humor"),
+        ("😏", "Sharp, satirical, and cutting with modern wit"),
+        ("🏰", "Lighthearted and whimsical with a nod to history"),
+        ("😈", "Gritty, dark, and absurdly humorous"),
+        ("🤡", "Eccentric, quirky, and delightfully offbeat"),
+        ("🤣", "Wildly imaginative and hilariously absurd"),
+        ("🕶️", "Tense, secretive, and cool"),
+        ("💋", "Passionate, sensual, and emotionally charged"),
+        ("🌌", "Dreamlike, enigmatic, and surreal"),
+        ("💥", "High-octane, thrilling, and adventurous"),
+        ("🕵️", "Mysterious, brooding, and gritty"),
+        ("🏙️", "Raw, edgy, and distinctly urban"),
+        ("🤖", "Bleak, dystopic, and thought-provoking"),
+        ("🐉", "Grand, epic, and full of adventure"),
+        ("📖", "Deep, introspective, and emotionally profound"),
+        ("✨", "Enchanting, whimsical, and full of wonder"),
+        ("👻", "Eerily unsettling and cosmic in scale"),
+        ("🗺️", "Legendary, epic, and mythic")
+    ],
+}

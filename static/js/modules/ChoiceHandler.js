@@ -123,4 +123,29 @@ class ChoiceHandler {
     }
 }
 
+function extractStoryData(responseData) {
+    const narrative = responseData.narrative_text || (responseData.stories && responseData.stories.narrative_text) || "";
+    const choices = responseData.choices || (responseData.stories && responseData.stories.choices) || [];
+    return { narrative, choices };
+}
+
+function handleChoiceResponse(responseData) {
+    const { narrative, choices } = extractStoryData(responseData);
+    const storyContent = document.querySelector('.story-content');
+    if (storyContent) {
+        storyContent.innerHTML = narrative;
+    }
+    const choicesContainer = document.querySelector('.choices-container');
+    if (choicesContainer) {
+        choicesContainer.innerHTML = "";
+        choices.forEach(choice => {
+            const btn = document.createElement('button');
+            btn.className = "choice-btn";
+            btn.innerText = choice.text || "Option";
+            btn.dataset.choiceId = choice.choice_id || choice.id;
+            choicesContainer.appendChild(btn);
+        });
+    }
+}
+
 export default ChoiceHandler;

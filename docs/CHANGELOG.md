@@ -2,24 +2,6 @@
 
 ## [Unreleased]
 
-### Fixed
-- Fixed critical port configuration issues that were preventing successful deployments:
-  - Resolved port mismatch between development (5000) and production (80)
-  - Fixed duplicate port entries in `.replit` configuration 
-  - Updated application to use PORT environment variable for flexibility
-  - Added comprehensive documentation in `/docs/port_configuration_guide.md`
-
-## Previously Released
-
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [Unreleased]
-
 ### Added
 - Enhanced node resolution system with priority-based logic:
   - User's current node for story
@@ -57,6 +39,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved character list compilation
   - Better character relationship tracking
   - Enhanced character data validation
+- Introduced a helper function “extractStoryData” in multiple JS modules (FormHandler.js, EventHandlers.js, MissionManager.js, UserProgressManager.js, UserProgress.js, UIUtils.js, StoryFormHandler.js, and ChoiceHandler.js)
+  - This function standardizes extraction of narrative_text and choices from API payloads, supporting both top-level fields and nesting under a "stories" key.
+- Updated main.js to use fallback logic when rendering narrative_text and choices to ensure the storyboard displays fully formatted HTML with line breaks.
 
 ### Changed
 - Refactored state management system:
@@ -85,6 +70,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Better character metadata organization
   - Improved character relationship tracking
   - Enhanced character data validation
+- In FormHandler.js, appended an extractStoryData helper to ensure the response payload is consistently parsed.
+- In EventHandlers.js (deprecated file), added an extractStoryData helper for backward compatibility.
+- In MissionManager.js, added an extractStoryData helper at the bottom to maintain consistency in story payload processing.
+- In UserProgressManager.js and UserProgress.js, included extractStoryData helper functions so that any story data received can be uniformly parsed.
+- In UIUtils.js, exported an extractStoryData function along with UI utilities.
+- In StoryFormHandler.js and ChoiceHandler.js, added helper functions (extractStoryData and handleStoryResponse/handleChoiceResponse) so that the UI renders narrative_text as HTML and choices correctly.
+- Ensured that all modules now expect narrative_text to already contain HTML (e.g., <br/> tags) for proper rendering in our complex Java UI.
 
 ### Fixed
 - Fixed critical node resolution issues in storyboard route
@@ -157,35 +149,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed character data handling in choice continuation
   - Preserved currency requirement checks and processing
   - Kept proper error handling and user feedback
-- Fixed critical error in story continuation where StoryNode lacked to_dict() method
-- Improved state serialization in game engine
-- Enhanced data consistency in story node transitions
-- Fixed choice processing in story flow
-- Fixed critical choice handling issues in game_engine.py:
-  - Resolved empty choices array issue in node branch_metadata
-  - Fixed timing of node creation and choice assignment
-  - Improved transaction handling in make_choice method
-  - Ensured choices are properly populated from story continuation
-  - Enhanced error handling and logging for choice processing
-  - Fixed node transition logic to maintain choice consistency
-  - Improved state management during choice transitions
-  - Added proper validation of continuation data
-  - Enhanced logging of node states during transitions
-  - Fixed choice data structure consistency between story_maker and segment_maker
-- Issue with character IDs not being properly tracked in choices
-- Inconsistent character references in story continuations
-- Missing character validation in story generation
-- Fixed character highlighting issues:
-  - Resolved broken HTML structure in character name highlighting
-  - Fixed multiple replacement issues with character names
-  - Corrected tooltip display and positioning
-  - Fixed character portrait highlighting
-  - Improved character name detection accuracy
-- Fixed character data loading in storyboard:
-  - Now properly loads characters from node choices
-  - Maintains complete character list across story segments
-  - Preserves character relationships and metadata
-  - Ensures consistent character display in UI
+- Resolved issues where the initial storyboard was missing narrative text and choices by introducing unified extraction logic in our JavaScript modules.
 
 ### Changed
 - Refactored state management system

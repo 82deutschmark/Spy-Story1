@@ -5,7 +5,7 @@
 ### Core Models
 1. `StoryGeneration`
    - Main container for story content
-   - Contains metadata (conflict, setting, narrative_style, mood)
+   - Contains metadata (conflict, setting, style, mood)
    - Has `generated_story` JSONB field storing story text and choices
    - Links to current node via `current_node_id`
 
@@ -35,7 +35,6 @@
    - Now includes `character_id` for character-specific choices
 
 ### Character Integration
-(Note: Characters are now managed exclusively via utils/character_manager.py)
 ```python
 # Example branch_metadata structure
 branch_metadata = {
@@ -273,28 +272,3 @@ class ChoiceHandler {
 1. Update ChoiceHandler initialization
 2. Add error recovery logic
 3. Improve form validation
-
-### Phase 4: Testing
-1. Test node resolution logic
-2. Verify state persistence
-3. Test error handling
-4. Validate choice submission flow
-
-## Notes
-- All changes must maintain backward compatibility
-- Consider adding database constraints
-- Add logging for state transitions
-- Consider adding node validation middleware
-- Document all state transitions
-
-## Storyboard File Overview
-
-The storyboard template is responsible for rendering the current state of the narrative. Key aspects include:
-- It is rendered by the `/storyboard/<story_id>` route, which provides context including the story content, current node, character images, background image, and user progress.
-- The template displays:
-  • A dynamic background image.
-  • A primary character showcase and a gallery of character portraits.
-  • The narrative text (from the current story node).
-  • A list of choice forms that submit required state (story_id, node_id, choice_id, etc.) to the `/make_choice` route.
-  • Flash messages to inform the user of success or errors.
-- Client-side JavaScript (in main.js and related modules) further augments user interaction through character highlighting and dynamic form handling.

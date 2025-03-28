@@ -65,14 +65,36 @@ document.addEventListener('DOMContentLoaded', function(){
     fetch('/api/user/progress')
        .then(response => response.json())
        .then(data => {
-           document.getElementById('active-missions-display').textContent = data.active_missions.length;
-           const currencyText = Object.entries(data.currency)
-              .map(([symbol, amount]) => `${symbol}: ${amount}`)
-              .join(' | ');
-           document.getElementById('currency-display').textContent = currencyText;
-           document.getElementById('notebook-notes').textContent = data.notes;
+           const missionsDisplay = document.getElementById('active-missions-display');
+           const currencyDisplay = document.getElementById('currency-display');
+           const notesDisplay = document.getElementById('notebook-notes');
+
+           if (missionsDisplay) {
+               missionsDisplay.textContent = data.active_missions.length;
+           }
+           
+           if (currencyDisplay) {
+               const currencyText = Object.entries(data.currency || {})
+                   .map(([symbol, amount]) => `${symbol}: ${amount}`)
+                   .join(' | ');
+               currencyDisplay.textContent = currencyText;
+           }
+           
+           if (notesDisplay) {
+               notesDisplay.textContent = data.notes || 'No notes yet';
+           }
        })
-       .catch(err => console.error('Error fetching user progress:', err));
+       .catch(err => {
+           console.error('Error fetching user progress:', err);
+           // Optionally show a user-friendly error message
+           const displays = ['active-missions-display', 'currency-display', 'notebook-notes'];
+           displays.forEach(id => {
+               const element = document.getElementById(id);
+               if (element) {
+                   element.textContent = 'Error loading data';
+               }
+           });
+       });
 });
 
 // Setup global event listeners
@@ -165,4 +187,34 @@ async function initializeApplication() {
         console.error('Critical error during application initialization:', error);
         UIUtils.showToast('Error', 'An error occurred while loading the application. Please refresh the page or contact support if the problem persists.');
     }
+}
+
+function renderStory(responseData) {
+    // Ensure we are using the top-level narrative text and choices
+    // If narrative_text isn’t found, look inside 'stories' as fallback
+    let narrative = responseData.narrative_text || (responseData.stories && responseData.stories.narrative_text) || "";
+    let choices = responseData.choices || (responseData.stories && responseData.stories.choices) || [];
+
+    // Update the story content container (which expects HTML with <br/> tags)
+    const storyContentDiv = document.querySelector('.story-content');
+    if(storyContentDiv) {
+        storyContentDiv.innerHTML = narrative; // narrative_text should already contain <br/> tags
+    }
+
+    // Update choices UI
+    const choicesContainer = document.querySelector('.choices-container');
+    if (choicesContainer) {
+        choicesContainer.innerHTML = ""; // clear previous choices
+        choices.forEach(choice => {
+            let btn = document.createElement('button');
+            btn.className = "choice-btn";
+            btn.innerText = choice.text || "Option";
+            // attach additional data attributes if needed:
+            btn.dataset.choiceId = choice.choice_id || choice.id;
+            choicesContainer.appendChild(btn);
+        });
+    }
+    
+    console.log('Rendered narrative:', narrative);
+    console.log('Rendered choices:', choices);
 }

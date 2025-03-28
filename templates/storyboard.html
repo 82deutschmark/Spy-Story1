@@ -136,7 +136,7 @@
 
                 <div class="story-scroll-container">
                     <div class="story-content">
-                        {{ story.narrative_text }}
+                        {{ story.narrative_text if story.narrative_text else (node.narrative_text if node.narrative_text else story.story) }}
                     </div>
                 </div>
 

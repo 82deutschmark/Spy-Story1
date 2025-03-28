@@ -332,8 +332,13 @@ class GameEngine:
                 existing_characters=[{
                     "id": char.id,
                     "name": char.character_name,
+                    "character_name": char.character_name,
+                    "character_role": char.character_role,
+                    "character_traits": getattr(char, "character_traits", {}),
+                    "plot_lines": getattr(char, "plot_lines", []),
                     "backstory": getattr(char, "backstory", ""),
-                    "plot_lines": getattr(char, "plot_lines", [])
+                    "description": getattr(char, "description", ""),
+                    "role": char.character_role  # Include both formats for compatibility
                 } for char in story.characters] if story.characters else []
             )
             

@@ -1,3 +1,32 @@
+"""
+API Routes Module
+===============
+
+This module provides JSON API endpoints for programmatic access to the story engine.
+It handles stateless requests and returns structured data without any UI components.
+
+Key Responsibilities:
+- JSON-only responses
+- No session management
+- Direct GameEngine interaction
+- Structured error responses
+- Status monitoring endpoints
+- Character data access
+- Story state queries
+
+Integration Points:
+- GameEngine: Direct usage without UI layers
+- Database: Direct model queries
+- Client Apps: Provides JSON interface
+- Monitoring: System status endpoints
+
+Note: This module should NOT:
+- Import from main_routes
+- Use Flask sessions
+- Return HTML/templates
+- Handle form data (use request.json only)
+"""
+
 import logging
 from flask import Blueprint, request, jsonify
 from models.character_data import Character
@@ -74,18 +103,30 @@ def random_character():
 
 @api_bp.route('/story/make_choice', methods=['POST'])
 def api_make_choice():
-    """API endpoint for making a story choice"""
-    try:
-        data = request.json
-        if not data:
-            return jsonify({'error': 'No data provided'}), 400
+    """API endpoint for making story choices"""
+    data = request.json
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    
+    required_fields = ['story_id', 'choice_id', 'user_id']
+    if not all(field in data for field in required_fields):
+        return jsonify({'error': 'Missing required fields'}), 400
 
-        # Forward to the main route handler
-        from routes.main_routes import make_choice as make_choice_handler
-        result = make_choice_handler(data)
-        return jsonify(result)
+    try:
+        game_engine = GameEngine(user_id=data['user_id'])
+        result = game_engine.make_choice(
+            choice_id=data['choice_id'],
+            custom_choice_text=data.get('previous_choice'),
+            story_context=data.get('story_context'),
+            characters=[{"id": cid} for cid in data.get('characters', [])]
+        )
+        return jsonify({
+            'success': True,
+            'current_node': result['current_node'],
+            'story_id': data['story_id']
+        })
     except Exception as e:
-        logger.error(f"API error in make_choice: {str(e)}")
+        logger.error(f"Error in make_choice: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/user/progress', methods=['GET'])

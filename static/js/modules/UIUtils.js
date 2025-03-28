@@ -121,3 +121,9 @@ export const UIUtils = {
 
 // Export a default instance
 export default UIUtils;
+
+export function extractStoryData(responseData) {
+    const narrative = responseData.narrative_text || (responseData.stories && responseData.stories.narrative_text) || "";
+    const choices = responseData.choices || (responseData.stories && responseData.stories.choices) || [];
+    return { narrative, choices };
+}

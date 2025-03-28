@@ -38,4 +38,10 @@
  */
 
 // This file is intentionally empty as it has been deprecated
-// See the documentation above for the new structure 
+// See the documentation above for the new structure
+
+function extractStoryData(responseData) {
+    const narrative = responseData.narrative_text || (responseData.stories && responseData.stories.narrative_text) || "";
+    const choices = responseData.choices || (responseData.stories && responseData.stories.choices) || [];
+    return { narrative, choices };
+}
