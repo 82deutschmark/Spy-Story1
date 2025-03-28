@@ -182,12 +182,49 @@ class GameEngine:
                     narrative_text=story_data["narrative_text"],  # Updated to use flattened field
                     is_endpoint=False,
                     branch_metadata={
-                        "choices": story_data["choices"],  # Use choices from flattened structure
+                        # Story context
+                        "story_id": story.id,
+                        "timestamp": datetime.utcnow().isoformat(),
+                        
+                        # Character information
                         "characters": [char.id for char in selected_characters] if selected_character_ids else [],
+                        "character_details": [
+                            {
+                                "id": char.id,
+                                "name": char.character_name,
+                                "character_name": char.character_name,
+                                "character_role": char.character_role,
+                                "character_traits": getattr(char, "character_traits", {}),
+                                "plot_lines": getattr(char, "plot_lines", []),
+                                "backstory": getattr(char, "backstory", ""),
+                                "description": getattr(char, "description", "")
+                            } for char in selected_characters
+                        ] if selected_character_ids else [],
+                        
+                        # Player choices
+                        "choices": story_data["choices"],  # Use choices from flattened structure
+                        
+                        # Mission foundation (placeholder for initial node)
+                        "mission_info": {
+                            "title": f"Initial mission in {story.setting}",
+                            "objective": f"Investigate the {story.primary_conflict}",
+                            "status": "in_progress",
+                            "progress": 0
+                        },
+                        
+                        # Protagonist information 
                         "protagonist": {
                             "name": form_data.get('protagonist_name'),
                             "gender": form_data.get('protagonist_gender'),
                             "level": form_data.get('protagonist_level', 1)
+                        },
+                        
+                        # Story parameters for context continuity
+                        "story_parameters": {
+                            "conflict": story.primary_conflict,
+                            "setting": story.setting,
+                            "narrative_style": story.narrative_style,
+                            "mood": story.mood
                         }
                     }
                 )
@@ -352,12 +389,49 @@ class GameEngine:
                 parent_node_id=current_node.id,
                 generated_by_ai=True,
                 branch_metadata={
+                    # Story context
+                    "story_id": story.id,
                     "choice_id": choice_id,
                     "branch_id": choice_id,
-                    "choice_text": custom_choice_text or choice_id,
                     "timestamp": datetime.utcnow().isoformat(),
+                    
+                    # Choice context
+                    "choice_text": custom_choice_text or choice_id,
                     "choices": next_segment["choices"],
-                    # ...existing branch metadata for characters, if any...
+                    
+                    # Character information
+                    "characters": [char.id for char in story.characters] if story.characters else [],
+                    "character_details": [
+                        {
+                            "id": char.id,
+                            "name": char.character_name,
+                            "character_name": char.character_name,
+                            "character_role": char.character_role,
+                            "character_traits": getattr(char, "character_traits", {}),
+                            "plot_lines": getattr(char, "plot_lines", []),
+                            "backstory": getattr(char, "backstory", ""),
+                            "description": getattr(char, "description", "")
+                        } for char in story.characters
+                    ] if story.characters else [],
+                    
+                    # Mission information
+                    "mission_info": mission_info,
+                    "mission_update": next_segment.get("mission_update", {}),
+                    
+                    # Protagonist information - carry over from current node
+                    "protagonist": current_node.branch_metadata.get("protagonist", {}),
+                    
+                    # Story parameters - ensure continuity
+                    "story_parameters": {
+                        "conflict": story.primary_conflict,
+                        "setting": story.setting,
+                        "narrative_style": story.narrative_style,
+                        "mood": story.mood
+                    },
+                    
+                    # Previous node reference for context
+                    "previous_node_id": current_node.id,
+                    "previous_choice": choice_id
                 }
             )
             
@@ -379,10 +453,6 @@ class GameEngine:
                 if story_characters:
                     next_node.character_id = story_characters[0].id
                     
-            # Add mission update to branch_metadata if present
-            if "mission_update" in next_segment:
-                next_node.branch_metadata["mission_update"] = next_segment["mission_update"]
-            
             # Add node to session and flush to get ID
             db.session.add(next_node)
             db.session.flush()

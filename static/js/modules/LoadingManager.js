@@ -89,7 +89,7 @@ class LoadingManager {
                 </div>
                 <div class="loading-message">${message}</div>
                 <div class="loading-flair" style="font-style: italic; color: #28a745; margin-bottom: 10px;">
-                    Please wait, we’re making magic happen!
+                    Please wait, we're making magic happen!
                 </div>
                 <div class="loading-percentage" style="font-weight: bold;">0%</div>
                 <div class="progress mt-3" style="width: 250px;">
@@ -112,16 +112,28 @@ class LoadingManager {
             }
         };
 
-        // Start fake progress update: increment every 150ms until reaching 100%
+        // Start fake progress update with variability for realism during long API calls
         let fakeProgress = 0;
         loadingState.fakeProgressInterval = setInterval(() => {
-            fakeProgress++;
-            if (fakeProgress >= 100) {
-                fakeProgress = 100;
+            // Add variability - sometimes progress faster, sometimes slower or pause
+            // This makes the progress bar more realistic for long API calls
+            const increment = Math.random() < 0.7 ? 1 : 0; // 30% chance of pausing
+            fakeProgress += increment;
+            
+            // Slow down as we approach higher percentages - simulates API calls taking longer
+            if (fakeProgress > 70 && Math.random() < 0.5) {
+                // 50% chance of not incrementing when over 70%
+                fakeProgress = fakeProgress;
+            }
+            
+            // Cap at 90% - leave the final 10% for actual completion
+            if (fakeProgress >= 90) {
+                fakeProgress = 90;
                 clearInterval(loadingState.fakeProgressInterval);
             }
+            
             this.updateProgress(loadingState, fakeProgress);
-        }, 150);
+        }, 300); // Using 300ms to make progress much slower
 
         this.loadingStates.set(overlay, loadingState);
         return loadingState;
@@ -168,7 +180,7 @@ class LoadingManager {
      * @param {number} duration - Duration in milliseconds
      * @param {number} targetProgress - Target progress percentage
      */
-    startProgressAnimation(loadingState, duration = 3000, targetProgress = 100) { // modified duration and targetProgress
+    startProgressAnimation(loadingState, duration = 6000, targetProgress = 100) { // Modified duration to 6000ms (twice as slow as original 3000ms)
         const startTime = Date.now();
         const startProgress = 0;
 

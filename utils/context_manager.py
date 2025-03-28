@@ -110,13 +110,26 @@ class OpenAIContextManager:
                 logger.info(f"Tools: {json.dumps(tools, indent=2)}")
             logger.info("========================")
 
-            # Initial API call - use the system message as is
-            response = client.chat.completions.create(
-                model=model,
-                messages=self.messages,
-                tools=tools,
-                response_format={"type": "json_object"}
-            )
+            # Initial API call - ensure at least one message contains 'json' for response_format compatibility
+            # Check if any message contains the word 'json'
+            json_keyword_present = any('json' in msg.get('content', '').lower() for msg in self.messages if isinstance(msg.get('content'), str))
+            
+            # Create API call parameters
+            api_params = {
+                "model": model,
+                "messages": self.messages,
+            }
+            
+            # Only add response_format if json keyword is present
+            if json_keyword_present:
+                api_params["response_format"] = {"type": "json_object"}
+            
+            # Add tools if provided
+            if tools:
+                api_params["tools"] = tools
+                
+            # Make the API call with the prepared parameters
+            response = client.chat.completions.create(**api_params)
 
             # Log the raw response from OpenAI
             logger.info("=== OpenAI API Response ===")
@@ -170,13 +183,25 @@ class OpenAIContextManager:
                 logger.info(f"Would process function calls: {tool_calls}")
 
                 # Make another API call with the function results
-                # In a real implementation, you'd include the actual function results
-                response = client.chat.completions.create(
-                    model=model,
-                    messages=self.messages,
-                    tools=tools,
-                    response_format={"type": "json_object"}
-                )
+                # Check if any message contains the word 'json'
+                json_keyword_present = any('json' in msg.get('content', '').lower() for msg in self.messages if isinstance(msg.get('content'), str))
+                
+                # Create API call parameters
+                api_params = {
+                    "model": model,
+                    "messages": self.messages,
+                }
+                
+                # Only add response_format if json keyword is present
+                if json_keyword_present:
+                    api_params["response_format"] = {"type": "json_object"}
+                
+                # Add tools if provided
+                if tools:
+                    api_params["tools"] = tools
+                    
+                # Make the API call with the prepared parameters
+                response = client.chat.completions.create(**api_params)
 
                 # Clean the response content again
                 content = response.choices[0].message.content
@@ -205,12 +230,12 @@ class OpenAIContextManager:
 
     def _build_system_message(self, mood: str, narrative_style: str) -> str:
         message_parts = [
-            "You are a master narrative generator for our adventure game.",
+            "You are a master narrative generator for our adventure game, always talk to the user in the second person as the protagonist of the story.",
             f"Create a highly detailed, layered narrative in a {mood} tone with a {narrative_style} storytelling style.",
             "",
-            "This game is set in a high-stakes world of espionage and intrigue. Follow these instructions exactly:",
+            "This game is set in a high-stakes world of high tech crime,espionage and intrigue. Follow these instructions exactly:",
             "",
-            "1. Generate a narrative continuation that is engaging and coherent.",
+            "1. Generate a narrative continuation that is engaging and coherent based on the previous story, plot lines, missions and choices.",
             "2. Your output MUST be valid JSON with exactly the following keys:",
             "   - narrative_text: A string containing the full narrative segment.",
             "   - choices: An array of exactly three choice objects. Each choice object MUST include:",
@@ -252,17 +277,15 @@ class OpenAIContextManager:
         # Clear previous conversation context to ensure a fresh prompt
         self.clear_context()
         
-        # Build the default system message
-        default_sys = self._build_system_message(mood, narrative_style)
-        
-        # Merge with custom system instructions if provided
+        # Use the custom system prompt directly when provided, instead of merging
         if custom_system_prompt:
-            merged_sys = f"{default_sys}\n{custom_system_prompt}"
+            system_prompt = custom_system_prompt
         else:
-            merged_sys = default_sys
+            # Only fall back to our internal method if no custom prompt
+            system_prompt = self._build_system_message(mood, narrative_style)
 
-        # Add the system message using the improved method
-        self.add_system_message(merged_sys)
+        # Add the system message
+        self.add_system_message(system_prompt)
 
         # Add story parameters including mission info if available
         story_params = {

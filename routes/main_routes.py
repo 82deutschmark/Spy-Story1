@@ -218,7 +218,8 @@ def generate_story_route():
             "character_traits": selected_characters[0].character_traits or {},
             "backstory": getattr(selected_characters[0], 'backstory', ""),
             "plot_lines": getattr(selected_characters[0], 'plot_lines', []),
-            "character_role": selected_characters[0].character_role
+            "character_role": selected_characters[0].character_role,
+            "role": selected_characters[0].character_role
         }
         # And if additional characters exist:
         if len(selected_characters) > 1:
@@ -229,6 +230,7 @@ def generate_story_route():
                     "character_traits": char.character_traits or {},
                     "backstory": getattr(char, 'backstory',""),
                     "plot_lines": getattr(char, 'plot_lines', []),
+                    "character_role": char.character_role,
                     "role": char.character_role,
                     "role_requirements": ""
                 } for char in selected_characters[1:]
@@ -266,11 +268,33 @@ def make_choice():
     story = StoryGeneration.query.get_or_404(story_id)
     user_progress = get_or_create_user_progress()
     game_engine = GameEngine(user_id=user_progress.user_id)
+    
+    # Get character details from IDs for complete character data
+    if characters:
+        character_objects = []
+        for char_id in characters:
+            char = Character.query.get(char_id)
+            if char:
+                character_objects.append({
+                    "id": char.id,
+                    "character_name": char.character_name,
+                    "name": char.character_name,
+                    "character_role": char.character_role,
+                    "role": char.character_role,
+                    "character_traits": char.character_traits or {},
+                    "backstory": getattr(char, 'backstory', ""),
+                    "plot_lines": getattr(char, 'plot_lines', [])
+                })
+        characters = character_objects
+    else:
+        # If no characters were provided, use an empty list
+        characters = []
+    
     result = game_engine.make_choice(
         choice_id=choice_id,
         custom_choice_text=previous_choice,
         story_context=story_context,
-        characters=[{"id": char_id} for char_id in characters]
+        characters=characters
     )
     new_node = StoryNode.query.get(result['current_node']['id'])
     if not new_node:
@@ -303,7 +327,8 @@ def reroll_character():
         'story': new_character.description or '',
         'character_traits': new_character.character_traits or [],
         'plot_lines': new_character.plot_lines or [],
-        'character_role': role
+        'character_role': role,
+        'role': role
     }
     character_html = render_template('partials/character_card.html')
     character_html = render_template_string(

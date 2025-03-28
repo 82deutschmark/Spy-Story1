@@ -1,6 +1,24 @@
-NOT USED
+###NOT USED###
 
+# Routes
 
+## Current File Analysis
+
+### Key Files:
+1. `routes/main_routes.py`: Web UI routes
+2. `routes/api_routes.py`: API endpoints
+3. `services/game_engine.py`: Core game logic
+4. `services/story_maker.py`: Story generation
+5. `services/segment_maker.py`: Story continuation
+6. `services/state_manager.py`: Game state management
+7. `utils/context_manager.py`  
+8. `utils/character_manager.py`  
+
+### Current Architecture Issues:
+1. Direct dependency between API and Web routes
+2. Shared business logic mixed with route handlers
+3. Session management scattered across routes
+4. Duplicated story generation logic
 
 
 

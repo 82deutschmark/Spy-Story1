@@ -43,10 +43,11 @@ def extract_character_name(char_data):
 
 def extract_character_role(char_data):
     if isinstance(char_data, dict):
-        return char_data.get("role", "ERROR DUMMY!!!")
+        # Check for character_role first, then role, with a neutral default
+        return char_data.get("character_role") or char_data.get("role") or "neutral"
     elif hasattr(char_data, "character_role"):
-        return char_data.character_role or "ERROR DUMMY!!!"
-    return "Unknown"
+        return char_data.character_role or "neutral"
+    return "neutral"
 
 def extract_character_backstory(char_data):
     if isinstance(char_data, dict):

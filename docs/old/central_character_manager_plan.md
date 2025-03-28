@@ -27,8 +27,4 @@
    - Emphasize that the user/protagonist is managed via UserProgress.
    - This consolidation will reduce redundancy and ease future maintenance.
 
-## Next Steps
-- Create the new module and update imports across the project.
-- After the changes, remove or deprecate outdated implementations referring directly to character formatting.
-- Test to ensure that character traits, backstory, and plot_lines are correctly injected into the game engine.
-
+Implemented!!

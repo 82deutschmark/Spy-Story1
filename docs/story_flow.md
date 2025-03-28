@@ -1,210 +1,165 @@
 # Story Flow Documentation
 
 ## Game Overview
-This is an interactive spy thriller where players navigate complex missions as secret agents. Players build relationships with AI-generated characters, make high-stakes decisions that affect the story's direction, and earn currencies and experience points. The game combines narrative choice-based gameplay with character relationship management and mission progression systems.
+This is an interactive spy thriller where players navigate Chat-GPT generated missions as secret agents. Players make high-stakes decisions that affect the story's direction. The game combines narrative choice-based gameplay with mission progression systems and character context preservation. 
 
-## Post-Story Generation Flow
+**Current Implementation Status**: The core story generation and continuation system is fully implemented, with comprehensive data persistence for characters, missions, and story context. Character relationship management and currency systems are planned for future development.
+
+## Core Story Flow
 
 ### 1. Initial Story Generation
 ```mermaid
 graph TD
     A[User Selects Characters] --> B[Generate Initial Story]
-    B --> C[Create Root StoryNode]
+    B --> C[Create Comprehensive Root StoryNode]
     C --> D[Initialize Story State]
     D --> E[Present First Choice]
 
-    subgraph Story State
-        F[Story Metadata]
-        G[Character Relationships]
-        H[Mission Status]
-        I[User Progress]
+    subgraph Root StoryNode Data
+        F[Complete Narrative Text]
+        G[Character Details & Relationships]
+        H[Initial Mission Setup]
+        I[Protagonist Information]
+        J[Story Parameters]
+        K[Initial Choices with Metadata]
     end
 ```
 
 ### 2. Choice Processing Flow
 ```mermaid
 graph TD
-    A[User Makes Choice] --> B{Choice Type}
-    B -->|Standard| C[Process Currency Cost]
-    B -->|Custom| D[Validate Custom Input]
-    
-    C --> E[Generate Continuation]
-    D --> E
-    
-    E --> F[Create New StoryNode]
-    F --> G[Update Story State]
-    G --> H[Present New Choices]
+    A[User Makes Choice] --> B[Process Choice in Backend]
+    B --> C[Retrieve Current Node & Context]
+    C --> D[Generate Continuation with Full Context]
+    D --> E[Create New StoryNode with Complete Metadata]
+    E --> F[Update Game State]
+    F --> G[Present New Choices]
 
-    subgraph State Updates
-        I[Update Character Relations]
-        J[Progress Missions]
-        K[Award Experience/Currency]
+    subgraph State Persistence
+        H[Character Context Preservation]
+        I[Mission Progress Tracking]
+        J[Story Parameters Continuity]
+        K[Narrative Coherence]
     end
 ```
 
-### 3. Data Flow Between Components
+## Data Structures
 
-#### Story Generation → Story Node
+### Comprehensive StoryNode Structure
 ```
-StoryGeneration
-├── generated_story (JSONB)
-│   ├── narrative_text
-│   ├── choices
-│   └── metadata
-└── current_node_id
-    └── StoryNode
-        ├── narrative_text
-        ├── branch_metadata
-        └── choices
+StoryNode
+├── narrative_text: Story segment content
+├── parent_node_id: Reference to previous node
+├── story_id: Reference to parent story
+├── character_id: Primary character in this node
+├── branch_metadata
+│   ├── story_id: Story identifier
+│   ├── choice_id: Selected choice that led here
+│   ├── branch_id: Branch identifier
+│   ├── timestamp: Creation time
+│   ├── choice_text: Text of the selected choice
+│   ├── characters: Array of character IDs
+│   ├── character_details: Full character data
+│   ├── mission_info: Current mission state
+│   ├── mission_update: Changes to mission
+│   ├── choices: Available choices with metadata
+│   ├── protagonist: Player character details
+│   ├── story_parameters: Conflict, setting, style, mood
+│   ├── previous_node_id: Reference to parent
+│   └── previous_choice: Previous choice ID
+└── is_endpoint: Whether node is an endpoint
 ```
 
-#### User Progress Tracking
+### Complete State Tracking
 ```
 UserProgress
-├── current_story_id
-├── current_node_id
-├── experience_points
-├── currency_balances
-├── active_missions
-└── character_relationships
+├── current_story_id: Active story reference
+├── current_node_id: Current position in story
+├── last_active: Timestamp of last activity
+├── experience_points: Player progression
+├── currency_balances: Available resources
+├── active_missions: Ongoing objectives
+├── encountered_characters: Character tracking
+├── choice_history: Record of previous decisions
+└── game_state: General state information
 ```
 
-## Key State Transitions
+## Key Processes
 
-### 1. Story Node Transition
-When a choice is made:
-1. Validate choice requirements (currency, etc.)
-2. Generate story continuation
-3. Create new StoryNode
-4. Update UserProgress
-5. Process mission updates
-6. Update character relationships
+### 1. Node Transition with Context Preservation
+When a player makes a choice:
+1. The current node is resolved using priority-based resolution:
+   - First from UserProgress.current_node_id
+   - Then latest node for the story
+   - Finally root node as fallback
+2. Story continuation is generated with comprehensive context:
+   - Previous narrative content
+   - All character details (traits, backstory, plot lines)
+   - Current mission state and progress
+   - Story parameters (conflict, setting, style, mood)
+   - Protagonist attributes
+3. A new StoryNode is created with complete branch_metadata
+4. User progress is atomically updated with database transactions
+5. All context is preserved for future continuations
 
-### 2. Mission Updates
+### 2. Mission Integration
 During node transitions:
-1. Check mission triggers
-2. Update mission progress
-3. Award completion rewards
-4. Generate new missions
-5. Update user state
+1. Complete mission information is stored in branch_metadata
+2. Mission progress is tracked and updated
+3. Mission updates are included in the story node
+4. Mission progress is reflected in the narrative
+5. Story choices affect mission progression
 
-### 3. Character Relationship Updates
-After each choice:
-1. Calculate relationship changes
-2. Update affinity scores
-3. Unlock new character options
-4. Update character-specific missions
+### 3. Character Context Preservation
+For consistent character portrayal:
+1. Full character details are stored in branch_metadata
+2. Character traits, backstory, and plot lines are preserved
+3. Character context is maintained across story segments
+4. New random characters can be introduced when needed
+5. The AI has access to complete character histories
 
-## Currency and Experience System
-
-### Currency Types
-- 💎 Premium Currency
-- 💷 Story Points
-- ⭐ Character Tokens
-
-### Experience Points
-- Story Choices: 10-20 XP
-- Mission Completion: 50-100 XP
-- Character Relationship Milestones: 25-75 XP
-- Custom Choice Creation: 15 XP
-
-## Error Recovery States
-
-### 1. Failed Continuation Generation
-```
-If story continuation fails:
-1. Revert to last stable node
-2. Refund any spent currency
-3. Log error state
-4. Present alternative choices
-```
-
-### 2. Invalid State Recovery
-```
-If state becomes invalid:
-1. Load last known good state
-2. Reconstruct story tree
-3. Reattach current node
-4. Rebuild choice options
-```
-
-## Mission Integration
-
-### Mission Types
-1. Main Story Missions
-   - Progress core narrative
-   - High rewards
-   - Character relationship requirements
-
-2. Side Missions
-   - Optional content
-   - Character-specific rewards
-   - Currency farming opportunities
-
-3. Character Missions
-   - Relationship building
-   - Unique dialogue options
-   - Special rewards
-
-### Mission State Machine
-```mermaid
-stateDiagram-v2
-    [*] --> Available
-    Available --> Active: Accept
-    Active --> InProgress: Start
-    InProgress --> Complete: Success
-    InProgress --> Failed: Failure
-    Complete --> [*]
-    Failed --> Available: Reset
-```
-
-## Character Relationship System
-
-### Relationship Levels
-1. Stranger (0-20)
-2. Acquaintance (21-40)
-3. Associate (41-60)
-4. Confidant (61-80)
-5. Intimate (81-100)
-
-### Relationship Effects
-- Unique dialogue options
-- Special mission availability
-- Currency bonuses
-- Custom choice options
-- Story branch unlocks
-
-## Technical Implementation Notes
+## Implementation Details
 
 ### State Management
-- Use transactions for all state changes
-- Maintain state consistency across models
-- Log all state transitions
-- Implement rollback mechanisms
+- GameState class maintains the current game state
+- GameStateManager provides a singleton for state synchronization
+- State changes use database transactions for consistency
+- Node transitions are atomic operations
+- Rich context is maintained for story continuity
 
-### Performance Considerations
-- Cache frequently accessed nodes
-- Lazy load relationship data
-- Batch update character states
-- Optimize choice validation
+### Data Persistence
+- StoryNode.branch_metadata preserves all context
+- Character information is formatted consistently
+- Story parameters are maintained across segments
+- Protagonist details are preserved between nodes
+- Previous node references ensure narrative continuity
 
-### Security Measures
-- Validate all state transitions
-- Prevent currency exploitation
-- Secure custom choice input
-- Rate limit story generations
+### Error Recovery
+If story continuation fails:
+1. Database transaction is rolled back
+2. Error is logged with details
+3. User is presented with appropriate error message
+4. System returns to last stable state
 
-## Future Considerations
+## Future Development
 
 ### Planned Features
-1. Multi-character missions
-2. Dynamic relationship events
-3. Character-specific storylines
-4. Advanced currency mechanics
-5. Achievement system
+1. **Character Relationship System**
+   - Track relationship levels between characters
+   - Affect dialogue and choices based on relationships
+   - Enable character-specific storylines
 
-### Scalability
-- Shard story data
-- Cache popular paths
-- Optimize node traversal
-- Implement story archiving 
+2. **Currency and Experience System**
+   - Implement currency types (💎 Premium Currency)
+   - Track experience points from choices and missions
+   - Enable purchases and upgrades
+
+3. **Enhanced Mission System**
+   - Add side missions and character-specific missions
+   - Implement mission rewards and consequences
+   - Create more complex mission structures
+
+4. **User Experience Improvements**
+   - Enhance loading animations
+   - Add more detailed feedback
+   - Improve error handling and recovery 

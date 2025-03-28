@@ -101,8 +101,22 @@ class CharacterPromptBuilder:
         trait_descriptions = []
         if isinstance(character_traits, dict):
             for trait, value in character_traits.items():
-                if value > 0:
-                    trait_descriptions.append(f"{trait} (strength: {value})")
+                # Check if value is a number or can be converted to one
+                try:
+                    # Try to convert to number if it's a string
+                    if isinstance(value, str) and value.strip().isdigit():
+                        value = int(value)
+                    
+                    # Only include positive numeric values
+                    if isinstance(value, (int, float)) and value > 0:
+                        trait_descriptions.append(f"{trait} (strength: {value})")
+                    # Include non-numeric values as is
+                    elif isinstance(value, str) and value.strip():
+                        trait_descriptions.append(f"{trait}: {value}")
+                except (ValueError, TypeError):
+                    # If conversion fails, include the trait without a strength value
+                    if value:  # Only include non-empty values
+                        trait_descriptions.append(trait)
         elif isinstance(character_traits, (list, str)):
             traits_list = [character_traits] if isinstance(character_traits, str) else character_traits
             for trait in traits_list:
@@ -158,7 +172,7 @@ class StoryPromptBuilder:
     def build_system_message(mood: str, narrative_style: str) -> Dict[str, str]:
         """Build the system message for story generation."""
         message_parts = [
-            "You are a master narrative generator for our adventure game.",
+            "You are a master narrative generator for our humourous, satirical, and absurd adventure game.",
             f"Create highly detailed, layered narratives in a {mood} tone with a {narrative_style} storytelling style.",
             "",
             "This game is set in the high-stakes world of ruthless business, international espionage, luxury, and intrigue.",
@@ -188,7 +202,7 @@ class StoryPromptBuilder:
             "MISSION AND RELATIONSHIP GUIDELINES:",
             "12. Mission must have clear objectives (steal/kill/obtain/destroy) and target one of the villains",
             "13. Include a reasonable deadline and failure consequences",
-            "14. Make villain well-protected but pathetically incompetent",
+            "14. Make villain well-protected but pathetically incompetent, they should not appear directly in the first segment",
             "15. Mission-giver should be exasperated but reluctant and reference past failures",
             "16. Mission-giver uses complex language about geopolitics/economics that bores the protagonist",
             "17. Characters must express reasons for helping or opposing the protagonist",
@@ -196,9 +210,13 @@ class StoryPromptBuilder:
             "NARRATIVE REQUIREMENTS:",
             "19. ALWAYS tell the story in second person, alluding to their {protagonist_name} and {protagonist_gender} naturally via dialogue",
             "20. Use vivid sensory details and atmospheric descriptions",
-            
+            "21. Begin with meeting the mission-giver, then the protagonist goes to see the character selected by the user",
             "22. Balance action, dialogue, intrigue, and character development",
-            "23. End with a cliffhanger and exactly three distinct choices"
+            "23. End with a cliffhanger and exactly three distinct choices",
+            "",
+            "OUTPUT FORMAT REQUIREMENTS:",
+            "24. Your response MUST be valid JSON with narrative_text, choices, and mission_update fields",
+            "25. Each choice in the JSON must have a unique choice_id, descriptive text, and consequence"
         ]
         
         return {
@@ -248,7 +266,7 @@ class StoryPromptBuilder:
             "STORY CONTEXT:",
             story_context if story_context else "This is the first segment of the story, the protagonist is a charismatic, reckless, fearless rogue agent with a checkered past, and a devil-may-care attitude. They are recruited by a mission-giver who claims to have powerful friends and works for a secret organization to take down a powerful villain who is threatening the world with a diabolical plan.",
             "",
-            "Create a LENGTHY, DETAILED story introduction (at least 5000-8000 words) with good story structure",","
+            "Create a LENGTHY, DETAILED story introduction (at least 3000-6000 words) with good story structure",","
             "Introduce the character selected by the user after the mission has been given",
             "Begin with {protagonist_name} receiving a {mission} from the mission-giver",
             "End the segment by providing exactly three distinct choices for how to proceed."
@@ -348,6 +366,13 @@ class StoryGenerator:
             story_context=story_context
         )
         
+        # Get our properly built system message
+        system_message = StoryPromptBuilder.build_system_message(
+            mood=final_mood,
+            narrative_style=final_narrative
+        )
+        
+        # Pass the system message to generate_initial_story
         story_data = self.context_manager.generate_initial_story(
             conflict=final_conflict,
             setting=final_setting,
@@ -355,7 +380,8 @@ class StoryGenerator:
             mood=final_mood,
             character_info=character_info,
             client=self.client,
-            user_message=story_prompt
+            user_message=story_prompt,
+            custom_system_prompt=system_message["content"]  # Pass our system message
         )
         
         story_data = self.process_choices(story_data)

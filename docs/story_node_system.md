@@ -7,17 +7,12 @@
    - Main container for story content
    - Contains metadata (conflict, setting, style, mood)
    - Has `generated_story` JSONB field storing story text and choices
-   - Links to current node via `current_node_id`
+   - Links to characters via many-to-many relationship
 
 2. `StoryNode`
    - Represents individual story segments
    - Contains `narrative_text`, `branch_metadata`
    - Links to parent nodes via `parent_node_id`
-   - Contains `branch_metadata` with:
-     - story_id
-     - choice_id
-     - character_ids: List of character IDs involved in this node
-     - character_relationships: Character relationship states
    - Forms tree structure of narrative
    - Implements `to_dict()` for state serialization with fields:
      - Basic information (id, story_id, narrative_text)
@@ -25,38 +20,85 @@
      - Timestamps (created_at)
      - Metadata (branch_metadata)
      - Relationships (parent_node_id, character_id, achievement_id)
-     - Branch information (branch_id, choice_id)
-     - Character tracking (character_ids, character_relationships)
 
 3. `StoryChoice`
    - Connects story nodes
    - Contains `node_id` (source) and `next_node_id` (target)
    - Has `choice_text` and `currency_requirements`
-   - Now includes `character_id` for character-specific choices
+   - Includes `character_id` for character-specific choices
 
-### Character Integration
+## Enhanced Branch Metadata Structure
+The `branch_metadata` JSONB field is critical for story continuity and should contain:
+
 ```python
-# Example branch_metadata structure
+# Complete branch_metadata structure
 branch_metadata = {
+    # Story context
     "story_id": 123,
-    "choice_id": "choice_1",
-    "character_ids": [1, 2, 3],  # All characters involved in this node
+    "choice_id": "choice_1",  # If derived from a choice
+    "branch_id": "unique_branch_id",
+    
+    # Character information
+    "characters": [1, 2, 3],  # Character IDs involved in this node
+    "character_details": [
+        {
+            "id": 1,
+            "name": "Character Name",
+            "character_role": "mission-giver",
+            "character_traits": {"trait1": 5, "trait2": 3},
+            "backstory": "Character backstory text",
+            "plot_lines": ["Plot line 1", "Plot line 2"]
+        }
+    ],
     "character_relationships": {
         "1": {"relationship_level": 3, "trust": 75},
         "2": {"relationship_level": 2, "trust": 45}
     },
+    
+    # Mission information
+    "mission_info": {
+        "id": 1,
+        "title": "Mission Title",
+        "objective": "Mission objective description",
+        "status": "in_progress",
+        "progress": 35
+    },
+    
+    # Player choice context
     "choices": [
         {
             "choice_id": "unique_id",
-            "text": "Ask for help",
-            "character_id": 1  # Character involved in this choice
+            "text": "Choice description",
+            "consequence": "Outcome description",
+            "type": "direct/risky/social",
+            "character_id": 1  # Character involved in choice (if any)
         }
-    ]
+    ],
+    
+    # Protagonist information
+    "protagonist": {
+        "name": "Protagonist Name",
+        "gender": "Protagonist Gender",
+        "level": 2
+    },
+    
+    # State tracking
+    "timestamp": "ISO datetime",
+    "story_context": "Brief context from previous nodes"
 }
 ```
 
-### Node Resolution System
-The system now uses a priority-based approach to resolve the current story node:
+## Initial StoryNode Requirements
+For the first node in a story:
+
+1. **Complete Character Context**: Must include all selected characters with full details
+2. **Protagonist Information**: Name, gender, level, and other relevant attributes
+3. **Initial Choices**: All available choices with proper IDs and metadata
+4. **Mission Foundation**: Initial mission state or setup information
+5. **Story Parameters**: Conflict, setting, style, and mood should be accessible
+
+## Node Resolution System
+The system uses a priority-based approach to resolve the current story node:
 
 1. Priority Order:
    ```
@@ -89,69 +131,51 @@ The system now uses a priority-based approach to resolve the current story node:
        └── Branch information
    ```
 
-### State Management
-- User progress tracks both `current_story_id` and `current_node_id`
-- Node transitions are handled atomically with proper transaction management
-- State changes trigger notifications to all registered listeners
-- Rich context is maintained for story continuity
+## Implementation Best Practices
 
-### Error Handling
-```python
-try:
-    # Resolve node with priority system
-    current_node = game_state.resolve_current_node(story_id)
-    if not current_node:
-        handle_missing_node()
-        
-    # Atomic transition
-    if not game_state.transition_to_node(current_node.id):
-        handle_transition_failure()
-        
-    # Get full context
-    node_context = game_state.get_node_context(current_node.id)
-except Exception as e:
-    handle_error(e)
-```
+### Character Persistence
+1. Always store complete character details in initial node
+2. Include character IDs in all nodes where they appear
+3. Update character relationship data with each node
+4. Preserve character traits, backstory, and plot lines
 
-## Implementation Notes
+### Mission Tracking
+1. Include complete mission information in branch_metadata
+2. Update mission progress with each node
+3. Record mission-critical events
+4. Link characters to their relevant missions
 
-### State Transitions
-1. All state changes use database transactions
-2. State consistency is maintained across models
-3. Changes are logged for debugging
-4. Rollback mechanisms are in place
+### Context Continuity
+1. Maintain references to previous node and choices
+2. Preserve protagonist information across nodes
+3. Include timestamp for chronological tracking
+4. Store narrative context for AI coherence
 
-### Performance Considerations
-- Node resolution uses efficient database queries
-- Context retrieval is optimized
-- State updates are batched where possible
-- Proper indexing on key fields
+### State Management Improvements
+1. **Transaction Safety**: All state changes use database transactions
+2. **Character Enrichment**: Characters should carry full context
+3. **Mission Integration**: Missions should be directly linked to nodes
+4. **Node Validation**: Validate branch_metadata structure consistency
 
-### Security Measures
-- All state transitions are validated
-- Node access is verified
-- Transaction boundaries are properly maintained
-- Error states are handled gracefully
+## Implementation Plan
 
-## Future Tasks
+### Phase 1: StoryNode Enhancement
+- Update GameEngine.start_new_story to store comprehensive branch_metadata
+- Ensure all character details are included in initial node
+- Add proper mission context to branch_metadata
+- Standardize choice structure
 
-### High Priority
-1. Implement node caching for frequently accessed paths
-2. Add state validation middleware
-3. Enhance error recovery mechanisms
-4. Improve state synchronization with Unity client
+### Phase 2: Context Continuity
+- Improve character data transfer between segments
+- Standardize protagonist info persistence
+- Enhance mission tracking across nodes
+- Implement better error recovery
 
-### Medium Priority
-1. Add node archiving system
-2. Implement state history tracking
-3. Add performance monitoring
-4. Enhance debugging tools
-
-### Low Priority
-1. Add node visualization tools
-2. Implement state export/import
-3. Add state comparison tools
-4. Create node relationship graphs
+### Phase 3: Query Optimization
+- Add indexes for efficient node retrieval
+- Optimize parent-child node traversal
+- Improve node resolution performance
+- Add monitoring for state transitions
 
 ## Identified Issues
 
@@ -255,20 +279,3 @@ class ChoiceHandler {
     <!-- ... other fields ... -->
 </form>
 ```
-
-## Implementation Plan
-
-### Phase 1: Model Updates
-1. Add current_node relationship to StoryGeneration
-2. Ensure UserProgress has required fields
-3. Create migration script
-
-### Phase 2: Backend Logic
-1. Implement node_id resolution logic
-2. Update storyboard route
-3. Add validation middleware
-
-### Phase 3: Frontend Updates
-1. Update ChoiceHandler initialization
-2. Add error recovery logic
-3. Improve form validation

@@ -114,11 +114,30 @@ def api_make_choice():
 
     try:
         game_engine = GameEngine(user_id=data['user_id'])
+        
+        # Get character details from IDs for complete character data
+        characters = []
+        if 'characters' in data and data['characters']:
+            character_ids = data['characters']
+            for char_id in character_ids:
+                char = Character.query.get(char_id)
+                if char:
+                    characters.append({
+                        "id": char.id,
+                        "character_name": char.character_name,
+                        "name": char.character_name,
+                        "character_role": char.character_role,
+                        "role": char.character_role,
+                        "character_traits": char.character_traits or {},
+                        "backstory": getattr(char, 'backstory', ""),
+                        "plot_lines": getattr(char, 'plot_lines', [])
+                    })
+        
         result = game_engine.make_choice(
             choice_id=data['choice_id'],
             custom_choice_text=data.get('previous_choice'),
             story_context=data.get('story_context'),
-            characters=[{"id": cid} for cid in data.get('characters', [])]
+            characters=characters
         )
         return jsonify({
             'success': True,

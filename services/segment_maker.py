@@ -157,13 +157,50 @@ NARRATIVE STYLE GUIDELINES: You are a master narrative generator for our choose 
 
     @staticmethod
     def build_system_message(mood: str, narrative_style: str) -> Dict[str, str]:
-        # Delegate to OpenAIContextManager's _build_system_message method.
-        from utils.context_manager import OpenAIContextManager
-        om = OpenAIContextManager()  # Create a temporary instance
-        system_text = om._build_system_message(mood, narrative_style)
+        """Build a dedicated system message for story continuation."""
+        message_parts = [
+            "You are a master narrative generator for our spy thriller adventure game.",
+            f"Create highly detailed, layered narratives in a {mood} tone with a {narrative_style} storytelling style.",
+            "",
+            "This game is set in the high-stakes world of espionage, luxury, and international intrigue.",
+            "Follow these instructions exactly:",
+            "",
+            "1. Generate a narrative continuation that is engaging and coherent based on the player's choice.",
+            "2. Your output MUST be valid JSON with exactly the following keys:",
+            "   - story: A string containing the full narrative segment.",
+            "   - choices: An array of exactly three choice objects. Each choice object MUST include:",
+            "         * choice_id: A unique identifier for the choice.",
+            "         * text: The choice description.",
+            "         * consequence: A brief description of the outcome if chosen.",
+            "         * type: One of 'direct', 'risky', or 'social'.",
+            "         * requirements: An object for any additional requirements (or empty).",
+            "         * character_id: The ID of the NPC involved in the choice (omit for protagonist choices)",
+            "   - mission_update: An object with keys:",
+            "         * status: One of 'unchanged', 'progressed', 'completed', or 'failed'.",
+            "         * progress_details: A string detailing mission progress.",
+            "",
+            "3. Do not include any keys besides these three in your response.",
+            "",
+            "CRITICAL CHARACTER ROLE REQUIREMENTS:",
+            "1. Use only the characters provided in the character prompts. Do not invent any new characters.",
+            "2. The protagonist should not have a character_id in choices.",
+            "3. Only include character_id for NPCs involved in the choice.",
+            "4. Respect character roles: mission-givers give missions, villains oppose the player, etc.",
+            "5. Maintain character traits, backstories, and plot lines exactly as provided.",
+            "",
+            "NARRATIVE STYLE REQUIREMENTS:",
+            "1. Tell the story in second person, addressing the player directly.",
+            "2. Use vivid sensory details and atmospheric descriptions.",
+            "3. Balance action, dialogue, intrigue, and character development.",
+            "4. Create meaningful consequences for player choices.",
+            "5. Advance the mission in some way (progress, setback, or complication).",
+            "",
+            "Please produce only the JSON response as specified above."
+        ]
+        
         return {
-            "role": "system",
-            "content": system_text
+            "role": "system", 
+            "content": "\n".join(message_parts)
         }
 
 class StoryContinuationHandler:
@@ -226,17 +263,48 @@ class StoryContinuationHandler:
             "CURRENT MISSION:",
             f"Title: {mission_info.get('title', 'Unknown')}",
             f"Objective: {mission_info.get('objective', 'Unknown')}",
-            f"Current Status: {mission_info.get('status', 'In Progress')}"
+            f"Current Status: {mission_info.get('status', 'In Progress')}",
+            f"Progress: {mission_info.get('progress', 0)}%"
         ]
         
         # Add character details if available - use the build_additional_characters_prompt function
         if existing_characters:
-            character_prompt = build_additional_characters_prompt(existing_characters)
+            # First, ensure character data is in the expected format for build_additional_characters_prompt
+            formatted_characters = []
+            for char in existing_characters:
+                # Format character data to ensure proper field names for extraction functions
+                formatted_char = {
+                    "id": char.get("id"),
+                    "character_name": char.get("character_name") or char.get("name", "Unknown"),
+                    "character_role": char.get("character_role") or char.get("role", "neutral"),
+                    "character_traits": char.get("character_traits", {}),
+                    "backstory": char.get("backstory", ""),
+                    "plot_lines": char.get("plot_lines", []),
+                    "description": char.get("description", "")
+                }
+                formatted_characters.append(formatted_char)
+            
+            character_prompt = build_additional_characters_prompt(formatted_characters)
             if character_prompt:
                 prompt_parts.extend(["", "EXISTING CHARACTERS IN STORY:", character_prompt])
         
+        # Add story parameters for context continuity
+        story_params = []
+        if "story_parameters" in (existing_characters[0] if existing_characters else {}):
+            params = existing_characters[0]["story_parameters"]
+            story_params.extend([
+                "",
+                "STORY PARAMETERS:",
+                f"Conflict: {params.get('conflict', 'Unknown')}",
+                f"Setting: {params.get('setting', 'Unknown')}",
+                f"Style: {params.get('narrative_style', 'Unknown')}",
+                f"Mood: {params.get('mood', 'Unknown')}"
+            ])
+            prompt_parts.extend(story_params)
+        
         if story_context:
             prompt_parts.extend(["", f"STORY CONTEXT:\n{story_context}"])
+        
         prompt_parts.extend([
             "",
             "STORY REQUIREMENTS:",
@@ -268,13 +336,13 @@ class StoryContinuationHandler:
         selected_random = random.choice(random_characters) if random_characters else None
         available_npc_names = ", ".join([char.character_name for char in random_characters]) if random_characters else "None"
         
-        # Ensure the context manager is initialized with the unified system message
+        # Ensure the context manager is initialized with our properly built system message
         if not self.context_manager or not self.context_manager.get_messages():
-            # Call the context manager _build_system_message method to get the unified text
-            system_message = self.context_manager._build_system_message(
+            # Use our dedicated system message builder
+            system_message_obj = StoryPromptBuilder.build_system_message(
                 mood or "default mood", narrative_style or "default narrative style"
             )
-            self.context_manager = OpenAIContextManager(system_message)
+            self.context_manager = OpenAIContextManager(system_message_obj["content"])
         
         help_instruction = f"   - One that involves asking {selected_random.character_name if selected_random else 'a previously introduced character'} for help (MUST include character_id: {selected_random.id if selected_random else 'null'})"
         extra = f"AVAILABLE NPC CHOICES for assistance: {available_npc_names}\n"
