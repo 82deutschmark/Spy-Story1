@@ -196,11 +196,12 @@ class GameState:
                 "story_context": story_context
             }
             
-            logger.debug(f"Node context: {json.dumps({
+            debug_info = {
                 'active_missions_count': len(active_missions),
                 'character_relationships_count': len(character_relationships),
                 'has_story_context': bool(story_context)
-            }, indent=2)}")
+            }
+            logger.debug(f"Node context: {json.dumps(debug_info, indent=2)}")
             
             return context
 
