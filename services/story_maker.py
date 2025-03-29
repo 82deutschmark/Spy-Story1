@@ -270,9 +270,11 @@ class StoryPromptBuilder:
             "STORY CONTEXT:",
             story_context if story_context else "This is the first segment of the story, the protagonist is a charismatic, reckless, fearless rogue agent with a checkered past, and a devil-may-care attitude. They are recruited by a mission-giver who claims to have powerful friends and works for a secret organization to take down a powerful villain who is threatening the world with a diabolical plan.",
             "",
-            "Create a LENGTHY, DETAILED story introduction (at least 3000-6000 words) with good story structure",","
+            "Create a LENGTHY, DETAILED story introduction (at least 1000-2500 words) with good story structure",","
             "Introduce the character selected by the user after the mission has been given",
-            "Begin with {protagonist_name} receiving a {mission} from the mission-giver",
+            "Begin with {protagonist_name} receiving a {mission} from the mission-giver.",
+            "The mission-giver must explicitly mention the villain's name and the mission objective and deadline",
+            "The mission should be clearly restated at the end of the segment as the choices are considered",
             "End the segment by providing exactly three distinct choices for how to proceed."
         ]
         

@@ -97,6 +97,13 @@ class OpenAIContextManager:
         
     def build_continuation_system_message(self, mood: str, narrative_style: str, node_count: int) -> str:
         """Build system message for story continuation."""
+        # Ensure node_count is valid and never 0
+        if not isinstance(node_count, int) or node_count < 1:
+            logger.warning(f"Invalid node_count {node_count}, defaulting to 1")
+            node_count = 1
+        else:
+            logger.info(f"Using node_count={node_count} for continuation")
+            
         message_parts = [
             "You are a master narrative generator for our spy thriller adventure game.",
             f"Create highly detailed, layered narratives in a {mood} tone with a {narrative_style} storytelling style.",

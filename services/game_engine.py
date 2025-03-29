@@ -439,7 +439,8 @@ STORY CONTEXT:
                 setting=setting,
                 story_context=story_context or "",
                 existing_characters=char_info,
-                node_count=node_count
+                node_count=node_count,
+                narrative_history=node_context.get("narrative_history", "")
             )
             
             # Log the continuation data

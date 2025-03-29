@@ -55,125 +55,278 @@ BASE_REWARDS = {
     '💴': 150000  # Yen - Asian operations
 }
 
-def extract_mission_details(story_text: str) -> Optional[Dict[str, Any]]:
+def extract_mission_details(story_text: str, characters: Optional[List[Dict]] = None) -> Optional[Dict[str, Any]]:
     """
-    Extract mission details from generated story text using advanced pattern matching.
-    Identifies key mission elements like the giver, target, objective, and rewards.
+    Extract mission details from generated story text by focusing on mission-giver character dialogue.
+    Identifies key mission elements like the giver, target/villain, objective, deadline, and rewards.
     
     Args:
         story_text (str): The story text containing mission information
+        characters (Optional[List[Dict]]): List of characters in the story with their details
         
     Returns:
         Optional[Dict[str, Any]]: Dictionary containing:
-            - giver: Name of the mission-giving character
-            - target: Primary mission target or opponent
+            - giver: Name and ID of the mission-giving character
+            - giver_id: ID of the mission giver if available
+            - target: Primary mission target or villain
+            - target_id: ID of the target character if available
             - objective: Clear mission goal
+            - deadline: Time constraint for the mission
             - reward_amount: Numerical reward value
             - reward_currency: Currency symbol for reward
-            
-    Example:
-        >>> details = extract_mission_details("Agent Smith of MI6 needs you to infiltrate Dr. Evil's plans...")
-        >>> print(details['giver'])
-        'Smith'
+            - difficulty: Estimated mission difficulty
     """
     try:
-        # Example regex patterns (can be expanded/adjusted based on story format)
-        giver_match = re.search(r'figure of (\w+ Corp|[A-Z][a-z]+)', story_text) 
-        target_match = re.search(r'on (\w+\'s) plans|against (\w+)', story_text)
-        objective_match = re.search(r'mission—(.+?)[\.\']', story_text)
-        reward_match = re.search(r'reward\?\s*(\d{1,3}(?:,\d{3})*|\d+)\s*([💎💵💷💶💴])', story_text)
-
-        giver = giver_match.group(1) if giver_match else None
-        target = target_match.group(1) if target_match and target_match.group(1) else \
-                target_match.group(2) if target_match else None
-        objective = objective_match.group(1).strip() if objective_match else "Objective not clearly specified."
+        logger.info("Starting mission extraction from story text...")
         
-        # Clean target (if 'Ekaterina's', remove "'s")
-        if target and "'s" in target:
-            target = target.replace("'s", "")
-
-        # Parse reward
-        reward_amount = int(reward_match.group(1).replace(",", "")) if reward_match else 1500
-        reward_currency = reward_match.group(2) if reward_match else '💵'
-
-        logger.debug(f"Extracted Giver: {giver}, Target: {target}, Objective: {objective}, Reward: {reward_amount} {reward_currency}")
-
-        return {
-            "giver": giver,
-            "target": target,
-            "objective": objective,
-            "reward_amount": reward_amount,
-            "reward_currency": reward_currency
+        mission_details = {
+            "giver": None,
+            "giver_id": None,
+            "target": None,
+            "target_id": None,
+            "objective": "Objective not clearly specified.",
+            "deadline": "As soon as possible",
+            "reward_amount": 1500,
+            "reward_currency": '💵',
+            "difficulty": "medium"
         }
+        
+        # Identify potential mission-givers from character list
+        mission_givers = []
+        if characters:
+            mission_givers = [
+                char for char in characters 
+                if char.get('character_role') == 'mission-giver' 
+                or 'giver' in str(char.get('character_role', '')).lower()
+            ]
+            logger.info(f"Found {len(mission_givers)} potential mission givers in character list")
+        
+        # If we have identified mission givers, look for their dialogue
+        if mission_givers:
+            for giver in mission_givers:
+                giver_name = giver.get('character_name') or giver.get('name')
+                if not giver_name:
+                    continue
+                    
+                logger.info(f"Looking for dialogue from mission giver: {giver_name}")
+                
+                # Find dialogue sections from this character (looking for quotes after character name)
+                dialogue_pattern = rf"{re.escape(giver_name)}[^\"]*(\"[^\"]*\")"
+                dialogue_matches = re.finditer(dialogue_pattern, story_text)
+                
+                for match in dialogue_matches:
+                    dialogue = match.group(1).strip('"')
+                    logger.info(f"Found dialogue from {giver_name}: {dialogue[:50]}..." if len(dialogue) > 50 else dialogue)
+                    
+                    # Set the giver information
+                    mission_details["giver"] = giver_name
+                    mission_details["giver_id"] = giver.get('id')
+                    
+                    # Extract mission components from dialogue
+                    # Look for villain/target mentions
+                    villain_patterns = [
+                        r"(?:defeat|stop|investigate|find|locate|capture|eliminate|monitor) ([A-Z][a-z]+ [A-Z][a-z]+|[A-Z][a-z]+)",
+                        r"(?:target|villain|enemy|opponent) (?:is|will be) ([A-Z][a-z]+ [A-Z][a-z]+|[A-Z][a-z]+)"
+                    ]
+                    
+                    for pattern in villain_patterns:
+                        villain_match = re.search(pattern, dialogue)
+                        if villain_match:
+                            mission_details["target"] = villain_match.group(1)
+                            logger.info(f"Extracted target: {mission_details['target']}")
+                            break
+                    
+                    # Extract objective - looking for what needs to be done
+                    objective_patterns = [
+                        r"need you to ([^\.]+)",
+                        r"your mission is to ([^\.]+)",
+                        r"objective is to ([^\.]+)",
+                        r"assignment is to ([^\.]+)",
+                        r"task is to ([^\.]+)"
+                    ]
+                    
+                    for pattern in objective_patterns:
+                        objective_match = re.search(pattern, dialogue)
+                        if objective_match:
+                            mission_details["objective"] = objective_match.group(1).strip()
+                            logger.info(f"Extracted objective: {mission_details['objective']}")
+                            break
+                    
+                    # Extract deadline
+                    deadline_patterns = [
+                        r"within (\d+) (days|hours|weeks)",
+                        r"deadline is (\d+) (days|hours|weeks)",
+                        r"must be completed in (\d+) (days|hours|weeks)",
+                        r"you have (\d+) (days|hours|weeks)"
+                    ]
+                    
+                    for pattern in deadline_patterns:
+                        deadline_match = re.search(pattern, dialogue)
+                        if deadline_match:
+                            time_value = deadline_match.group(1)
+                            time_unit = deadline_match.group(2)
+                            mission_details["deadline"] = f"Complete within {time_value} {time_unit}"
+                            logger.info(f"Extracted deadline: {mission_details['deadline']}")
+                            break
+                    
+                    # Extract reward
+                    reward_patterns = [
+                        r"reward of (\d{1,3}(?:,\d{3})*|\d+)\s*([💎💵💷💶💴])",
+                        r"(\d{1,3}(?:,\d{3})*|\d+)\s*([💎💵💷💶💴]) reward",
+                        r"pay you (\d{1,3}(?:,\d{3})*|\d+)\s*([💎💵💷💶💴])",
+                        r"payment of (\d{1,3}(?:,\d{3})*|\d+)\s*([💎💵💷💶💴])"
+                    ]
+                    
+                    for pattern in reward_patterns:
+                        reward_match = re.search(pattern, dialogue)
+                        if reward_match:
+                            try:
+                                mission_details["reward_amount"] = int(reward_match.group(1).replace(",", ""))
+                                mission_details["reward_currency"] = reward_match.group(2)
+                                logger.info(f"Extracted reward: {mission_details['reward_amount']} {mission_details['reward_currency']}")
+                                break
+                            except ValueError:
+                                pass
+        
+        # If we didn't find a mission giver from characters, fall back to more general patterns
+        if not mission_details["giver"]:
+            logger.info("No mission giver found in character dialogue, falling back to general patterns")
+            
+            # Look for figure of authority patterns
+            giver_match = re.search(r'figure of (\w+ Corp|[A-Z][a-z]+)', story_text) 
+            if giver_match:
+                mission_details["giver"] = giver_match.group(1)
+                logger.info(f"Extracted giver from general text: {mission_details['giver']}")
+                
+            # Look for mission briefings without specific character dialogue
+            target_match = re.search(r'on (\w+\'s) plans|against (\w+)', story_text)
+            if target_match:
+                target = target_match.group(1) if target_match.group(1) else target_match.group(2)
+                if target and "'s" in target:
+                    target = target.replace("'s", "")
+                mission_details["target"] = target
+                logger.info(f"Extracted target from general text: {mission_details['target']}")
+                
+            objective_match = re.search(r'mission(?:—|\s+is\s+to|\s+to)(.+?)[\.\']', story_text)
+            if objective_match:
+                mission_details["objective"] = objective_match.group(1).strip()
+                logger.info(f"Extracted objective from general text: {mission_details['objective']}")
+                
+            reward_match = re.search(r'reward\?\s*(\d{1,3}(?:,\d{3})*|\d+)\s*([💎💵💷💶💴])', story_text)
+            if reward_match:
+                try:
+                    mission_details["reward_amount"] = int(reward_match.group(1).replace(",", ""))
+                    mission_details["reward_currency"] = reward_match.group(2)
+                    logger.info(f"Extracted reward from general text: {mission_details['reward_amount']} {mission_details['reward_currency']}")
+                except ValueError:
+                    pass
+        
+        # If we have a target name but no ID, try to find the ID from characters list
+        if mission_details["target"] and not mission_details["target_id"] and characters:
+            for char in characters:
+                char_name = char.get('character_name') or char.get('name')
+                if char_name and mission_details["target"] in char_name:
+                    mission_details["target_id"] = char.get('id')
+                    logger.info(f"Linked target name to character ID: {mission_details['target_id']}")
+                    break
+        
+        # Determine difficulty based on reward amount
+        if mission_details["reward_amount"] > BASE_REWARDS[mission_details["reward_currency"]] * 2.5:
+            mission_details["difficulty"] = "hard"
+        elif mission_details["reward_amount"] > BASE_REWARDS[mission_details["reward_currency"]] * 1.5:
+            mission_details["difficulty"] = "medium"
+        else:
+            mission_details["difficulty"] = "easy"
+        
+        logger.info(f"Mission difficulty set to: {mission_details['difficulty']}")
+        
+        # Log final extracted mission details
+        logger.info("==== EXTRACTED MISSION DETAILS ====")
+        logger.info(f"Giver: {mission_details['giver']} (ID: {mission_details['giver_id']})")
+        logger.info(f"Target: {mission_details['target']} (ID: {mission_details['target_id']})")
+        logger.info(f"Objective: {mission_details['objective']}")
+        logger.info(f"Deadline: {mission_details['deadline']}")
+        logger.info(f"Reward: {mission_details['reward_amount']} {mission_details['reward_currency']}")
+        logger.info(f"Difficulty: {mission_details['difficulty']}")
+        logger.info("===================================")
+        
+        # Keep the existing debug logging for detailed output
+        logger.debug(f"Extracted Mission Details: {json.dumps(mission_details, indent=2)}")
+        return mission_details
 
     except Exception as e:
-        logger.error(f"Failed to extract mission details: {e}")
+        logger.error(f"Failed to extract mission details: {e}", exc_info=True)
         return None
 
 
-def create_mission_from_story(user_id: str, story_text: str, story_id: Optional[int] = None) -> Optional[Mission]:
+def create_mission_from_story(user_id: str, story_text: str, story_id: Optional[int] = None, characters: Optional[List[Dict]] = None) -> Optional[Mission]:
     """
     Creates a structured mission from story content, integrating it with game systems.
     
     This function:
-    1. Extracts mission details from story
-    2. Links mission to relevant characters
+    1. Extracts mission details from character dialogue in the story
+    2. Links mission to relevant characters (giver and target)
     3. Sets appropriate difficulty and rewards
     4. Integrates with user progress tracking
     
     Args:
         user_id (str): ID of the player
-        story_text (str): Generated story text containing mission details
+        story_text (str): Generated story text containing mission information
         story_id (Optional[int]): ID of the related story segment
+        characters (Optional[List[Dict]]): List of characters in the story
         
     Returns:
         Optional[Mission]: Fully configured mission object ready for gameplay
     """
-    details = extract_mission_details(story_text)
+    logger.info(f"Creating mission from story for user {user_id}")
+    
+    details = extract_mission_details(story_text, characters)
     if not details:
         logger.warning("No mission details extracted from story.")
         return None
 
     try:
-        # Fetch giver/target from DB based on extracted names (example logic)
-        giver = None
-        target = None
+        # Check if we already have character IDs from the details
+        giver_id = details.get('giver_id')
+        target_id = details.get('target_id')
         
-        if details['giver']:
+        # If not, try to find characters in the database
+        if not giver_id and details['giver']:
+            logger.info(f"Looking up giver character in database: {details['giver']}")
             giver = SceneImages.query.filter(
                 SceneImages.image_type == 'character',
                 SceneImages.name.ilike(f"%{details['giver']}%")
             ).first()
+            giver_id = giver.id if giver else None
+            if giver_id:
+                logger.info(f"Found giver character in database: ID {giver_id}")
+            else:
+                logger.warning(f"Could not find giver character in database: {details['giver']}")
             
-        if details['target']:
+        if not target_id and details['target']:
+            logger.info(f"Looking up target character in database: {details['target']}")
             target = SceneImages.query.filter(
                 SceneImages.image_type == 'character', 
                 SceneImages.name.ilike(f"%{details['target']}%")
             ).first()
+            target_id = target.id if target else None
+            if target_id:
+                logger.info(f"Found target character in database: ID {target_id}")
+            else:
+                logger.warning(f"Could not find target character in database: {details['target']}")
 
-        # Fall back to None if not found
-        giver_id = giver.id if giver else None
-        target_id = target.id if target else None
-
-        # Auto-assign difficulty based on reward amount
-        difficulty = "easy"
-        if details['reward_amount'] > BASE_REWARDS[details['reward_currency']] * 1.5:
-            difficulty = "medium"
-        if details['reward_amount'] > BASE_REWARDS[details['reward_currency']] * 2.5:
-            difficulty = "hard"
-            
-        # Generate a title if none provided
+        # Generate a title based on objective
         title = f"Mission: {details['objective'][:30]}..." if len(details['objective']) > 30 else f"Mission: {details['objective']}"
+        logger.info(f"Generated mission title: {title}")
 
         # Create description from extracted details
         description = f"Mission from {details['giver'] if details['giver'] else 'Unknown'} to {details['objective']}. "
         description += f"Target: {details['target'] if details['target'] else 'Unknown'}. "
         description += f"Reward: {details['reward_amount']} {details['reward_currency']}."
+        logger.info(f"Generated mission description: {description}")
 
-        # Create deadline text
-        deadline = f"Complete within {3 if difficulty == 'hard' else 5} days"
-
-        # Create mission
+        # Create mission with all required fields from database schema
+        logger.info("Creating mission in database...")
         mission = Mission(
             user_id=user_id,
             title=title,
@@ -181,17 +334,27 @@ def create_mission_from_story(user_id: str, story_text: str, story_id: Optional[
             giver_id=giver_id,
             target_id=target_id,
             objective=details['objective'],
-            difficulty=difficulty,
+            status='active',
+            difficulty=details['difficulty'],
             reward_currency=details['reward_currency'],
             reward_amount=details['reward_amount'],
-            deadline=deadline,
-            story_id=story_id
+            deadline=details['deadline'],
+            story_id=story_id,
+            progress=0,
+            progress_updates=[{
+                "progress": 0,
+                "status": "active",
+                "timestamp": datetime.utcnow().isoformat(),
+                "description": "Mission assigned"
+            }]
         )
         
         db.session.add(mission)
         db.session.commit()
+        logger.info(f"Created mission in database with ID: {mission.id}")
         
         # Add to user's active missions
+        logger.info(f"Adding mission to user's active missions list")
         user_progress = UserProgress.query.filter_by(user_id=user_id).first()
         if user_progress:
             if not user_progress.active_missions:
@@ -200,8 +363,14 @@ def create_mission_from_story(user_id: str, story_text: str, story_id: Optional[
             if mission.id not in user_progress.active_missions:
                 user_progress.active_missions.append(mission.id)
                 db.session.commit()
+                logger.info(f"Added mission {mission.id} to user {user_id}'s active missions")
+            else:
+                logger.info(f"Mission {mission.id} was already in user's active missions")
+        else:
+            logger.warning(f"Could not find UserProgress for user {user_id}")
         
-        logger.info(f"Created mission from story for user {user_id}: {mission.title}")
+        logger.info(f"✅ Successfully created mission from story: '{mission.title}'")
+        logger.info(f"Mission details: {mission.objective} | Difficulty: {mission.difficulty} | Reward: {mission.reward_amount} {mission.reward_currency}")
         return mission
         
     except Exception as e:

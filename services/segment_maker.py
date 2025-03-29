@@ -26,7 +26,7 @@ logging.getLogger("httpx").setLevel(logging.DEBUG)
 # Configure module logger
 logger = logging.getLogger(__name__)
 
-SEGMENT_WORD_COUNT_RANGE = "800-1000"  # NEW constant for segment word count range
+SEGMENT_WORD_COUNT_RANGE = "500-800"  # NEW constant for segment word count range
 
 def build_additional_characters_prompt(additional_characters: Optional[List[Dict[str, Any]]] = None) -> str:
     """Build the prompt section for additional characters."""
@@ -92,7 +92,7 @@ Mood: {mood}
 Narrative Style: {narrative_style}
 
 NARRATIVE STYLE GUIDELINES: You are a master narrative generator for our choose your own adventure game.
-1. Create LENGTHY, DETAILED story segments (at least 1000-1500 words) with rich descriptions
+1. Create LENGTHY, DETAILED story segments (at least 500-1500 words) with rich descriptions
 2. Use vivid sensory details, atmospheric descriptions, and character development
 3. Each segment should advance the plot significantly with unexpected twists or revelations
 4. Include multiple scenes within each story segment when appropriate
@@ -284,7 +284,8 @@ class StoryContinuationHandler:
         mission_info: Dict[str, Any],
         help_instruction: str,
         story_context: Optional[str] = "",
-        existing_characters: Optional[List[Dict[str, Any]]] = None
+        existing_characters: Optional[List[Dict[str, Any]]] = None,
+        narrative_history: Optional[str] = None  # NEW parameter for narrative history
     ) -> str:
         """Build a consolidated prompt for story continuation."""
         prompt_parts = [
@@ -292,13 +293,25 @@ class StoryContinuationHandler:
             "",
             "PLAYER'S CHOICE:",
             chosen_choice,
-            "",
+            ""
+        ]
+        
+        # NEW: Add narrative history if available to provide context for continuity
+        if narrative_history:
+            prompt_parts.extend([
+                "PREVIOUS EVENTS:",
+                narrative_history,
+                ""
+            ])
+            logger.info("Added narrative history to prompt")
+            
+        prompt_parts.extend([
             "CURRENT MISSION:",
             f"Title: {mission_info.get('title', 'Unknown')}",
             f"Objective: {mission_info.get('objective', 'Unknown')}",
             f"Current Status: {mission_info.get('status', 'In Progress')}",
             f"Progress: {mission_info.get('progress', 0)}%"
-        ]
+        ])
         
         # Add character details if available - use the build_additional_characters_prompt function
         if existing_characters:
@@ -333,13 +346,15 @@ class StoryContinuationHandler:
         setting: Optional[str] = None,
         story_context: Optional[str] = None,
         existing_characters: Optional[List[Dict[str, Any]]] = None,
-        node_count: int = 1
+        node_count: int = 1,
+        narrative_history: Optional[str] = None  # NEW: Parameter for narrative history
     ) -> Dict[str, Any]:
         """Generate a story continuation based on the player's choice."""
         logger.info("=== StoryContinuationHandler.generate_continuation called ===")
         logger.debug(f"Received node_count: {node_count}")
         logger.debug(f"Received parameters: conflict={conflict}, setting={setting}, mood={mood}, narrative_style={narrative_style}")
         logger.debug(f"Previous story length: {len(previous_story) if previous_story else 0} chars")
+        logger.debug(f"Has narrative history: {bool(narrative_history)}")  # NEW: Log presence of narrative history
         
         # Get random characters to use for assistance choices
         existing_ids = {char.get("id") for char in existing_characters} if existing_characters else set()
@@ -392,13 +407,14 @@ class StoryContinuationHandler:
         if not all([conflict, setting, mood, narrative_style]):
             raise ValueError("Missing required story parameters")
         
-        # Build prompt
+        # Build prompt with narrative history for better continuity
         prompt = self._build_prompt(
             chosen_choice=chosen_choice,
             mission_info=mission_info,
             help_instruction=help_instruction,
             story_context="\n".join(context_additions),
-            existing_characters=formatted_characters
+            existing_characters=formatted_characters,
+            narrative_history=narrative_history  # NEW: Pass narrative history to prompt builder
         )
         
         logger.info("=== Calling OpenAIContextManager.generate_continuation ===")
@@ -456,7 +472,8 @@ def generate_continuation(
     setting: Optional[str] = None,
     story_context: Optional[str] = None,
     existing_characters: Optional[List[Dict[str, Any]]] = None,
-    node_count: int = 1
+    node_count: int = 1,
+    narrative_history: Optional[str] = None  # NEW: Parameter for narrative history
 ) -> Dict[str, Any]:
     """Public function to generate story continuation."""
     logger.info("=== generate_continuation function called ===")
@@ -474,6 +491,7 @@ def generate_continuation(
     logger.debug(f"  protagonist_level: {protagonist_level}")
     logger.debug(f"  story_context length: {len(story_context) if story_context else 0} chars")
     logger.debug(f"  mission_info: {json.dumps(mission_info, indent=2)}")
+    logger.debug(f"  has narrative history: {bool(narrative_history)}")  # NEW: Log if narrative history exists
     
     if existing_characters:
         char_info_list = [
@@ -503,7 +521,8 @@ def generate_continuation(
         setting=setting,
         story_context=story_context,
         existing_characters=existing_characters,
-        node_count=node_count
+        node_count=node_count,
+        narrative_history=narrative_history  # NEW: Pass narrative history to handler
     )
     
     # Log the result

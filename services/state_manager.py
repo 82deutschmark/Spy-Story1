@@ -55,6 +55,7 @@ class GameState:
     2. Active missions
     3. NPC relationships
     4. Player resources
+    5. Story history buffer for narrative continuity
     """
 
     def __init__(self, user_id: str):
@@ -73,7 +74,14 @@ class GameState:
         self._context_manager = OpenAIContextManager()
         # Track story node count separately (not in context manager)
         self._node_count = 0
+        # NEW: Add story history buffer to maintain recent nodes for context
+        self._story_history_buffer = []
+        self._max_history_nodes = 3  # Keep last 3 nodes
         self.reload_state()
+        # After reload, try to get the node count from user progress metadata if available
+        if hasattr(self.user_progress, 'extra_data') and self.user_progress.extra_data and 'node_count' in self.user_progress.extra_data:
+            self._node_count = self.user_progress.extra_data.get('node_count', 0)
+            logger.info(f"=== Loaded persistent node count: {self._node_count} ===")
         logger.info(f"=== GameState initialized for user {user_id} ===")
         logger.debug(f"Initial state: story_id={self.user_progress.current_story_id}, node_id={self.user_progress.current_node_id}, node_count={self._node_count}")
 
@@ -91,6 +99,28 @@ class GameState:
         """Increment and return the node count."""
         self._node_count += 1
         logger.info(f"=== Node count incremented to {self._node_count} ===")
+        
+        # Persist node count to user progress extra_data
+        try:
+            # Ensure extra_data exists and is initialized
+            if not hasattr(self.user_progress, 'extra_data') or self.user_progress.extra_data is None:
+                self.user_progress.extra_data = {}
+                
+            # Set the node_count in extra_data
+            self.user_progress.extra_data['node_count'] = self._node_count
+            
+            # Use direct SQL to update the database to avoid session issues
+            db.engine.execute(
+                "UPDATE user_progress SET extra_data = %s WHERE id = %s",
+                (json.dumps(self.user_progress.extra_data), self.user_progress.id)
+            )
+            
+            logger.info(f"Persisted node_count {self._node_count} to database for user {self.user_id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to persist node count: {str(e)}", exc_info=True)
+            # Don't rollback, we still want to return the incremented count
+            
         return self._node_count
 
     def get_story_parameters(self) -> dict:
@@ -143,6 +173,7 @@ class GameState:
                 - character_relationships: Dict of character IDs to relationship info
                 - active_missions: List of active mission details
                 - story_context: Additional story-specific context
+                - narrative_history: History of recent story nodes for continuity
         """
         try:
             logger.info(f"=== Getting context for node {node_id} ===")
@@ -154,7 +185,8 @@ class GameState:
                 return {
                     "character_relationships": {},
                     "active_missions": [],
-                    "story_context": {}
+                    "story_context": {},
+                    "narrative_history": ""
                 }
 
             # Get character relationships from user progress
@@ -189,17 +221,30 @@ class GameState:
             story_context = {}
             if node.branch_metadata:
                 story_context = node.branch_metadata.get("story_context", {})
+                
+            # NEW: Add narrative history to the context
+            narrative_history = ""
+            if self._story_history_buffer:
+                # Format the narrative history with scene numbers
+                narrative_history = "\n\n".join([
+                    f"SCENE {i+1}:\n{entry['narrative_text']}"
+                    for i, entry in enumerate(self._story_history_buffer)
+                ])
+                logger.info(f"Added narrative history from {len(self._story_history_buffer)} previous nodes")
 
+            # Add narrative_history to the context object
             context = {
                 "character_relationships": character_relationships,
                 "active_missions": active_missions,
-                "story_context": story_context
+                "story_context": story_context,
+                "narrative_history": narrative_history  # NEW field
             }
             
             debug_info = {
                 'active_missions_count': len(active_missions),
                 'character_relationships_count': len(character_relationships),
-                'has_story_context': bool(story_context)
+                'has_story_context': bool(story_context),
+                'narrative_history_node_count': len(self._story_history_buffer)  # NEW debug info
             }
             logger.debug(f"Node context: {json.dumps(debug_info, indent=2)}")
             
@@ -210,7 +255,8 @@ class GameState:
             return {
                 "character_relationships": {},
                 "active_missions": [],
-                "story_context": {}
+                "story_context": {},
+                "narrative_history": ""  # Include empty narrative_history on error
             }
 
     def to_dict(self) -> Dict[str, Any]:
@@ -281,10 +327,17 @@ class GameState:
                 Mission.id.in_(self.user_progress.active_missions),
                 Mission.user_id == self.user_id
             ).all()
+            
+        # Restore node count from user progress metadata
+        if hasattr(self.user_progress, 'extra_data') and self.user_progress.extra_data and 'node_count' in self.user_progress.extra_data:
+            self._node_count = self.user_progress.extra_data.get('node_count', 0)
+            logger.debug(f"Restored node_count from metadata: {self._node_count}")
+            
         # Debug log to confirm state reload
         logger.debug(f"Reloaded state: Story ID={self.current_story.id if self.current_story else None}, " +
                      f"Node ID={self.current_node.id if self.current_node else None}, " +
-                     f"Active Missions={len(self.active_missions)}")
+                     f"Active Missions={len(self.active_missions)}, " +
+                     f"Node Count={self._node_count}")
 
     def resolve_current_node(self, story_id: Optional[int] = None) -> Optional[StoryNode]:
         """
@@ -370,6 +423,11 @@ class GameState:
                 logger.error(f"Invalid node ID: {node_id}")
                 raise ValueError(f"Invalid node ID: {node_id}")
             
+            # NEW: Add current node to history before transitioning to new node
+            if self.current_node:
+                self._update_story_history(self.current_node)
+                logger.debug(f"Added node {self.current_node.id} to history buffer")
+            
             # Update current node
             self.current_node = new_node
             
@@ -404,6 +462,33 @@ class GameState:
         except Exception as e:
             logger.error(f"Error transitioning to node {node_id}: {str(e)}")
             raise  # Re-raise to let caller handle the error
+
+    def _update_story_history(self, node):
+        """
+        Update story history buffer with current node information.
+        
+        This method adds the node to the history buffer and maintains the size limit
+        by removing the oldest entries when necessary.
+        
+        Args:
+            node: The StoryNode to add to history
+        """
+        if not node:
+            return
+            
+        # Create history entry with essential information
+        history_entry = {
+            "id": node.id,
+            "narrative_text": node.narrative_text,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        # Add to history buffer and maintain size limit
+        self._story_history_buffer.append(history_entry)
+        if len(self._story_history_buffer) > self._max_history_nodes:
+            self._story_history_buffer.pop(0)  # Remove oldest entry
+            
+        logger.debug(f"Story history buffer updated, size: {len(self._story_history_buffer)}")
 
 class GameStateManager:
     """

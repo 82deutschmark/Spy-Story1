@@ -51,6 +51,12 @@
 - Introduced a helper function "extractStoryData" in multiple JS modules (FormHandler.js, EventHandlers.js, MissionManager.js, UserProgressManager.js, UserProgress.js, UIUtils.js, StoryFormHandler.js, and ChoiceHandler.js)
   - This function standardizes extraction of narrative_text and choices from API payloads, supporting both top-level fields and nesting under a "stories" key.
 - Updated main.js to use fallback logic when rendering narrative_text and choices to ensure the storyboard displays fully formatted HTML with line breaks.
+- Added node count persistence in database:
+  - Added `extra_data` JSONB field to UserProgress model for flexible data storage
+  - Enhanced GameState to store node_count in extra data
+  - Updated reload_state to restore node_count from persistent storage
+  - Added validation to ensure node count is never invalid or reset between sessions
+  - Improved continuation numbering in OpenAI prompts to reflect actual story position
 
 ### Changed
 - Refactored state management system:
@@ -173,7 +179,13 @@
   - Fixed character data handling in choice continuation
   - Preserved currency requirement checks and processing
   - Kept proper error handling and user feedback
-- Resolved issues where the initial storyboard was missing narrative text and choices by introducing unified extraction logic in our JavaScript modules.
+- Fixed story continuation numbering in prompts:
+  - Added persistent storage for node count in UserProgress extra_data
+  - Ensured node count persists between application restarts
+  - Fixed validation in context manager to handle invalid node counts
+  - Added proper node count loading from database during state reload
+  - Ensured story continuations show the correct continuation number
+  - Changed reserved field name 'metadata' to 'extra_data' to prevent SQLAlchemy conflict
 
 ### Changed
 - Refactored state management system

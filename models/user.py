@@ -87,6 +87,7 @@ class UserProgress(db.Model):
         failed_missions (JSONB): Failed mission IDs
         encountered_characters (JSONB): Character relationship data
         currency_balances (JSONB): Currency amounts by type
+        extra_data (JSONB): Additional metadata for flexible storage
         
     Relationships:
         current_node (StoryNode): Current position in story
@@ -124,6 +125,9 @@ class UserProgress(db.Model):
         "💴": 5000,  # Yen
         "💵": 5000,  # Dollars
     })
+    
+    # Additional metadata for flexible storage 
+    extra_data = db.Column(JSONB, default={})
 
     # Relationships
     current_node = db.relationship('StoryNode')
