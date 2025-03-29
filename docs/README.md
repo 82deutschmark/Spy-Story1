@@ -104,9 +104,31 @@ An interactive thriller game engine that generates dynamic narratives with branc
 - [Story Flow](docs/story_flow.md) - Narrative progression and state transitions
 - [ChatGPT API Call Chain](docs/ChatGPT%20API%20Call%20Chain%20Documentation.md) - Details of API integration
 - [API Parameter Flow](docs/api_parameter_flow.md) - Story parameter handling
+- [OpenAI API Logging](docs/OpenAI_API_Logging.md) - Detailed API request/response logging and debugging
 
 ## Technical Stack
 - Python 3.8+ with Flask web framework
 - PostgreSQL for robust data persistence
 - OpenAI API for advanced narrative generation
 - Modern front-end with responsive design
+
+## Debugging & Development
+
+### OpenAI API Debugging
+The system includes enhanced logging capabilities for OpenAI API interactions:
+
+- **Complete API Request Logging**: All requests to the OpenAI API are thoroughly logged, including full message content and parameters
+- **Request/Response Inspection**: Track exactly what's being sent to and received from the API
+- **Dedicated Testing Script**: Use `test_api_logging.py` to quickly verify API connectivity and logging
+- **Centralized Logging Configuration**: All logging is configured through `utils/context_manager.py`
+
+To test the API logging:
+```bash
+# Set your OpenAI API key
+export OPENAI_API_KEY=your_key_here  # Linux/Mac
+set OPENAI_API_KEY=your_key_here     # Windows CMD
+$env:OPENAI_API_KEY='your_key_here'  # Windows PowerShell
+
+# Run the test script
+python test_api_logging.py
+```

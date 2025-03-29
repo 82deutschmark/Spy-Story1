@@ -23,6 +23,8 @@ from utils.character_manager import extract_character_traits, extract_character_
 
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("httpx").setLevel(logging.DEBUG)
+# Configure module logger
+logger = logging.getLogger(__name__)
 
 SEGMENT_WORD_COUNT_RANGE = "800-1000"  # NEW constant for segment word count range
 
@@ -334,6 +336,11 @@ class StoryContinuationHandler:
         node_count: int = 1
     ) -> Dict[str, Any]:
         """Generate a story continuation based on the player's choice."""
+        logger.info("=== StoryContinuationHandler.generate_continuation called ===")
+        logger.debug(f"Received node_count: {node_count}")
+        logger.debug(f"Received parameters: conflict={conflict}, setting={setting}, mood={mood}, narrative_style={narrative_style}")
+        logger.debug(f"Previous story length: {len(previous_story) if previous_story else 0} chars")
+        
         # Get random characters to use for assistance choices
         existing_ids = {char.get("id") for char in existing_characters} if existing_characters else set()
         fresh_chars = get_random_characters(3)
@@ -394,6 +401,10 @@ class StoryContinuationHandler:
             existing_characters=formatted_characters
         )
         
+        logger.info("=== Calling OpenAIContextManager.generate_continuation ===")
+        logger.info(f"Passing parameters to OpenAIContextManager: conflict={conflict}, setting={setting}, mood={mood}, narrative_style={narrative_style}, node_count={node_count}")
+        logger.debug(f"Character count: {len(formatted_characters)}")
+        
         # Generate story continuation using the stateless context manager
         story_data = self.context_manager.generate_continuation(
             client=self.client,
@@ -407,7 +418,14 @@ class StoryContinuationHandler:
             character_info=formatted_characters
         )
         
-        return self.validate_response(story_data, selected_random)
+        logger.info("=== Received response from OpenAIContextManager ===")
+        logger.debug(f"Response story length: {len(story_data.get('narrative_text', '')) if story_data else 0} chars")
+        logger.debug(f"Response choices count: {len(story_data.get('choices', [])) if story_data else 0}")
+        
+        validated_data = self.validate_response(story_data, selected_random)
+        logger.info("=== Returning validated response ===")
+        
+        return validated_data
 
 def get_openai_client():
     """Get an OpenAI client with the current API key."""
@@ -441,8 +459,35 @@ def generate_continuation(
     node_count: int = 1
 ) -> Dict[str, Any]:
     """Public function to generate story continuation."""
+    logger.info("=== generate_continuation function called ===")
+    logger.info(f"Core parameters:")
+    logger.info(f"  conflict: {conflict}")
+    logger.info(f"  setting: {setting}")
+    logger.info(f"  mood: {mood}")
+    logger.info(f"  narrative_style: {narrative_style}")
+    logger.info(f"  node_count: {node_count}")
+    
+    logger.debug(f"Parameters:")
+    logger.debug(f"  chosen_choice: {chosen_choice}")
+    logger.debug(f"  protagonist_name: {protagonist_name}")
+    logger.debug(f"  protagonist_gender: {protagonist_gender}")
+    logger.debug(f"  protagonist_level: {protagonist_level}")
+    logger.debug(f"  story_context length: {len(story_context) if story_context else 0} chars")
+    logger.debug(f"  mission_info: {json.dumps(mission_info, indent=2)}")
+    
+    if existing_characters:
+        logger.debug(f"  existing_characters: {json.dumps([{
+            'id': char.get('id'),
+            'name': char.get('character_name') or char.get('name', 'Unknown'),
+            'role': char.get('character_role') or char.get('role', 'neutral')
+        } for char in existing_characters], indent=2)}")
+    
+    logger.info("Creating StoryContinuationHandler (stateless)")
     handler = StoryContinuationHandler()
-    return handler.generate_continuation(
+    
+    # Generate continuation
+    logger.info("Delegating to handler.generate_continuation")
+    result = handler.generate_continuation(
         previous_story=previous_story,
         chosen_choice=chosen_choice,
         mission_info=mission_info,
@@ -457,3 +502,11 @@ def generate_continuation(
         existing_characters=existing_characters,
         node_count=node_count
     )
+    
+    # Log the result
+    logger.info("=== Continuation Result ===")
+    logger.debug(f"  narrative_text (first 100 chars): {result.get('narrative_text', '')[:100]}...")
+    logger.debug(f"  choices: {json.dumps(result.get('choices', []), indent=2)}")
+    logger.debug(f"  mission_update: {json.dumps(result.get('mission_update', {}), indent=2)}")
+    
+    return result

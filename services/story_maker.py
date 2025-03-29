@@ -431,6 +431,10 @@ def generate_story(**kwargs) -> Dict[str, Any]:
     """Generate a new story with the given parameters."""
     client = kwargs.pop('client', None)
     generator = StoryGenerator(client=client)
+    
+    logger.info("=== generate_story function called ===")
+    logger.debug(f"Story generation parameters: {json.dumps(kwargs, default=str, indent=2)}")
+    
     story_data = generator.generate_story(**kwargs)
     
     # Extract narrative text from the correct location in the response
@@ -448,6 +452,8 @@ def generate_story(**kwargs) -> Dict[str, Any]:
         "narrative_style": story_data.get("narrative_style"),
         "mood": story_data.get("mood")
     })
+    
+    logger.debug(f"Final flattened story response: {json.dumps(flattened, indent=2)}")
     return flattened
 
 # --- STORY_OPTIONS moved to the end of the file ---

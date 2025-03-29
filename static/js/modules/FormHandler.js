@@ -77,13 +77,17 @@ class FormHandler {
                 // Get the selected character from the hidden input
                 const selectedImagesInput = form.querySelector('input[name="selected_images"]');
                 if (!selectedImagesInput || !selectedImagesInput.value) {
-                    throw new Error('Please select a character before proceeding');
+                    throw new Error('Please select at least one character before proceeding');
                 }
                 
                 // Clear any existing selected_images entries
                 formData.delete('selected_images');
-                // Add the selected character ID
-                formData.append('selected_images', selectedImagesInput.value);
+                
+                // Add the selected character IDs
+                const selectedCharacterIds = selectedImagesInput.value.split(',');
+                for (const characterId of selectedCharacterIds) {
+                    formData.append('selected_images', characterId);
+                }
             }
 
             // Submit the form

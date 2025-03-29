@@ -85,12 +85,70 @@ class ChoiceHandler {
                 throw new Error(result.error || `HTTP error! status: ${response.status}`);
             }
 
+            // Handle different response formats
             if (result.redirect_url) {
+                // Direct redirect provided
                 window.location.href = result.redirect_url;
             } else if (result.success && result.story_id) {
+                // Original response format with success flag and story_id
                 window.location.href = `/storyboard/${result.story_id}`;
+            } else if (result.current_node && result.current_node.id) {
+                // GameEngine.make_choice format with current_node details
+                // Update the page content with the new node data
+                if (result.current_node.narrative_text) {
+                    this.updateStoryContent(result.current_node.narrative_text);
+                }
+                
+                // Update choices if available
+                const choicesContainer = document.querySelector('.choices-container');
+                if (choicesContainer && result.available_choices) {
+                    choicesContainer.innerHTML = "";
+                    result.available_choices.forEach(choice => {
+                        const choiceForm = document.createElement('form');
+                        choiceForm.className = 'choice-form';
+                        choiceForm.method = 'POST';
+                        choiceForm.action = form.action;
+                        
+                        // Hidden inputs to carry state
+                        const storyIdInput = document.createElement('input');
+                        storyIdInput.type = 'hidden';
+                        storyIdInput.name = 'story_id';
+                        storyIdInput.value = formDataObj.story_id;
+                        choiceForm.appendChild(storyIdInput);
+                        
+                        const choiceIdInput = document.createElement('input');
+                        choiceIdInput.type = 'hidden';
+                        choiceIdInput.name = 'choice_id';
+                        choiceIdInput.value = choice.choice_id || choice.id;
+                        choiceForm.appendChild(choiceIdInput);
+                        
+                        // Create submit button
+                        const btn = document.createElement('button');
+                        btn.type = 'submit';
+                        btn.className = "choice-btn";
+                        btn.innerHTML = choice.text || "Option";
+                        choiceForm.appendChild(btn);
+                        
+                        choicesContainer.appendChild(choiceForm);
+                    });
+                }
+                
+                // Stop loading state and re-enable buttons
+                if (submitButton && loadingState) {
+                    this.loadingManager.stopButtonLoading(submitButton, loadingState.originalText);
+                }
+                
+                // Re-enable all choice buttons
+                document.querySelectorAll('.choice-btn').forEach(btn => {
+                    btn.disabled = false;
+                });
+                
+                // Reinitialize character mentions for the new content
+                if (this.characterMentions) {
+                    this.characterMentions.initialize();
+                }
             } else {
-                throw new Error('Invalid response from server');
+                throw new Error('Invalid response format from server');
             }
 
         } catch (error) {

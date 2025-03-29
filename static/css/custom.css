@@ -615,3 +615,18 @@ button[type="submit"].loading::after {
     aspect-ratio: 1 / 1 !important;
     overflow: hidden;
 }
+
+.selection-instructions {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(66, 153, 225, 0.1);
+    border-radius: 10px;
+    border: 1px solid rgba(66, 153, 225, 0.2);
+}
+
+.selection-instructions p {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-color);
+}

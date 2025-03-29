@@ -48,9 +48,34 @@ from services.mission_generator import (
 )
 from services.character_interaction import CharacterInteractionService
 from services.state_manager import GameState, state_manager
-from utils.context_manager import OpenAIContextManager
+from utils.context_manager import OpenAIContextManager, configure_logging
 from utils.character_manager import format_character_info
 import json
+import sys
+
+# Configure proper logging for game engine
+def setup_game_engine_logging():
+    """Configure game engine logging for visibility in console"""
+    # Configure root logger if not already configured
+    root_logger = logging.getLogger()
+    if not root_logger.handlers:
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        console_handler.setFormatter(formatter)
+        root_logger.addHandler(console_handler)
+        root_logger.setLevel(logging.INFO)
+    
+    # Configure httpx and openai for API debugging
+    logging.getLogger("httpx").setLevel(logging.DEBUG)
+    logging.getLogger("openai").setLevel(logging.DEBUG)
+    
+    logger = logging.getLogger(__name__)
+    logger.info("Game engine logging configured")
+
+# Set up logging
+setup_game_engine_logging()
+configure_logging()  # Configure OpenAI context manager logging
 
 logger = logging.getLogger(__name__)
 
@@ -306,12 +331,20 @@ class GameEngine:
         Process a user's story choice and update game state.
         """
         try:
+            logger.info("=== make_choice method called ===")
+            logger.debug(f"Choice ID: {choice_id}")
+            logger.debug(f"Custom choice text: {custom_choice_text}")
+            logger.debug(f"Story context: {story_context}")
+            logger.debug(f"Characters: {json.dumps(characters, default=str, indent=2) if characters else 'None'}")
+            
             # Start transaction
             db.session.begin_nested()
             # Reload the game state from the database to ensure latest parameters
+            logger.info("Reloading game state from database")
             self.state.reload_state()
             
             # Get context manager as a stateless service
+            logger.info("Getting stateless context manager from GameState")
             context_manager = self.state.get_context_manager()
             
             # Get current story from DB using stored story id to ensure fresh parameters
@@ -320,12 +353,19 @@ class GameEngine:
                 raise ValueError("No active story found")
             
             # Resolve current node
+            logger.info("Resolving current node")
             current_node = self.state.resolve_current_node(story.id)
             if not current_node:
                 raise ValueError("Could not resolve current node")
             
             # Get node context for story continuation
+            logger.info("Getting node context")
             node_context = self.state.get_node_context(current_node.id)
+            logger.debug(f"Node context: {json.dumps({
+                'active_missions_count': len(node_context.get('active_missions', [])), 
+                'has_relationships': bool(node_context.get('character_relationships')),
+                'has_story_context': bool(node_context.get('story_context'))
+            }, indent=2)}")
             
             # Safely get mission info, using a default empty mission if none exists
             active_missions = node_context.get("active_missions", [])
@@ -347,7 +387,9 @@ class GameEngine:
             protagonist = current_node.branch_metadata.get("protagonist", {})
             
             # Increment node count in the game state
+            logger.info("Incrementing node count in GameState")
             node_count = self.state.increment_node_count()
+            logger.info(f"Node count is now: {node_count}")
             
             # Format characters for the context manager
             char_info = []
@@ -364,6 +406,8 @@ class GameEngine:
                     "role": char.character_role  # Include both formats for compatibility
                 } for char in story.characters]
             
+            logger.debug(f"Formatted {len(char_info)} characters for context manager")
+            
             # Build user message for continuation
             user_message = f"""
 PLAYER'S CHOICE:
@@ -378,8 +422,11 @@ Progress: {mission_info.get('progress', 0)}%
 STORY CONTEXT:
 {story_context or ""}
 """
+            logger.debug(f"User message for continuation: {user_message}")
             
             # Generate next story segment using segment_maker with stateless approach
+            logger.info("Calling generate_continuation...")
+            logger.info(f"Parameters being passed: conflict={conflict}, setting={setting}, mood={story.mood}, narrative_style={story.narrative_style}, node_count={node_count}")
             next_segment = generate_continuation(
                 previous_story=current_node.narrative_text,
                 chosen_choice=custom_choice_text or choice_id,

@@ -41,6 +41,9 @@ from utils.context_manager import OpenAIContextManager
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
+# Configure detailed logging
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("httpx").setLevel(logging.DEBUG)
 
 class GameState:
     """
@@ -71,18 +74,23 @@ class GameState:
         # Track story node count separately (not in context manager)
         self._node_count = 0
         self.reload_state()
+        logger.info(f"=== GameState initialized for user {user_id} ===")
+        logger.debug(f"Initial state: story_id={self.user_progress.current_story_id}, node_id={self.user_progress.current_node_id}, node_count={self._node_count}")
 
     def get_context_manager(self) -> OpenAIContextManager:
         """Get the OpenAIContextManager for this story."""
+        logger.debug("=== Getting stateless context manager ===")
         return self._context_manager
         
     def get_node_count(self) -> int:
         """Get the current node count in the story."""
+        logger.debug(f"Getting node count: {self._node_count}")
         return self._node_count
         
     def increment_node_count(self) -> int:
         """Increment and return the node count."""
         self._node_count += 1
+        logger.info(f"=== Node count incremented to {self._node_count} ===")
         return self._node_count
 
     def get_story_parameters(self) -> dict:
@@ -101,13 +109,14 @@ class GameState:
                 - node_count: Current depth in story
         """
         if not self.current_story:
+            logger.warning("Cannot get story parameters: no current story")
             return {}
             
         protagonist = {}
         if self.current_node and self.current_node.branch_metadata:
             protagonist = self.current_node.branch_metadata.get("protagonist", {})
             
-        return {
+        parameters = {
             "mood": self.current_story.mood if self.current_story else None,
             "narrative_style": self.current_story.narrative_style if self.current_story else None,
             "conflict": self.current_story.primary_conflict if self.current_story else None,
@@ -117,6 +126,10 @@ class GameState:
             "protagonist_level": protagonist.get("level", 1),
             "node_count": self._node_count
         }
+        
+        logger.info("=== Retrieved story parameters ===")
+        logger.debug(f"Story parameters: {json.dumps(parameters, default=str, indent=2)}")
+        return parameters
 
     def get_node_context(self, node_id: int) -> Dict[str, Any]:
         """
@@ -132,6 +145,8 @@ class GameState:
                 - story_context: Additional story-specific context
         """
         try:
+            logger.info(f"=== Getting context for node {node_id} ===")
+            
             # Get the node
             node = StoryNode.query.get(node_id)
             if not node:
@@ -175,11 +190,19 @@ class GameState:
             if node.branch_metadata:
                 story_context = node.branch_metadata.get("story_context", {})
 
-            return {
+            context = {
                 "character_relationships": character_relationships,
                 "active_missions": active_missions,
                 "story_context": story_context
             }
+            
+            logger.debug(f"Node context: {json.dumps({
+                'active_missions_count': len(active_missions),
+                'character_relationships_count': len(character_relationships),
+                'has_story_context': bool(story_context)
+            }, indent=2)}")
+            
+            return context
 
         except Exception as e:
             logger.error(f"Error getting node context: {str(e)}")
@@ -246,6 +269,7 @@ class GameState:
 
     def reload_state(self):
         """Refresh game state from database"""
+        logger.info(f"=== Reloading state for user {self.user_id} ===")
         db.session.refresh(self.user_progress)
         if self.user_progress.current_story_id:
             self.current_story = StoryGeneration.query.get(self.user_progress.current_story_id)
@@ -257,7 +281,9 @@ class GameState:
                 Mission.user_id == self.user_id
             ).all()
         # Debug log to confirm state reload
-        logging.debug(f"Reloaded state: Story - {self.current_story}, Node - {self.current_node}")
+        logger.debug(f"Reloaded state: Story ID={self.current_story.id if self.current_story else None}, " +
+                     f"Node ID={self.current_node.id if self.current_node else None}, " +
+                     f"Active Missions={len(self.active_missions)}")
 
     def resolve_current_node(self, story_id: Optional[int] = None) -> Optional[StoryNode]:
         """
@@ -278,6 +304,8 @@ class GameState:
             ValueError: If story_id is invalid or story not found
         """
         try:
+            logger.info(f"=== Resolving current node for story {story_id or 'current'} ===")
+            
             # Use provided story_id or current story
             target_story_id = story_id or (self.current_story.id if self.current_story else None)
             if not target_story_id:
@@ -333,6 +361,8 @@ class GameState:
             ValueError: If node_id is invalid or node not found
         """
         try:
+            logger.info(f"=== Transitioning to node {node_id} ===")
+            
             # Get and validate node
             new_node = StoryNode.query.get(node_id)
             if not new_node:

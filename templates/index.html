@@ -144,6 +144,10 @@
                             <input type="hidden" name="protagonist_name" id="protagonistNameInput">
                             <input type="hidden" name="protagonist_gender" id="protagonistGenderInput">
                             <input type="hidden" name="protagonist_level" id="protagonistLevelInput" value="1">
+                            <div class="selection-instructions">
+                                <p>Select one or more characters to appear in your story.</p>
+                                <p><small><i>Click on multiple character cards to select them. At least one character is required.</i></small></p>
+                            </div>
                             <div class="character-grid">
                                 {% for character in images %}
                                     {{ character_card(character, loop.index0) }}

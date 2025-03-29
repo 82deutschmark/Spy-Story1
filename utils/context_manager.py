@@ -2,8 +2,40 @@ import logging
 from typing import List, Dict, Any, Optional
 import json
 from utils.constants import DEFAULT_TEMPERATURE, INITIAL_STORY_TEMPERATURE, MODEL_CONFIG
+import sys
+
+def configure_logging():
+    """Ensure logs are directed to the console with proper formatting."""
+    # Get root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+    
+    # Check if handlers already exist to avoid duplicates
+    if not root_logger.handlers:
+        # Create console handler and set level
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(logging.INFO)
+        
+        # Create formatter
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        console_handler.setFormatter(formatter)
+        
+        # Add handler to logger
+        root_logger.addHandler(console_handler)
+    
+    # Ensure httpx logger is set to DEBUG for API requests/responses
+    logging.getLogger("httpx").setLevel(logging.DEBUG)
+    logging.getLogger("openai").setLevel(logging.DEBUG)
+    
+    # Test log
+    logging.info("Logging configured for OpenAI context manager")
+
+# Configure logging
+configure_logging()
 
 logger = logging.getLogger(__name__)
+# Set up detailed logging for OpenAI API interactions
+logging.getLogger("httpx").setLevel(logging.DEBUG)
 
 class OpenAIContextManager:
     """
@@ -192,48 +224,26 @@ class OpenAIContextManager:
             {"role": "user", "content": user_message}
         ]
         
-        # Log the request
-        logging.info("=== OpenAI API Request (Initial Story) ===")
-        logging.info(f"Model: {model}")
-        logging.info(f"Temperature: {temperature}")
+        logger.info("=== Generating Initial Story ===")
+        logger.info(f"Conflict: {conflict}")
+        logger.info(f"Setting: {setting}")
+        logger.info(f"Narrative Style: {narrative_style}")
+        logger.info(f"Mood: {mood}")
         
-        # Make API call
-        api_params = {
-            "model": model,
-            "messages": messages,
-            "response_format": {"type": "json_object"}
-        }
+        # Use the enhanced process_api_call method
+        story_data = self.process_api_call(
+            client=client,
+            messages=messages,
+            model=model,
+            temperature=temperature,
+            response_format="json_object"
+        )
         
-        # Only include temperature for models that support it (o3-mini doesn't)
-        if not model.startswith("o3-"):
-            api_params["temperature"] = temperature
+        # Normalize: if the API returned key "story" but not "narrative_text", rename it
+        if "story" in story_data and "narrative_text" not in story_data:
+            story_data["narrative_text"] = story_data.pop("story")
         
-        response = client.chat.completions.create(**api_params)
-        
-        # Process the response
-        content = response.choices[0].message.content
-        
-        # Clean the content if needed
-        if content.startswith('```json'):
-            content = content[7:]  # Remove ```json
-        if content.endswith('```'):
-            content = content[:-3]  # Remove ```
-            
-        content = content.strip()
-        
-        try:
-            story_data = json.loads(content)
-            
-            # Normalize: if the API returned key "story" but not "narrative_text", rename it
-            if "story" in story_data and "narrative_text" not in story_data:
-                story_data["narrative_text"] = story_data.pop("story")
-                
-            return story_data
-        except json.JSONDecodeError as e:
-            logging.error(f"JSON decode error: {str(e)} with content: {content}")
-            escaped_content = content.replace("\n", "\\n").replace("\r", "\\r")
-            logging.error(f"Escaped JSON content for inspection: {escaped_content}")
-            raise
+        return story_data
 
     def generate_continuation(
         self,
@@ -250,18 +260,18 @@ class OpenAIContextManager:
         model: str = None
     ) -> Dict[str, Any]:
         """
-        Generate a continuation of a story.
+        Generate a continuation of an existing story.
         
         This method is stateless - all required data must be provided.
         
         Args:
             client: OpenAI client instance
-            user_message: User prompt including the chosen choice
+            user_message: User prompt containing the player's choice
             conflict: Primary story conflict
             setting: Story setting
             narrative_style: Narrative style
             mood: Story mood
-            node_count: Current story progression node count
+            node_count: Current node count in the story (for depth tracking)
             mission_info: Optional mission information
             character_info: Optional character information
             temperature: Optional temperature parameter for OpenAI
@@ -280,7 +290,7 @@ class OpenAIContextManager:
         if temperature is None:
             temperature = DEFAULT_TEMPERATURE
             
-        # Build messages
+        # Build messages with node count to track depth
         system_message = self.build_continuation_system_message(mood, narrative_style, node_count)
         context = self.build_story_context(conflict, setting, mission_info, character_info)
         
@@ -289,66 +299,32 @@ class OpenAIContextManager:
             {"role": "user", "content": user_message}
         ]
         
-        # Log the request
-        logging.info("=== OpenAI API Request (Continuation) ===")
-        logging.info(f"Model: {model}")
-        logging.info(f"Temperature: {temperature}")
-        logging.info(f"Node count: {node_count}")
+        logger.info("=== Generating Story Continuation ===")
+        logger.info(f"Node Count: {node_count}")
+        logger.info(f"Conflict: {conflict}")
+        logger.info(f"Setting: {setting}")
+        logger.info(f"Narrative Style: {narrative_style}")
+        logger.info(f"Mood: {mood}")
         
-        # Make API call
-        api_params = {
-            "model": model,
-            "messages": messages,
-            "response_format": {"type": "json_object"}
-        }
+        # Use the enhanced process_api_call method
+        story_data = self.process_api_call(
+            client=client,
+            messages=messages,
+            model=model,
+            temperature=temperature,
+            response_format="json_object"
+        )
         
-        # Only include temperature for models that support it (o3-mini doesn't)
-        if not model.startswith("o3-"):
-            api_params["temperature"] = temperature
+        # Normalize: if the API returned key "story" but not "narrative_text", rename it
+        if "story" in story_data and "narrative_text" not in story_data:
+            story_data["narrative_text"] = story_data.pop("story")
         
-        response = client.chat.completions.create(**api_params)
-        
-        # Process the response
-        content = response.choices[0].message.content
-        
-        # Clean the content if needed
-        if content.startswith('```json'):
-            content = content[7:]  # Remove ```json
-        if content.endswith('```'):
-            content = content[:-3]  # Remove ```
-            
-        content = content.strip()
-        
-        try:
-            story_data = json.loads(content)
-            
-            # Normalize: if the API returned key "story" but not "narrative_text", rename it
-            if "story" in story_data and "narrative_text" not in story_data:
-                story_data["narrative_text"] = story_data.pop("story")
-                
-            return story_data
-        except json.JSONDecodeError as e:
-            logging.error(f"JSON decode error: {str(e)} with content: {content}")
-            escaped_content = content.replace("\n", "\\n").replace("\r", "\\r")
-            logging.error(f"Escaped JSON content for inspection: {escaped_content}")
-            raise
+        return story_data
 
-    # Simplified API call method for flexibility
     def process_api_call(self, client, messages: List[Dict[str, str]], model: str = None, temperature: float = None, response_format: str = "json_object") -> Dict[str, Any]:
-        """
-        Process a generic API call to OpenAI.
-        
-        Args:
-            client: OpenAI client instance
-            messages: List of message dictionaries
-            model: Model name (optional)
-            temperature: Temperature parameter (optional)
-            response_format: Response format type (optional)
-            
-        Returns:
-            The raw API response
-        """
+        """Process an API call with the given parameters."""
         from utils.constants import MODEL_CONFIG, DEFAULT_TEMPERATURE
+        import json
         import logging
         
         # Set defaults
@@ -357,26 +333,137 @@ class OpenAIContextManager:
         if temperature is None:
             temperature = DEFAULT_TEMPERATURE
             
-        # Log the request
-        logging.info("=== OpenAI API Request (Generic) ===")
-        logging.info(f"Model: {model}")
-        logging.info(f"Temperature: {temperature}")
-        
-        # Make API call
+        # Build API parameters
         api_params = {
             "model": model,
-            "messages": messages,
+            "messages": messages
         }
         
-        # Only include temperature for models that support it (o3-mini doesn't)
+        # Add response_format for compatible models
+        if response_format and not model.startswith("o3-"):
+            api_params["response_format"] = {"type": response_format}
+        
+        # Only include temperature for models that support it
         if not model.startswith("o3-"):
             api_params["temperature"] = temperature
+        
+        # ENHANCED LOGGING: Log the full API request parameters
+        logger.info("=" * 80)
+        logger.info("OpenAI API REQUEST")
+        logger.info("=" * 80)
+        logger.info(f"Model: {model}")
+        logger.info(f"Temperature: {temperature}")
+        
+        # Format messages for clear viewing in logs
+        formatted_messages = []
+        for msg in messages:
+            # Truncate content if it's too long for the logs
+            content = msg.get('content', '')
+            if len(content) > 1000:
+                content_preview = content[:500] + "... [truncated] ..." + content[-500:]
+                formatted_msg = {**msg, 'content': content_preview}
+            else:
+                formatted_msg = msg
+            formatted_messages.append(formatted_msg)
+        
+        # Log the full request parameters in JSON format
+        logger.info("REQUEST PAYLOAD:")
+        logger.info(json.dumps(api_params, indent=2, default=str))
+        logger.info("-" * 80)
+        
+        # Make the API call
+        try:
+            logger.info(f"Sending request to OpenAI API at {model}...")
+            response = client.chat.completions.create(**api_params)
             
-        # Add response_format if json is requested
-        if response_format == "json_object":
-            api_params["response_format"] = {"type": "json_object"}
+            # Process the response
+            content = response.choices[0].message.content
             
-        return client.chat.completions.create(**api_params)
+            # Log response summary
+            logger.info("RESPONSE RECEIVED:")
+            logger.info(f"Usage: {response.usage}")
+            logger.info(f"Content length: {len(content)}")
+            logger.debug(f"Raw response content: {content[:500]}..." if len(content) > 500 else f"Raw response content: {content}")
+            
+            # Clean the content if needed
+            if content.startswith('```json'):
+                content = content[7:]  # Remove ```json
+            if content.endswith('```'):
+                content = content[:-3]  # Remove ```
+                
+            content = content.strip()
+            
+            try:
+                result = json.loads(content)
+                logger.info("Successfully parsed JSON response")
+                logger.info("=" * 80)
+                return result
+            except json.JSONDecodeError as e:
+                logging.error(f"JSON decode error: {str(e)} with content: {content}")
+                escaped_content = content.replace("\n", "\\n").replace("\r", "\\r")
+                logging.error(f"Escaped JSON content for inspection: {escaped_content}")
+                logging.error("=" * 80)
+                raise
+                
+        except Exception as e:
+            logger.error(f"API call error: {str(e)}")
+            logger.error("=" * 80)
+            raise
+
+def test_api_logging():
+    """
+    Helper function to test API request logging.
+    
+    This function can be called from anywhere in the application to perform a simple
+    API call that will demonstrate the logging setup. The function should be called 
+    with an OpenAI client.
+    
+    Example usage:
+        from openai import OpenAI
+        from utils.context_manager import test_api_logging
+        
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        test_api_logging(client)
+    """
+    import os
+    from openai import OpenAI
+    
+    logger.info("Running API logging test function")
+    
+    # Check if OpenAI API key is available
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        logger.error("No OpenAI API key found in environment. Set OPENAI_API_KEY.")
+        return
+    
+    # Create client
+    client = OpenAI(api_key=api_key)
+    
+    # Create context manager
+    context_manager = OpenAIContextManager()
+    
+    # Test message - Note: must include "json" for json_object response format
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant. Respond with JSON."},
+        {"role": "user", "content": "Send a simple hello world response in JSON format that includes the current time."}
+    ]
+    
+    try:
+        # Process API call using our enhanced logging
+        result = context_manager.process_api_call(
+            client=client,
+            messages=messages,
+            model="gpt-3.5-turbo",
+            temperature=0.7
+        )
+        
+        logger.info("Test completed successfully!")
+        logger.info(f"Result: {result}")
+    except Exception as e:
+        logger.error(f"Test failed with error: {str(e)}")
+        
+    logger.info("API logging test function complete")
+
 
 class GameState:
     def __init__(self, user_id: str):

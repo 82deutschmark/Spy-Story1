@@ -44,9 +44,34 @@ from utils.validation_utils import validate_story_parameters, validate_string_le
 from utils.currency_utils import process_transaction
 from utils.db_utils import get_or_create_user_progress as db_get_or_create_user_progress
 from utils.character_manager import get_random_characters  # NEW import
+from utils.context_manager import configure_logging  # Import the logging configuration function
 
 import logging
+import sys
 logger = logging.getLogger(__name__)
+
+# Ensure logs are visible in the console
+def setup_logging():
+    """Configure main routes logging to ensure visibility in console"""
+    # Configure root logger if not already configured
+    root_logger = logging.getLogger()
+    if not root_logger.handlers:
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        console_handler.setFormatter(formatter)
+        root_logger.addHandler(console_handler)
+        root_logger.setLevel(logging.INFO)
+    
+    # Configure httpx and openai for API debugging
+    logging.getLogger("httpx").setLevel(logging.DEBUG)
+    logging.getLogger("openai").setLevel(logging.DEBUG)
+    
+    logger.info("Main routes logging configured")
+
+# Set up logging 
+setup_logging()
+configure_logging()  # Configure OpenAI context manager logging
 
 # Create Blueprint
 main_bp = Blueprint('main', __name__)
@@ -227,12 +252,32 @@ def storyboard(story_id):
 def generate_story_route():
     logger.info(f"Received {request.method} request at /generate_story")
     data = request.form.to_dict()
+    
+    # Get the character IDs from the form
     selected_chars_input = request.form.getlist('selected_images')
-    if selected_chars_input:
-        # Query selected characters by ID from form data
+    
+    # Process the character IDs - handle both individual IDs and comma-separated IDs
+    character_ids = []
+    for id_value in selected_chars_input:
+        # Check if this is a comma-separated list of IDs
+        if ',' in id_value:
+            # Split the comma-separated string and add each ID to our list
+            character_ids.extend([int(cid.strip()) for cid in id_value.split(',')])
+        else:
+            # Single ID - just convert to int and add to list
+            character_ids.append(int(id_value))
+    
+    if character_ids:
+        # Query selected characters by ID from processed list
         selected_characters = Character.query.filter(
-            Character.id.in_([int(cid) for cid in selected_chars_input])
+            Character.id.in_(character_ids)
         ).all()
+        
+        # Ensure we have at least one character
+        if not selected_characters:
+            return jsonify({'error': 'Please select at least one character'}), 400
+        
+        # Check for required roles and add them if missing
         required_roles = ['mission-giver', 'villain']
         existing_roles = [char.character_role.lower() for char in selected_characters if char.character_role]
         for role in required_roles:
@@ -240,9 +285,11 @@ def generate_story_route():
                 missing_char = Character.query.filter_by(character_role=role).order_by(db.func.random()).first()
                 if missing_char:
                     selected_characters.append(missing_char)
+        
         # Save both IDs and full details in the form data
         data['selected_characters'] = [char.id for char in selected_characters]
-        # Also attach full details for use later in story generation:
+        
+        # The first selected character will be the protagonist
         data['protagonist_info'] = {
             "id": selected_characters[0].id,
             "character_name": selected_characters[0].character_name,
@@ -252,6 +299,7 @@ def generate_story_route():
             "character_role": selected_characters[0].character_role,
             "role": selected_characters[0].character_role
         }
+        
         # And if additional characters exist:
         if len(selected_characters) > 1:
             data['additional_characters'] = [
@@ -267,13 +315,17 @@ def generate_story_route():
                 } for char in selected_characters[1:]
             ]
     else:
+        # If no characters selected, use random ones
         selected_characters = get_random_characters_with_roles()
         data['selected_characters'] = [char.id for char in selected_characters]
+    
     if not selected_characters:
         return jsonify({'error': 'Missing required character roles'}), 500
+    
     user_progress = get_or_create_user_progress()
     game_engine = GameEngine(user_id=user_progress.user_id)
     story_data = game_engine.start_new_story(form_data=data)
+    
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'success': True, 'redirect': url_for('main.storyboard', story_id=story_data['story_id'])})
     else:
@@ -281,19 +333,31 @@ def generate_story_route():
 
 @main_bp.route('/make_choice', methods=['POST'])
 def make_choice():
+    logger.info("=== /make_choice POST endpoint called ===")
+    
     if request.is_json:
         data = request.get_json()
+        logger.debug(f"JSON POST data: {json.dumps(data, indent=2)}")
         story_id = data.get('story_id')
         choice_id = data.get('choice_id')
         previous_choice = data.get('previous_choice')
         story_context = data.get('story_context')
         characters = data.get('characters', [])
     else:
+        logger.debug(f"Form POST data: {request.form}")
         story_id = request.form.get('story_id')
         choice_id = request.form.get('choice_id')
         previous_choice = request.form.get('previous_choice')
         story_context = request.form.get('story_context')
         characters = request.form.getlist('characters[]')
+        
+    logger.debug(f"Extracted values:")
+    logger.debug(f"  story_id: {story_id}")
+    logger.debug(f"  choice_id: {choice_id}")
+    logger.debug(f"  previous_choice: {previous_choice}")
+    logger.debug(f"  story_context: {story_context}")
+    logger.debug(f"  characters: {json.dumps(characters, default=str)}")
+    
     if not story_id or not choice_id:
         raise ValueError("Missing required fields")
     story = StoryGeneration.query.get_or_404(story_id)
@@ -321,21 +385,27 @@ def make_choice():
         # If no characters were provided, use an empty list
         characters = []
     
+    logger.debug(f"Prepared character objects: {json.dumps(characters, default=str, indent=2)}")
+    
     result = game_engine.make_choice(
         choice_id=choice_id,
         custom_choice_text=previous_choice,
         story_context=story_context,
         characters=characters
     )
-    new_node = StoryNode.query.get(result['current_node']['id'])
-    if not new_node:
-        raise ValueError("Failed to create new story node")
-    user_progress.current_node_id = new_node.id
-    user_progress.last_active = datetime.utcnow()
-    db.session.commit()
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify({'success': True, 'redirect_url': url_for('main.storyboard', story_id=story_id)})
-    return redirect(url_for('main.storyboard', story_id=story_id))
+    
+    logger.debug(f"make_choice result (summary): {json.dumps({
+        'current_node_id': result.get('current_node', {}).get('id'),
+        'choice_count': len(result.get('available_choices', [])),
+        'mission_updates': len(result.get('mission_updates', [])),
+        'character_updates': len(result.get('character_updates', []))
+    }, indent=2)}")
+    
+    # Add success and story_id fields for backward compatibility with the front-end
+    result['success'] = True
+    result['story_id'] = story_id
+    
+    return jsonify(result)
 
 @main_bp.route('/reroll_character', methods=['POST'])
 def reroll_character():

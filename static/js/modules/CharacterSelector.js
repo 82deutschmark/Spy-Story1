@@ -7,7 +7,7 @@
  * 
  * Key Features:
  * ------------
- * - Single character selection with visual feedback
+ * - Multiple character selection with visual feedback
  * - Character card highlighting and selection indicators
  * - Error state management
  * - Event emission for selection changes
@@ -24,7 +24,7 @@
  * -----
  * 1. Initialize with CharacterSelector.initialize()
  * 2. Listen for 'characterSelected' events to handle selection changes
- * 3. Use getSelectedCharacter() to get current selection
+ * 3. Use getSelectedCharacters() to get current selections
  * 4. Use clearSelection() to reset selection
  * 5. Reroll buttons are automatically handled
  */
@@ -33,7 +33,7 @@ import { UIUtils } from './UIUtils.js';
 
 class CharacterSelector {
     constructor() {
-        this.selectedCharacter = null;
+        this.selectedCharacters = new Set();
         this.containers = [];
         this.handleContainerClick = this.handleContainerClick.bind(this);
         this.handleReroll = this.handleReroll.bind(this);
@@ -160,31 +160,39 @@ class CharacterSelector {
         const card = container.querySelector('.character-select-card');
         const characterId = card.dataset.characterId;
 
-        // Deselect all other cards
-        this.containers.forEach(otherContainer => {
-            if (otherContainer !== container) {
-                const otherCard = otherContainer.querySelector('.character-select-card');
-                const otherIndicator = otherCard?.querySelector('.selection-indicator');
-                if (otherCard) otherCard.classList.remove('selected');
-                if (otherIndicator) otherIndicator.style.display = 'none';
+        // Toggle selection for the clicked card
+        if (this.selectedCharacters.has(characterId)) {
+            // If this is the only selected character and we're trying to deselect it, don't allow it
+            if (this.selectedCharacters.size === 1) {
+                return;
             }
-        });
-
-        // Select the clicked card
-        card.classList.add('selected');
-        this.selectedCharacter = characterId;
-
-        // Update selection indicator
-        const selectionIndicator = card.querySelector('.selection-indicator');
-        if (selectionIndicator) {
-            selectionIndicator.style.display = 'block';
+            
+            // Deselect the card
+            this.selectedCharacters.delete(characterId);
+            card.classList.remove('selected');
+            
+            // Hide the selection indicator
+            const selectionIndicator = card.querySelector('.selection-indicator');
+            if (selectionIndicator) {
+                selectionIndicator.style.display = 'none';
+            }
+        } else {
+            // Select the card
+            this.selectedCharacters.add(characterId);
+            card.classList.add('selected');
+            
+            // Show the selection indicator
+            const selectionIndicator = card.querySelector('.selection-indicator');
+            if (selectionIndicator) {
+                selectionIndicator.style.display = 'block';
+            }
         }
 
-        // Update hidden inputs
-        this.updateHiddenInputs(characterId);
+        // Update hidden inputs with all selected characters
+        this.updateHiddenInputs();
 
         // Emit selection event
-        this.emitSelectionEvent(characterId);
+        this.emitSelectionEvent();
 
         // Hide any error messages
         this.hideError();
@@ -192,22 +200,20 @@ class CharacterSelector {
 
     /**
      * Update hidden inputs for form submission
-     * @param {string} characterId - The selected character ID
      */
-    updateHiddenInputs(characterId) {
+    updateHiddenInputs() {
         const hiddenInput = document.querySelector('input[name="selected_images"]');
         if (hiddenInput) {
-            hiddenInput.value = characterId;
+            hiddenInput.value = Array.from(this.selectedCharacters).join(',');
         }
     }
 
     /**
      * Emit selection event with character data
-     * @param {string} characterId - The selected character ID
      */
-    emitSelectionEvent(characterId) {
+    emitSelectionEvent() {
         const event = new CustomEvent('characterSelected', {
-            detail: { characterId }
+            detail: { characterIds: Array.from(this.selectedCharacters) }
         });
         document.dispatchEvent(event);
     }
@@ -250,18 +256,18 @@ class CharacterSelector {
     }
 
     /**
-     * Get the currently selected character ID
-     * @returns {string|null} The selected character ID or null if none selected
+     * Get the currently selected character IDs
+     * @returns {Set} The set of selected character IDs
      */
-    getSelectedCharacter() {
-        return this.selectedCharacter;
+    getSelectedCharacters() {
+        return this.selectedCharacters;
     }
 
     /**
      * Clear the current selection
      */
     clearSelection() {
-        this.selectedCharacter = null;
+        this.selectedCharacters.clear();
         this.containers.forEach(container => {
             const card = container.querySelector('.character-select-card');
             const indicator = card?.querySelector('.selection-indicator');
@@ -292,8 +298,8 @@ class CharacterSelector {
      * @returns {boolean} Whether the selection is valid
      */
     validateSelection() {
-        if (!this.selectedCharacter) {
-            this.showError('Please select a character before proceeding');
+        if (this.selectedCharacters.size === 0) {
+            this.showError('Please select at least one character before proceeding');
             return false;
         }
         return true;

@@ -3,6 +3,15 @@
 ## [Unreleased]
 
 ### Added
+- Enhanced OpenAI API logging system:
+  - Added detailed request and response logging with `utils/context_manager.py`
+  - Created a standalone test script `test_api_logging.py` for API logging verification
+  - Added centralized logging configuration in `configure_logging()` function
+  - Implemented message content truncation for large requests while preserving readability
+  - Added comprehensive error handling for API calls with detailed logging
+  - Added usage statistics logging for token consumption tracking
+  - Added clear visual separators for logs to improve readability
+  - Implemented request payload formatting for easier debugging
 - Enhanced node resolution system with priority-based logic:
   - User's current node for story
   - Story's latest node

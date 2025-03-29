@@ -32,6 +32,8 @@ from flask import Blueprint, request, jsonify
 from models.character_data import Character
 import os
 
+from services.game_engine import GameEngine
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
