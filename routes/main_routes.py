@@ -394,16 +394,16 @@ def make_choice():
         characters=characters
     )
     
-    logger.debug(f"make_choice result (summary): {json.dumps({
-        'current_node_id': result.get('current_node', {}).get('id'),
-        'choice_count': len(result.get('available_choices', [])),
-        'mission_updates': len(result.get('mission_updates', [])),
-        'character_updates': len(result.get('character_updates', []))
+    logger.debug(f"make_choice result (summary): {json.dumps({...})}")
+    'current_node_id': result.get('current_node', {}).get('id'),
+    'choice_count': len(result.get('available_choices', [])),
+    'mission_updates': len(result.get('mission_updates', [])),
+    'character_updates': len(result.get('character_updates', []))
     }, indent=2)}")
-        'current_node_id': result.get('current_node', {}).get('id'),
-        'choice_count': len(result.get('available_choices', [])),
-        'mission_updates': len(result.get('mission_updates', [])),
-        'character_updates': len(result.get('character_updates', []))
+    'current_node_id': result.get('current_node', {}).get('id'),
+    'choice_count': len(result.get('available_choices', [])),
+    'mission_updates': len(result.get('mission_updates', [])),
+    'character_updates': len(result.get('character_updates', []))
     }, indent=2)}")
     
     # Add success and story_id fields for backward compatibility with the front-end

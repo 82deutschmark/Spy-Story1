@@ -96,7 +96,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "FLASK_ENV=production gunicorn --bind 0.0.0.0:80 'main:create_app()' --access-logfile '-' --log-level info"
+args = "PORT=80 gunicorn --bind 0.0.0.0:80 'wsgi:app' --access-logfile '-' --log-level info --timeout 120"
 
 [[ports]]
 localPort = 80
