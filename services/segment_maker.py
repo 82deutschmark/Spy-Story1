@@ -476,11 +476,14 @@ def generate_continuation(
     logger.debug(f"  mission_info: {json.dumps(mission_info, indent=2)}")
     
     if existing_characters:
-        logger.debug(f"  existing_characters: {json.dumps([{
-            'id': char.get('id'),
-            'name': char.get('character_name') or char.get('name', 'Unknown'),
-            'role': char.get('character_role') or char.get('role', 'neutral')
-        } for char in existing_characters], indent=2)}")
+        char_info_list = [
+            {
+                'id': char.get('id'),
+                'name': char.get('character_name') or char.get('name', 'Unknown'),
+                'role': char.get('character_role') or char.get('role', 'neutral')
+            } for char in existing_characters
+        ]
+        logger.debug(f"  existing_characters: {json.dumps(char_info_list, indent=2)}")
     
     logger.info("Creating StoryContinuationHandler (stateless)")
     handler = StoryContinuationHandler()
