@@ -361,11 +361,13 @@ class GameEngine:
             # Get node context for story continuation
             logger.info("Getting node context")
             node_context = self.state.get_node_context(current_node.id)
-            logger.debug(f"Node context: {json.dumps({
+            
+            debug_info = {
                 'active_missions_count': len(node_context.get('active_missions', [])), 
                 'has_relationships': bool(node_context.get('character_relationships')),
                 'has_story_context': bool(node_context.get('story_context'))
-            }, indent=2)}")
+            }
+            logger.debug(f"Node context: {json.dumps(debug_info, indent=2)}")
             
             # Safely get mission info, using a default empty mission if none exists
             active_missions = node_context.get("active_missions", [])
