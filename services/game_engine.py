@@ -426,6 +426,11 @@ STORY CONTEXT:
 """
             logger.debug(f"User message for continuation: {user_message}")
             
+            # Get enhanced context from state manager
+            logger.info("Getting enhanced context from state manager")
+            enhanced_context = node_context.get("enhanced_context", "")
+            logger.debug(f"Enhanced context length: {len(enhanced_context)}")
+            
             # Generate next story segment using segment_maker with stateless approach
             logger.info("Calling generate_continuation...")
             logger.info(f"Parameters being passed: conflict={conflict}, setting={setting}, mood={story.mood}, narrative_style={story.narrative_style}, node_count={node_count}")
@@ -440,7 +445,8 @@ STORY CONTEXT:
                 story_context=story_context or "",
                 existing_characters=char_info,
                 node_count=node_count,
-                narrative_history=node_context.get("narrative_history", "")
+                narrative_history=node_context.get("narrative_history", ""),
+                enhanced_context=enhanced_context  # NEW: Pass enhanced context
             )
             
             # Log the continuation data

@@ -208,10 +208,10 @@ NARRATIVE STYLE GUIDELINES: You are a master narrative generator for our choose 
 class StoryContinuationHandler:
     """Handles story continuation generation and validation."""
     
-    def __init__(self):
+    def __init__(self, client, context_manager):
         """Initialize with a stateless context manager."""
-        self.context_manager = OpenAIContextManager()
-        self.client = get_openai_client()
+        self.context_manager = context_manager
+        self.client = client
     
     def validate_response(self, story_data: Dict[str, Any], random_character: Optional[Character] = None) -> Dict[str, Any]:
         """Validate and process the story response."""
@@ -347,7 +347,8 @@ class StoryContinuationHandler:
         story_context: Optional[str] = None,
         existing_characters: Optional[List[Dict[str, Any]]] = None,
         node_count: int = 1,
-        narrative_history: Optional[str] = None  # NEW: Parameter for narrative history
+        narrative_history: Optional[str] = None,
+        enhanced_context: Optional[str] = None  # NEW: Add enhanced_context parameter
     ) -> Dict[str, Any]:
         """Generate a story continuation based on the player's choice."""
         logger.info("=== StoryContinuationHandler.generate_continuation called ===")
@@ -431,7 +432,8 @@ class StoryContinuationHandler:
             mood=mood,
             node_count=node_count,
             mission_info=mission_info,
-            character_info=formatted_characters
+            character_info=formatted_characters,
+            enhanced_context=enhanced_context  # NEW: Pass enhanced context
         )
         
         logger.info("=== Received response from OpenAIContextManager ===")
@@ -473,9 +475,10 @@ def generate_continuation(
     story_context: Optional[str] = None,
     existing_characters: Optional[List[Dict[str, Any]]] = None,
     node_count: int = 1,
-    narrative_history: Optional[str] = None  # NEW: Parameter for narrative history
+    narrative_history: Optional[str] = None,
+    enhanced_context: Optional[str] = None  # NEW: Add enhanced_context parameter
 ) -> Dict[str, Any]:
-    """Public function to generate story continuation."""
+    """Generate a story continuation based on the player's choice."""
     logger.info("=== generate_continuation function called ===")
     logger.info(f"Core parameters:")
     logger.info(f"  conflict: {conflict}")
@@ -504,11 +507,18 @@ def generate_continuation(
         logger.debug(f"  existing_characters: {json.dumps(char_info_list, indent=2)}")
     
     logger.info("Creating StoryContinuationHandler (stateless)")
-    handler = StoryContinuationHandler()
+    context_manager = OpenAIContextManager()
+    client = get_openai_client()
     
-    # Generate continuation
-    logger.info("Delegating to handler.generate_continuation")
-    result = handler.generate_continuation(
+    # Ensure we have a valid client
+    if not client:
+        raise RuntimeError("Failed to initialize OpenAI client")
+        
+    # Leverage our handler class for continuation generation
+    handler = StoryContinuationHandler(client, context_manager)
+    
+    # Generate continuation with all available parameters
+    return handler.generate_continuation(
         previous_story=previous_story,
         chosen_choice=chosen_choice,
         mission_info=mission_info,
@@ -522,13 +532,6 @@ def generate_continuation(
         story_context=story_context,
         existing_characters=existing_characters,
         node_count=node_count,
-        narrative_history=narrative_history  # NEW: Pass narrative history to handler
+        narrative_history=narrative_history,
+        enhanced_context=enhanced_context  # NEW: Pass enhanced_context
     )
-    
-    # Log the result
-    logger.info("=== Continuation Result ===")
-    logger.debug(f"  narrative_text (first 100 chars): {result.get('narrative_text', '')[:100]}...")
-    logger.debug(f"  choices: {json.dumps(result.get('choices', []), indent=2)}")
-    logger.debug(f"  mission_update: {json.dumps(result.get('mission_update', {}), indent=2)}")
-    
-    return result

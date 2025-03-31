@@ -28,6 +28,7 @@ Table: user_progress
 - Mission tracking: active/completed/failed_missions
 - Character tracking: encountered_characters
 - Currency tracking: currency_balances
+- Story tracking: node_count (tracks position in narrative tree)
 
 Currency Types:
 ------------
@@ -88,6 +89,7 @@ class UserProgress(db.Model):
         encountered_characters (JSONB): Character relationship data
         currency_balances (JSONB): Currency amounts by type
         extra_data (JSONB): Additional metadata for flexible storage
+        node_count (int): Current position in narrative tree [default: 0]
         
     Relationships:
         current_node (StoryNode): Current position in story
@@ -128,6 +130,9 @@ class UserProgress(db.Model):
     
     # Additional metadata for flexible storage 
     extra_data = db.Column(JSONB, default={})
+    
+    # NEW: Dedicated column for tracking node count in the story
+    node_count = db.Column(db.Integer, default=0, index=True)
 
     # Relationships
     current_node = db.relationship('StoryNode')

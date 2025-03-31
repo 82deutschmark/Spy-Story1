@@ -263,6 +263,7 @@ class OpenAIContextManager:
         node_count: int,
         mission_info: Optional[Dict[str, Any]] = None,
         character_info: Optional[Dict[str, Any]] = None,
+        enhanced_context: Optional[str] = None,
         temperature: float = None,
         model: str = None
     ) -> Dict[str, Any]:
@@ -281,6 +282,7 @@ class OpenAIContextManager:
             node_count: Current node count in the story (for depth tracking)
             mission_info: Optional mission information
             character_info: Optional character information
+            enhanced_context: Optional enhanced context from database
             temperature: Optional temperature parameter for OpenAI
             model: Optional model name
             
@@ -301,9 +303,15 @@ class OpenAIContextManager:
         system_message = self.build_continuation_system_message(mood, narrative_style, node_count)
         context = self.build_story_context(conflict, setting, mission_info, character_info)
         
+        # Add enhanced context if available
+        user_content = user_message
+        if enhanced_context:
+            user_content = f"STORY CONTEXT:\n{enhanced_context}\n\nPLAYER CHOICE:\n{user_message}"
+            logger.info(f"Using enhanced context of {len(enhanced_context)} characters")
+        
         messages = [
             {"role": "system", "content": f"{system_message}\n\n{context}"},
-            {"role": "user", "content": user_message}
+            {"role": "user", "content": user_content}
         ]
         
         logger.info("=== Generating Story Continuation ===")
@@ -312,6 +320,7 @@ class OpenAIContextManager:
         logger.info(f"Setting: {setting}")
         logger.info(f"Narrative Style: {narrative_style}")
         logger.info(f"Mood: {mood}")
+        logger.info(f"Enhanced Context Used: {enhanced_context is not None}")
         
         # Use the enhanced process_api_call method
         story_data = self.process_api_call(

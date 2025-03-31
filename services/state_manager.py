@@ -34,7 +34,7 @@ Dependencies:
 import logging
 from typing import Dict, Any, Optional, List
 import json
-from models import UserProgress, StoryGeneration, StoryNode, Mission
+from models import UserProgress, StoryGeneration, StoryNode, Mission, PlotArc
 from models.character_data import Character
 from database import db
 from utils.context_manager import OpenAIContextManager
@@ -78,9 +78,9 @@ class GameState:
         self._story_history_buffer = []
         self._max_history_nodes = 3  # Keep last 3 nodes
         self.reload_state()
-        # After reload, try to get the node count from user progress metadata if available
-        if hasattr(self.user_progress, 'extra_data') and self.user_progress.extra_data and 'node_count' in self.user_progress.extra_data:
-            self._node_count = self.user_progress.extra_data.get('node_count', 0)
+        # After reload, try to get the node count from the dedicated column
+        if self.user_progress and self.user_progress.node_count:
+            self._node_count = self.user_progress.node_count
             logger.info(f"=== Loaded persistent node count: {self._node_count} ===")
         logger.info(f"=== GameState initialized for user {user_id} ===")
         logger.debug(f"Initial state: story_id={self.user_progress.current_story_id}, node_id={self.user_progress.current_node_id}, node_count={self._node_count}")
@@ -100,25 +100,20 @@ class GameState:
         self._node_count += 1
         logger.info(f"=== Node count incremented to {self._node_count} ===")
         
-        # Persist node count to user progress extra_data
+        # Update the dedicated node_count column using ORM
         try:
-            # Ensure extra_data exists and is initialized
-            if not hasattr(self.user_progress, 'extra_data') or self.user_progress.extra_data is None:
-                self.user_progress.extra_data = {}
-                
-            # Set the node_count in extra_data
-            self.user_progress.extra_data['node_count'] = self._node_count
+            # Use the dedicated column instead of extra_data
+            self.user_progress.node_count = self._node_count
             
-            # Use direct SQL to update the database to avoid session issues
-            db.engine.execute(
-                "UPDATE user_progress SET extra_data = %s WHERE id = %s",
-                (json.dumps(self.user_progress.extra_data), self.user_progress.id)
-            )
+            # Add the user_progress object to the session and commit the change
+            db.session.add(self.user_progress)
+            db.session.commit()
             
             logger.info(f"Persisted node_count {self._node_count} to database for user {self.user_id}")
             
         except Exception as e:
             logger.error(f"Failed to persist node count: {str(e)}", exc_info=True)
+            db.session.rollback()
             # Don't rollback, we still want to return the incremented count
             
         return self._node_count
@@ -161,6 +156,111 @@ class GameState:
         logger.debug(f"Story parameters: {json.dumps(parameters, default=str, indent=2)}")
         return parameters
 
+    def get_enhanced_context(self, node_id: int, max_tokens: int = 3000) -> str:
+        """
+        Generate optimized context using key plot points and ancestor nodes.
+        
+        This method prioritizes important narrative moments by combining:
+        1. Key nodes from active plot arcs (major plot points)
+        2. Direct ancestor nodes in the story tree (recent history)
+        3. Additional context from branch metadata
+        
+        Args:
+            node_id (int): Current node ID to generate context for
+            max_tokens (int): Approximate maximum tokens to include in context
+            
+        Returns:
+            str: Formatted context text optimized for OpenAI
+        """
+        try:
+            logger.info(f"=== Generating enhanced context for node {node_id} ===")
+            
+            # Get the current node
+            current_node = StoryNode.query.get(node_id)
+            if not current_node:
+                logger.error(f"Node {node_id} not found")
+                return ""
+            
+            # 1. Get key nodes from active plot arcs
+            key_node_ids = []
+            plot_arcs = PlotArc.query.filter(
+                PlotArc.story_id == current_node.story_id,
+                PlotArc.status == 'active'
+            ).all()
+            
+            for arc in plot_arcs:
+                if arc.key_nodes:
+                    # key_nodes is a JSONB array, so we need to extract the IDs
+                    key_node_ids.extend(arc.key_nodes)
+            
+            # 2. Get ancestors in the node tree path (limit to 5 ancestors)
+            ancestor_nodes = []
+            parent_id = current_node.parent_node_id
+            ancestor_count = 0
+            
+            while parent_id and ancestor_count < 5:
+                parent = StoryNode.query.get(parent_id)
+                if parent:
+                    ancestor_nodes.append(parent)
+                    parent_id = parent.parent_node_id
+                    ancestor_count += 1
+                else:
+                    break
+            
+            # Reverse the ancestors to get chronological order
+            ancestor_nodes.reverse()
+            
+            # 3. Format context sections
+            context_parts = []
+            
+            # Add key plot points if available
+            if key_node_ids:
+                key_nodes = StoryNode.query.filter(StoryNode.id.in_(key_node_ids)).all()
+                
+                if key_nodes:
+                    context_parts.append("KEY PLOT POINTS:")
+                    for i, node in enumerate(key_nodes, 1):
+                        # Limit text to ~300 characters to manage token count
+                        truncated_text = node.narrative_text[:300]
+                        if len(node.narrative_text) > 300:
+                            truncated_text += "..."
+                        context_parts.append(f"MOMENT {i}: {truncated_text}")
+                    context_parts.append("")  # Empty line for separation
+            
+            # Add story ancestors for recent history
+            if ancestor_nodes:
+                context_parts.append("RECENT STORY HISTORY:")
+                for i, node in enumerate(ancestor_nodes, 1):
+                    # Limit text to ~200 characters to manage token count
+                    truncated_text = node.narrative_text[:200]
+                    if len(node.narrative_text) > 200:
+                        truncated_text += "..."
+                    context_parts.append(f"SCENE {i}: {truncated_text}")
+                context_parts.append("")  # Empty line for separation
+            
+            # Add current mission information if available
+            if current_node.branch_metadata and "mission_info" in current_node.branch_metadata:
+                mission_info = current_node.branch_metadata["mission_info"]
+                context_parts.append("CURRENT MISSION:")
+                context_parts.append(f"Title: {mission_info.get('title', 'Unknown')}")
+                context_parts.append(f"Objective: {mission_info.get('objective', 'Unknown')}")
+                context_parts.append(f"Status: {mission_info.get('status', 'Unknown')}")
+                context_parts.append(f"Progress: {mission_info.get('progress', 0)}%")
+                context_parts.append("")  # Empty line for separation
+            
+            # Combine all parts into a single context string
+            combined_context = "\n".join(context_parts)
+            
+            # Log context generation info
+            logger.info(f"Generated enhanced context with {len(key_node_ids)} key nodes and {len(ancestor_nodes)} ancestor nodes")
+            logger.debug(f"Context length: {len(combined_context)} characters")
+            
+            return combined_context
+            
+        except Exception as e:
+            logger.error(f"Error generating enhanced context: {str(e)}", exc_info=True)
+            return ""  # Return empty string on error
+
     def get_node_context(self, node_id: int) -> Dict[str, Any]:
         """
         Get additional context information for a story node.
@@ -174,6 +274,7 @@ class GameState:
                 - active_missions: List of active mission details
                 - story_context: Additional story-specific context
                 - narrative_history: History of recent story nodes for continuity
+                - enhanced_context: Optimized context using key plot points
         """
         try:
             logger.info(f"=== Getting context for node {node_id} ===")
@@ -186,7 +287,8 @@ class GameState:
                     "character_relationships": {},
                     "active_missions": [],
                     "story_context": {},
-                    "narrative_history": ""
+                    "narrative_history": "",
+                    "enhanced_context": ""  # New field
                 }
 
             # Get character relationships from user progress
@@ -231,20 +333,25 @@ class GameState:
                     for i, entry in enumerate(self._story_history_buffer)
                 ])
                 logger.info(f"Added narrative history from {len(self._story_history_buffer)} previous nodes")
+            
+            # NEW: Get enhanced context using key plot points and ancestors
+            enhanced_context = self.get_enhanced_context(node_id)
 
-            # Add narrative_history to the context object
+            # Add all context information to the context object
             context = {
                 "character_relationships": character_relationships,
                 "active_missions": active_missions,
                 "story_context": story_context,
-                "narrative_history": narrative_history  # NEW field
+                "narrative_history": narrative_history,
+                "enhanced_context": enhanced_context  # NEW field
             }
             
             debug_info = {
                 'active_missions_count': len(active_missions),
                 'character_relationships_count': len(character_relationships),
                 'has_story_context': bool(story_context),
-                'narrative_history_node_count': len(self._story_history_buffer)  # NEW debug info
+                'narrative_history_node_count': len(self._story_history_buffer),
+                'enhanced_context_length': len(enhanced_context)  # NEW debug info
             }
             logger.debug(f"Node context: {json.dumps(debug_info, indent=2)}")
             
@@ -256,7 +363,8 @@ class GameState:
                 "character_relationships": {},
                 "active_missions": [],
                 "story_context": {},
-                "narrative_history": ""  # Include empty narrative_history on error
+                "narrative_history": "",
+                "enhanced_context": ""  # Include empty enhanced_context on error
             }
 
     def to_dict(self) -> Dict[str, Any]:
@@ -328,10 +436,9 @@ class GameState:
                 Mission.user_id == self.user_id
             ).all()
             
-        # Restore node count from user progress metadata
-        if hasattr(self.user_progress, 'extra_data') and self.user_progress.extra_data and 'node_count' in self.user_progress.extra_data:
-            self._node_count = self.user_progress.extra_data.get('node_count', 0)
-            logger.debug(f"Restored node_count from metadata: {self._node_count}")
+        # Restore node count from dedicated column
+        self._node_count = self.user_progress.node_count
+        logger.debug(f"Restored node_count from database: {self._node_count}")
             
         # Debug log to confirm state reload
         logger.debug(f"Reloaded state: Story ID={self.current_story.id if self.current_story else None}, " +
