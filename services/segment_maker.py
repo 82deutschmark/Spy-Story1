@@ -205,6 +205,22 @@ NARRATIVE STYLE GUIDELINES: You are a master narrative generator for our choose 
             "content": "\n".join(message_parts)
         }
 
+    @staticmethod
+    def build_story_context(
+        conflict: str,
+        setting: str,
+        mission_info: Optional[Dict[str, Any]] = None,
+        character_info: Optional[Dict[str, Any]] = None
+    ) -> str:
+        """Build the story context for story generation."""
+        context_parts = [
+            f"CONFLICT: {conflict}",
+            f"SETTING: {setting}",
+            f"MISSION INFO: {mission_info if mission_info else 'No mission information provided'}",
+            f"CHARACTER INFO: {character_info if character_info else 'No character information provided'}",
+        ]
+        return "\n".join(context_parts)
+
 class StoryContinuationHandler:
     """Handles story continuation generation and validation."""
     
@@ -348,100 +364,47 @@ class StoryContinuationHandler:
         existing_characters: Optional[List[Dict[str, Any]]] = None,
         node_count: int = 1,
         narrative_history: Optional[str] = None,
-        enhanced_context: Optional[str] = None  # NEW: Add enhanced_context parameter
+        enhanced_context: Optional[str] = None,  # NEW: Add enhanced_context parameter
+        help_instruction: str = "   - One that involves seeking help from an NPC"  # Add help_instruction parameter with default
     ) -> Dict[str, Any]:
         """Generate a story continuation based on the player's choice."""
         logger.info("=== StoryContinuationHandler.generate_continuation called ===")
-        logger.debug(f"Received node_count: {node_count}")
-        logger.debug(f"Received parameters: conflict={conflict}, setting={setting}, mood={mood}, narrative_style={narrative_style}")
-        logger.debug(f"Previous story length: {len(previous_story) if previous_story else 0} chars")
-        logger.debug(f"Has narrative history: {bool(narrative_history)}")  # NEW: Log presence of narrative history
         
-        # Get random characters to use for assistance choices
-        existing_ids = {char.get("id") for char in existing_characters} if existing_characters else set()
-        fresh_chars = get_random_characters(3)
-        fresh_candidates = [char for char in fresh_chars if char.id not in existing_ids and char.character_role.lower() != "villain"]
-        random_characters = fresh_candidates if fresh_candidates else [char for char in fresh_chars if char.character_role.lower() != "villain"]
-        selected_random = random.choice(random_characters) if random_characters else None
-        available_npc_names = ", ".join([char.character_name for char in random_characters]) if random_characters else "None"
-        
-        # Ensure selected_random.id is an integer
-        char_id = selected_random.id if selected_random else 'null'
-        if isinstance(char_id, str) and char_id.isdigit():
-            char_id = int(char_id)
-            
-        # Modified help instruction to be clearer about character_id format
-        help_instruction = (f"   - One that involves asking {selected_random.character_name if selected_random else 'a previously introduced character'} " +
-                           f"for help (make sure the choice includes character_id field set to numeric value {char_id} and not the character name)")
-        
-        # Build story context 
-        context_additions = []
-        context_additions.append(f"AVAILABLE NPC CHOICES for assistance: {available_npc_names}")
-        if story_context:
-            context_additions.append(f"STORY CONTEXT:\n{story_context}")
-        
-        # Format existing characters for the context manager
-        formatted_characters = []
-        if existing_characters:
-            for char in existing_characters:
-                formatted_char = {
-                    "id": char.get("id"),
-                    "name": char.get("character_name") or char.get("name", "Unknown"),
-                    "character_role": char.get("character_role") or char.get("role", "neutral"),
-                    "character_traits": char.get("character_traits", {}),
-                    "backstory": char.get("backstory", ""),
-                    "plot_lines": char.get("plot_lines", []),
-                    "description": char.get("description", "")
-                }
-                formatted_characters.append(formatted_char)
-                
-        # Extract story parameters if available
-        story_params = {}
-        if existing_characters and existing_characters[0].get("story_parameters"):
-            params = existing_characters[0]["story_parameters"]
-            conflict = conflict or params.get("conflict")
-            setting = setting or params.get("setting")
-            mood = mood or params.get("mood")
-            narrative_style = narrative_style or params.get("narrative_style")
-        
-        # Ensure we have required parameters
-        if not all([conflict, setting, mood, narrative_style]):
-            raise ValueError("Missing required story parameters")
-        
-        # Build prompt with narrative history for better continuity
+        # Build continuation prompt
         prompt = self._build_prompt(
             chosen_choice=chosen_choice,
             mission_info=mission_info,
-            help_instruction=help_instruction,
-            story_context="\n".join(context_additions),
-            existing_characters=formatted_characters,
-            narrative_history=narrative_history  # NEW: Pass narrative history to prompt builder
+            help_instruction=help_instruction,  # Pass the help_instruction
+            story_context=story_context,  # Fix: Use story_context directly instead of context_additions
+            existing_characters=existing_characters,  # Fix: Use existing_characters directly instead of formatted_characters
+            narrative_history=narrative_history
         )
         
-        logger.info("=== Calling OpenAIContextManager.generate_continuation ===")
-        logger.info(f"Passing parameters to OpenAIContextManager: conflict={conflict}, setting={setting}, mood={mood}, narrative_style={narrative_style}, node_count={node_count}")
-        logger.debug(f"Character count: {len(formatted_characters)}")
-        
-        # Generate story continuation using the stateless context manager
-        story_data = self.context_manager.generate_continuation(
-            client=self.client,
-            user_message=prompt,
+        # Build messages for API call
+        system_message = StoryPromptBuilder.build_system_message(mood or "default mood", narrative_style or "default narrative style")
+        context = StoryPromptBuilder.build_story_context(
             conflict=conflict,
-            setting=setting, 
-            narrative_style=narrative_style,
-            mood=mood,
-            node_count=node_count,
+            setting=setting,
             mission_info=mission_info,
-            character_info=formatted_characters,
-            enhanced_context=enhanced_context  # NEW: Pass enhanced context
+            character_info=existing_characters
         )
         
-        logger.info("=== Received response from OpenAIContextManager ===")
-        logger.debug(f"Response story length: {len(story_data.get('narrative_text', '')) if story_data else 0} chars")
-        logger.debug(f"Response choices count: {len(story_data.get('choices', [])) if story_data else 0}")
+        messages = [
+            {"role": "system", "content": f"{system_message['content']}\n\n{context}"},
+            {"role": "user", "content": prompt}
+        ]
         
-        validated_data = self.validate_response(story_data, selected_random)
-        logger.info("=== Returning validated response ===")
+        # Use context manager for API call
+        response = self.context_manager.process_api_call(
+            self.client,
+            messages,
+            response_format="json_object",
+            model=MODEL_CONFIG["model"]
+        )
+        
+        # Process and validate the response
+        validated_data = self.validate_response(response)
+        logger.debug(f"Validated continuation data: {json.dumps(validated_data, indent=2)}")
         
         return validated_data
 
@@ -476,7 +439,8 @@ def generate_continuation(
     existing_characters: Optional[List[Dict[str, Any]]] = None,
     node_count: int = 1,
     narrative_history: Optional[str] = None,
-    enhanced_context: Optional[str] = None  # NEW: Add enhanced_context parameter
+    enhanced_context: Optional[str] = None,  # NEW: Add enhanced_context parameter
+    help_instruction: str = "   - One that involves seeking help from an NPC"  # Add help_instruction parameter with default
 ) -> Dict[str, Any]:
     """Generate a story continuation based on the player's choice."""
     logger.info("=== generate_continuation function called ===")
@@ -533,5 +497,6 @@ def generate_continuation(
         existing_characters=existing_characters,
         node_count=node_count,
         narrative_history=narrative_history,
-        enhanced_context=enhanced_context  # NEW: Pass enhanced_context
+        enhanced_context=enhanced_context,  # NEW: Pass enhanced_context
+        help_instruction=help_instruction  # Pass the help_instruction
     )

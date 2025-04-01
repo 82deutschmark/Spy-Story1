@@ -48,7 +48,7 @@ from utils.character_manager import (
 import logging
 from datetime import datetime
 from database import db
-from models import StoryGeneration, Character, PlotArc, Mission
+from models import StoryGeneration, Character, PlotArc, Mission, StoryNode, StoryChoice
 from utils.validation_utils import validate_story_parameters
 from utils.context_manager import OpenAIContextManager
 import random  # Existing import
@@ -280,6 +280,88 @@ class StoryPromptBuilder:
         
         return "\n".join(filter(None, prompt_parts))
 
+    @staticmethod
+    def build_continuation_system_message(story_context: str) -> Dict[str, str]:
+        """Build the system message for story continuation."""
+        message_parts = [
+            "You are a master narrative generator for our humourous, satirical, and absurd adventure game.",
+            f"Create highly detailed, layered narratives in a {story_context} tone with a {story_context} storytelling style.",
+            "",
+            "This game is set in the high-stakes world of ruthless business, international espionage, luxury, and intrigue.",
+            "Players take on missions, develop relationships with various characters, and navigate complex scenarios",
+            "where betrayal, romance, and action are common themes. The game engine tracks character relationships,",
+            "story progress, and mission progress.",
+            "",
+            "CRITICAL CHARACTER ROLE REQUIREMENTS:",
+            "1. You MUST ONLY use characters that are explicitly provided to you in the character prompts",
+            "2. NEVER invent or create new characters that are not in the prompts",
+            "3. If a character is a villain they should not suddenly enter a scene or location, they need to be well protected and hard to locate ",
+            "4. Each character has a specific {char_role} that should be respected:",
+            "   - Mission-giver: MUST be the one giving the mission to the player",
+            "   - Villain: MUST be the primary antagonists",
+            "   - Neutral: Can be used in supporting roles",
+            "   - Undetermined: Role is flexible and might change based on the story or betray the player",
+            "5. The mission-giver must remain the mission-giver",
+            "6. The villains must remain the primary antagonist",
+            "",
+            "CHARACTER AUTHENTICITY:",
+            "7. Maintain all {traits_str}, backstories, and plot lines exactly as provided",
+            "8. Use character traits to influence dialogue and actions",
+            "9. Weave backstories into experiences and knowledge",
+            "10. Express plot lines through motivations and goals",
+            "11. Create meaningful character interactions and conflicts",
+            "",
+            "MISSION AND RELATIONSHIP GUIDELINES:",
+            "12. Mission must have clear objectives (steal/kill/obtain/destroy) and target one of the villains",
+            "13. Include a reasonable deadline and failure consequences",
+            "14. Make villain well-protected but pathetically incompetent, they should not appear directly in the first segment",
+            "15. Mission-giver should be exasperated but reluctant and reference past failures",
+            "16. Mission-giver uses complex language about geopolitics/economics that bores the protagonist",
+            "17. Characters must express reasons for helping or opposing the protagonist",
+            "",
+            "NARRATIVE REQUIREMENTS:",
+            "19. ALWAYS tell the story in second person, alluding to their {protagonist_name} and {protagonist_gender} naturally via dialogue",
+            "20. Use vivid sensory details and atmospheric descriptions",
+            "21. Begin with meeting the mission-giver, then the protagonist goes to see the character selected by the user",
+            "22. Balance action, dialogue, intrigue, and character development",
+            "23. End with a cliffhanger and exactly three distinct choices",
+            "",
+            "OUTPUT FORMAT REQUIREMENTS:",
+            "24. Your response MUST be valid JSON with narrative_text, choices, and mission_update fields",
+            "25. Each choice in the JSON must have a unique choice_id, descriptive text, and consequence",
+            "26. If a choice involves a character, set the character_id field to that character's numeric ID (an integer, not a name)",
+            "27. Character IDs are numbers that identify characters in the database - NEVER use character names as character_id values"
+        ]
+        
+        return {
+            "role": "system",
+            "content": "\n".join(message_parts)
+        }
+
+    @staticmethod
+    def build_continuation_prompt(
+        story_context: str,
+        choice: StoryChoice
+    ) -> str:
+        """Build the continuation prompt for story generation."""
+        return f"Continue the story from the point where the choice '{choice.text}' was made. {story_context}"
+
+    @staticmethod
+    def build_story_context(
+        conflict: str,
+        setting: str,
+        mission_info: Optional[Dict[str, Any]] = None,
+        character_info: Optional[Dict[str, Any]] = None
+    ) -> str:
+        """Build the story context for story generation."""
+        context_parts = [
+            f"CONFLICT: {conflict}",
+            f"SETTING: {setting}",
+            f"MISSION INFO: {mission_info if mission_info else 'No mission information provided'}",
+            f"CHARACTER INFO: {character_info if character_info else 'No character information provided'}",
+        ]
+        return "\n".join(context_parts)
+
 class StoryGenerator:
     """Handles story generation and processing."""
     
@@ -362,10 +444,6 @@ class StoryGenerator:
         mood: str,
         character_info: Optional[Dict[str, Any]] = None,
         additional_characters: Optional[List[Dict[str, Any]]] = None,
-        custom_conflict: Optional[str] = None,
-        custom_setting: Optional[str] = None,
-        custom_narrative: Optional[str] = None,
-        custom_mood: Optional[str] = None,
         protagonist_name: Optional[str] = None,
         protagonist_gender: Optional[str] = None,
         protagonist_level: Optional[int] = 1,
@@ -376,21 +454,12 @@ class StoryGenerator:
         if client:
             self.client = client
 
-        final_conflict = custom_conflict or conflict
-        final_setting = custom_setting or setting
-        final_narrative = custom_narrative or narrative_style
-        final_mood = custom_mood or mood
-        
-        # NEW: If no additional characters provided, pull a robust cast from our DB
-        if additional_characters is None:
-            additional_characters = get_random_characters(3)
-            
         # Build the story prompt
         story_prompt = StoryPromptBuilder.build_story_prompt(
-            conflict=final_conflict,
-            setting=final_setting,
-            narrative_style=final_narrative,
-            mood=final_mood,
+            conflict=conflict,
+            setting=setting,
+            narrative_style=narrative_style,
+            mood=mood,
             character_info=character_info,
             additional_characters=additional_characters,
             protagonist_name=protagonist_name,
@@ -399,31 +468,95 @@ class StoryGenerator:
             story_context=story_context
         )
         
-        # Get protagonist info for context
-        protagonist = {"name": protagonist_name, "gender": protagonist_gender, "level": protagonist_level}
-        
-        # Generate initial story using stateless context manager
-        story_data = self.context_manager.generate_initial_story(
-            client=self.client,
-            user_message=story_prompt,
-            conflict=final_conflict,
-            setting=final_setting,
-            narrative_style=final_narrative,
-            mood=final_mood,
+        # Build messages for API call
+        system_message = StoryPromptBuilder.build_system_message(mood, narrative_style)
+        context = StoryPromptBuilder.build_story_context(
+            conflict=conflict,
+            setting=setting,
+            mission_info=None,
             character_info=character_info
+        )
+        
+        messages = [
+            {"role": "system", "content": f"{system_message['content']}\n\n{context}"},
+            {"role": "user", "content": story_prompt}
+        ]
+        
+        logger.info("=== Generating Initial Story ===")
+        logger.info(f"Parameters: conflict={conflict}, setting={setting}, style={narrative_style}, mood={mood}")
+        
+        # Use context manager for API call
+        story_data = self.context_manager.process_api_call(
+            client=self.client,
+            messages=messages,
+            response_format="json_object"
         )
         
         # Process and validate choices
         story_data = self.process_choices(story_data)
         
+        # Return flattened response
         return {
-            "conflict": final_conflict,
-            "setting": final_setting,
-            "narrative_style": final_narrative,
-            "mood": final_mood,
-            "stories": story_data,
+            "conflict": conflict,
+            "setting": setting,
+            "narrative_style": narrative_style,
+            "mood": mood,
+            "narrative_text": story_data.get("narrative_text", ""),
             "choices": story_data.get("choices", [])
         }
+
+    def generate_continuation(
+        self,
+        story_id: int,
+        choice_id: str,
+        client: Optional[OpenAI] = None
+    ) -> Dict[str, Any]:
+        """Generate a continuation of the story based on the user's choice."""
+        if client:
+            self.client = client
+            
+        # Get the story node and choice from the database
+        story_node = StoryNode.query.get_or_404(story_id)
+        choice = StoryChoice.query.filter_by(choice_id=choice_id).first_or_404()
+        
+        # Get the story context
+        story_context = story_node.branch_metadata.get('story_context', '')
+        
+        # Build continuation prompt
+        continuation_prompt = StoryPromptBuilder.build_continuation_prompt(
+            story_context=story_context,
+            choice=choice
+        )
+        
+        # Build messages for API call
+        system_message = StoryPromptBuilder.build_continuation_system_message(story_context)
+        context = StoryPromptBuilder.build_story_context(
+            story_node.story.primary_conflict,
+            story_node.story.setting,
+            None,  # mission_info
+            story_node.branch_metadata.get('character_info')
+        )
+        
+        messages = [
+            {"role": "system", "content": f"{system_message['content']}\n\n{context}"},
+            {"role": "user", "content": continuation_prompt}
+        ]
+        
+        logger.info("=== Generating Story Continuation ===")
+        logger.info(f"Story ID: {story_id}")
+        logger.info(f"Choice ID: {choice_id}")
+        
+        # Use context manager only for API call
+        continuation_data = self.context_manager.process_api_call(
+            client=self.client,
+            messages=messages,
+            response_format="json_object"
+        )
+        
+        # Process and validate choices
+        continuation_data = self.process_choices(continuation_data)
+        
+        return continuation_data
 
 def get_story_options() -> Dict[str, List[Tuple[str, str]]]:
     """Return available story options for UI display."""

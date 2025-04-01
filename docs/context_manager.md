@@ -75,4 +75,21 @@ The `enhanced_context` parameter allows for passing rich contextual information 
 4. **Storage**: The `NodeContextSummary` model stores pre-computed summaries at various detail levels:
    - `short`: Brief summaries (~100 tokens)
    - `medium`: Moderate detail (~300 tokens)
-   - `long`: Full detail (~500 tokens) 
+   - `long`: Full detail (~500 tokens)
+
+### API Call Parameters
+
+- `client`: OpenAI client instance
+- `messages`: List of message dictionaries
+- `response_format`: Expected response format (default: "json_object")
+- `model`: Model to use (default: from constants.py)
+
+### Example Usage
+
+```python
+response = context_manager.process_api_call(
+    client=client,
+    messages=messages,
+    response_format="json_object"
+)
+``` 
