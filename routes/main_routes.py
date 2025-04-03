@@ -308,11 +308,6 @@ def storyboard(story_id):
         flash('Error: Could not resolve current story node', 'error')
         return redirect(url_for('main.dashboard'))
 
-    # Get enhanced context and node context
-    node_context = game_state.get_node_context(current_node.id)
-    enhanced_context = node_context.get('enhanced_context', '')
-    narrative_history = node_context.get('narrative_history', '')
-
     # Update choices in branch metadata with valid character IDs
     if current_node.branch_metadata and 'choices' in current_node.branch_metadata:
         update_choice_character_ids(current_node.branch_metadata['choices'],
@@ -326,8 +321,8 @@ def storyboard(story_id):
         for i, char in enumerate(character_images):
             if str(char['id']) == char_id:
                 character_images[i].update({
-                    'relationship_level': char_info.get('relationship_level', 0),
-                    'last_interaction': char_info.get('last_interaction')
+                    'relationship_level':
+                    char_info.get('relationship_level', 0)
                 })
 
     story_progress = {
@@ -335,8 +330,8 @@ def storyboard(story_id):
         'current_node_id': current_node.id,
         'completed_plot_arcs': user_progress.completed_plot_arcs or [],
         'choice_history': user_progress.choice_history or [],
-        'active_missions': current_node.branch_metadata.get("active_missions", []),
-        'node_count': game_state.get_node_count()  # Add node count
+        'active_missions':
+        current_node.branch_metadata.get("active_missions", [])
     }
 
     # Update narrative text and commit changes
@@ -350,9 +345,7 @@ def storyboard(story_id):
                            character_images=character_images,
                            background_image=background_image,
                            user_progress=user_progress,
-                           story_progress=story_progress,
-                           enhanced_context=enhanced_context,
-                           narrative_history=narrative_history)  # Add new context
+                           story_progress=story_progress)
 
 
 @main_bp.route('/generate_story', methods=['POST'])
@@ -410,15 +403,6 @@ def make_choice():
     user_progress = get_or_create_progress()
     game_engine = GameEngine(user_id=user_progress.user_id)
 
-    # Get current node and enhanced context
-    game_state = GameState(user_progress.user_id)
-    current_node = game_state.resolve_current_node()
-    if current_node:
-        node_context = game_state.get_node_context(current_node.id)
-        enhanced_context = node_context.get('enhanced_context', '')
-        narrative_history = node_context.get('narrative_history', '')
-        story_context = f"{story_context or ''}\n\nPREVIOUS CONTEXT:\n{enhanced_context}"
-
     # Retrieve complete character details if provided
     character_objects = []
     if characters:
@@ -429,31 +413,22 @@ def make_choice():
                     serialize_character(char, include_backstory=True))
     characters = character_objects
 
-    result = game_engine.make_choice(
-        choice_id=choice_id,
-        custom_choice_text=previous_choice,
-        story_context=story_context,
-        characters=characters
-    )
+    result = game_engine.make_choice(choice_id=choice_id,
+                                     custom_choice_text=previous_choice,
+                                     story_context=story_context,
+                                     characters=characters)
 
     # Log a summary of the result
     summary = {
         'current_node_id': result.get('current_node', {}).get('id'),
         'choice_count': len(result.get('available_choices', [])),
         'mission_updates': len(result.get('mission_updates', [])),
-        'character_updates': len(result.get('character_updates', [])),
-        'has_enhanced_context': bool(enhanced_context),
-        'has_narrative_history': bool(narrative_history)
+        'character_updates': len(result.get('character_updates', []))
     }
     logger.debug(
         f"make_choice result (summary): {json.dumps(summary, indent=2)}")
 
-    result.update({
-        'success': True,
-        'story_id': story_id,
-        'enhanced_context': enhanced_context,
-        'narrative_history': narrative_history
-    })
+    result.update({'success': True, 'story_id': story_id})
     return jsonify(result)
 
 

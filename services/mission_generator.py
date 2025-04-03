@@ -22,8 +22,7 @@ The module ensures missions are:
 
 Dependencies:
 ------------
-- Database models (Mission, UserProgress, StoryGeneration)
-- Scene image handling for character integration
+- Database models (Mission, UserProgress, StoryGeneration, Character)
 - Currency system for rewards
 """
 
@@ -33,8 +32,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 import json
 
-from models import Mission, UserProgress, StoryGeneration
-from models.scene_images import SceneImages
+from models import Mission, UserProgress, StoryGeneration, Character
 from database import db
 
 logger = logging.getLogger(__name__)
@@ -293,9 +291,8 @@ def create_mission_from_story(user_id: str, story_text: str, story_id: Optional[
         # If not, try to find characters in the database
         if not giver_id and details['giver']:
             logger.info(f"Looking up giver character in database: {details['giver']}")
-            giver = SceneImages.query.filter(
-                SceneImages.image_type == 'character',
-                SceneImages.name.ilike(f"%{details['giver']}%")
+            giver = Character.query.filter(
+                Character.name.ilike(f"%{details['giver']}%")
             ).first()
             giver_id = giver.id if giver else None
             if giver_id:
@@ -305,9 +302,8 @@ def create_mission_from_story(user_id: str, story_text: str, story_id: Optional[
             
         if not target_id and details['target']:
             logger.info(f"Looking up target character in database: {details['target']}")
-            target = SceneImages.query.filter(
-                SceneImages.image_type == 'character', 
-                SceneImages.name.ilike(f"%{details['target']}%")
+            target = Character.query.filter(
+                Character.name.ilike(f"%{details['target']}%")
             ).first()
             target_id = target.id if target else None
             if target_id:
@@ -399,101 +395,125 @@ def generate_mission(user_id: str, story_id: Optional[int] = None) -> Optional[M
     try:
         # If story_id is provided, try to extract mission from that story
         if story_id:
+            # Get story from database and ensure it's committed
             story = StoryGeneration.query.get(story_id)
-            if story and story.generated_story:
-                # Try to parse the story content - handle both string and dict
-                try:
-                    story_data = story.generated_story
-                    if isinstance(story_data, str):
-                        story_data = json.loads(story_data)
-                    
-                    # If the story has a mission field, use that directly
-                    if 'mission' in story_data and story_data['mission'] and story_data['mission'].get('title'):
-                        mission_data = story_data['mission']
-                        
-                        # Try to find target and giver characters
-                        giver_id = None
-                        target_id = None
-                        
-                        # If giver_id is provided directly
-                        if mission_data.get('giver_id') and str(mission_data['giver_id']).isdigit():
-                            giver_id = int(mission_data['giver_id'])
-                        # Otherwise try to find by name
-                        elif mission_data.get('giver'):
-                            giver = SceneImages.query.filter(
-                                SceneImages.image_type == 'character',
-                                SceneImages.name.ilike(f"%{mission_data['giver']}%")
-                            ).first()
-                            if giver:
-                                giver_id = giver.id
-                        
-                        # If target_id is provided directly  
-                        if mission_data.get('target_id') and str(mission_data['target_id']).isdigit():
-                            target_id = int(mission_data['target_id'])
-                        # Otherwise try to find by name
-                        elif mission_data.get('target'):
-                            target = SceneImages.query.filter(
-                                SceneImages.image_type == 'character',
-                                SceneImages.name.ilike(f"%{mission_data['target']}%")
-                            ).first()
-                            if target:
-                                target_id = target.id
-                                
-                        # Create the mission
-                        mission = Mission(
-                            user_id=user_id,
-                            title=mission_data.get('title', 'Untitled Mission'),
-                            description=mission_data.get('description', ''),
-                            giver_id=giver_id,
-                            target_id=target_id,
-                            objective=mission_data.get('objective', ''),
-                            difficulty=mission_data.get('difficulty', 'medium').lower(),
-                            reward_currency=mission_data.get('reward_currency', '💵'),
-                            reward_amount=int(mission_data.get('reward_amount', 1500)) if mission_data.get('reward_amount') else 1500,
-                            deadline=mission_data.get('deadline', ''),
-                            story_id=story_id
-                        )
-                        
-                        db.session.add(mission)
-                        db.session.commit()
-                        
-                        # Add to user's active missions
-                        user_progress = UserProgress.query.filter_by(user_id=user_id).first()
-                        if user_progress:
-                            if not user_progress.active_missions:
-                                user_progress.active_missions = []
-                                
-                            if mission.id not in user_progress.active_missions:
-                                user_progress.active_missions.append(mission.id)
-                                db.session.commit()
-                        
-                        logger.info(f"Created mission from story JSON for user {user_id}: {mission.title}")
-                        return mission
-                    
-                    # If no mission in the JSON, try to extract from story text
-                    if 'story' in story_data and story_data['story']:
-                        return create_mission_from_story(user_id, story_data['story'], story_id)
-                    
-                except Exception as e:
-                    logger.error(f"Error parsing story data: {str(e)}")
-                    # If JSON parsing fails, try to use the raw story text
-                    if isinstance(story.generated_story, str):
-                        return create_mission_from_story(user_id, story.generated_story, story_id)
-                    elif isinstance(story.generated_story, dict):
-                        story_text = story.generated_story.get('story', '')
-                        if story_text:
-                            return create_mission_from_story(user_id, story_text, story_id)
+            if not story:
+                logger.error(f"Story with ID {story_id} not found in database")
+                return None
+                
+            # Ensure we have the latest data from the database
+            db.session.refresh(story)
             
+            if not story.generated_story:
+                logger.error(f"Story {story_id} has no generated story data")
+                return None
+                
+            # Try to parse the story content - handle both string and dict
+            try:
+                story_data = story.generated_story
+                if isinstance(story_data, str):
+                    try:
+                        story_data = json.loads(story_data)
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Failed to parse story JSON: {str(e)}")
+                        # If JSON parsing fails, try to use the raw story text
+                        return create_mission_from_story(user_id, story_data, story_id)
+                
+                # If the story has a mission field, use that directly
+                if 'mission' in story_data and story_data['mission'] and story_data['mission'].get('title'):
+                    mission_data = story_data['mission']
+                    
+                    # Try to find target and giver characters
+                    giver_id = None
+                    target_id = None
+                    
+                    # If giver_id is provided directly
+                    if mission_data.get('giver_id') and str(mission_data['giver_id']).isdigit():
+                        giver_id = int(mission_data['giver_id'])
+                    # Otherwise try to find by name
+                    elif mission_data.get('giver'):
+                        giver = Character.query.filter(
+                            Character.name.ilike(f"%{mission_data['giver']}%")
+                        ).first()
+                        if giver:
+                            giver_id = giver.id
+                    
+                    # If target_id is provided directly  
+                    if mission_data.get('target_id') and str(mission_data['target_id']).isdigit():
+                        target_id = int(mission_data['target_id'])
+                    # Otherwise try to find by name
+                    elif mission_data.get('target'):
+                        target = Character.query.filter(
+                            Character.name.ilike(f"%{mission_data['target']}%")
+                        ).first()
+                        if target:
+                            target_id = target.id
+                            
+                    # Create the mission
+                    mission = Mission(
+                        user_id=user_id,
+                        title=mission_data.get('title', 'Untitled Mission'),
+                        description=mission_data.get('description', ''),
+                        giver_id=giver_id,
+                        target_id=target_id,
+                        objective=mission_data.get('objective', ''),
+                        difficulty=mission_data.get('difficulty', 'medium').lower(),
+                        reward_currency=mission_data.get('reward_currency', '💵'),
+                        reward_amount=int(mission_data.get('reward_amount', 1500)) if mission_data.get('reward_amount') else 1500,
+                        deadline=mission_data.get('deadline', ''),
+                        story_id=story_id,
+                        progress=0,
+                        progress_updates=[{
+                            "progress": 0,
+                            "status": "active",
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "description": "Mission assigned"
+                        }]
+                    )
+                    
+                    db.session.add(mission)
+                    db.session.commit()
+                    
+                    # Add to user's active missions
+                    user_progress = UserProgress.query.filter_by(user_id=user_id).first()
+                    if user_progress:
+                        if not user_progress.active_missions:
+                            user_progress.active_missions = []
+                            
+                        if mission.id not in user_progress.active_missions:
+                            user_progress.active_missions.append(mission.id)
+                            db.session.commit()
+                    
+                    logger.info(f"Created mission from story JSON for user {user_id}: {mission.title}")
+                    return mission
+                
+                # If no mission in the JSON, try to extract from story text
+                if 'story' in story_data and story_data['story']:
+                    return create_mission_from_story(user_id, story_data['story'], story_id)
+                
+            except Exception as e:
+                logger.error(f"Error parsing story data: {str(e)}")
+                # If JSON parsing fails, try to use the raw story text
+                if isinstance(story.generated_story, str):
+                    return create_mission_from_story(user_id, story.generated_story, story_id)
+                elif isinstance(story.generated_story, dict):
+                    story_text = story.generated_story.get('story', '')
+                    if story_text:
+                        return create_mission_from_story(user_id, story_text, story_id)
+        
         # If we didn't create a mission from story, fall back to getting a recent story
         recent_story = StoryGeneration.query.filter_by(user_id=user_id).order_by(StoryGeneration.created_at.desc()).first()
         if recent_story and recent_story.generated_story:
+            # Ensure we have the latest data
+            db.session.refresh(recent_story)
+            
             if isinstance(recent_story.generated_story, str):
                 return create_mission_from_story(user_id, recent_story.generated_story, recent_story.id)
             elif isinstance(recent_story.generated_story, dict):
                 story_text = recent_story.generated_story.get('story', '')
                 if story_text:
                     return create_mission_from_story(user_id, story_text, recent_story.id)
-            
+        
         # If we still don't have a mission, log that we couldn't generate one
         logger.warning(f"Could not generate mission for user {user_id}")
         return None

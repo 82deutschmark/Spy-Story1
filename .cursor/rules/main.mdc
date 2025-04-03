@@ -3,8 +3,13 @@ description:
 globs: 
 alwaysApply: true
 ---
+---
+description: 
+globs: 
+alwaysApply: true
+---
 
-To prevent mistakes I should:
+To prevent mistakes I should: Read the ReadME file!  
 Always read the entire file before making any changes
 Create a complete list of all required imports before making changes
 Double-check that all existing functionality is preserved

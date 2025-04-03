@@ -32,7 +32,7 @@ Dependencies:
 
 import logging
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import datetime, timedelta
 from models import UserProgress, StoryGeneration, StoryNode, Mission
 from models.character_data import Character
 from database import db
@@ -130,9 +130,45 @@ class GameEngine:
                 'narrative_style': form_data.get('narrative_style', 'GAME ENGINE ERROR DUMMY!!!'),
                 'mood': form_data.get('mood', 'GAME ENGINE ERROR DUMMY!!!'),
                 'protagonist_name': form_data.get('protagonist_name'),
-                'protagonist_gender': form_data.get('protagonist_gender'),
-                'protagonist_level': form_data.get('protagonist_level', 1)
+                'protagonist_gender': form_data.get('protagonist_gender')
             }
+            
+            # --- BEGIN ADDED CHECK ---
+            request_protagonist_name = story_params.get('protagonist_name')
+            if self.state.user_progress and self.state.user_progress.current_node_id and request_protagonist_name:
+                try:
+                    existing_node = StoryNode.query.get(self.state.user_progress.current_node_id)
+                    if existing_node and existing_node.branch_metadata:
+                        stored_protagonist_info = existing_node.branch_metadata.get("protagonist", {})
+                        stored_protagonist_name = stored_protagonist_info.get("name")
+
+                        if stored_protagonist_name and stored_protagonist_name != request_protagonist_name:
+                            logger.warning(f"Protagonist name mismatch for user {self.user_id}. Request: '{request_protagonist_name}', Stored: '{stored_protagonist_name}'. Resetting progress.")
+                            # Reset progress fields
+                            self.state.user_progress.current_story_id = None
+                            self.state.user_progress.current_node_id = None
+                            self.state.user_progress.node_count = 0
+                            self.state.user_progress.active_missions = []
+                            self.state.user_progress.completed_missions = []
+                            self.state.user_progress.failed_missions = []
+                            self.state.user_progress.choice_history = []
+                            self.state.user_progress.encountered_characters = {}
+                            self.state.user_progress.last_active = datetime.utcnow()
+                            
+                            # Commit the reset
+                            db.session.add(self.state.user_progress)
+                            db.session.commit()
+                            
+                            # Reload GameState internal state after reset
+                            self.state.reload_state()
+                            logger.info(f"User progress reset for {self.user_id} due to protagonist name mismatch.")
+                            
+                except Exception as e:
+                     logger.error(f"Error checking protagonist name match for user {self.user_id}: {e}", exc_info=True)
+                     # Don't block story creation, but log the error
+                     db.session.rollback() # Rollback potential partial changes from check
+
+            # --- END ADDED CHECK ---
             
             # Get selected characters from form data
             selected_character_ids = form_data.get('selected_characters', [])
@@ -199,12 +235,12 @@ class GameEngine:
                 if selected_character_ids:
                     story.characters = selected_characters
                 
-                db.session.flush()  # Flush to get story.id
+                db.session.flush()
                 
                 # Create initial story node
                 initial_node = StoryNode(
                     story_id=story.id,
-                    narrative_text=story_data["narrative_text"],  # Updated to use flattened field
+                    narrative_text=story_data["narrative_text"],
                     is_endpoint=False,
                     branch_metadata={
                         # Story context
@@ -227,21 +263,12 @@ class GameEngine:
                         ] if selected_character_ids else [],
                         
                         # Player choices
-                        "choices": story_data["choices"],  # Use choices from flattened structure
-                        
-                        # Mission foundation (placeholder for initial node)
-                        "mission_info": {
-                            "title": f"Initial mission in {story.setting}",
-                            "objective": f"Investigate the {story.primary_conflict}",
-                            "status": "in_progress",
-                            "progress": 0
-                        },
+                        "choices": story_data["choices"],
                         
                         # Protagonist information 
                         "protagonist": {
                             "name": form_data.get('protagonist_name'),
-                            "gender": form_data.get('protagonist_gender'),
-                            "level": form_data.get('protagonist_level', 1)
+                            "gender": form_data.get('protagonist_gender')
                         },
                         
                         # Story parameters for context continuity
@@ -261,13 +288,34 @@ class GameEngine:
                 self.state.user_progress.current_node_id = initial_node.id
                 self.state.user_progress.last_active = datetime.utcnow()
                 
-                # Generate initial missions
-                missions = generate_mission(self.user_id, story.id)
+                # Create initial mission with proper parameters
+                mission = Mission(
+                    user_id=self.user_id,
+                    title=f"Initial Mission: {story.primary_conflict}",
+                    description=f"Investigate and resolve the {story.primary_conflict} in {story.setting}",
+                    giver_id=selected_characters[0].id if selected_characters else None,  # First character is mission giver
+                    target_id=selected_characters[1].id if len(selected_characters) > 1 else None,  # Second character is target
+                    objective=f"Investigate and resolve the {story.primary_conflict}",
+                    status='active',
+                    difficulty='medium',  # Default difficulty for initial mission
+                    reward_currency='💵',  # Default currency
+                    reward_amount=1500,  # Default reward
+                    deadline=datetime.utcnow() + timedelta(days=7),  # 7-day deadline
+                    story_id=story.id,
+                    progress=0,
+                    progress_updates=[{
+                        "progress": 0,
+                        "status": "active",
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "description": "Mission assigned"
+                    }]
+                )
+                db.session.add(mission)
                 
                 # Update state
                 self.state.current_story = story
                 self.state.current_node = initial_node
-                self.state.active_missions = [missions] if missions else []
+                self.state.active_missions = [mission]
                 
                 # Commit all changes
                 db.session.commit()
@@ -286,12 +334,11 @@ class GameEngine:
                         "narrative_text": initial_node.narrative_text,
                         "is_endpoint": initial_node.is_endpoint,
                         "branch_metadata": {
-                            "choices": story_data["choices"],  # Use choices from root level
+                            "choices": story_data["choices"],
                             "characters": [char.id for char in selected_characters] if selected_character_ids else [],
                             "protagonist": {
                                 "name": form_data.get('protagonist_name'),
-                                "gender": form_data.get('protagonist_gender'),
-                                "level": form_data.get('protagonist_level', 1)
+                                "gender": form_data.get('protagonist_gender')
                             }
                         }
                     },
@@ -369,13 +416,27 @@ class GameEngine:
             }
             logger.debug(f"Node context: {json.dumps(debug_info, indent=2)}")
             
-            # Safely get mission info, using a default empty mission if none exists
-            active_missions = node_context.get("active_missions", [])
-            mission_info = active_missions[0] if active_missions else {
-                "title": "Unknown Mission",
-                "objective": "Continue the story",
-                "status": "in_progress"
-            }
+            # Get the active mission from the database
+            active_mission = Mission.query.filter_by(
+                user_id=self.user_id,
+                status="active"  # Changed from "in_progress" to "active" to match model
+            ).first()
+            
+            if not active_mission:
+                logger.warning("No active mission found for user")
+                # Create a new mission instead of using a dictionary
+                active_mission = Mission(
+                    user_id=self.user_id,
+                    title="Unknown Mission",
+                    description="Continue the story",
+                    objective="Continue the story",
+                    status="active",
+                    difficulty="normal",
+                    progress=0,
+                    story_id=story.id
+                )
+                db.session.add(active_mission)
+                db.session.flush()
             
             # Augment story_context with conflict and setting from the current story
             conflict = story.primary_conflict if hasattr(story, 'primary_conflict') else "Unknown conflict"
@@ -416,10 +477,10 @@ PLAYER'S CHOICE:
 {custom_choice_text or choice_id}
 
 CURRENT MISSION:
-Title: {mission_info.get('title', 'Unknown')}
-Objective: {mission_info.get('objective', 'Unknown')}
-Status: {mission_info.get('status', 'In Progress')}
-Progress: {mission_info.get('progress', 0)}%
+Title: {active_mission.title}
+Objective: {active_mission.objective}
+Status: {active_mission.status}
+Progress: {active_mission.progress}%
 
 STORY CONTEXT:
 {story_context or ""}
@@ -434,10 +495,13 @@ STORY CONTEXT:
             # Generate next story segment using segment_maker with stateless approach
             logger.info("Calling generate_continuation...")
             logger.info(f"Parameters being passed: conflict={conflict}, setting={setting}, mood={story.mood}, narrative_style={story.narrative_style}, node_count={node_count}")
+            
+            # --- Add Type Logging --- 
+            logger.info(f"Type of 'active_mission' BEFORE calling generate_continuation: {type(active_mission)}")
             next_segment = generate_continuation(
                 previous_story=current_node.narrative_text,
                 chosen_choice=custom_choice_text or choice_id,
-                mission_info=mission_info,
+                mission=active_mission,  # Now passing the Mission model instance
                 mood=story.mood,
                 narrative_style=story.narrative_style,
                 conflict=conflict,
@@ -446,11 +510,29 @@ STORY CONTEXT:
                 existing_characters=char_info,
                 node_count=node_count,
                 narrative_history=node_context.get("narrative_history", ""),
-                enhanced_context=enhanced_context  # NEW: Pass enhanced context
+                enhanced_context=enhanced_context
             )
             
             # Log the continuation data
             logger.debug(f"Generated continuation data: {json.dumps(next_segment, indent=2)}")
+            
+            # Process mission updates from the continuation
+            mission_updates = []
+            if "mission_update" in next_segment:
+                mission_update = next_segment["mission_update"]
+                if mission_update.get("status") in ["progressed", "completed", "failed"]:
+                    # Calculate new progress
+                    current_progress = active_mission.progress
+                    if mission_update["status"] == "progressed":
+                        new_progress = min(100, current_progress + 25)  # 25% progress per story segment
+                    elif mission_update["status"] == "completed":
+                        new_progress = 100
+                    else:  # failed
+                        new_progress = current_progress
+                        
+                    # Update mission in database
+                    mission_updates.append(self.update_mission(active_mission.id, new_progress / 100.0))
+                    logger.info(f"Updated mission {active_mission.id} to progress {new_progress}%")
             
             # Create new node using updated continuation data from branch_metadata
             next_node = StoryNode(
@@ -485,7 +567,16 @@ STORY CONTEXT:
                     ] if story.characters else [],
                     
                     # Mission information
-                    "mission_info": mission_info,
+                    "mission_info": {
+                        "id": active_mission.id,
+                        "title": active_mission.title,
+                        "objective": active_mission.objective,
+                        "status": active_mission.status,
+                        "progress": active_mission.progress,
+                        "difficulty": active_mission.difficulty,
+                        "reward_currency": active_mission.reward_currency,
+                        "reward_amount": active_mission.reward_amount
+                    },
                     "mission_update": next_segment.get("mission_update", {}),
                     
                     # Protagonist information - carry over from current node

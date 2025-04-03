@@ -29,7 +29,7 @@ python test_api_logging.py
 ## What's Logged
 
 ### Request Information
-- **Model**: Which model is being used 
+- **Model**: Which model is being used (e.g., `gpt-4-turbo`)
 - **Temperature**: Temperature setting for the request
 - **Full Request Payload**: The complete messages array and all parameters
 - **Truncated Content**: For very large messages, content is truncated but preserves important parts
@@ -135,20 +135,3 @@ The API logging system uses a stateless design:
 3. Every response is carefully captured with usage statistics
 4. Error handling includes detailed logging of failure points
 5. The logging is designed to work with both test and production environments 
-
-### Example API Call
-
-```python
-response = client.chat.completions.create(
-    model="o3-mini",
-    messages=messages,
-    response_format={"type": "json_object"}
-)
-```
-
-### Logged Information
-
-- **Model**: Model being used
-- **Response Format**: Expected response format
-- **Messages**: Input messages
-- **Response**: API response content 

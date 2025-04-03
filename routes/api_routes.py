@@ -31,10 +31,8 @@ import logging
 from flask import Blueprint, request, jsonify
 from models.character_data import Character
 import os
-import json
 
 from services.game_engine import GameEngine
-from services.state_manager import GameState
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -118,19 +116,6 @@ def api_make_choice():
 
     try:
         game_engine = GameEngine(user_id=data['user_id'])
-        game_state = GameState(data['user_id'])
-        
-        # Get current node and enhanced context
-        current_node = game_state.resolve_current_node()
-        enhanced_context = ""
-        narrative_history = ""
-        if current_node:
-            node_context = game_state.get_node_context(current_node.id)
-            enhanced_context = node_context.get('enhanced_context', '')
-            narrative_history = node_context.get('narrative_history', '')
-            story_context = data.get('story_context', '')
-            if enhanced_context:
-                story_context = f"{story_context}\n\nPREVIOUS CONTEXT:\n{enhanced_context}"
         
         # Get character details from IDs for complete character data
         characters = []
@@ -153,27 +138,13 @@ def api_make_choice():
         result = game_engine.make_choice(
             choice_id=data['choice_id'],
             custom_choice_text=data.get('previous_choice'),
-            story_context=story_context,
+            story_context=data.get('story_context'),
             characters=characters
         )
-
-        # Log the result summary
-        summary = {
-            'current_node_id': result.get('current_node', {}).get('id'),
-            'choice_count': len(result.get('available_choices', [])),
-            'mission_updates': len(result.get('mission_updates', [])),
-            'character_updates': len(result.get('character_updates', [])),
-            'has_enhanced_context': bool(enhanced_context),
-            'has_narrative_history': bool(narrative_history)
-        }
-        logger.debug(f"API make_choice result: {json.dumps(summary, indent=2)}")
-
         return jsonify({
             'success': True,
             'current_node': result['current_node'],
-            'story_id': data['story_id'],
-            'enhanced_context': enhanced_context,
-            'narrative_history': narrative_history
+            'story_id': data['story_id']
         })
     except Exception as e:
         logger.error(f"Error in make_choice: {str(e)}")

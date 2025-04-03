@@ -9,6 +9,7 @@
 import LoadingManager from '/static/js/modules/LoadingManager.js';
 import ErrorHandler from '/static/js/modules/ErrorHandler.js';
 import CharacterMentions from '/static/js/modules/CharacterMentions.js';
+import UserProgress from '/static/js/modules/UserProgress.js';
 
 class ChoiceHandler {
     constructor() {
@@ -130,6 +131,38 @@ class ChoiceHandler {
                         choiceForm.appendChild(btn);
                         
                         choicesContainer.appendChild(choiceForm);
+                    });
+                }
+                
+                // Handle mission updates if available
+                if (result.mission_updates && result.mission_updates.length > 0) {
+                    result.mission_updates.forEach(update => {
+                        if (update && update.id) {
+                            // Use UserProgress module to handle mission updates
+                            UserProgress.updateMissionProgress(update);
+                            
+                            // Update mission list if needed
+                            const missionList = document.querySelector('.mission-list');
+                            if (missionList) {
+                                // Refresh mission list
+                                fetch('/api/missions')
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            // Update mission list UI
+                                            missionList.innerHTML = data.missions.map(mission => `
+                                                <div class="mission-item" data-mission-id="${mission.id}">
+                                                    <div class="mission-title">${mission.title}</div>
+                                                    <div class="mission-progress" style="width: ${mission.progress}%"></div>
+                                                    <div class="mission-status">${mission.status}</div>
+                                                    ${mission.reward_currency ? `<div class="mission-reward">Reward: ${mission.reward_amount} ${mission.reward_currency}</div>` : ''}
+                                                </div>
+                                            `).join('');
+                                        }
+                                    })
+                                    .catch(error => console.error('Error updating mission list:', error));
+                            }
+                        }
                     });
                 }
                 

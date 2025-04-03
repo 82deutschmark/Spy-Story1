@@ -180,6 +180,78 @@ export default {
         console.log("UserProgress initialized");
         // Additional initialization code...
         */
+    },
+
+    /**
+     * Update mission progress and status
+     * @param {Object} update - Mission update data from server
+     */
+    updateMissionProgress(update) {
+        if (!update || !update.id) return;
+        
+        // Update mission progress in UI
+        const missionElement = document.querySelector(`[data-mission-id="${update.id}"]`);
+        if (!missionElement) return;
+        
+        // Update progress bar
+        const progressBar = missionElement.querySelector('.mission-progress');
+        if (progressBar) {
+            progressBar.style.width = `${update.progress * 100}%`;
+        }
+        
+        // Update status
+        if (update.status) {
+            const statusElement = missionElement.querySelector('.mission-status');
+            if (statusElement) {
+                statusElement.textContent = update.status;
+            }
+        }
+        
+        // Handle completion
+        if (update.status === 'completed') {
+            // Show reward
+            const rewardElement = missionElement.querySelector('.mission-reward');
+            if (rewardElement && update.rewards) {
+                rewardElement.textContent = `Reward: ${update.rewards.amount} ${update.rewards.currency}`;
+            }
+            
+            // Add completion animation
+            missionElement.classList.add('mission-completed');
+            
+            // Update user currency if reward is provided
+            if (update.rewards) {
+                this.updateUserCurrency(update.rewards);
+            }
+        }
+        
+        // Handle failure
+        if (update.status === 'failed') {
+            missionElement.classList.add('mission-failed');
+        }
+    },
+    
+    /**
+     * Update user's currency display
+     * @param {Object} reward - Reward data from server
+     */
+    updateUserCurrency(reward) {
+        if (!reward || !reward.amount || !reward.currency) return;
+        
+        const currencyElement = document.querySelector('.user-currency');
+        if (!currencyElement) return;
+        
+        const currentAmount = parseInt(currencyElement.textContent) || 0;
+        const newAmount = currentAmount + reward.amount;
+        currencyElement.textContent = newAmount;
+        
+        // Show currency gain animation
+        const gainElement = document.createElement('div');
+        gainElement.className = 'currency-gain';
+        gainElement.textContent = `+${reward.amount} ${reward.currency}`;
+        currencyElement.appendChild(gainElement);
+        
+        // Remove animation after it completes
+        setTimeout(() => gainElement.remove(), 2000);
     }
 };
 
