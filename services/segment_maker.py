@@ -69,17 +69,15 @@ class StoryPromptBuilder:
     
     # Modified to include protagonist_level
     @staticmethod
-    def build_protagonist_info(name: Optional[str] = None, gender: Optional[str] = None, level: Optional[int] = None) -> str:
+    def build_protagonist_info(name: Optional[str] = None, gender: Optional[str] = None) -> str:
         """Build the protagonist information section."""
-        if not name and not gender and not level:
+        if not name and not gender:
             return ""
         info_lines = [
             "PROTAGONIST DETAILS:",
             f"Name: {name}" if name else "",
             f"Gender: {gender}" if gender else ""
         ]
-        if level is not None:
-            info_lines.append(f"Experience Level: {level}")
         return "\n".join(filter(None, info_lines))
 
     @staticmethod
@@ -522,19 +520,14 @@ class StoryContinuationHandler:
         narrative_style: Optional[str] = None,
         protagonist_name: Optional[str] = None,
         protagonist_gender: Optional[str] = None,
-        protagonist_level: Optional[int] = None,
         conflict: Optional[str] = None,
         setting: Optional[str] = None,
         story_context: Optional[str] = None,
         existing_characters: Optional[List[Dict[str, Any]]] = None,
         node_count: int = 1,
         narrative_history: Optional[str] = None,
-<<<<<<< HEAD
         enhanced_context: Optional[str] = None,
         help_instruction: str = "   - One that involves seeking help from an NPC"
-=======
-        enhanced_context: Optional[str] = None  # NEW: Add enhanced_context parameter
->>>>>>> parent of 33d2d8d (Context Fixes)
     ) -> Dict[str, Any]:
         """Generate a story continuation based on the player's choice."""
         logger.info("=== StoryContinuationHandler.generate_continuation called ===")
@@ -543,7 +536,6 @@ class StoryContinuationHandler:
         logger.debug(f"Previous story length: {len(previous_story) if previous_story else 0} chars")
         logger.debug(f"Has narrative history: {bool(narrative_history)}")  # NEW: Log presence of narrative history
         
-<<<<<<< HEAD
         # Extract character interactions and previous choices
         character_interactions = self._extract_character_interactions(previous_story, existing_characters or [])
         previous_choices = self._extract_previous_choices(previous_story)
@@ -590,93 +582,346 @@ class StoryContinuationHandler:
         # Process and validate the response
         validated_data = self.validate_response(response, mission)
         logger.debug(f"Validated continuation data: {json.dumps(validated_data, indent=2)}")
-=======
-        # Get random characters to use for assistance choices
-        existing_ids = {char.get("id") for char in existing_characters} if existing_characters else set()
-        fresh_chars = get_random_characters(3)
-        fresh_candidates = [char for char in fresh_chars if char.id not in existing_ids and char.character_role.lower() != "villain"]
-        random_characters = fresh_candidates if fresh_candidates else [char for char in fresh_chars if char.character_role.lower() != "villain"]
-        selected_random = random.choice(random_characters) if random_characters else None
-        available_npc_names = ", ".join([char.character_name for char in random_characters]) if random_characters else "None"
         
-        # Ensure selected_random.id is an integer
-        char_id = selected_random.id if selected_random else 'null'
-        if isinstance(char_id, str) and char_id.isdigit():
-            char_id = int(char_id)
-            
-        # Modified help instruction to be clearer about character_id format
-        help_instruction = (f"   - One that involves asking {selected_random.character_name if selected_random else 'a previously introduced character'} " +
-                           f"for help (make sure the choice includes character_id field set to numeric value {char_id} and not the character name)")
+        return validated_data
+
+class StoryContinuationHandler:
+    """Handles story continuation generation and validation."""
+    
+    def __init__(self, client, context_manager):
+        """Initialize with a stateless context manager."""
+        self.context_manager = context_manager
+        self.client = client
+    
+    def _extract_character_interactions(self, narrative_text: str, characters: List[Dict[str, Any]]) -> Dict[str, List[str]]:
+        """Extract character interactions from narrative text."""
+        interactions = {}
         
-        # Build story context 
-        context_additions = []
-        context_additions.append(f"AVAILABLE NPC CHOICES for assistance: {available_npc_names}")
-        if story_context:
-            context_additions.append(f"STORY CONTEXT:\n{story_context}")
+        # Create a mapping of character names to their full info
+        char_map = {char.get('name', '').lower(): char for char in characters}
         
-        # Format existing characters for the context manager
-        formatted_characters = []
-        if existing_characters:
-            for char in existing_characters:
-                formatted_char = {
-                    "id": char.get("id"),
-                    "name": char.get("character_name") or char.get("name", "Unknown"),
-                    "character_role": char.get("character_role") or char.get("role", "neutral"),
-                    "character_traits": char.get("character_traits", {}),
-                    "backstory": char.get("backstory", ""),
-                    "plot_lines": char.get("plot_lines", []),
-                    "description": char.get("description", "")
-                }
-                formatted_characters.append(formatted_char)
+        # Split narrative into sentences
+        sentences = narrative_text.split('.')
+        
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if not sentence:
+                continue
                 
-        # Extract story parameters if available
-        story_params = {}
-        if existing_characters and existing_characters[0].get("story_parameters"):
-            params = existing_characters[0]["story_parameters"]
-            conflict = conflict or params.get("conflict")
-            setting = setting or params.get("setting")
-            mood = mood or params.get("mood")
-            narrative_style = narrative_style or params.get("narrative_style")
+            # Check each character
+            for char_name, char_info in char_map.items():
+                if char_name in sentence.lower():
+                    if char_name not in interactions:
+                        interactions[char_name] = []
+                    interactions[char_name].append(sentence)
+                    
+        return interactions
+    
+    def _extract_previous_choices(self, narrative_text: str) -> List[str]:
+        """Extract previous choices from narrative text."""
+        choices = []
         
-        # Ensure we have required parameters
-        if not all([conflict, setting, mood, narrative_style]):
-            raise ValueError("Missing required story parameters")
+        # Look for choice-related phrases
+        choice_indicators = [
+            "you chose to",
+            "you decided to",
+            "you opted to",
+            "you selected",
+            "you picked",
+            "you went with"
+        ]
         
-        # Build prompt with narrative history for better continuity
+        sentences = narrative_text.split('.')
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+                
+            for indicator in choice_indicators:
+                if indicator in sentence.lower():
+                    # Clean up the choice text
+                    choice = sentence.lower().replace(indicator, '').strip()
+                    if choice:
+                        choices.append(choice)
+                        
+        return choices
+
+    def _process_mission_update(self, mission_update: Dict[str, Any], mission: Any) -> Dict[str, Any]:
+        """Process and validate mission updates from the story continuation."""
+        if not mission_update:
+            return {"status": "unchanged", "progress_details": "No mission progress in this segment"}
+            
+        status = mission_update.get('status', 'unchanged')
+        progress_details = mission_update.get('progress_details', '')
+        
+        # Validate status
+        valid_statuses = ['unchanged', 'progressed', 'completed', 'failed']
+        if status not in valid_statuses:
+            status = 'unchanged'
+            
+        # Calculate progress change based on status
+        progress_change = 0
+        if status == 'progressed':
+            progress_change = 25  # Significant progress
+        elif status == 'completed':
+            progress_change = 100 - (mission.progress if mission else 0)  # Complete the mission
+        elif status == 'failed':
+            progress_change = -50  # Major setback
+            
+        # Update mission progress if needed
+        if progress_change != 0:
+            current_progress = (mission.progress if mission else 0)
+            new_progress = max(0, min(100, current_progress + progress_change))
+            
+            # If mission is a model instance, use its update_progress method
+            if hasattr(mission, 'update_progress'):
+                mission.update_progress(new_progress, progress_details)
+            else:
+                # If it's a dictionary, update it directly
+                mission['progress'] = new_progress
+                if 'progress_updates' not in mission:
+                    mission['progress_updates'] = []
+                mission['progress_updates'].append({
+                    'progress': new_progress,
+                    'timestamp': datetime.utcnow().isoformat(),
+                    'description': progress_details
+                })
+            
+            # Update mission status if completed or failed
+            if status in ['completed', 'failed']:
+                if hasattr(mission, 'status'):
+                    mission.status = status
+                    if status == 'completed':
+                        mission.completed_at = datetime.utcnow()
+                else:
+                    mission['status'] = status
+                    if status == 'completed':
+                        mission['completed_at'] = datetime.utcnow().isoformat()
+                    
+        return {
+            "status": status,
+            "progress_details": progress_details,
+            "progress_change": progress_change,
+            "new_progress": (mission.progress if mission else 0)
+        }
+
+    def validate_response(self, story_data: Dict[str, Any], mission: Any, random_character: Optional[Character] = None) -> Dict[str, Any]:
+        """Validate and process the story response."""
+        # Process choices: ensure each choice has a unique id and character_id is set to None if not needed.
+        for i, choice in enumerate(story_data['choices']):
+            if 'choice_id' not in choice:
+                choice['choice_id'] = f"choice_{i}_{datetime.utcnow().timestamp()}"
+                
+            # Ensure character_id is properly formatted: either None or an integer
+            if 'character_id' not in choice:
+                choice['character_id'] = None
+            elif choice['character_id'] is not None:
+                # If it's a string but not a digit, try to find the character by name
+                if isinstance(choice['character_id'], str) and not choice['character_id'].isdigit():
+                    # Look up by name
+                    char_name = choice['character_id']
+                    char = Character.query.filter_by(character_name=char_name).first()
+                    if char:
+                        choice['character_id'] = char.id
+                    else:
+                        choice['character_id'] = None
+                # If it's a digit string, convert to int
+                elif isinstance(choice['character_id'], str) and choice['character_id'].isdigit():
+                    choice['character_id'] = int(choice['character_id'])
+                # If it's not an int at this point, set to None
+                elif not isinstance(choice['character_id'], int):
+                    choice['character_id'] = None
+                
+            # Clean up any character IDs from choice text
+            if 'text' in choice:
+                import re
+                # Remove character IDs from choice text
+                choice['text'] = re.sub(r'\(character_id:\s*\d+\)', '', choice['text'])
+                # Clean up any double spaces or awkward punctuation
+                choice['text'] = re.sub(r'\s+', ' ', choice['text'])
+                choice['text'] = re.sub(r'\s*([.,!?])\s*', r'\1 ', choice['text'])
+                
+        # Clean up any embedded raw IDs from narrative_text using regex cleanup
+        import re
+        
+        # Handle different key names for the story/narrative text
+        story_text = ""
+        if "narrative_text" in story_data:
+            story_text = story_data["narrative_text"]
+        elif "story" in story_data:
+            story_text = story_data["story"]
+        else:
+            # If neither key exists, log error and return empty narrative
+            logger.error(f"Neither 'story' nor 'narrative_text' key found in response: {story_data.keys()}")
+            story_text = "Error: Story generation failed. Please try again."
+            
+        # Remove character IDs
+        clean_text = re.sub(r'\(character_id:\s*\d+\)', '', story_text)
+        # Remove choice IDs
+        clean_text = re.sub(r'choice_\d+', '', clean_text)
+        # Clean up any double spaces or awkward punctuation that might result
+        clean_text = re.sub(r'\s+', ' ', clean_text)
+        clean_text = re.sub(r'\s*([.,!?])\s*', r'\1 ', clean_text)
+        
+        # Process mission update
+        mission_update = self._process_mission_update(story_data.get("mission_update", {}), mission)
+        
+        # Return a flattened structure: only narrative_text, choices, and mission_update
+        return {
+            "narrative_text": clean_text,
+            "choices": story_data["choices"],
+            "mission_update": mission_update
+        }
+
+    def _build_prompt(
+        self,
+        chosen_choice: str,
+        mission: Any,
+        help_instruction: str,
+        story_context: Optional[str] = "",
+        existing_characters: Optional[List[Dict[str, Any]]] = None,
+        narrative_history: Optional[str] = None
+    ) -> str:
+        """Build a consolidated prompt for story continuation."""
+        prompt_parts = [
+            "Continue the story based on the following details:",
+            "",
+            "PLAYER'S CHOICE:",
+            chosen_choice,
+            ""
+        ]
+        
+        # Add narrative history if available
+        if narrative_history:
+            prompt_parts.extend([
+                "PREVIOUS EVENTS:",
+                narrative_history,
+                ""
+            ])
+            logger.info("Added narrative history to prompt")
+            
+        # Build mission context from Mission model
+        prompt_parts.extend([
+            "CURRENT MISSION:",
+            f"Title: {mission.title if mission else 'Unknown'}",
+            f"Objective: {mission.objective if mission else 'Unknown'}",
+            f"Current Status: {mission.status if mission else 'Unknown'}",
+            f"Progress: {mission.progress if mission else 0}%",
+            f"Difficulty: {mission.difficulty if mission else 'Not specified'}",
+            f"Deadline: {mission.deadline if mission else 'No specific deadline'}"
+        ])
+        
+        # Add reward information if available
+        if mission and mission.reward_currency and mission.reward_amount:
+            prompt_parts.extend([
+                "",
+                "REWARD INFORMATION:",
+                f"Currency: {mission.reward_currency}",
+                f"Amount: {mission.reward_amount}"
+            ])
+        
+        # Add progress history if available
+        if mission and mission.progress_updates:
+            prompt_parts.extend([
+                "",
+                "RECENT PROGRESS UPDATES:"
+            ])
+            for update in (mission.progress_updates or [])[-3:]:  # Show last 3 updates
+                timestamp = update.get('timestamp', 'Unknown time')
+                progress = update.get('progress', 0)
+                description = update.get('description', '')
+                prompt_parts.append(f"- {timestamp}: {progress}% - {description}")
+        
+        # Add character details if available
+        if existing_characters:
+            character_prompt = build_additional_characters_prompt(existing_characters)
+            if character_prompt:
+                prompt_parts.extend(["", "EXISTING CHARACTERS IN STORY:", character_prompt])
+        
+        if story_context:
+            prompt_parts.extend(["", f"STORY CONTEXT:\n{story_context}"])
+        
+        prompt_parts.extend([
+            "",
+            "STORY REQUIREMENTS:",
+            *StoryPromptBuilder.build_story_requirements(SEGMENT_WORD_COUNT_RANGE, help_instruction),
+            "",
+            "Your response MUST be valid JSON with this structure:",
+            StoryPromptBuilder.get_json_structure()
+        ])
+        return "\n".join(prompt_parts)
+
+    def generate_continuation(
+        self,
+        previous_story: str,
+        chosen_choice: str,
+        mission: Any,
+        mood: Optional[str] = None,
+        narrative_style: Optional[str] = None,
+        protagonist_name: Optional[str] = None,
+        protagonist_gender: Optional[str] = None,
+        conflict: Optional[str] = None,
+        setting: Optional[str] = None,
+        story_context: Optional[str] = None,
+        existing_characters: Optional[List[Dict[str, Any]]] = None,
+        node_count: int = 1,
+        narrative_history: Optional[str] = None,
+        enhanced_context: Optional[str] = None,
+        help_instruction: str = "   - One that involves seeking help from an NPC"
+    ) -> Dict[str, Any]:
+        """Generate a story continuation based on the player's choice."""
+        logger.info("=== StoryContinuationHandler.generate_continuation called ===")
+        logger.debug(f"Received node_count: {node_count}")
+        logger.debug(f"Received parameters: conflict={conflict}, setting={setting}, mood={mood}, narrative_style={narrative_style}")
+        logger.debug(f"Previous story length: {len(previous_story) if previous_story else 0} chars")
+        logger.debug(f"Has narrative history: {bool(narrative_history)}")  # NEW: Log presence of narrative history
+        
+        # Extract character interactions and previous choices
+        character_interactions = self._extract_character_interactions(previous_story, existing_characters or [])
+        previous_choices = self._extract_previous_choices(previous_story)
+        
+        # Build continuation prompt
         prompt = self._build_prompt(
             chosen_choice=chosen_choice,
-            mission_info=mission_info,
+            mission=mission,
             help_instruction=help_instruction,
-            story_context="\n".join(context_additions),
-            existing_characters=formatted_characters,
-            narrative_history=narrative_history  # NEW: Pass narrative history to prompt builder
+            story_context=story_context,
+            existing_characters=existing_characters,
+            narrative_history=narrative_history
         )
         
-        logger.info("=== Calling OpenAIContextManager.generate_continuation ===")
-        logger.info(f"Passing parameters to OpenAIContextManager: conflict={conflict}, setting={setting}, mood={mood}, narrative_style={narrative_style}, node_count={node_count}")
-        logger.debug(f"Character count: {len(formatted_characters)}")
+        # Build messages for API call
+        system_message = StoryPromptBuilder.build_system_message(mood or "default mood", narrative_style or "default narrative style")
         
-        # Generate story continuation using the stateless context manager
-        story_data = self.context_manager.generate_continuation(
-            client=self.client,
-            user_message=prompt,
+        # Create StoryContext from Mission model
+        logger.info(f"Type of 'mission' parameter BEFORE calling StoryContext.from_mission: {type(mission)}")
+        context = StoryContext.from_mission(
+            mission,
             conflict=conflict,
-            setting=setting, 
-            narrative_style=narrative_style,
-            mood=mood,
+            setting=setting,
+            character_info=existing_characters,
+            narrative_history=narrative_history,
             node_count=node_count,
-            mission_info=mission_info,
-            character_info=formatted_characters,
-            enhanced_context=enhanced_context  # NEW: Pass enhanced context
+            previous_choices=previous_choices,
+            character_interactions=character_interactions
         )
         
-        logger.info("=== Received response from OpenAIContextManager ===")
-        logger.debug(f"Response story length: {len(story_data.get('narrative_text', '')) if story_data else 0} chars")
-        logger.debug(f"Response choices count: {len(story_data.get('choices', [])) if story_data else 0}")
+        messages = [
+            {"role": "system", "content": f"{system_message['content']}\n\n{StoryContextRules.build_continuity_rules(context)}"},
+            {"role": "user", "content": prompt}
+        ]
         
-        validated_data = self.validate_response(story_data, selected_random)
-        logger.info("=== Returning validated response ===")
->>>>>>> parent of 33d2d8d (Context Fixes)
+        # Use context manager for API call
+        response = self.context_manager.process_api_call(
+            self.client,
+            messages,
+            response_format="json_object",
+            model=MODEL_CONFIG["model"]
+        )
+        
+        # Process and validate the response
+        validated_data = self.validate_response(response, mission)
+        logger.debug(f"Validated continuation data: {json.dumps(validated_data, indent=2)}")
         
         return validated_data
 
@@ -704,19 +949,14 @@ def generate_continuation(
     narrative_style: Optional[str] = None,
     protagonist_name: Optional[str] = None,
     protagonist_gender: Optional[str] = None,
-    protagonist_level: Optional[int] = None,
     conflict: Optional[str] = None,
     setting: Optional[str] = None,
     story_context: Optional[str] = None,
     existing_characters: Optional[List[Dict[str, Any]]] = None,
     node_count: int = 1,
     narrative_history: Optional[str] = None,
-<<<<<<< HEAD
     enhanced_context: Optional[str] = None,
     help_instruction: str = "   - One that involves seeking help from an NPC"
-=======
-    enhanced_context: Optional[str] = None  # NEW: Add enhanced_context parameter
->>>>>>> parent of 33d2d8d (Context Fixes)
 ) -> Dict[str, Any]:
     """Generate a story continuation based on the player's choice."""
     logger.info("=== generate_continuation function called ===")
@@ -732,7 +972,6 @@ def generate_continuation(
     logger.debug(f"  chosen_choice: {chosen_choice}")
     logger.debug(f"  protagonist_name: {protagonist_name}")
     logger.debug(f"  protagonist_gender: {protagonist_gender}")
-    logger.debug(f"  protagonist_level: {protagonist_level}")
     logger.debug(f"  story_context length: {len(story_context) if story_context else 0} chars")
     logger.debug(f"  mission: {mission.title if mission else 'Unknown'} (ID: {mission.id if mission else 'unknown'})")
     logger.debug(f"  has narrative history: {bool(narrative_history)}")
@@ -767,17 +1006,12 @@ def generate_continuation(
         narrative_style=narrative_style,
         protagonist_name=protagonist_name,
         protagonist_gender=protagonist_gender,
-        protagonist_level=protagonist_level,
         conflict=conflict,
         setting=setting,
         story_context=story_context,
         existing_characters=existing_characters,
         node_count=node_count,
         narrative_history=narrative_history,
-<<<<<<< HEAD
         enhanced_context=enhanced_context,
         help_instruction=help_instruction
-=======
-        enhanced_context=enhanced_context  # NEW: Pass enhanced_context
->>>>>>> parent of 33d2d8d (Context Fixes)
     )

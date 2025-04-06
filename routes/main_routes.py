@@ -176,18 +176,22 @@ def update_choice_character_ids(choices: list, character_images: list) -> None:
 
 def process_selected_characters(selected_ids: List[str]) -> List[Character]:
     """
-    Process and return a list of selected Character objects.
-    If no valid selections are made, return random characters.
-    Also ensure that required roles are present.
+    Process selected character IDs from form data
+    Validates IDs and converts to integers
     """
     character_ids = []
+    
+    if not selected_ids:
+        return character_ids
+        
     for id_value in selected_ids:
-        if ',' in id_value:
-            character_ids.extend(
-                [int(cid.strip()) for cid in id_value.split(',')])
-        else:
-            character_ids.append(int(id_value))
-
+        try:
+            if id_value.strip():  # Skip empty strings
+                character_ids.append(int(id_value))
+        except ValueError:
+            logger.warning(f"Invalid character ID: {id_value}")
+            continue
+            
     if character_ids:
         selected_characters = Character.query.filter(
             Character.id.in_(character_ids)).all()
@@ -289,92 +293,155 @@ def index():
 
 @main_bp.route('/storyboard/<int:story_id>')
 def storyboard(story_id):
-    story = StoryGeneration.query.get_or_404(story_id)
-    user_progress = get_or_create_progress()
-    game_state = GameState(user_progress.user_id)
-    user_progress.current_story_id = story_id
-    background_image = get_random_scene_background()
+    try:
+        # Verify story exists
+        story = StoryGeneration.query.get_or_404(story_id)
+        user_progress = get_or_create_progress()
+        game_state = GameState(user_progress.user_id)
+        
+        # Update user progress with current story ID
+        user_progress.current_story_id = story_id
+        db.session.commit()
+        
+        background_image = get_random_scene_background()
 
-    # Build initial character images from the story's characters
-    character_images = [{
-        'id': char.id,
-        'image_url': char.image_url,
-        'name': char.character_name,
-        'traits': char.character_traits
-    } for char in story.characters]
+        # Build initial character images from the story's characters
+        character_images = [{
+            'id': char.id,
+            'image_url': char.image_url,
+            'name': char.character_name,
+            'traits': char.character_traits
+        } for char in story.characters]
 
-    current_node = game_state.resolve_current_node()
-    if not current_node:
-        flash('Error: Could not resolve current story node', 'error')
-        return redirect(url_for('main.dashboard'))
+        # Try to resolve the current node with proper error handling
+        try:
+            current_node = game_state.resolve_current_node(story_id)
+            if not current_node:
+                # Node resolution failed but no exception was raised
+                error_msg = f"Could not find a valid story node for story ID {story_id}"
+                logger.error(error_msg)
+                flash(error_msg, 'error')
+                # Include story ID in redirect for better context preservation
+                return redirect(url_for('main.index', error=error_msg, story_id=story_id))
+        except ValueError as ve:
+            # Specific error from node resolution
+            error_msg = f"Story node error: {str(ve)}"
+            logger.error(error_msg)
+            flash(error_msg, 'error')
+            return redirect(url_for('main.index', error=error_msg, story_id=story_id))
 
-    # Update choices in branch metadata with valid character IDs
-    if current_node.branch_metadata and 'choices' in current_node.branch_metadata:
-        update_choice_character_ids(current_node.branch_metadata['choices'],
-                                    character_images)
+        # Update choices in branch metadata with valid character IDs
+        if current_node.branch_metadata and 'choices' in current_node.branch_metadata:
+            update_choice_character_ids(current_node.branch_metadata['choices'],
+                                      character_images)
 
-    ensure_branch_metadata(current_node)
+        ensure_branch_metadata(current_node)
 
-    # Merge character relationship data into character images
-    for char_id, char_info in current_node.branch_metadata.get(
-            "character_relationships", {}).items():
-        for i, char in enumerate(character_images):
-            if str(char['id']) == char_id:
-                character_images[i].update({
-                    'relationship_level':
-                    char_info.get('relationship_level', 0)
-                })
+        # Merge character relationship data into character images
+        for char_id, char_info in current_node.branch_metadata.get(
+                "character_relationships", {}).items():
+            for i, char in enumerate(character_images):
+                if str(char['id']) == char_id:
+                    character_images[i].update({
+                        'relationship_level':
+                        char_info.get('relationship_level', 0)
+                    })
 
-    story_progress = {
-        'current_story_id': user_progress.current_story_id,
-        'current_node_id': current_node.id,
-        'completed_plot_arcs': user_progress.completed_plot_arcs or [],
-        'choice_history': user_progress.choice_history or [],
-        'active_missions':
-        current_node.branch_metadata.get("active_missions", [])
-    }
+        story_progress = {
+            'current_story_id': user_progress.current_story_id,
+            'current_node_id': current_node.id,
+            'completed_plot_arcs': user_progress.completed_plot_arcs or [],
+            'choice_history': user_progress.choice_history or [],
+            'active_missions':
+            current_node.branch_metadata.get("active_missions", [])
+        }
 
-    # Update narrative text and commit changes
-    story.narrative_text = current_node.narrative_text
-    db.session.commit()
+        # Update narrative text and commit changes
+        story.narrative_text = current_node.narrative_text
+        db.session.commit()
 
-    return render_template('storyboard.html',
-                           story=story,
-                           story_id=story_id,
-                           node=current_node,
-                           character_images=character_images,
-                           background_image=background_image,
-                           user_progress=user_progress,
-                           story_progress=story_progress)
+        return render_template('storyboard.html',
+                              story=story,
+                              story_id=story_id,
+                              node=current_node,
+                              character_images=character_images,
+                              background_image=background_image,
+                              user_progress=user_progress,
+                              story_progress=story_progress)
+    except Exception as e:
+        error_msg = f"Error displaying storyboard: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        flash(error_msg, 'error')
+        return redirect(url_for('main.index', error=error_msg, story_id=story_id))
 
 
 @main_bp.route('/generate_story', methods=['POST'])
 def generate_story_route():
     logger.info(f"Received {request.method} request at /generate_story")
-    form_data = request.form.to_dict()
-    selected_ids = request.form.getlist('selected_images')
-
-    selected_characters = process_selected_characters(selected_ids)
-    if not selected_characters:
-        return jsonify({'error': 'Missing required character roles'}), 500
-
-    # Build form data with full character details
-    form_data.update(build_character_form_data(selected_characters))
-
-    user_progress = get_or_create_progress()
-    game_engine = GameEngine(user_id=user_progress.user_id)
-    story_data = game_engine.start_new_story(form_data=form_data)
-
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify({
-            'success':
-            True,
-            'redirect':
-            url_for('main.storyboard', story_id=story_data['story_id'])
-        })
-    else:
-        return redirect(
-            url_for('main.storyboard', story_id=story_data['story_id']))
+    try:
+        form_data = request.form.to_dict()
+        selected_ids = request.form.getlist('selected_images')
+        
+        logger.debug(f"Processing selected character IDs: {selected_ids}")
+        selected_characters = process_selected_characters(selected_ids)
+        if not selected_characters:
+            logger.warning("No valid characters selected or missing required roles")
+            return jsonify({'error': 'Missing required character roles'}), 500
+        
+        # Build form data with full character details
+        form_data.update(build_character_form_data(selected_characters))
+        logger.debug(f"Form data for story generation prepared with {len(selected_characters)} characters")
+        
+        user_progress = get_or_create_progress()
+        game_engine = GameEngine(user_id=user_progress.user_id)
+        
+        # Start database transaction
+        db.session.begin_nested()
+        try:
+            story_data = game_engine.start_new_story(form_data=form_data)
+            
+            # Verify database commit
+            story = StoryGeneration.query.get(story_data['story_id'])
+            if not story:
+                logger.error(f"Story {story_data['story_id']} not found post-creation")
+                db.session.rollback()
+                return jsonify({'error': 'Story creation failed'}), 500
+            
+            # Get the first node of this story
+            first_node = StoryNode.query.filter_by(story_id=story.id).order_by(StoryNode.id).first()
+            if not first_node:
+                logger.error(f"No nodes found for story {story.id}")
+                db.session.rollback()
+                return jsonify({'error': 'Story node creation failed'}), 500
+            
+            logger.info(f"Successfully created story {story.id} with first node {first_node.id}")
+            
+            # Atomic update of both story and node IDs
+            user_progress.current_story_id = story.id
+            user_progress.current_node_id = first_node.id
+            
+            # Commit the transaction
+            db.session.commit()
+            logger.info(f"User progress updated: story_id={story.id}, node_id={first_node.id}")
+            
+            # Initialize game state with the new IDs
+            game_state = GameState(user_progress.user_id)
+            game_state.reload_state()
+            
+            redirect_url = url_for('main.storyboard', story_id=story.id)
+            
+            if request.headers.get('X-Requested-With'):
+                return jsonify({'success': True, 'redirect': redirect_url})
+            return redirect(redirect_url)
+            
+        except Exception as e:
+            logger.error(f"Error in story generation: {str(e)}", exc_info=True)
+            db.session.rollback()
+            return jsonify({'error': f'Story generation failed: {str(e)}'}), 500
+            
+    except Exception as e:
+        logger.error(f"Unexpected error in generate_story_route: {str(e)}", exc_info=True)
+        return jsonify({'error': 'An unexpected error occurred'}), 500
 
 
 @main_bp.route('/make_choice', methods=['POST'])
@@ -401,6 +468,12 @@ def make_choice():
 
     story = StoryGeneration.query.get_or_404(story_id)
     user_progress = get_or_create_progress()
+    
+    # Update the user_progress with the current story_id
+    if user_progress.current_story_id != int(story_id):
+        user_progress.current_story_id = int(story_id)
+        db.session.commit()
+        
     game_engine = GameEngine(user_id=user_progress.user_id)
 
     # Retrieve complete character details if provided
@@ -429,7 +502,12 @@ def make_choice():
         f"make_choice result (summary): {json.dumps(summary, indent=2)}")
 
     result.update({'success': True, 'story_id': story_id})
-    return jsonify(result)
+    
+    # Check if this is an AJAX request
+    if request.headers.get('X-Requested-With'):
+        return jsonify(result)
+    # For non-AJAX requests, redirect to the storyboard
+    return redirect(url_for('main.storyboard', story_id=story_id))
 
 
 @main_bp.route('/reroll_character', methods=['POST'])

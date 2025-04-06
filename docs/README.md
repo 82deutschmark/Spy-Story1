@@ -99,7 +99,7 @@ An interactive thriller game engine that generates dynamic narratives with branc
 - **Mission**: Tracks mission objectives, progress, and rewards
 
 ## Documentation
-- [System Documentation](docs/System_Documentation.md) - Comprehensive system overview
+- [System Documentation](docs/Updated_System_Documentation.md) - Comprehensive system overview
 - [Story Node System](docs/story_node_system.md) - Details of node structure and relationships
 - [Story Flow](docs/story_flow.md) - Narrative progression and state transitions
 - [ChatGPT API Call Chain](docs/ChatGPT%20API%20Call%20Chain%20Documentation.md) - Details of API integration

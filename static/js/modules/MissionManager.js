@@ -65,110 +65,154 @@
 import UIUtils from './UIUtils.js';
 import CurrencyManager from './CurrencyManager.js';
 
-export default {
+class MissionManager {
+    constructor() {
+        this.activeMissions = [];
+        this.missionUpdateHandlers = [];
+        this.bindUIEvents();
+    }
+
+    // Initialize UI event bindings
+    bindUIEvents() {
+        // Mission progress updates
+        document.addEventListener('mission:progress-update', async (e) => {
+            const { missionId, progress } = e.detail;
+            await this.updateMissionProgress(missionId, progress);
+        });
+
+        // Mission completion
+        document.addEventListener('mission:complete', async (e) => {
+            const { missionId } = e.detail;
+            await this.updateMissionProgress(missionId, 100);
+        });
+
+        // Mission failure
+        document.addEventListener('mission:fail', async (e) => {
+            const { missionId, reason } = e.detail;
+            await this.failMission(missionId, reason);
+        });
+    }
+
+    // Add UI update handler
+    addUpdateHandler(handler) {
+        this.missionUpdateHandlers.push(handler);
+    }
+
+    // Remove UI update handler
+    removeUpdateHandler(handler) {
+        this.missionUpdateHandlers = this.missionUpdateHandlers.filter(h => h !== handler);
+    }
+
+    // Fetch active missions from backend
+    async loadActiveMissions() {
+        try {
+            const response = await fetch('/api/missions/active');
+            if (!response.ok) throw new Error('Failed to load missions');
+            
+            this.activeMissions = await response.json();
+            this.updateMissionDisplays();
+            return this.activeMissions;
+        } catch (error) {
+            console.error('Mission load error:', error);
+            this.showErrorNotification('Failed to load missions');
+            return [];
+        }
+    }
+
+    // Update mission progress
+    async updateMissionProgress(missionId, progress, description = '') {
+        try {
+            const response = await fetch(`/api/missions/${missionId}/update`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({progress, description})
+            });
+            
+            if (!response.ok) throw new Error('Update failed');
+            
+            const updatedMission = await response.json();
+            this.updateMissionInList(updatedMission);
+            this.updateMissionDisplays();
+            
+            // Notify completion if progress is 100%
+            if (progress >= 100) {
+                this.handleMissionCompletion(updatedMission);
+            }
+            
+            return updatedMission;
+        } catch (error) {
+            console.error('Mission update error:', error);
+            this.showErrorNotification('Mission update failed');
+            throw error;
+        }
+    }
+
     /**
      * Loads mission details
      * @param {string} missionId - Mission ID to load
      * @returns {Promise} - Promise resolving to mission data
      */
-    loadMissionDetails(missionId) {
-        // Reset modal content
-        document.querySelector('#missionDetailsModal .mission-content').style.display = 'none';
-        document.querySelector('#missionDetailsModal .mission-loading').style.display = 'block';
-        document.querySelector('#progressUpdatesList').innerHTML = '';
+    async loadMissionDetails(missionId) {
+        try {
+            const response = await fetch(`/api/missions/${missionId}`);
+            if (!response.ok) throw new Error('Failed to load mission');
+            return await response.json();
+        } catch (error) {
+            console.error('Mission load error:', error);
+            this.showErrorNotification('Failed to load mission details');
+            return null;
+        }
+    }
 
-        // Show modal
-        const missionModal = new bootstrap.Modal(document.getElementById('missionDetailsModal'));
-        missionModal.show();
+    /**
+     * Tracks mission progress
+     * @param {string} missionId - Mission ID to track
+     * @param {function} callback - Callback function to receive mission updates
+     * @returns {function} - Function to stop tracking mission progress
+     */
+    trackMissionProgress(missionId, callback) {
+        const handler = (missions) => {
+            const mission = missions.find(m => m.id === missionId);
+            if (mission) callback(mission);
+        };
+        this.addUpdateHandler(handler);
+        return () => this.removeUpdateHandler(handler);
+    }
 
-        // Fetch mission details
-        return fetch(`/api/missions/${missionId}`)
-            .then(response => response.json())
-            .then(response => {
-                if (response.success && response.mission) {
-                    const mission = response.mission;
-
-                    // Fill in mission details
-                    document.getElementById('missionDetailTitle').textContent = mission.title;
-                    document.getElementById('missionObjective').textContent = mission.objective;
-                    document.getElementById('missionDescription').textContent = mission.description;
-                    document.getElementById('missionDifficulty').textContent = mission.difficulty;
-                    document.getElementById('missionStatus').textContent = mission.status;
-                    document.getElementById('missionDeadline').textContent = mission.deadline;
-                    document.getElementById('missionReward').textContent = `${mission.reward_currency} ${mission.reward_amount}`;
-
-                    // Update progress bar
-                    const progress = mission.progress || 0;
-                    const progressBar = document.getElementById('missionProgressBar');
-                    progressBar.style.width = `${progress}%`;
-                    progressBar.setAttribute('aria-valuenow', progress);
-                    progressBar.textContent = `${progress}%`;
-
-                    // Set character information
-                    document.getElementById('missionGiver').textContent = mission.giver?.name || 'Unknown';
-                    document.getElementById('missionTarget').textContent = mission.target?.name || 'Unknown';
-
-                    // Set up button actions
-                    document.getElementById('completeBtn').dataset.missionId = mission.id;
-                    document.getElementById('failBtn').dataset.missionId = mission.id;
-
-                    // Show/hide buttons based on mission status
-                    document.getElementById('missionActions').style.display = 
-                        mission.status !== 'active' ? 'none' : 'block';
-
-                    // Add progress updates
-                    const updatesList = document.getElementById('progressUpdatesList');
-                    if (mission.progress_updates && mission.progress_updates.length > 0) {
-                        mission.progress_updates.forEach(function(update) {
-                            const date = new Date(update.timestamp);
-                            const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-
-                            let updateHtml = `
-                                <div class="list-group-item">
-                                    <div class="d-flex w-100 justify-content-between">
-                                        <h6 class="mb-1">Progress: ${update.progress}%</h6>
-                                        <small>${formattedDate}</small>
-                                    </div>
-                            `;
-
-                            if (update.description) {
-                                updateHtml += `<p class="mb-1">${update.description}</p>`;
-                            }
-
-                            if (update.status) {
-                                updateHtml += `<span class="badge ${update.status === 'completed' ? 'bg-success' : 'bg-danger'}">${update.status}</span>`;
-                            }
-
-                            updateHtml += `</div>`;
-                            updatesList.innerHTML += updateHtml;
-                        });
-                    } else {
-                        updatesList.innerHTML = '<p class="text-muted">No progress updates yet.</p>';
-                    }
-
-                    // Show content, hide loading
-                    document.querySelector('#missionDetailsModal .mission-loading').style.display = 'none';
-                    document.querySelector('#missionDetailsModal .mission-content').style.display = 'block';
-                    
-                    return mission;
-                } else {
-                    throw new Error(response.error || 'Failed to load mission details');
-                }
-            })
-            .catch(error => {
-                console.error('Error loading mission details:', error);
-                missionModal.hide();
-                UIUtils.showToast('Error', 'Failed to load mission details');
-                throw error;
+    /**
+     * Marks a mission as failed
+     * @param {string} missionId - Mission ID to fail
+     * @param {string} reason - Reason for failing the mission
+     * @returns {Promise} - Promise resolving to failed mission data
+     */
+    async failMission(missionId, reason = '') {
+        try {
+            const response = await fetch(`/api/missions/${missionId}/fail`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({reason})
             });
-    },
+            
+            if (!response.ok) throw new Error('Mission failure update failed');
+            
+            const failedMission = await response.json();
+            this.activeMissions = this.activeMissions.filter(m => m.id !== missionId);
+            this.updateMissionDisplays();
+            
+            return failedMission;
+        } catch (error) {
+            console.error('Mission failure error:', error);
+            this.showErrorNotification('Failed to update mission status');
+            throw error;
+        }
+    }
 
     /**
      * Completes a mission
      * @param {string} missionId - Mission ID to complete
      * @returns {Promise} - Promise resolving to completion result
      */
-    completeMission(missionId) {
+    async completeMission(missionId) {
         if (!confirm('Are you sure you want to mark this mission as completed?')) {
             return Promise.reject('User cancelled');
         }
@@ -216,54 +260,7 @@ export default {
                 UIUtils.showToast('Error', 'Failed to complete mission');
                 throw error;
             });
-    },
-
-    /**
-     * Marks a mission as failed
-     * @param {string} missionId - Mission ID to fail
-     * @returns {Promise} - Promise resolving to failure result
-     */
-    failMission(missionId) {
-        const reason = prompt('Please provide a reason for failing the mission (optional):');
-        
-        if (!confirm('Are you sure you want to mark this mission as failed?')) {
-            return Promise.reject('User cancelled');
-        }
-
-        return fetch(`/api/missions/${missionId}/fail`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ reason: reason })
-        })
-            .then(response => response.json())
-            .then(response => {
-                if (response.success) {
-                    // Close the modal
-                    const missionModal = bootstrap.Modal.getInstance(document.getElementById('missionDetailsModal'));
-                    if (missionModal) {
-                        missionModal.hide();
-                    }
-                    
-                    UIUtils.showToast('Info', 'Mission marked as failed');
-
-                    // Reload page to refresh mission list
-                    setTimeout(function() {
-                        location.reload();
-                    }, 2000);
-                    
-                    return response;
-                } else {
-                    throw new Error(response.error || 'Failed to fail mission');
-                }
-            })
-            .catch(error => {
-                console.error('Error failing mission:', error);
-                UIUtils.showToast('Error', 'Failed to update mission status');
-                throw error;
-            });
-    },
+    }
 
     /**
      * Update mission progress and status
@@ -310,7 +307,7 @@ export default {
         if (update.status === 'failed') {
             missionElement.classList.add('mission-failed');
         }
-    },
+    }
     
     /**
      * Update user's currency display
@@ -335,6 +332,41 @@ export default {
         // Remove animation after it completes
         setTimeout(() => gainElement.remove(), 2000);
     }
+
+    // Helper methods
+    updateMissionInList(updatedMission) {
+        this.activeMissions = this.activeMissions.map(mission => 
+            mission.id === updatedMission.id ? updatedMission : mission
+        );
+    }
+
+    updateMissionDisplays() {
+        this.missionUpdateHandlers.forEach(handler => handler(this.activeMissions));
+    }
+
+    handleMissionCompletion(mission) {
+        // Show completion notification
+        this.showSuccessNotification(`Mission completed: ${mission.title}`);
+        
+        // Remove from active missions
+        this.activeMissions = this.activeMissions.filter(m => m.id !== mission.id);
+        
+        // Update UI
+        this.updateMissionDisplays();
+    }
+
+    // Notification helpers
+    showSuccessNotification(message) {
+        this.showNotification(message, 'success');
+    }
+
+    showErrorNotification(message) {
+        this.showNotification(message, 'danger');
+    }
+
+    showNotification(message, type) {
+        // Implement notification logic here
+    }
 };
 
 function extractStoryData(responseData) {
@@ -342,3 +374,5 @@ function extractStoryData(responseData) {
     const choices = responseData.choices || (responseData.stories && responseData.stories.choices) || [];
     return { narrative, choices };
 }
+
+export default new MissionManager();

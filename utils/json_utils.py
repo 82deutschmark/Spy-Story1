@@ -200,16 +200,12 @@ def ensure_valid_json_response(data: Any) -> Dict[str, Any]:
     except (TypeError, ValueError) as e:
         logger.error(f"Invalid JSON response data: {str(e)}")
         
-        # Try to normalize the data
+        # Try to normalize and sanitize the data
         try:
             normalized_data = normalize_strings_in_dict(data)
-            # Verify it can be serialized
-            json.dumps(normalized_data)
             return normalized_data
         except Exception as e2:
             logger.error(f"Failed to normalize JSON data: {str(e2)}")
-            # Return a minimal valid response
-            return {
-                "error": "Data serialization error",
-                "message": str(e)
-            }
+            
+            # Last resort: convert to string representation
+            return {"error": "JSON serialization failed", "original_data": str(data)}

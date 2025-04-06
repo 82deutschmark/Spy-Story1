@@ -141,10 +141,19 @@ def api_make_choice():
             story_context=data.get('story_context'),
             characters=characters
         )
+        logger.info(f"Make Choice Response: {json.dumps({
+            'success': True,
+            'redirect_url': f'/storyboard/{data["story_id"]}',
+            'story_id': data['story_id'],
+            'current_node': result['current_node'],
+            'available_choices': result.get('available_choices', [])
+        }, default=str)}")
         return jsonify({
             'success': True,
+            'redirect_url': f'/storyboard/{data["story_id"]}',
+            'story_id': data['story_id'],
             'current_node': result['current_node'],
-            'story_id': data['story_id']
+            'available_choices': result.get('available_choices', [])
         })
     except Exception as e:
         logger.error(f"Error in make_choice: {str(e)}")
@@ -193,3 +202,29 @@ def get_user_progress():
     except Exception as e:
         logger.error(f"API error in get_user_progress: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+# Mission Endpoints
+@api_bp.route('/missions/active', methods=['GET'])
+def get_active_missions():
+    user_id = get_user_id_from_session()
+    missions = Mission.query.filter_by(user_id=user_id, status='active').all()
+    return jsonify([m.to_dict() for m in missions])
+
+@api_bp.route('/missions/<int:mission_id>/update', methods=['POST'])  
+def update_mission(mission_id):
+    data = request.get_json()
+    mission = Mission.query.get_or_404(mission_id)
+    
+    # Validate progress (0-100)
+    progress = min(max(int(data.get('progress', 0)), 0), 100)
+    description = data.get('description', '')
+    
+    mission.update_progress(progress, description)
+    db.session.commit()
+    
+    # Check for mission completion
+    if progress >= 100:
+        mission.complete_mission(user_id=mission.user_id)
+        db.session.commit()
+    
+    return jsonify(mission.to_dict())

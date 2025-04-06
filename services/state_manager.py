@@ -130,7 +130,6 @@ class GameState:
                 - setting: Story setting
                 - protagonist_name: Name of protagonist
                 - protagonist_gender: Gender of protagonist
-                - protagonist_level: Level of protagonist 
                 - node_count: Current depth in story
         """
         if not self.current_story:
@@ -148,7 +147,6 @@ class GameState:
             "setting": self.current_story.setting if self.current_story else None,
             "protagonist_name": protagonist.get("name"),
             "protagonist_gender": protagonist.get("gender"),
-            "protagonist_level": protagonist.get("level", 1),
             "node_count": self._node_count
         }
         
@@ -471,21 +469,34 @@ class GameState:
             target_story_id = story_id or (self.current_story.id if self.current_story else None)
             if not target_story_id:
                 logger.error("No valid story ID for node resolution")
-                return None
+                raise ValueError("No valid story ID for node resolution")
+                
+            # Verify the story exists
+            story = StoryGeneration.query.get(target_story_id)
+            if not story:
+                logger.error(f"Story with ID {target_story_id} not found")
+                raise ValueError(f"Story with ID {target_story_id} not found")
                 
             # Priority 1: User's current node
             if self.user_progress.current_node_id:
                 node = StoryNode.query.get(self.user_progress.current_node_id)
-                if node and (not story_id or node.story_id == story_id):
-                    logger.debug(f"Resolved node from user progress: {node.id}")
-                    return node
+                if node:
+                    # Validate node belongs to the correct story
+                    if node.story_id == target_story_id:
+                        logger.info(f"Resolved node from user progress: {node.id} for story {target_story_id}")
+                        return node
+                    else:
+                        logger.warning(f"Current node {node.id} belongs to story {node.story_id}, not target story {target_story_id}. Attempting to find correct node.")
+                        # Node exists but belongs to wrong story, continue to next resolution method
+                else:
+                    logger.warning(f"Current node ID {self.user_progress.current_node_id} is invalid. Attempting to find valid node.")
                     
             # Priority 2: Latest node for story
             latest_node = StoryNode.query.filter_by(story_id=target_story_id)\
                 .order_by(StoryNode.created_at.desc())\
                 .first()
             if latest_node:
-                logger.debug(f"Resolved latest node for story: {latest_node.id}")
+                logger.info(f"Resolved latest node for story: {latest_node.id}")
                 return latest_node
                 
             # Priority 3: Root node
@@ -494,11 +505,11 @@ class GameState:
                 parent_node_id=None
             ).first()
             if root_node:
-                logger.debug(f"Resolved root node: {root_node.id}")
+                logger.info(f"Resolved root node: {root_node.id}")
                 return root_node
                 
             logger.error(f"No valid node found for story {target_story_id}")
-            return None
+            raise ValueError(f"No valid nodes found for story {target_story_id}")
             
         except Exception as e:
             logger.error(f"Error resolving current node: {str(e)}")

@@ -75,6 +75,8 @@ class UserProgressManager {
     constructor() {
         this.userData = null;
         this.isInitialized = false;
+        this.missionManager = new MissionManager();
+        this.setupMissionHandlers();
     }
 
     /**
@@ -131,6 +133,21 @@ class UserProgressManager {
                 }
             });
         }
+    }
+
+    setupMissionHandlers() {
+        // Add mission progress handler
+        this.missionManager.addUpdateHandler((missions) => {
+            this.userData.active_missions = missions;
+            this.updateAgentDisplay();
+        });
+
+        // Listen for mission completion rewards
+        document.addEventListener('mission:completed', (e) => {
+            const { reward } = e.detail;
+            this.addCurrency(reward.currency, reward.amount);
+            this.showNotification(`Mission reward: ${reward.amount} ${reward.currency}`);
+        });
     }
 
     /**
@@ -339,6 +356,20 @@ class UserProgressManager {
         }
 
         return true;
+    }
+
+    // Add currency to user balance
+    addCurrency(currency, amount) {
+        if (!this.userData.currency_balances[currency]) {
+            this.userData.currency_balances[currency] = 0;
+        }
+        this.userData.currency_balances[currency] += amount;
+        this.saveUserData();
+    }
+
+    // Save user data to local storage
+    saveUserData() {
+        localStorage.setItem('userData', JSON.stringify(this.userData));
     }
 }
 

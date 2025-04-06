@@ -71,6 +71,32 @@ def create_app():
             }
             return jsonify(safe_config)
     
+    @app.cli.command('fix-fk')
+    def fix_foreign_key():
+        """Fix the mission.giver_id foreign key constraint"""
+        from sqlalchemy import text
+        
+        sql = """
+        -- Drop the existing constraint if it exists
+        ALTER TABLE mission 
+        DROP CONSTRAINT IF EXISTS mission_giver_id_fkey;
+
+        -- Add the correct foreign key constraint
+        ALTER TABLE mission
+        ADD CONSTRAINT mission_giver_id_fkey 
+        FOREIGN KEY (giver_id) 
+        REFERENCES characters(id) 
+        ON DELETE SET NULL;
+        """
+        
+        try:
+            with db.engine.connect() as connection:
+                connection.execute(text(sql))
+                connection.commit()
+            print("Successfully fixed foreign key constraint")
+        except Exception as e:
+            print(f"Error fixing foreign key: {e}")
+
     return app
 
 if __name__ == '__main__':

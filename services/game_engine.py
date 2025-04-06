@@ -395,6 +395,9 @@ class GameEngine:
             context_manager = self.state.get_context_manager()
             
             # Get current story from DB using stored story id to ensure fresh parameters
+            if not self.state.user_progress.current_story_id:
+                raise ValueError("No active story ID found in user progress")
+                
             story = StoryGeneration.query.get(self.state.user_progress.current_story_id)
             if not story:
                 raise ValueError("No active story found")
@@ -667,7 +670,10 @@ STORY CONTEXT:
             
             # NEW: Log the complete outgoing response from make_choice
             final_response = {
+                "success": True,
                 "current_node": next_node.to_dict(),
+                "story_id": story.id,
+                "redirect": f"/storyboard/{story.id}",  
                 "available_choices": next_segment["choices"],
                 "mission_updates": mission_updates,
                 "character_updates": character_updates

@@ -393,7 +393,10 @@ class StoryGenerator:
         )
         
         # Get protagonist info for context
-        protagonist = {"name": protagonist_name, "gender": protagonist_gender, "level": protagonist_level}
+        protagonist = {
+            "name": protagonist_name,
+            "gender": protagonist_gender
+        }
         
         # Generate initial story using stateless context manager
         story_data = self.context_manager.generate_initial_story(

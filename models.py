@@ -21,3 +21,7 @@ __all__ = [
     'PlotArc',
     'AIInstruction'
 ]
+
+class Mission(db.Model):
+    giver_id = db.Column(db.Integer, ForeignKey('characters.id'))
+    target_id = db.Column(db.Integer, ForeignKey('characters.id'))

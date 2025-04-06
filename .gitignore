@@ -10,3 +10,6 @@
 *.log
 .env
 .env
+
+# windsurf rules
+.windsurfrules

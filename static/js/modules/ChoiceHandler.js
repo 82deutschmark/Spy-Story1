@@ -82,6 +82,8 @@ class ChoiceHandler {
 
             const result = await response.json();
 
+            console.log("Full response received:", result);
+
             if (!response.ok || result.error) {
                 throw new Error(result.error || `HTTP error! status: ${response.status}`);
             }
@@ -89,11 +91,14 @@ class ChoiceHandler {
             // Handle different response formats
             if (result.redirect_url) {
                 // Direct redirect provided
+                console.log("Redirecting via redirect_url:", result.redirect_url);
                 window.location.href = result.redirect_url;
             } else if (result.success && result.story_id) {
                 // Original response format with success flag and story_id
+                console.log("Redirecting via story_id:", `/storyboard/${result.story_id}`);
                 window.location.href = `/storyboard/${result.story_id}`;
             } else if (result.current_node && result.current_node.id) {
+                console.log("Processing current_node response:", result.current_node);
                 // GameEngine.make_choice format with current_node details
                 // Update the page content with the new node data
                 if (result.current_node.narrative_text) {
@@ -180,7 +185,12 @@ class ChoiceHandler {
                 if (this.characterMentions) {
                     this.characterMentions.initialize();
                 }
+            } else if (result.redirect) {
+                // NEW: Add specific handling for 'redirect' key
+                console.log("Redirecting via 'redirect' key:", result.redirect);
+                window.location.href = result.redirect;
             } else {
+                console.error("Invalid response format:", result);
                 throw new Error('Invalid response format from server');
             }
 

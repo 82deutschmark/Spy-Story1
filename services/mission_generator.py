@@ -85,7 +85,7 @@ def extract_mission_details(story_text: str, characters: Optional[List[Dict]] = 
             "objective": "Objective not clearly specified.",
             "deadline": "As soon as possible",
             "reward_amount": 1500,
-            "reward_currency": '💵',
+            "reward_currency": '',
             "difficulty": "medium"
         }
         
@@ -118,7 +118,12 @@ def extract_mission_details(story_text: str, characters: Optional[List[Dict]] = 
                     
                     # Set the giver information
                     mission_details["giver"] = giver_name
-                    mission_details["giver_id"] = giver.get('id')
+                    # Validate giver_id exists in characters table before using
+                    if giver.get('id') and db.session.query(Character).filter_by(id=giver['id']).first():
+                        mission_details["giver_id"] = giver.get('id')
+                    else:
+                        mission_details["giver_id"] = None
+                        logger.warning(f"Invalid giver_id {giver.get('id')} - not found in characters table")
                     
                     # Extract mission components from dialogue
                     # Look for villain/target mentions
@@ -458,7 +463,7 @@ def generate_mission(user_id: str, story_id: Optional[int] = None) -> Optional[M
                         target_id=target_id,
                         objective=mission_data.get('objective', ''),
                         difficulty=mission_data.get('difficulty', 'medium').lower(),
-                        reward_currency=mission_data.get('reward_currency', '💵'),
+                        reward_currency=mission_data.get('reward_currency', ''),
                         reward_amount=int(mission_data.get('reward_amount', 1500)) if mission_data.get('reward_amount') else 1500,
                         deadline=mission_data.get('deadline', ''),
                         story_id=story_id,
