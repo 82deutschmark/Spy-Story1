@@ -28,11 +28,13 @@ Note: This module should NOT:
 """
 
 import logging
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
 from models.character_data import Character
 import os
+import json
 
 from services.game_engine import GameEngine
+from models import Mission, UserProgress  # Ensure Mission model is imported
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -204,11 +206,72 @@ def get_user_progress():
         return jsonify({'error': str(e)}), 500
 
 # Mission Endpoints
+@api_bp.route('/missions/<int:mission_id>', methods=['GET'])
+def get_mission(mission_id):
+    mission = Mission.query.get_or_404(mission_id)
+    return jsonify({'success': True, 'mission': mission.to_dict()})
+
 @api_bp.route('/missions/active', methods=['GET'])
 def get_active_missions():
-    user_id = get_user_id_from_session()
-    missions = Mission.query.filter_by(user_id=user_id, status='active').all()
-    return jsonify([m.to_dict() for m in missions])
+    """
+    Retrieve active missions for the current user
+    
+    Returns:
+        JSON response with active missions or error details
+    """
+    try:
+        # Try to get user_id from session or request
+        # Note: In a real app, you'd want more robust authentication
+        user_id = session.get('user_id') or request.args.get('user_id')
+        
+        logger.info(f"Attempting to fetch active missions for user: {user_id}")
+        
+        if not user_id:
+            logger.warning("No user_id found in session or request")
+            return jsonify({
+                "status": "error",
+                "message": "User ID is required",
+                "missions": []
+            }), 400
+
+        # Fetch active missions
+        active_missions = Mission.query.filter_by(user_id=user_id, status='active').all()
+        
+        # Convert missions to dictionary
+        missions_list = [
+            {
+                "id": mission.id,
+                "title": mission.title,
+                "description": mission.description,
+                "status": mission.status,
+                "progress": mission.progress,
+                "difficulty": mission.difficulty,
+                "rewards": {
+                    "currency": mission.reward_currency,
+                    "amount": mission.reward_amount
+                },
+                "giver": mission.giver.name if mission.giver else None,
+                "target": mission.target.name if mission.target else None,
+                "deadline": mission.deadline,
+                "created_at": mission.created_at.isoformat() if mission.created_at else None
+            } for mission in active_missions
+        ]
+
+        logger.info(f"Found {len(missions_list)} active missions for user {user_id}")
+        
+        return jsonify({
+            "status": "success",
+            "missions": missions_list
+        })
+
+    except Exception as e:
+        logger.error(f"Error fetching active missions: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": "Internal server error while fetching missions",
+            "details": str(e),
+            "missions": []
+        }), 500
 
 @api_bp.route('/missions/<int:mission_id>/update', methods=['POST'])  
 def update_mission(mission_id):
@@ -228,3 +291,23 @@ def update_mission(mission_id):
         db.session.commit()
     
     return jsonify(mission.to_dict())
+
+@api_bp.route('/missions/<int:mission_id>/complete', methods=['POST'])
+def complete_mission(mission_id):
+    mission = Mission.query.get_or_404(mission_id)
+    # Use complete_mission instead of complete based on existing code
+    mission.complete_mission(user_id=mission.user_id)
+    db.session.commit()
+    return jsonify({'success': True, 'rewards': mission.calculate_rewards()})
+
+@api_bp.route('/missions/<int:mission_id>/fail', methods=['POST'])
+def fail_mission(mission_id):
+    data = request.get_json()
+    reason = data.get('reason', '')
+    
+    mission = Mission.query.get_or_404(mission_id)
+    mission.status = 'failed'
+    mission.failure_reason = reason
+    db.session.commit()
+    
+    return jsonify({'success': True, 'mission': mission.to_dict()})

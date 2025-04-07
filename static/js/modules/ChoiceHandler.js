@@ -6,10 +6,10 @@
  * communication between the frontend and backend.
  */
 
-import LoadingManager from '/static/js/modules/LoadingManager.js';
-import ErrorHandler from '/static/js/modules/ErrorHandler.js';
-import CharacterMentions from '/static/js/modules/CharacterMentions.js';
-import UserProgress from '/static/js/modules/UserProgress.js';
+import LoadingManager from './LoadingManager.js';
+import ErrorHandler from './ErrorHandler.js';
+import CharacterMentions from './CharacterMentions.js';
+import UserProgress from './UserProgress.js';
 
 class ChoiceHandler {
     constructor() {

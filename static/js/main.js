@@ -36,6 +36,28 @@
  * 4. Keep the DOMContentLoaded event handler clean and organized
  */
 
+// Application Configuration
+const appConfig = {
+    staticUrl: '/static/',
+    apiBaseUrl: '/api',
+    debug: true  // Enable verbose logging
+};
+
+// Expose configuration globally
+window.appConfig = appConfig;
+
+// Enhanced logging function
+function appLog(message, level = 'info') {
+    if (appConfig.debug) {
+        const levels = {
+            'info': console.log,
+            'warn': console.warn,
+            'error': console.error
+        };
+        (levels[level] || console.log)(`[APP] ${message}`);
+    }
+}
+
 // Read server base URL from window.FLASK_CONFIG (set in index.html); fallback to '/static/'
 const SERVER_BASE_URL = (window.FLASK_CONFIG && window.FLASK_CONFIG.staticUrl) || '/static/';
 
@@ -49,53 +71,100 @@ import { UIUtils } from './modules/UIUtils.js';
 import StoryFormHandler from './modules/StoryFormHandler.js';
 import UserProgressManager from './modules/UserProgressManager.js';
 import UserProgress from './modules/UserProgress.js';
+import MissionManager from './modules/MissionManager.js';
+import NotebookManager from './modules/NotebookManager.js';
 
 // Wait for DOM content and modules to load
 document.addEventListener('DOMContentLoaded', async () => {
+    appLog('DOM Content Loaded, initializing application...');
+    await initializeApplication();
+});
+
+async function initializeApplication() {
     try {
-        console.log("DOM Content Loaded, initializing application...");
-        await initializeApplication();
+        appLog('Initializing Application Modules');
+
+        // Centralized module initialization with error handling
+        const modules = [
+            { name: 'LoadingManager', module: LoadingManager, initMethod: 'init' },
+            { name: 'ErrorHandler', module: ErrorHandler, initMethod: 'initialize' },
+            { name: 'StoryFormHandler', module: StoryFormHandler, initMethod: 'init' },
+            { name: 'NotebookManager', module: NotebookManager, initMethod: 'initialize' },
+            { name: 'MissionManager', module: MissionManager, initMethod: 'initialize' },
+            { name: 'UserProgressManager', module: UserProgressManager, initMethod: 'initialize' }
+        ];
+
+        for (const { name, module, initMethod } of modules) {
+            try {
+                appLog(`Initializing ${name}`);
+                
+                // Try multiple initialization methods
+                if (typeof module === 'function' && module.prototype[initMethod]) {
+                    // Class-based initialization
+                    const instance = new module();
+                    if (typeof instance[initMethod] === 'function') {
+                        await instance[initMethod]();
+                    }
+                } else if (typeof module[initMethod] === 'function') {
+                    // Static method or module-level initialization
+                    await module[initMethod]();
+                }
+
+                appLog(`${name} initialized successfully`);
+            } catch (moduleError) {
+                appLog(`${name} initialization failed: ${moduleError.message}`, 'error');
+                // Continue initialization even if a module fails
+            }
+        }
+
+        // Check for FLASK_CONFIG
+        if (!window.FLASK_CONFIG) {
+            appLog('FLASK_CONFIG not found. Using default configuration.');
+            window.FLASK_CONFIG = {
+                staticUrl: '/static/',
+                apiBaseUrl: '/api'
+            };
+        }
+
+        appLog("Initializing application with config:", window.FLASK_CONFIG);
+
+        // Fallback initialization for core systems
+        const loadingManager = new LoadingManager();
+        if (typeof loadingManager.init === 'function') loadingManager.init();
+        appLog("LoadingManager initialized");
+
+        const errorHandler = new ErrorHandler();
+        if (typeof errorHandler.initialize === 'function') errorHandler.initialize();
+        appLog("ErrorHandler initialized");
+
+        const storyFormHandler = new StoryFormHandler();
+        if (typeof storyFormHandler.init === 'function') storyFormHandler.init();
+        appLog("StoryFormHandler initialized");
+
+        // Initialize character mentions last (after all content is loaded)
+        if (document.querySelector('.story-content')) {
+            const characterMentions = new CharacterMentions();
+            if (typeof characterMentions.initialize === 'function') {
+                characterMentions.initialize();
+                appLog("CharacterMentions initialized");
+            }
+        }
+
+        // Setup global event listeners
+        setupGlobalListeners();
+
+        // Store story ID if present
+        const storyIdParam = new URLSearchParams(window.location.search).get('story_id');
+        if (storyIdParam) {
+            localStorage.setItem('lastStoryId', storyIdParam);
+        }
+
+        appLog('Application initialization complete');
     } catch (error) {
-        console.error("Error during initialization:", error);
-        UIUtils.showToast('Error', 'Failed to initialize application. Please refresh the page.');
+        appLog(`Critical initialization error: ${error.message}`, 'error');
+        // Optionally show a user-friendly error notification
     }
-});
-
-document.addEventListener('DOMContentLoaded', function(){
-    fetch('/api/user/progress')
-       .then(response => response.json())
-       .then(data => {
-           const missionsDisplay = document.getElementById('active-missions-display');
-           const currencyDisplay = document.getElementById('currency-display');
-           const notesDisplay = document.getElementById('notebook-notes');
-
-           if (missionsDisplay) {
-               missionsDisplay.textContent = data.active_missions.length;
-           }
-           
-           if (currencyDisplay) {
-               const currencyText = Object.entries(data.currency || {})
-                   .map(([symbol, amount]) => `${symbol}: ${amount}`)
-                   .join(' | ');
-               currencyDisplay.textContent = currencyText;
-           }
-           
-           if (notesDisplay) {
-               notesDisplay.textContent = data.notes || 'No notes yet';
-           }
-       })
-       .catch(err => {
-           console.error('Error fetching user progress:', err);
-           // Optionally show a user-friendly error message
-           const displays = ['active-missions-display', 'currency-display', 'notebook-notes'];
-           displays.forEach(id => {
-               const element = document.getElementById(id);
-               if (element) {
-                   element.textContent = 'Error loading data';
-               }
-           });
-       });
-});
+}
 
 // Setup global event listeners
 function setupGlobalListeners() {
@@ -114,78 +183,6 @@ function setupGlobalListeners() {
             document.body.scrollTop = 0; // For Safari
             document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
         });
-    }
-}
-
-// Main initialization
-async function initializeApplication() {
-    try {
-        // Check for FLASK_CONFIG
-        if (!window.FLASK_CONFIG) {
-            console.warn('FLASK_CONFIG not found. Using default configuration.');
-            window.FLASK_CONFIG = {
-                staticUrl: '/static/',
-                apiBaseUrl: '/api'
-            };
-        }
-
-        console.log("Initializing application with config:", window.FLASK_CONFIG);
-
-        // Core system initialization
-        const loadingManager = new LoadingManager();
-        loadingManager.initialize();
-        console.log("LoadingManager initialized");
-
-        const errorHandler = new ErrorHandler();
-        errorHandler.initialize();
-        console.log("ErrorHandler initialized");
-
-        // User state initialization
-        const userProgressManager = new UserProgressManager();
-        userProgressManager.initialize();
-        console.log("UserProgressManager initialized");
-
-        // Initialize UserProgress system
-        if (window.userProgressData) {
-            UserProgress.updateUserProgress(
-                window.userProgressData.level,
-                window.userProgressData.experience
-            );
-        }
-        console.log("UserProgress initialized");
-
-        // Form handling initialization - UPDATED
-        const storyFormHandler = new StoryFormHandler();
-        storyFormHandler.initialize();
-        console.log("StoryFormHandler initialized");
-
-        // Story handling initialization
-        if (document.querySelector('.storyboard-body')) {
-            const choiceHandler = new ChoiceHandler();
-            choiceHandler.initialize();
-            console.log("ChoiceHandler initialized");
-        }
-
-        // Setup global event listeners
-        setupGlobalListeners();
-
-        // Store story ID if present
-        const storyIdParam = new URLSearchParams(window.location.search).get('story_id');
-        if (storyIdParam) {
-            localStorage.setItem('lastStoryId', storyIdParam);
-        }
-
-        // Initialize character mentions last (after all content is loaded)
-        if (document.querySelector('.story-content')) {
-            const characterMentions = new CharacterMentions();
-            characterMentions.initialize();
-            console.log("CharacterMentions initialized");
-        }
-
-        console.log("Application initialization complete");
-    } catch (error) {
-        console.error('Critical error during application initialization:', error);
-        UIUtils.showToast('Error', 'An error occurred while loading the application. Please refresh the page or contact support if the problem persists.');
     }
 }
 
@@ -215,6 +212,6 @@ function renderStory(responseData) {
         });
     }
     
-    console.log('Rendered narrative:', narrative);
-    console.log('Rendered choices:', choices);
+    appLog('Rendered narrative:', narrative);
+    appLog('Rendered choices:', choices);
 }

@@ -1,5 +1,5 @@
 /**
- * MissionManager.js - Mission and Quest Management
+ * MissionManager.js - Mission and Quest Management 
  * ==========================================
  * 
  * !!! IMPORTANT - READ BEFORE MODIFYING !!!
@@ -69,7 +69,37 @@ class MissionManager {
     constructor() {
         this.activeMissions = [];
         this.missionUpdateHandlers = [];
-        this.bindUIEvents();
+    }
+
+    // Add an initialize method
+    async initialize() {
+        console.log('MissionManager: Initializing...');
+        try {
+            // Attempt to load active missions
+            await this.loadActiveMissions();
+            console.log('MissionManager: Initialization complete');
+            return this;
+        } catch (error) {
+            console.error('MissionManager: Initialization failed', error);
+            
+            // Set default/fallback missions
+            this.activeMissions = [
+                {
+                    id: 'fallback_1',
+                    title: 'System Recovery Mission',
+                    description: 'Investigate application initialization issues',
+                    status: 'active',
+                    progress: 0,
+                    rewards: {
+                        currency: 'system_points',
+                        amount: 100
+                    }
+                }
+            ];
+            
+            this.updateMissionDisplays();
+            throw error;  // Re-throw to allow caller to handle
+        }
     }
 
     // Initialize UI event bindings
@@ -106,16 +136,79 @@ class MissionManager {
     // Fetch active missions from backend
     async loadActiveMissions() {
         try {
-            const response = await fetch('/api/missions/active');
-            if (!response.ok) throw new Error('Failed to load missions');
+            console.log('Attempting to load active missions...');
             
-            this.activeMissions = await response.json();
+            // Use the configured API base URL
+            const apiBaseUrl = window.appConfig?.apiBaseUrl || '/api';
+            const response = await fetch(`${apiBaseUrl}/missions/active`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Add any necessary authentication headers
+                    // 'Authorization': `Bearer ${this.getAuthToken()}`
+                }
+            });
+
+            console.log('Mission fetch response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Mission fetch error:', errorText);
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+            }
+
+            const data = await response.json();
+            console.log('Missions data received:', data);
+
+            // Validate response structure
+            if (data.status !== 'success' || !Array.isArray(data.missions)) {
+                throw new Error('Invalid missions data structure');
+            }
+
+            // Process and enrich mission data
+            this.activeMissions = data.missions.map(mission => ({
+                ...mission,
+                // Add any additional processing or default values
+                progress: mission.progress || 0,
+                difficulty: mission.difficulty || 'medium',
+                rewards: mission.rewards || { currency: 'default', amount: 0 },
+                giver: mission.giver || 'Unknown',
+                target: mission.target || 'Unknown',
+                deadline: mission.deadline || 'No deadline',
+                createdAt: mission.created_at ? new Date(mission.created_at) : new Date()
+            }));
+            
+            // Log missions for debugging
+            console.log('Active Missions:', this.activeMissions);
+
             this.updateMissionDisplays();
             return this.activeMissions;
         } catch (error) {
-            console.error('Mission load error:', error);
-            this.showErrorNotification('Failed to load missions');
-            return [];
+            console.error('Comprehensive Mission Load Error:', error);
+            
+            // Provide a fallback or default missions
+            this.activeMissions = [
+                {
+                    id: 'fallback_1',
+                    title: 'Default Mission: System Recovery',
+                    description: 'Investigate system connectivity issues',
+                    status: 'active',
+                    progress: 0,
+                    difficulty: 'easy',
+                    rewards: {
+                        currency: 'system_points',
+                        amount: 100
+                    },
+                    giver: 'System',
+                    target: 'User',
+                    deadline: 'Immediate',
+                    createdAt: new Date()
+                }
+            ];
+
+            this.showErrorNotification(`Failed to load missions: ${error.message}`);
+            this.updateMissionDisplays();
+            return this.activeMissions;
         }
     }
 
@@ -132,6 +225,12 @@ class MissionManager {
             
             const updatedMission = await response.json();
             this.updateMissionInList(updatedMission);
+            
+            // Emit mission updated event
+            document.dispatchEvent(new CustomEvent('mission:updated', {
+                detail: { missionId }
+            }));
+            
             this.updateMissionDisplays();
             
             // Notify completion if progress is 100%
@@ -217,49 +316,64 @@ class MissionManager {
             return Promise.reject('User cancelled');
         }
 
-        return fetch(`/api/missions/${missionId}/complete`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({})
-        })
-            .then(response => response.json())
-            .then(response => {
-                if (response.success) {
-                    // Close the modal
-                    const missionModal = bootstrap.Modal.getInstance(document.getElementById('missionDetailsModal'));
-                    if (missionModal) {
-                        missionModal.hide();
-                    }
-                    
-                    UIUtils.showToast('Success', 'Mission completed successfully!');
-
-                    // Update currency display if provided
-                    if (response.new_balances) {
-                        CurrencyManager.updateCurrencyDisplays(response.new_balances);
-                    }
-                    
-                    // Update user progress data if provided
-                    if (response.experience_points && response.level) {
-                        UserProgress.updateUserProgress(response.level, response.experience_points);
-                    }
-                    
-                    // Reload page to refresh mission list
-                    setTimeout(function() {
-                        location.reload();
-                    }, 2000);
-                    
-                    return response;
-                } else {
-                    throw new Error(response.error || 'Failed to complete mission');
-                }
-            })
-            .catch(error => {
-                console.error('Error completing mission:', error);
-                UIUtils.showToast('Error', 'Failed to complete mission');
-                throw error;
+        try {
+            const response = await fetch(`/api/missions/${missionId}/complete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
             });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Mission completion failed: ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            if (!result.success) {
+                throw new Error(result.message || 'Mission could not be completed');
+            }
+
+            // Close the modal if it exists
+            const missionModal = bootstrap.Modal.getInstance(document.getElementById('missionDetailsModal'));
+            if (missionModal) {
+                missionModal.hide();
+            }
+
+            // Update mission list and UI
+            this.updateMissionDisplays();
+
+            // Update currency if rewards are provided
+            if (result.new_balances) {
+                CurrencyManager.updateCurrencyDisplays(result.new_balances);
+            }
+
+            // Update user progress if experience points are provided
+            if (result.experience_points && result.level) {
+                UserProgress.updateUserProgress(result.level, result.experience_points);
+            }
+
+            // Trigger mission completion event
+            document.dispatchEvent(new CustomEvent('mission:completed', {
+                detail: { 
+                    missionId: missionId,
+                    rewards: result.rewards || {},
+                    experiencePoints: result.experience_points || 0,
+                    newLevel: result.level || null
+                }
+            }));
+
+            // Show success notification
+            this.showNotification(`Mission ${missionId} completed successfully!`, 'success');
+
+            return result;
+        } catch (error) {
+            console.error('Mission completion error:', error);
+            this.showErrorNotification(`Failed to complete mission: ${error.message}`);
+            throw error;
+        }
     }
 
     /**
@@ -335,24 +449,26 @@ class MissionManager {
 
     // Helper methods
     updateMissionInList(updatedMission) {
-        this.activeMissions = this.activeMissions.map(mission => 
-            mission.id === updatedMission.id ? updatedMission : mission
-        );
+        const index = this.activeMissions.findIndex(m => m.id === updatedMission.id);
+        if (index !== -1) {
+            this.activeMissions[index] = updatedMission;
+        }
     }
 
     updateMissionDisplays() {
-        this.missionUpdateHandlers.forEach(handler => handler(this.activeMissions));
+        // Dispatch event for other components to update
+        document.dispatchEvent(new CustomEvent('missions:updated', {
+            detail: { missions: this.activeMissions }
+        }));
     }
 
     handleMissionCompletion(mission) {
-        // Show completion notification
-        this.showSuccessNotification(`Mission completed: ${mission.title}`);
-        
-        // Remove from active missions
-        this.activeMissions = this.activeMissions.filter(m => m.id !== mission.id);
-        
-        // Update UI
-        this.updateMissionDisplays();
+        document.dispatchEvent(new CustomEvent('mission:completed', {
+            detail: { 
+                mission: mission,
+                reward: mission.reward || null 
+            }
+        }));
     }
 
     // Notification helpers
@@ -361,18 +477,15 @@ class MissionManager {
     }
 
     showErrorNotification(message) {
-        this.showNotification(message, 'danger');
+        console.error(message);
+        // You might want to replace this with a proper UI notification method
+        UIUtils.showToast('Error', message);
     }
 
     showNotification(message, type) {
         // Implement notification logic here
     }
-};
-
-function extractStoryData(responseData) {
-    const narrative = responseData.narrative_text || (responseData.stories && responseData.stories.narrative_text) || "";
-    const choices = responseData.choices || (responseData.stories && responseData.stories.choices) || [];
-    return { narrative, choices };
 }
 
-export default new MissionManager();
+// Export as default
+export default MissionManager;

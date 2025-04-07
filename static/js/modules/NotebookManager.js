@@ -12,6 +12,7 @@
  * - Story continuation handling
  * - Progress tracking
  * - Note management
+ * - Mission details display
  * 
  * Dependencies:
  * -----------
@@ -25,6 +26,8 @@
  * - Close button for notebook
  * - Continue story button
  * - Notebook content container
+ * - Mission list container
+ * - Mission detail container
  * 
  * Usage Guidelines:
  * ---------------
@@ -39,6 +42,8 @@
  * - Current story progress
  * - User notes and annotations
  * - Last accessed story position
+ * - Active missions
+ * - Current mission
  */
 
 /**
@@ -46,6 +51,7 @@
  * Handles displaying and updating user progress information
  */
 import UIUtils from './UIUtils.js';
+import MissionManager from './MissionManager.js';
 
 class NotebookManager {
     constructor() {
@@ -56,6 +62,10 @@ class NotebookManager {
         this.isOpen = false;
         this.lastStoryId = null;
         this.initialized = false;
+        this.isNotebookVisible = false;
+        this.activeMissions = [];
+        this.currentMission = null;
+        this.bindEvents();
     }
 
     async initialize() {
@@ -173,6 +183,87 @@ class NotebookManager {
             throw error;
         }
     }
+
+    async loadMissionDetails() {
+        try {
+            const response = await fetch('/api/missions/active');
+            const data = await response.json();
+            
+            // Check if the response has the new structure with 'status' and 'missions'
+            this.activeMissions = data.status === 'success' ? data.missions : data;
+            
+            this.renderMissionList();
+        } catch (error) {
+            console.error('Failed to load missions:', error);
+            UIUtils.showToast('Error', 'Failed to load mission details');
+        }
+    }
+
+    renderMissionList() {
+        const missionList = document.getElementById('mission-list');
+        if (!missionList) return;
+
+        missionList.innerHTML = this.activeMissions
+            .map(mission => `
+                <div class="mission-item" data-mission-id="${mission.id}">
+                    <h4>${mission.title}</h4>
+                    <p>${mission.description}</p>
+                    <div class="progress">
+                        <div class="progress-bar" style="width: ${mission.progress}%"></div>
+                    </div>
+                </div>`)
+            .join('');
+
+        // Add click handlers
+        document.querySelectorAll('.mission-item').forEach(item => {
+            item.addEventListener('click', () => this.showMissionDetail(item.dataset.missionId));
+        });
+    }
+
+    async showMissionDetail(missionId) {
+        try {
+            this.currentMission = await MissionManager.loadMissionDetails(missionId);
+            this.renderMissionDetail();
+        } catch (error) {
+            console.error('Failed to load mission details:', error);
+        }
+    }
+
+    renderMissionDetail() {
+        const detailContainer = document.getElementById('mission-detail');
+        if (!detailContainer || !this.currentMission) return;
+
+        detailContainer.innerHTML = `
+            <h3>${this.currentMission.title}</h3>
+            <p>${this.currentMission.description}</p>
+            <div class="progress-container">
+                <div class="progress">
+                    <div class="progress-bar" style="width: ${this.currentMission.progress}%"></div>
+                </div>
+                <span>${this.currentMission.progress}% complete</span>
+            </div>
+            <h4>Objectives</h4>
+            <ul class="objective-list">
+                ${this.currentMission.objectives.map(obj => 
+                    `<li class="${obj.completed ? 'completed' : ''}">
+                        ${obj.description}
+                    </li>`).join('')}
+            </ul>
+            <h4>Rewards</h4>
+            <div class="rewards">
+                ${Object.entries(this.currentMission.rewards)
+                    .map(([type, amount]) => 
+                        `<span class="reward-badge">${type}: ${amount}</span>`)
+                    .join('')}
+            </div>`;
+    }
+
+    bindEvents() {
+        // Add event listeners for mission details
+        document.addEventListener('DOMContentLoaded', () => {
+            this.loadMissionDetails();
+        });
+    }
 }
 
 // Export the NotebookManager class as default
@@ -183,4 +274,3 @@ if (typeof window !== 'undefined') {
     // Make NotebookManager available globally for debugging
     window.NotebookManager = NotebookManager;
 }
-

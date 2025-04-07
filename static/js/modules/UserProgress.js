@@ -61,10 +61,37 @@
  */
 
 /**
- * User Progress Module
+ * User Progress Class
  * Manages user level and experience data
  */
-export default {
+class UserProgress {
+    constructor() {
+        this.userData = null;
+        this.progressData = {
+            completed_plot_arcs: [],
+            choice_history: []
+        };
+    }
+
+    /**
+     * Initialize the user progress tracking
+     */
+    initialize() {
+        console.log("Initializing UserProgress");
+        
+        // Check for existing user progress data
+        const userProgressData = window.userProgressData;
+        
+        if (userProgressData) {
+            this.updateUserProgress(
+                userProgressData.level, 
+                userProgressData.experience
+            );
+        }
+
+        return this;
+    }
+
     /**
      * Updates user progress displays
      * @param {number} level - User level
@@ -134,14 +161,15 @@ export default {
                 progressBar.textContent = `${xpPercent}%`;
             }
         }
-    },
+    }
+
     /**
      * Get the user's completed plot arcs
      * @returns {Array} - Array of completed plot arc IDs
      */
     getCompletedPlotArcs() {
         return this.progressData.completed_plot_arcs || [];
-    },
+    }
 
     /**
      * Check if a plot arc is completed
@@ -151,14 +179,15 @@ export default {
     isPlotArcCompleted(plotArcId) {
         const completedPlotArcs = this.getCompletedPlotArcs();
         return completedPlotArcs.includes(plotArcId);
-    },
+    }
+
     /**
      * Get the user's choice history
      * @returns {Array} - Array of choice data objects
      */
     getChoiceHistory() {
         return this.progressData.choice_history || [];
-    },
+    }
 
     /**
      * Check if a specific choice was made
@@ -168,19 +197,7 @@ export default {
     wasChoiceMade(choiceId) {
         const choices = this.getChoiceHistory();
         return choices.some(choice => choice.choice_id === choiceId);
-    },
-    /**
-     * Initialize the user progress tracking
-     * TEMPORARILY DISABLED - See CHANGELOG.md
-     */
-    initialize() {
-        console.log("UserProgress initialization skipped (temporarily disabled)");
-        /*
-        // Setup event listeners or any initialization logic
-        console.log("UserProgress initialized");
-        // Additional initialization code...
-        */
-    },
+    }
 
     /**
      * Update mission progress and status
@@ -205,11 +222,8 @@ export default {
             if (statusElement) {
                 statusElement.textContent = update.status;
             }
-        }
-        
-        // Handle completion
-        if (update.status === 'completed') {
-            // Show reward
+            
+            // Update rewards
             const rewardElement = missionElement.querySelector('.mission-reward');
             if (rewardElement && update.rewards) {
                 rewardElement.textContent = `Reward: ${update.rewards.amount} ${update.rewards.currency}`;
@@ -228,32 +242,26 @@ export default {
         if (update.status === 'failed') {
             missionElement.classList.add('mission-failed');
         }
-    },
-    
+    }
+
     /**
-     * Update user's currency display
-     * @param {Object} reward - Reward data from server
+     * Update user currency balance
+     * @param {Object} reward - Reward object with currency and amount
      */
     updateUserCurrency(reward) {
-        if (!reward || !reward.amount || !reward.currency) return;
-        
-        const currencyElement = document.querySelector('.user-currency');
-        if (!currencyElement) return;
-        
-        const currentAmount = parseInt(currencyElement.textContent) || 0;
-        const newAmount = currentAmount + reward.amount;
-        currencyElement.textContent = newAmount;
-        
-        // Show currency gain animation
-        const gainElement = document.createElement('div');
-        gainElement.className = 'currency-gain';
-        gainElement.textContent = `+${reward.amount} ${reward.currency}`;
-        currencyElement.appendChild(gainElement);
-        
-        // Remove animation after it completes
-        setTimeout(() => gainElement.remove(), 2000);
+        // Placeholder for currency update logic
+        console.log('Updating currency:', reward);
     }
-};
+
+    /**
+     * Gain experience points
+     * @param {number} amount - Experience points to gain
+     */
+    gainExperience(amount) {
+        // Placeholder for experience gain logic
+        console.log('Gaining experience:', amount);
+    }
+}
 
 /**
  * Extracts story data from the response
@@ -265,3 +273,5 @@ function extractStoryData(responseData) {
     const choices = responseData.choices || (responseData.stories && responseData.stories.choices) || [];
     return { narrative, choices };
 }
+
+export default UserProgress;

@@ -367,6 +367,34 @@ class GameEngine:
             db.session.rollback()
             raise RuntimeError(f"Failed to start new story: {str(e)}")
 
+    def get_active_missions(self, user_id: str) -> List[Mission]:
+        """
+        Get all active missions for a user
+        
+        Args:
+            user_id (str): ID of the user
+            
+        Returns:
+            List[Mission]: List of active Mission objects
+        """
+        try:
+            # Get user progress
+            user_progress = UserProgress.query.filter_by(user_id=user_id).first()
+            if not user_progress:
+                return []
+                
+            # Get active missions from database
+            active_missions = Mission.query.filter(
+                Mission.id.in_(user_progress.active_missions),
+                Mission.is_completed == False
+            ).all()
+            
+            return active_missions
+            
+        except Exception as e:
+            logger.error(f"Error getting active missions: {str(e)}")
+            raise
+
     def make_choice(
         self,
         choice_id: str,

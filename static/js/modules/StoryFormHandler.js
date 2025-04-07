@@ -1,6 +1,6 @@
-import LoadingManager from '/static/js/modules/LoadingManager.js';
-import ErrorHandler from '/static/js/modules/ErrorHandler.js';
-import CharacterSelector from '/static/js/modules/CharacterSelector.js';
+import LoadingManager from './LoadingManager.js';
+import ErrorHandler from './ErrorHandler.js';
+import CharacterSelector from './CharacterSelector.js';
 
 class StoryFormHandler {
     constructor() {

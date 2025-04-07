@@ -1,3 +1,5 @@
+import MissionManager from './MissionManager.js';
+
 /**
  * UserProgressManager.js - Agent Progress and State Management
  * ====================================================
@@ -75,32 +77,8 @@ class UserProgressManager {
     constructor() {
         this.userData = null;
         this.isInitialized = false;
-        this.missionManager = new MissionManager();
+        this.missionManager = new MissionManager(); // Create an instance
         this.setupMissionHandlers();
-    }
-
-    /**
-     * Initialize the user progress manager
-     * TEMPORARILY DISABLED - See CHANGELOG.md
-     */
-    initialize() {
-        console.log("UserProgressManager initialization skipped (temporarily disabled)");
-        /* 
-        // Setup event listeners
-        this.setupEventListeners();
-        console.log("User progress manager initialized");
-
-        // Check if we have a stored agent codename
-        const storedCodename = localStorage.getItem('agentCodename');
-        if (storedCodename) {
-            const protagonistInput = document.getElementById('protagonistName');
-            if (protagonistInput) {
-                protagonistInput.value = storedCodename;
-                // Auto-load agent data
-                this.loadAgentData(storedCodename);
-            }
-        }
-        */
     }
 
     /**
@@ -136,18 +114,44 @@ class UserProgressManager {
     }
 
     setupMissionHandlers() {
-        // Add mission progress handler
+        // Use the new method signature for MissionManager
         this.missionManager.addUpdateHandler((missions) => {
-            this.userData.active_missions = missions;
-            this.updateAgentDisplay();
+            if (this.userData) {
+                this.userData.active_missions = missions;
+                this.updateAgentDisplay();
+            }
         });
 
         // Listen for mission completion rewards
         document.addEventListener('mission:completed', (e) => {
             const { reward } = e.detail;
-            this.addCurrency(reward.currency, reward.amount);
-            this.showNotification(`Mission reward: ${reward.amount} ${reward.currency}`);
+            if (reward) {
+                this.addCurrency(reward.currency, reward.amount);
+                this.showNotification(`Mission reward: ${reward.amount} ${reward.currency}`);
+            }
         });
+    }
+
+    async initialize() {
+        try {
+            console.log("Initializing UserProgressManager");
+            
+            // Initialize mission manager
+            await this.missionManager.initialize();
+
+            // Load agent data or create new
+            const storedCodename = localStorage.getItem('agentCodename');
+            if (storedCodename) {
+                await this.loadAgentData(storedCodename);
+            }
+
+            this.isInitialized = true;
+            console.log("UserProgressManager initialized successfully");
+            return this;
+        } catch (error) {
+            console.error("UserProgressManager initialization failed:", error);
+            throw error;
+        }
     }
 
     /**
@@ -298,39 +302,8 @@ class UserProgressManager {
      * @param {string} type - The type of notification (success, danger, warning, info)
      */
     showNotification(message, type = 'info') {
-        const toastContainer = document.querySelector('.toast-container');
-        if (!toastContainer) return;
-
-        const toast = document.getElementById('notificationToast');
-        const toastTitle = document.getElementById('toastTitle');
-        const toastMessage = document.getElementById('toastMessage');
-
-        // Set appropriate title and icon based on type
-        let title = 'Notification';
-        let icon = 'fa-info-circle';
-
-        switch (type) {
-            case 'success':
-                title = 'Success';
-                icon = 'fa-check-circle';
-                break;
-            case 'danger':
-                title = 'Error';
-                icon = 'fa-exclamation-circle';
-                break;
-            case 'warning':
-                title = 'Warning';
-                icon = 'fa-exclamation-triangle';
-                break;
-        }
-
-        // Update toast content
-        if (toastTitle) toastTitle.innerHTML = `<i class="fas ${icon} me-2"></i>${title}`;
-        if (toastMessage) toastMessage.textContent = message;
-
-        // Show the toast
-        const bsToast = new bootstrap.Toast(toast);
-        bsToast.show();
+        console.log(`${type.toUpperCase()}: ${message}`);
+        // You might want to replace this with a proper UI notification method
     }
 
     /**
@@ -360,11 +333,10 @@ class UserProgressManager {
 
     // Add currency to user balance
     addCurrency(currency, amount) {
-        if (!this.userData.currency_balances[currency]) {
-            this.userData.currency_balances[currency] = 0;
+        if (this.userData && this.userData.currency_balances) {
+            this.userData.currency_balances[currency] = 
+                (this.userData.currency_balances[currency] || 0) + amount;
         }
-        this.userData.currency_balances[currency] += amount;
-        this.saveUserData();
     }
 
     // Save user data to local storage

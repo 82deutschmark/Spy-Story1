@@ -11,6 +11,7 @@ import os
 import logging
 from routes.api_routes import api_bp
 from routes.main_routes import main_bp
+from api.game_api import game_api
 from utils.error_handlers import register_error_handlers
 
 # Configure logging
@@ -54,10 +55,69 @@ def create_app():
     # Register error handlers
     register_error_handlers(app)
     
-    # Register blueprints
+    # Register blueprints with explicit logging
+    logger.info("Registering blueprints...")
     app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(main_bp)
-    
+    app.register_blueprint(game_api, url_prefix='/api')
+    logger.info("Blueprints registered successfully")
+
+    # Explicit route for missions with comprehensive error handling
+    @app.route('/api/missions/active', methods=['GET'])
+    def get_active_missions():
+        try:
+            from flask import session, request
+            from models import Mission
+            from database import db
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.info("Attempting to fetch active missions")
+
+            # Try to get user_id from session or request
+            user_id = session.get('user_id') or request.args.get('user_id')
+            
+            if not user_id:
+                logger.warning("No user_id found in session or request")
+                return jsonify({
+                    "status": "error",
+                    "message": "User ID is required",
+                    "missions": []
+                }), 400
+
+            # Fetch active missions
+            active_missions = Mission.query.filter_by(user_id=user_id, status='active').all()
+            
+            # Convert missions to dictionary
+            missions_list = [
+                {
+                    "id": mission.id,
+                    "title": mission.title,
+                    "description": mission.description,
+                    "status": mission.status,
+                    "progress": mission.progress,
+                    "rewards": {
+                        "currency": mission.reward_currency,
+                        "amount": mission.reward_amount
+                    }
+                } for mission in active_missions
+            ]
+
+            logger.info(f"Found {len(missions_list)} active missions for user {user_id}")
+            
+            return jsonify({
+                "status": "success",
+                "missions": missions_list
+            })
+
+        except Exception as e:
+            logger.error(f"Error fetching active missions: {str(e)}")
+            return jsonify({
+                "status": "error",
+                "message": str(e),
+                "missions": []
+            }), 500
+
     # Optional: Add a temporary diagnostics route
     if app.config['DEBUG']:
         @app.route('/config_dump')

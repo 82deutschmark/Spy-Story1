@@ -1,6 +1,5 @@
-
 import logging
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, session
 from services.game_engine import GameEngine
 from models import UserProgress, Mission
 from database import db
@@ -8,7 +7,7 @@ from database import db
 logger = logging.getLogger(__name__)
 
 # Create Blueprint
-game_api = Blueprint('game_api', __name__, url_prefix='/api/game')
+game_api = Blueprint('game_api', __name__)
 
 @game_api.route('/state/<user_id>', methods=['GET'])
 def get_game_state(user_id):
@@ -229,6 +228,50 @@ def get_missions(user_id):
         })
     except Exception as e:
         logger.error(f"Error getting missions: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@game_api.route('/missions/active', methods=['GET'])
+def get_active_missions():
+    """Get all active missions for current user"""
+    try:
+        # Get user ID from session
+        user_id = session.get('user_id', 'default_user')
+        
+        # Fetch active missions 
+        active_missions = [
+            {
+                "id": 1,
+                "title": "Infiltrate Enemy Base",
+                "description": "Gather intelligence from a secure facility",
+                "status": "active",
+                "progress": 0.5,
+                "rewards": {
+                    "currency": "intel_points",
+                    "amount": 500
+                }
+            },
+            {
+                "id": 2,
+                "title": "Decode Encrypted Message",
+                "description": "Break the enemy's communication cipher",
+                "status": "active", 
+                "progress": 0.2,
+                "rewards": {
+                    "currency": "intel_points", 
+                    "amount": 300
+                }
+            }
+        ]
+        
+        return jsonify({
+            "status": "success",
+            "missions": active_missions
+        })
+    except Exception as e:
+        logger.error(f"Error fetching active missions: {str(e)}")
         return jsonify({
             "status": "error",
             "message": str(e)
