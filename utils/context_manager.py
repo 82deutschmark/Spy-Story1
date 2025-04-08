@@ -3,6 +3,7 @@ from typing import List, Dict, Any, Optional
 import json
 from utils.constants import DEFAULT_TEMPERATURE, INITIAL_STORY_TEMPERATURE, MODEL_CONFIG
 import sys
+from utils.narrative_analyzer import extract_character_interactions, extract_previous_choices, clean_story_response, process_mission_update
 
 def configure_logging():
     """Ensure logs are directed to the console with proper formatting."""
@@ -147,8 +148,29 @@ class OpenAIContextManager:
         
         return "\n".join(message_parts)
 
-    def build_story_context(self, conflict: str, setting: str, mission_info: Optional[Dict[str, Any]] = None, characters: Optional[Dict[str, Any]] = None) -> str:
-        """Build a context string with story parameters."""
+    def build_story_context(
+        self, 
+        conflict: str, 
+        setting: str, 
+        mission_info: Optional[Dict[str, Any]] = None, 
+        character_info: Optional[Dict[str, Any]] = None,
+        character_interactions: Optional[Dict[str, List[str]]] = None,
+        previous_choices: Optional[List[str]] = None
+    ) -> str:
+        """
+        Build a context string with story parameters.
+        
+        Args:
+            conflict: Primary story conflict
+            setting: Story setting
+            mission_info: Optional mission information dictionary
+            character_info: Optional character information list
+            character_interactions: Optional dictionary of character interactions
+            previous_choices: Optional list of previous player choices
+        
+        Returns:
+            Formatted context string for system prompts
+        """
         context_parts = [
             "Stored Story Parameters:",
             f"CONFLICT: {conflict}",
@@ -167,15 +189,33 @@ class OpenAIContextManager:
             ])
 
         # Add character information if available
-        if characters:
+        if character_info:
             context_parts.append("")
             context_parts.append("Active Characters:")
-            for char in characters:
+            for char in character_info:
                 if isinstance(char, dict):
                     char_id = char.get('id', '')
                     name = char.get('name', '') or char.get('character_name', '')
                     role = char.get('role', '') or char.get('character_role', '')
                     context_parts.append(f"{char_id}: {name} - {role}")
+                    
+        # Add character interactions if available
+        if character_interactions:
+            context_parts.append("")
+            context_parts.append("Recent Character Interactions:")
+            for char_name, interactions in character_interactions.items():
+                if interactions:
+                    context_parts.append(f"{char_name.title()}:")
+                    # Include the most recent interactions (up to 3)
+                    for interaction in interactions[:3]:
+                        context_parts.append(f"- {interaction}")
+        
+        # Add previous choices if available
+        if previous_choices:
+            context_parts.append("")
+            context_parts.append("Previous Player Choices:")
+            for choice in previous_choices[:3]:  # Include up to 3 recent choices
+                context_parts.append(f"- {choice}")
 
         return "\n".join(context_parts)
 
@@ -264,6 +304,7 @@ class OpenAIContextManager:
         mission_info: Optional[Dict[str, Any]] = None,
         character_info: Optional[Dict[str, Any]] = None,
         enhanced_context: Optional[str] = None,
+        previous_story: Optional[str] = None,  # New parameter to analyze
         temperature: float = None,
         model: str = None
     ) -> Dict[str, Any]:
@@ -283,6 +324,7 @@ class OpenAIContextManager:
             mission_info: Optional mission information
             character_info: Optional character information
             enhanced_context: Optional enhanced context from database
+            previous_story: The previous story text for narrative analysis
             temperature: Optional temperature parameter for OpenAI
             model: Optional model name
             
@@ -298,10 +340,23 @@ class OpenAIContextManager:
             model = MODEL_CONFIG.get("model", "gpt-4")
         if temperature is None:
             temperature = DEFAULT_TEMPERATURE
+        
+        # Extract narrative elements if previous story is provided
+        story_elements = {}
+        if previous_story and character_info:
+            story_elements = self.extract_story_elements(previous_story, character_info)
+            logger.info(f"Extracted character interactions and previous choices from narrative")
             
         # Build messages with node count to track depth
         system_message = self.build_continuation_system_message(mood, narrative_style, node_count)
-        context = self.build_story_context(conflict, setting, mission_info, character_info)
+        context = self.build_story_context(
+            conflict, 
+            setting, 
+            mission_info, 
+            character_info,
+            character_interactions=story_elements.get('character_interactions'),
+            previous_choices=story_elements.get('previous_choices')
+        )
         
         # Add enhanced context if available
         user_content = user_message
@@ -331,11 +386,55 @@ class OpenAIContextManager:
             response_format="json_object"
         )
         
+        # Process and clean the response
+        if mission_info:
+            story_data = self.process_story_response(story_data, mission_info)
+        
         # Normalize: if the API returned key "story" but not "narrative_text", rename it
         if "story" in story_data and "narrative_text" not in story_data:
             story_data["narrative_text"] = story_data.pop("story")
         
         return story_data
+
+    def extract_story_elements(self, previous_story: str, existing_characters: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Extract elements from previous story text for context enhancement.
+        
+        Args:
+            previous_story: The previous story narrative text
+            existing_characters: List of character information
+            
+        Returns:
+            Dictionary with extracted elements:
+            - character_interactions
+            - previous_choices
+        """
+        character_interactions = extract_character_interactions(previous_story, existing_characters)
+        previous_choices = extract_previous_choices(previous_story)
+        
+        return {
+            "character_interactions": character_interactions,
+            "previous_choices": previous_choices
+        }
+
+    def process_story_response(self, story_data: Dict[str, Any], mission: Any) -> Dict[str, Any]:
+        """
+        Process and clean the story response data.
+        
+        Args:
+            story_data: Raw story data from the API
+            mission: Mission model or dictionary
+            
+        Returns:
+            Processed story data
+        """
+        cleaned_data = clean_story_response(story_data)
+        
+        # Process mission updates
+        mission_update = process_mission_update(cleaned_data.get("mission_update", {}), mission)
+        cleaned_data["mission_update"] = mission_update
+        
+        return cleaned_data
 
     def process_api_call(self, client, messages: List[Dict[str, str]], model: str = None, temperature: float = None, response_format: str = "json_object") -> Dict[str, Any]:
         """Process an API call with the given parameters."""
@@ -494,3 +593,75 @@ class GameState:
     def get_context_manager(self) -> OpenAIContextManager:
         """Get the OpenAIContextManager for this story."""
         return self._context_manager
+        
+    def get_enhanced_context(self, node_id=None, max_tokens=1000, include_character_interactions=True) -> str:
+        """
+        Get enhanced context for the current or specified story node.
+        
+        This method retrieves context from summaries, previous nodes, and 
+        extracts character interactions for improved narrative continuity.
+        
+        Args:
+            node_id: Optional specific node to get context for (defaults to current node)
+            max_tokens: Maximum tokens for context
+            include_character_interactions: Whether to include character interactions
+            
+        Returns:
+            Enhanced context string suitable for the OpenAI prompt
+        """
+        from models.context_summary import NodeContextSummary
+        
+        # Use current node if none specified
+        node_id = node_id or (self.current_node.id if self.current_node else None)
+        if not node_id:
+            return ""
+            
+        # Find optimal summary based on token budget
+        context_parts = []
+        
+        summary = NodeContextSummary.get_optimal_summary(node_id, max_tokens)
+        if summary:
+            context_parts.append(f"PREVIOUS EVENTS SUMMARY:\n{summary.summary_text}")
+            
+        # Extract character interactions from the current node if available
+        if include_character_interactions and self.current_node and hasattr(self.current_node, 'narrative_text'):
+            # Get characters from active missions
+            characters = []
+            for mission in self.active_missions:
+                if hasattr(mission, 'characters'):
+                    characters.extend(mission.characters)
+            
+            # Only attempt extraction if we have both narrative text and characters
+            if characters and self.current_node.narrative_text:
+                # Use the new extract_story_elements method from context_manager
+                story_elements = self._context_manager.extract_story_elements(
+                    self.current_node.narrative_text, 
+                    characters
+                )
+                
+                # Add character interactions
+                char_interactions = story_elements.get('character_interactions', {})
+                if char_interactions:
+                    context_parts.append("\nRECENT CHARACTER INTERACTIONS:")
+                    for char_name, interactions in char_interactions.items():
+                        if interactions:
+                            context_parts.append(f"{char_name.title()}: {interactions[0]}")
+                
+                # Add previous choices
+                prev_choices = story_elements.get('previous_choices', [])
+                if prev_choices:
+                    context_parts.append("\nPREVIOUS CHOICES:")
+                    for choice in prev_choices[:2]:
+                        context_parts.append(f"- {choice}")
+        
+        return "\n\n".join(context_parts)
+        
+    def _load_user_progress(self):
+        """Load user progress from database."""
+        # Implementation depends on your database model
+        return {}
+        
+    def reload_state(self):
+        """Reload game state from database."""
+        # Implementation depends on your database model
+        pass

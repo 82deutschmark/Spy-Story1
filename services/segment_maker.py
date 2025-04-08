@@ -2,6 +2,10 @@
 segment_maker.py - Story Continuation Service
 ========================================
 
+DEPRECATED: This module is deprecated and will be removed in future versions.
+All functionality has been migrated to utils/context_manager.py and utils/narrative_analyzer.py.
+Please update your imports to use those modules instead.
+
 This module handles story continuation after the initial story is created.
 It uses the OpenAIContextManager to maintain conversation context and generate
 coherent story continuations based on player choices.
@@ -21,6 +25,7 @@ from sqlalchemy import func
 import logging
 from utils.character_manager import extract_character_traits, extract_character_name, extract_character_role, extract_character_backstory, extract_character_plot_lines, format_character_info, get_random_characters  # NEW import
 from utils.story_context_rules import StoryContext, StoryContextRules
+import warnings
 
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("httpx").setLevel(logging.DEBUG)
@@ -938,7 +943,16 @@ def validate_mission_info(mission_info: Dict[str, Any]) -> bool:
     return all(field in mission_info for field in required_fields)
 
 def _build_system_message(mood: str = None, narrative_style: str = None, protagonist_name: Optional[str] = None, protagonist_gender: Optional[str] = None) -> str:
-    """Build the system message for story continuation using the unified system message."""
+    """
+    DEPRECATED: Build the system message for story continuation using the unified system message.
+    
+    Use OpenAIContextManager.build_continuation_system_message instead.
+    """
+    warnings.warn(
+        "_build_system_message in segment_maker is deprecated. Use OpenAIContextManager.build_continuation_system_message instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     return StoryPromptBuilder.build_system_message(mood or "default mood", narrative_style or "default narrative style")["content"]
 
 def generate_continuation(
@@ -958,60 +972,38 @@ def generate_continuation(
     enhanced_context: Optional[str] = None,
     help_instruction: str = "   - One that involves seeking help from an NPC"
 ) -> Dict[str, Any]:
-    """Generate a story continuation based on the player's choice."""
-    logger.info("=== generate_continuation function called ===")
-    logger.info(f"Type of 'mission' parameter RECEIVED in outer function: {type(mission)}")
-    logger.info(f"Core parameters:")
-    logger.info(f"  conflict: {conflict}")
-    logger.info(f"  setting: {setting}")
-    logger.info(f"  mood: {mood}")
-    logger.info(f"  narrative_style: {narrative_style}")
-    logger.info(f"  node_count: {node_count}")
+    """
+    DEPRECATED: Generate a story continuation based on the player's choice.
     
-    logger.debug(f"Parameters:")
-    logger.debug(f"  chosen_choice: {chosen_choice}")
-    logger.debug(f"  protagonist_name: {protagonist_name}")
-    logger.debug(f"  protagonist_gender: {protagonist_gender}")
-    logger.debug(f"  story_context length: {len(story_context) if story_context else 0} chars")
-    logger.debug(f"  mission: {mission.title if mission else 'Unknown'} (ID: {mission.id if mission else 'unknown'})")
-    logger.debug(f"  has narrative history: {bool(narrative_history)}")
+    This function is deprecated and will be removed in future versions.
+    Please use OpenAIContextManager.generate_continuation instead.
+    """
+    warnings.warn(
+        "generate_continuation in segment_maker is deprecated. Use OpenAIContextManager.generate_continuation instead.", 
+        DeprecationWarning, 
+        stacklevel=2
+    )
     
-    if existing_characters:
-        char_info_list = [
-            {
-                'id': char.get('id'),
-                'name': char.get('character_name') or char.get('name', 'Unknown'),
-                'role': char.get('character_role') or char.get('role', 'neutral')
-            } for char in existing_characters
-        ]
-        logger.debug(f"  existing_characters: {json.dumps(char_info_list, indent=2)}")
+    # Log the deprecation
+    logger.warning("Using deprecated segment_maker.generate_continuation. Please update to OpenAIContextManager.")
     
-    logger.info("Creating StoryContinuationHandler (stateless)")
+    # Create temporary context manager to handle the request
     context_manager = OpenAIContextManager()
     client = get_openai_client()
     
-    # Ensure we have a valid client
-    if not client:
-        raise RuntimeError("Failed to initialize OpenAI client")
-        
-    # Leverage our handler class for continuation generation
-    handler = StoryContinuationHandler(client, context_manager)
+    # Forward to new implementation - use the narrative_history or enhanced_context (whichever is available)
+    context_to_use = enhanced_context or narrative_history or story_context
     
-    # Generate continuation with all available parameters
-    return handler.generate_continuation(
-        previous_story=previous_story,
-        chosen_choice=chosen_choice,
-        mission=mission,
-        mood=mood,
-        narrative_style=narrative_style,
-        protagonist_name=protagonist_name,
-        protagonist_gender=protagonist_gender,
-        conflict=conflict,
-        setting=setting,
-        story_context=story_context,
-        existing_characters=existing_characters,
+    return context_manager.generate_continuation(
+        client=client,
+        user_message=chosen_choice,
+        conflict=conflict or "Unknown",
+        setting=setting or "Unknown",
+        narrative_style=narrative_style or "default narrative style",
+        mood=mood or "default mood",
         node_count=node_count,
-        narrative_history=narrative_history,
-        enhanced_context=enhanced_context,
-        help_instruction=help_instruction
+        mission_info=mission,
+        character_info=existing_characters,
+        enhanced_context=context_to_use,
+        previous_story=previous_story  # Pass the previous story for analysis
     )

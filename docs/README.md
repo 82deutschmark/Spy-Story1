@@ -132,3 +132,19 @@ $env:OPENAI_API_KEY='your_key_here'  # Windows PowerShell
 # Run the test script
 python test_api_logging.py
 ```
+
+## Narrative Analysis Migration
+
+This release includes a migration from the deprecated narrative functionality in `segment_maker.py` to a more robust and stateless system. Key changes include:
+
+- **Narrative Analyzer Module**: Introduced `narrative_analyzer.py` to handle:
+  - Extraction of character interactions
+  - Extraction of previous choices
+  - Processing of mission updates
+  - Cleaning of story responses
+
+- **Context Manager Enhancements**: The `context_manager.py` has been updated with new methods such as `extract_story_elements` and `process_story_response` to better support narrative continuity.
+
+- **GameState Update**: The `GameState` class now includes a `get_enhanced_context` method, which provides enriched narrative context incorporating detailed character interactions and previous choices.
+
+- **Backward Compatibility**: The deprecated `segment_maker.py` now includes adapter functions with deprecation warnings to forward calls to the new modules.

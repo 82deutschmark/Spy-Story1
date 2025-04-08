@@ -148,44 +148,13 @@
   - Fixed character selection state management
   - Ensured proper DOM updates after reroll
   - Fixed event propagation issues with reroll button
-- Fixed state manager initialization
-- Improved state consistency across components
-- Fixed form submission error handling in EventHandlers.js:
-  - Improved validation for required story parameters
-  - Added user-friendly error messages for missing selections
-  - Fixed character selection handling in form data
-  - Enhanced error display with both toast notifications and inline messages
-  - Improved loading state management during form submission
-  - Added proper error handling for API responses
-  - Consolidated error handling for both initial story and choice forms
-- Added proper AJAX request handling for story generation errors
-- Improved error message display with toast notifications
-- Fixed character selection handling in form submission
-- Fixed loading animation not appearing when clicking choice buttons on the storyboard page
-- Improved loading state feedback with proper button text preservation
-- Enhanced error handling during story generation and choice submissions
-- Fixed critical database relationship issue in StoryGeneration model:
-  - Removed incorrect story_images association table that was causing "Unknown PG numeric type: 3802" error
-  - Updated storyboard route to use correct story.characters relationship instead of story.images
-  - Fixed model imports in models/__init__.py to remove story_images reference
-  - Ensured proper character image handling in storyboard template
-  - Added error handling for character image loading in storyboard route
-  - Improved logging for character image processing errors
-  - Fixed database schema to properly reflect character-story relationships
-  - Updated documentation to clarify correct model relationships
-- Corrected form submission handling in storyboard.html:
-  - Ensured choice forms properly submit to /make_choice endpoint
-  - Maintained proper data structure for choice submissions
-  - Fixed character data handling in choice continuation
-  - Preserved currency requirement checks and processing
-  - Kept proper error handling and user feedback
-- Fixed story continuation numbering in prompts:
-  - Added persistent storage for node count in UserProgress extra_data
-  - Ensured node count persists between application restarts
-  - Fixed validation in context manager to handle invalid node counts
-  - Added proper node count loading from database during state reload
-  - Ensured story continuations show the correct continuation number
-  - Changed reserved field name 'metadata' to 'extra_data' to prevent SQLAlchemy conflict
+
+### Migrated Narrative Analysis Features
+- Migrated narrative analysis functionality from deprecated `segment_maker.py` to new `context_manager.py` and `narrative_analyzer.py`.
+  - Created `narrative_analyzer.py` for extracting character interactions, previous choices, mission updates, and cleaning story responses.
+  - Enhanced `context_manager.py` with new methods: `extract_story_elements` and `process_story_response`.
+  - Updated `GameState` class with `get_enhanced_context` to support enriched narrative context.
+  - Updated adapter functions in `segment_maker.py` for backward compatibility.
 
 ### Changed
 - Refactored state management system
