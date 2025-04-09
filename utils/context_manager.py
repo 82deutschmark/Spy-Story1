@@ -182,10 +182,10 @@ class OpenAIContextManager:
             context_parts.extend([
                 "",
                 "Current Mission:",
-                f"TITLE: {mission_info.get('title', 'Unknown')}",
-                f"OBJECTIVE: {mission_info.get('objective', 'Unknown')}",
-                f"STATUS: {mission_info.get('status', 'in_progress')}",
-                f"PROGRESS: {mission_info.get('progress', 0)}"
+                f"TITLE: {(mission_info.get('title', 'Unknown') if hasattr(mission_info, 'get') else getattr(mission_info, 'title', 'Unknown'))}",
+                f"OBJECTIVE: {(mission_info.get('objective', 'Unknown') if hasattr(mission_info, 'get') else getattr(mission_info, 'objective', 'Unknown'))}",
+                f"STATUS: {(mission_info.get('status', 'in_progress') if hasattr(mission_info, 'get') else getattr(mission_info, 'status', 'in_progress'))}",
+                f"PROGRESS: {(mission_info.get('progress', 0) if hasattr(mission_info, 'get') else getattr(mission_info, 'progress', 0))}"
             ])
 
         # Add character information if available

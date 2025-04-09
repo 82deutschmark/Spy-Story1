@@ -149,6 +149,9 @@
   - Ensured proper DOM updates after reroll
   - Fixed event propagation issues with reroll button
 
+### Fixed
+- Resolved `AttributeError: 'Mission' object has no attribute 'get'` occurring during story continuation generation when a mission was active. Updated context building (`utils.context_manager.build_story_context`) and mission update processing (`utils.narrative_analyzer.process_mission_update`) to correctly handle `Mission` model instances passed as `mission_info`, ensuring compatibility with both object and dictionary representations.
+
 ### Migrated Narrative Analysis Features
 - Migrated narrative analysis functionality from deprecated `segment_maker.py` to new `context_manager.py` and `narrative_analyzer.py`.
   - Created `narrative_analyzer.py` for extracting character interactions, previous choices, mission updates, and cleaning story responses.

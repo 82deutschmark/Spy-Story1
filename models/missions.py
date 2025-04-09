@@ -180,3 +180,29 @@ class Mission(db.Model):
         self.progress_updates.append(update)
         db.session.commit()
         return True
+
+    def to_dict(self):
+        """
+        Serialize the Mission object to a dictionary.
+        """
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'title': self.title,
+            'description': self.description,
+            'giver_id': self.giver_id,
+            'giver_name': self.giver.character_name if self.giver else None,
+            'target_id': self.target_id,
+            'target_name': self.target.character_name if self.target else None,
+            'objective': self.objective,
+            'status': self.status,
+            'difficulty': self.difficulty,
+            'reward_currency': self.reward_currency,
+            'reward_amount': self.reward_amount,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'deadline': self.deadline,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'story_id': self.story_id,
+            'progress': self.progress,
+            'progress_updates': self.progress_updates or []
+        }

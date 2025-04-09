@@ -35,6 +35,7 @@ import json
 
 from services.game_engine import GameEngine
 from models import Mission, UserProgress  # Ensure Mission model is imported
+from services.mission_generator import complete_mission as complete_mission_service # Import the service function
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -294,11 +295,24 @@ def update_mission(mission_id):
 
 @api_bp.route('/missions/<int:mission_id>/complete', methods=['POST'])
 def complete_mission(mission_id):
-    mission = Mission.query.get_or_404(mission_id)
-    # Use complete_mission instead of complete based on existing code
-    mission.complete_mission(user_id=mission.user_id)
-    db.session.commit()
-    return jsonify({'success': True, 'rewards': mission.calculate_rewards()})
+    # Get user_id from session (ensure user is logged in)
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'error': 'User not authenticated'}), 401
+
+    # Call the service function to handle completion and rewards
+    success = complete_mission_service(mission_id=mission_id, user_id=user_id)
+    
+    if success:
+        mission = Mission.query.get(mission_id) # Fetch again to get updated state
+        return jsonify({'success': True, 'message': 'Mission completed successfully.', 'mission': mission.to_dict() if mission else None})
+    else:
+        # Fetch the mission to potentially provide more context on failure
+        mission = Mission.query.get(mission_id)
+        error_message = 'Failed to complete mission.'
+        if mission and mission.status != 'active':
+             error_message = f'Mission already {mission.status} or does not exist.'
+        return jsonify({'success': False, 'error': error_message}), 400
 
 @api_bp.route('/missions/<int:mission_id>/fail', methods=['POST'])
 def fail_mission(mission_id):

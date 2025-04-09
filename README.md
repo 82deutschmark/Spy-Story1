@@ -51,6 +51,7 @@ An interactive thriller game engine that generates dynamic narratives with branc
      - Tracks current story position and player progress
      - Resolves current node with priority-based approach
      - Provides rich context for story continuation
+     - **Note:** When serializing state (e.g., via `GameState.to_dict()`), ensure `Mission` objects are converted using their `to_dict()` method for consistency.
    
    - **StoryNode Model** (`models/stories.py`)
      - Stores narrative text and branch metadata

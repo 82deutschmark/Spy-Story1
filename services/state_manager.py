@@ -385,16 +385,7 @@ class GameState:
                 "branch_metadata": self.current_node.branch_metadata if self.current_node else None
             } if self.current_node else None,
             "active_missions": [
-                {
-                    "id": mission.id,
-                    "title": mission.title,
-                    "description": mission.description,
-                    "objective": mission.objective,
-                    "progress": mission.progress,
-                    "reward_currency": mission.reward_currency,
-                    "reward_amount": mission.reward_amount,
-                    "difficulty": mission.difficulty
-                } for mission in self.active_missions
+                mission.to_dict() for mission in self.active_missions
             ] if self.active_missions else [],
             "user_progress": {
                 "user_id": self.user_progress.user_id if self.user_progress else None,
