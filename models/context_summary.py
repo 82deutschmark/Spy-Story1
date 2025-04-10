@@ -24,9 +24,9 @@ Table: node_context_summary
 
 Summary Types:
 ------------
-- short: Brief summaries (~100 tokens)
-- medium: Moderate detail (~300 tokens)
-- long: Full detail (~500 tokens)
+- short: Brief summaries (~10000 tokens)
+- medium: Moderate detail (~30000 tokens)
+- long: Full detail (~150000 tokens)
 
 Usage Notes:
 ----------
