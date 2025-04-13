@@ -525,60 +525,6 @@ class OpenAIContextManager:
             logger.error("=" * 80)
             raise
 
-def test_api_logging():
-    """
-    Helper function to test API request logging.
-    
-    This function can be called from anywhere in the application to perform a simple
-    API call that will demonstrate the logging setup. The function should be called 
-    with an OpenAI client.
-    
-    Example usage:
-        from openai import OpenAI
-        from utils.context_manager import test_api_logging
-        
-        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-        test_api_logging(client)
-    """
-    import os
-    from openai import OpenAI
-    
-    logger.info("Running API logging test function")
-    
-    # Check if OpenAI API key is available
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        logger.error("No OpenAI API key found in environment. Set OPENAI_API_KEY.")
-        return
-    
-    # Create client
-    client = OpenAI(api_key=api_key)
-    
-    # Create context manager
-    context_manager = OpenAIContextManager()
-    
-    # Test message - Note: must include "json" for json_object response format
-    messages = [
-        {"role": "system", "content": "You are a helpful assistant. Respond with JSON."},
-        {"role": "user", "content": "Send a simple hello world response in JSON format that includes the current time."}
-    ]
-    
-    try:
-        # Process API call using our enhanced logging
-        result = context_manager.process_api_call(
-            client=client,
-            messages=messages,
-            model="gpt-3.5-turbo",
-            temperature=0.7
-        )
-        
-        logger.info("Test completed successfully!")
-        logger.info(f"Result: {result}")
-    except Exception as e:
-        logger.error(f"Test failed with error: {str(e)}")
-        
-    logger.info("API logging test function complete")
-
 
 class GameState:
     def __init__(self, user_id: str):

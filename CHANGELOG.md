@@ -469,3 +469,12 @@ All notable changes to the Story Creator project will be documented in this file
 - Implemented Central Character Manager consolidation in utils/character_manager.py.
 - Refactored character handling in GameEngine and main_routes to ensure character data is properly formatted as a dictionary.
 - Updated logging and error handling in story generation to support the new character system.
+
+## Recent Changes
+
+- Fixed an issue where loading animations were not appearing during choice submissions.
+  - The core problem was that `ChoiceHandler.js` was imported but not initialized in `main.js`.
+  - Added `ChoiceHandler` to the modules array in `main.js` to ensure proper initialization.
+  - Added inline styles to the loading overlay in `LoadingManager.js` to ensure visibility, bypassing potential CSS conflicts.
+  - Removed competing loading management code in `UIUtils.js` and `UserProgressManager.js`.
+  - Fixed parameter mismatch in the `stopButtonLoading` method calls in `ChoiceHandler.js`.
