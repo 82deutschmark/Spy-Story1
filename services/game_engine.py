@@ -138,34 +138,28 @@ class GameEngine:
             request_protagonist_name = story_params.get('protagonist_name')
             if self.state.user_progress and self.state.user_progress.current_node_id and request_protagonist_name:
                 try:
-                    existing_node = StoryNode.query.get(self.state.user_progress.current_node_id)
-                    if existing_node and existing_node.branch_metadata:
-                        stored_protagonist_info = existing_node.branch_metadata.get("protagonist", {})
-                        stored_protagonist_name = stored_protagonist_info.get("name")
-
-                        if stored_protagonist_name and stored_protagonist_name != request_protagonist_name:
-                            logger.warning(f"Protagonist name mismatch for user {self.user_id}. Request: '{request_protagonist_name}', Stored: '{stored_protagonist_name}'. Resetting progress.")
-                            # Reset progress fields
-                            self.state.user_progress.current_story_id = None
-                            self.state.user_progress.current_node_id = None
-                            self.state.user_progress.node_count = 0
-                            self.state.user_progress.active_missions = []
-                            self.state.user_progress.completed_missions = []
-                            self.state.user_progress.failed_missions = []
-                            self.state.user_progress.choice_history = []
-                            self.state.user_progress.encountered_characters = {}
-                            self.state.user_progress.last_active = datetime.utcnow()
-                            
-                            # Commit the reset
-                            db.session.add(self.state.user_progress)
-                            db.session.commit()
-                            
-                            # Reload GameState internal state after reset
-                            self.state.reload_state()
-                            logger.info(f"User progress reset for {self.user_id} due to protagonist name mismatch.")
-                            
+                    logger.info(f"New story request from user {self.user_id}. Resetting progress for clean state.")
+                    # Reset progress fields
+                    self.state.user_progress.current_story_id = None
+                    self.state.user_progress.current_node_id = None
+                    self.state.user_progress.node_count = 0
+                    self.state.user_progress.active_missions = []
+                    self.state.user_progress.completed_missions = []
+                    self.state.user_progress.failed_missions = []
+                    self.state.user_progress.choice_history = []
+                    self.state.user_progress.encountered_characters = {}
+                    self.state.user_progress.last_active = datetime.utcnow()
+                    
+                    # Commit the reset
+                    db.session.add(self.state.user_progress)
+                    db.session.commit()
+                    
+                    # Reload GameState internal state after reset
+                    self.state.reload_state()
+                    logger.info(f"User progress reset for {self.user_id} - ready for new story.")
+                        
                 except Exception as e:
-                     logger.error(f"Error checking protagonist name match for user {self.user_id}: {e}", exc_info=True)
+                     logger.error(f"Error resetting progress for user {self.user_id}: {e}", exc_info=True)
                      # Don't block story creation, but log the error
                      db.session.rollback() # Rollback potential partial changes from check
 
@@ -321,6 +315,32 @@ class GameEngine:
                 # Commit all changes
                 db.session.commit()
                 
+                # Double-check that we have at least one active mission
+                if not self.state.active_missions:
+                    logger.warning(f"No active missions found after story creation. Creating fallback mission for user {self.user_id}")
+                    # Create a fallback mission
+                    fallback_mission = Mission(
+                        user_id=self.user_id,
+                        title=f"Emergency Mission: {story.primary_conflict}",
+                        description=f"Investigate and resolve the {story.primary_conflict} in {story.setting}",
+                        objective=f"Investigate and resolve the {story.primary_conflict}",
+                        status='active',
+                        difficulty='medium',
+                        reward_currency='💵',
+                        reward_amount=1500,
+                        story_id=story.id,
+                        progress=0,
+                        progress_updates=[{
+                            "progress": 0,
+                            "status": "active",
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "description": "Emergency mission created"
+                        }]
+                    )
+                    db.session.add(fallback_mission)
+                    self.state.active_missions = [fallback_mission]
+                    db.session.commit()
+                    
                 # Notify state manager
                 state_manager.update_state(self.state.to_dict())
                 

@@ -1,6 +1,7 @@
 # Changelog
 
-## [Unreleased]
+April 13, 2025
+
 
 ### Added
 - Enhanced User Identification System:
@@ -31,41 +32,17 @@
   - Character relationships
   - Active missions
   - Story metadata
-- Improved state validation and error handling
-- Added `to_dict()` method to `StoryNode` model for proper serialization
-- Enhanced node serialization with comprehensive field mapping including:
-  - Basic information (id, story_id, narrative_text)
-  - Status flags (is_endpoint, generated_by_ai)
-  - Timestamps (created_at)
-  - Metadata (branch_metadata)
-  - Relationships (parent_node_id, character_id, achievement_id)
-  - Branch information (branch_id, choice_id)
-- Character ID tracking in story choices
-- Explicit character_id field in JSON response structure
-- Validation for character IDs in story continuations
-- Enhanced character choice prompts with ID requirements
-- Character ID validation in response processing
-- Documentation for character ID handling
-- Enhanced character highlighting system in CharacterMentions.js:
-  - Proper HTML content handling using DOMParser
-  - Recursive text node processing
-  - Skip mechanism for already highlighted names
-  - Proper tooltip and click interaction handling
-  - Character portrait highlighting integration
-- Enhanced character data handling in storyboard route:
-  - Added character loading from choice metadata
-  - Improved character list compilation
-  - Better character relationship tracking
-  - Enhanced character data validation
-- Introduced a helper function "extractStoryData" in multiple JS modules (FormHandler.js, EventHandlers.js, MissionManager.js, UserProgressManager.js, UserProgress.js, UIUtils.js, StoryFormHandler.js, and ChoiceHandler.js)
-  - This function standardizes extraction of narrative_text and choices from API payloads, supporting both top-level fields and nesting under a "stories" key.
-- Updated main.js to use fallback logic when rendering narrative_text and choices to ensure the storyboard displays fully formatted HTML with line breaks.
-- Added node count persistence in database:
-  - Added `extra_data` JSONB field to UserProgress model for flexible data storage
-  - Enhanced GameState to store node_count in extra data
-  - Updated reload_state to restore node_count from persistent storage
-  - Added validation to ensure node count is never invalid or reset between sessions
-  - Improved continuation numbering in OpenAI prompts to reflect actual story position
+- Improved Character Integration in Narrative:
+  - Updated REQUIRED_ROLES to include 'neutral' characters
+  - Enhanced process_selected_characters to ensure neutral characters inclusion
+  - Modified get_random_characters_with_roles to guarantee at least one neutral character
+  - Added logic to dynamically pull in neutral characters from the database during story continuation
+  - Enhanced character integration directives in OpenAI prompts to better incorporate neutral characters
+- Optimized Mission Creation System:
+  - Simplified user progress management for prototype testing
+  - Ensured missions are always created with each new story
+  - Added fallback mission creation for safety
+  - Reduced excessive logging for better performance
 
 ### Changed
 - Refactored state management system:
@@ -429,7 +406,11 @@ All notable changes to the Story Creator project will be documented in this file
 **Purpose:** Added support for in-game currency system
 **Changes:**
 - Created `currency` table with currency types and symbols
-- Added `currency_balances` JSON column to `
+- Added `currency_balances` JSON column to `UserProgress` model for flexible data storage
+- Enhanced `GameState` to store currency balances in extra data
+- Updated `reload_state` to restore currency balances from persistent storage
+- Added validation to ensure currency balances are never invalid or reset between sessions
+- Improved continuation numbering in OpenAI prompts to reflect actual story position
 
 ### Fixed
 - Fixed server startup issues by correcting model imports in models/__init__.py:

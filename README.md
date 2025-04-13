@@ -18,6 +18,7 @@ The Spy Story Engine is a Flask-based interactive narrative game focused on espi
   - Links missions to characters (giver/target)
   - Supports mission failure, completion, and progress updates
   - Integrates with narrative through detailed progress tracking
+  - Missions typically last for 10+ story segments, with progress updated through story choices
 
 - **Plot Arc System** (`models/plot.py`)
   - Manages branching story arcs with completion criteria
@@ -44,7 +45,8 @@ The Spy Story Engine is a Flask-based interactive narrative game focused on espi
     - `start_new_story()`: Creates new stories with character selection
     - `make_choice()`: Processes user choices and continues narrative
     - `get_active_missions()`: Retrieves current player missions
-  - Handles protagonist verification and database transactions
+  - Creates missions for each new story automatically
+  - Ensures neutral characters are included in story continuations
   - Coordinates with other services for story generation
 
 - **Mission Generator** (`services/mission_generator.py`)
@@ -68,76 +70,37 @@ The Spy Story Engine is a Flask-based interactive narrative game focused on espi
   - Stateless design that doesn't store context between requests
   - Handles prompt building and response processing
   - Optimizes token usage through context management
+  - Contains strong directives for neutral character inclusion
 
 #### 3. Story Generation Flow
 
 - **Initial Story Creation**
   - User selects parameters (conflict, setting, style, mood)
-  - User selects characters (at least one mission-giver and villain)
+  - User selects characters (at least one mission-giver, villain, and neutral)
   - `GameEngine.start_new_story()` processes the request
   - OpenAI generates initial narrative with choices
   - Story is saved to database with character associations
+  - A mission is automatically created for the player
 
 - **Story Continuation**
   - User selects a choice from previous narrative
   - `GameEngine.make_choice()` retrieves state and context
+  - System checks for neutral characters, adding some from database if needed
   - Character information and previous context is formatted
-  - OpenAI generates continuation with new choices
+  - OpenAI generates continuation with new choices including neutral character interactions
   - New story node is created and linked to parent
 
-## Known Issues and Implementation Details
+## User Identification
 
-### 1. Character Role Handling
+The Spy Story prototype uses a simple session-based identification system:
 
-**Current Behavior**: The character selection process in story generation does not guarantee inclusion of neutral characters. The system only ensures mission-giver and villain roles are included, which can limit narrative options.
-
-**Technical Details**:
-- `get_random_characters()` correctly filters for all roles including neutral
-- The REQUIRED_ROLES array in selection logic only contains mission-giver and villain
-- When no neutral character is included initially, the story continuation lacks neutral NPCs
-
-**Impact**: This affects story diversity and limits "seeking help from NPC" choices since appropriate characters may be missing.
-
-### 2. Logging Overhead
-
-**Current Implementation**: The application has excessive logging, especially for OpenAI API interactions, which impacts performance and readability.
-
-**Technical Details**:
-- `context_manager.py` sets VERBOSE_LOGGING = True
-- DEBUG level logging for httpx and openai libraries
-- Redundant logging configuration in multiple files
-- Detailed request/response logging for all API calls
-
-**Impact**: Unnecessary performance overhead, potential sensitive data exposure, and difficulty finding important log messages.
-
-### 3. Migration Issues
-
-**Current State**: Functionality was migrated from `segment_maker.py` (now deprecated) to `utils/context_manager.py` and `utils/narrative_analyzer.py`.
-
-**Migration Artifacts**:
-- `segment_maker.py` contains more explicit instructions for character integration
-- The "INCORPORATE AT LEAST ONE INTO THE NARRATIVE" directive for secondary NPCs may have been lost
-- The newer context_manager has more generalized character formatting
-
-**Impact**: Character integration may be less effective in the current implementation compared to the deprecated version.
-
-### 4. State Management
-
-**Current Implementation**: The system carefully tracks state through multiple mechanisms:
-- `GameState` class maintains user progress and story position
-- `UserProgress` model stores persistent state in the database
-- `StoryNode` model contains narrative text and branch metadata
-- Story continuations include full character information for context
-
-### 5. Character Evolution System
-
-**Status**: The character evolution system is designed but not yet implemented.
-
-**Planned Functionality**:
-- Dynamic character trait evolution based on story events
-- Relationship tracking between characters
-- Character role progression
-- Interaction history logging
+- New sessions get a UUID stored in Flask session
+- Each session maintains progress through a UserProgress model
+- The system supports basic protagonist naming via agent_codename
+- Each new story is treated as a fresh experience for simplicity
+- Login functionality exists primarily for testing purposes
+  
+The prototype design prioritizes ease of testing over persistent user state, with each new story starting with a clean slate.
 
 ## Technical Reference
 
@@ -160,20 +123,16 @@ The Spy Story Engine is a Flask-based interactive narrative game focused on espi
 - **neutral**: Supporting characters for general interactions
 - **undetermined**: Characters whose role hasn't been established
 
-## Development Pitfalls and Lessons
+## Key System Features
 
-1. **Character Selection Logic**: Ensure all required character roles (including neutral) are properly selected for each story.
+1. **Character Integration**: The system ensures neutral characters are included in each narrative segment, providing varied interactions.
 
-2. **Logging Management**: The current logging configuration is excessively verbose. Consider creating a dedicated logging configuration module with appropriate log levels.
+2. **Mission Tracking**: Each story automatically creates a mission that progresses through player choices.
 
-3. **Migration Preservation**: When migrating functionality between modules, ensure that specific directives and emphasis (like character integration) are preserved.
+3. **State Management**: Sophisticated tracking through multiple models while optimizing for clean prototype testing.
 
-4. **State Management**: The system has sophisticated state tracking through multiple models. Changes must update all relevant state objects consistently.
+4. **OpenAI Context Management**: Carefully manages token limits through pre-computed summaries, balancing context richness with token constraints.
 
-5. **OpenAI Context Management**: The system carefully manages token limits through pre-computed summaries. This approach balances context richness with token constraints.
+5. **Simplified User Experience**: Prioritizes easy testing and demonstration over complex user authentication.
 
-6. **Character Role Consistency**: Character roles must remain consistent throughout stories to maintain narrative coherence.
-
-7. **Error Handling**: Critical operations (OpenAI calls, database transactions) need robust error handling to prevent state corruption.
-
-8. **Model Instance vs Dictionary**: When passing model instances between components, be aware of whether they're expected as model instances or dictionaries.
+See CHANGELOG.md for detailed development updates.

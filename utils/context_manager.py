@@ -177,7 +177,7 @@ class OpenAIContextManager:
             "",
             "NARRATIVE STYLE REQUIREMENTS:",
             "1. Tell the story in second person, addressing the player directly.",
-            "2. Create a DETAILED story segment of 500-900 words that builds upon the player's choice.",
+            "2. Create a DETAILED story segment of 500-700 words that builds upon the player's choice.",
             "3. Use vivid sensory details and atmospheric descriptions.",
             "4. Balance action, dialogue, intrigue, and character development.",
             "5. Include multiple scenes within each story segment when appropriate.",

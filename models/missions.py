@@ -4,7 +4,8 @@ missions.py - Mission Management System
 
 This module defines the Mission model for tracking and managing player missions
 in the interactive spy story system. It handles mission progress, rewards,
-and relationships with characters and stories.
+and relationships with characters and stories.  Missions typically last for 10 or more story segments.
+This is not completely thought out and requires some design input!
 
 Key Features:
 -----------
