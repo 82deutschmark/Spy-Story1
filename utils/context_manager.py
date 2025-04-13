@@ -1,9 +1,30 @@
+"""
+OpenAI Context Manager for Story Game
+====================================
+
+Handles OpenAI API interactions for story generation and continuation.
+This module is stateless and does not store any contextual information between requests.
+All state must be provided for each operation.
+"""
+
 import logging
-from typing import List, Dict, Any, Optional
 import json
-from utils.constants import DEFAULT_TEMPERATURE, INITIAL_STORY_TEMPERATURE, MODEL_CONFIG
 import sys
-from utils.narrative_analyzer import extract_character_interactions, extract_previous_choices, clean_story_response, process_mission_update
+from typing import List, Dict, Any, Optional, Callable
+from functools import wraps
+from utils.constants import DEFAULT_TEMPERATURE, INITIAL_STORY_TEMPERATURE, MODEL_CONFIG
+from utils.narrative_analyzer import (
+    extract_character_interactions, 
+    extract_previous_choices, 
+    clean_story_response, 
+    process_mission_update
+)
+
+# Configure module-level logger
+logger = logging.getLogger(__name__)
+
+# Verbosity control for logging - can be adjusted as needed
+VERBOSE_LOGGING = True
 
 def configure_logging():
     """Ensure logs are directed to the console with proper formatting."""
@@ -24,19 +45,43 @@ def configure_logging():
         # Add handler to logger
         root_logger.addHandler(console_handler)
     
-    # Ensure httpx logger is set to DEBUG for API requests/responses
+    # Ensure httpx and openai loggers are set to DEBUG for API requests/responses
     logging.getLogger("httpx").setLevel(logging.DEBUG)
     logging.getLogger("openai").setLevel(logging.DEBUG)
     
-    # Test log
-    logging.info("Logging configured for OpenAI context manager")
+    logger.info("Logging configured for OpenAI context manager")
 
-# Configure logging
+# Configure logging once during module import
 configure_logging()
 
-logger = logging.getLogger(__name__)
-# Set up detailed logging for OpenAI API interactions
-logging.getLogger("httpx").setLevel(logging.DEBUG)
+def log_operation(func):
+    """Decorator for logging method entry/exit with controlled verbosity."""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not VERBOSE_LOGGING:
+            return func(*args, **kwargs)
+            
+        func_name = func.__name__
+        logger.info(f"=== Starting {func_name} ===")
+        
+        # Extract relevant parameters for logging (avoiding large text fields)
+        log_params = {}
+        for k, v in kwargs.items():
+            if k not in ['user_message', 'previous_story', 'enhanced_context']:
+                if isinstance(v, str) and len(v) > 100:
+                    log_params[k] = f"{v[:50]}...{v[-50:]}" if len(v) > 100 else v
+                else:
+                    log_params[k] = v
+                    
+        if log_params:
+            logger.debug(f"Parameters: {json.dumps(log_params, default=str)}")
+        
+        result = func(*args, **kwargs)
+        
+        logger.info(f"=== Completed {func_name} ===")
+        return result
+    return wrapper
+
 
 class OpenAIContextManager:
     """
@@ -102,8 +147,6 @@ class OpenAIContextManager:
         if not isinstance(node_count, int) or node_count < 1:
             logger.warning(f"Invalid node_count {node_count}, defaulting to 1")
             node_count = 1
-        else:
-            logger.info(f"Using node_count={node_count} for continuation")
             
         message_parts = [
             "You are a master narrative generator for our spy thriller adventure game.",
@@ -219,6 +262,7 @@ class OpenAIContextManager:
 
         return "\n".join(context_parts)
 
+    @log_operation
     def generate_initial_story(
         self,
         client,
@@ -252,10 +296,6 @@ class OpenAIContextManager:
         Returns:
             Dict containing the generated story data
         """
-        from utils.constants import MODEL_CONFIG, INITIAL_STORY_TEMPERATURE
-        import json
-        import logging
-        
         # Set defaults
         if model is None:
             model = MODEL_CONFIG.get("model", "gpt-4")
@@ -270,12 +310,6 @@ class OpenAIContextManager:
             {"role": "system", "content": f"{system_message}\n\n{context}"},
             {"role": "user", "content": user_message}
         ]
-        
-        logger.info("=== Generating Initial Story ===")
-        logger.info(f"Conflict: {conflict}")
-        logger.info(f"Setting: {setting}")
-        logger.info(f"Narrative Style: {narrative_style}")
-        logger.info(f"Mood: {mood}")
         
         # Use the enhanced process_api_call method
         story_data = self.process_api_call(
@@ -292,6 +326,7 @@ class OpenAIContextManager:
         
         return story_data
 
+    @log_operation
     def generate_continuation(
         self,
         client,
@@ -331,10 +366,6 @@ class OpenAIContextManager:
         Returns:
             Dict containing the generated continuation data
         """
-        from utils.constants import MODEL_CONFIG, DEFAULT_TEMPERATURE
-        import json
-        import logging
-        
         # Set defaults
         if model is None:
             model = MODEL_CONFIG.get("model", "gpt-4")
@@ -345,7 +376,6 @@ class OpenAIContextManager:
         story_elements = {}
         if previous_story and character_info:
             story_elements = self.extract_story_elements(previous_story, character_info)
-            logger.info(f"Extracted character interactions and previous choices from narrative")
             
         # Build messages with node count to track depth
         system_message = self.build_continuation_system_message(mood, narrative_style, node_count)
@@ -362,20 +392,11 @@ class OpenAIContextManager:
         user_content = user_message
         if enhanced_context:
             user_content = f"STORY CONTEXT:\n{enhanced_context}\n\nPLAYER CHOICE:\n{user_message}"
-            logger.info(f"Using enhanced context of {len(enhanced_context)} characters")
         
         messages = [
             {"role": "system", "content": f"{system_message}\n\n{context}"},
             {"role": "user", "content": user_content}
         ]
-        
-        logger.info("=== Generating Story Continuation ===")
-        logger.info(f"Node Count: {node_count}")
-        logger.info(f"Conflict: {conflict}")
-        logger.info(f"Setting: {setting}")
-        logger.info(f"Narrative Style: {narrative_style}")
-        logger.info(f"Mood: {mood}")
-        logger.info(f"Enhanced Context Used: {enhanced_context is not None}")
         
         # Use the enhanced process_api_call method
         story_data = self.process_api_call(
@@ -436,12 +457,21 @@ class OpenAIContextManager:
         
         return cleaned_data
 
+    @log_operation
     def process_api_call(self, client, messages: List[Dict[str, str]], model: str = None, temperature: float = None, response_format: str = "json_object") -> Dict[str, Any]:
-        """Process an API call with the given parameters."""
-        from utils.constants import MODEL_CONFIG, DEFAULT_TEMPERATURE
-        import json
-        import logging
+        """
+        Process an API call with the given parameters.
         
+        Args:
+            client: OpenAI client instance
+            messages: List of message dictionaries
+            model: Optional model name
+            temperature: Optional temperature parameter
+            response_format: Response format type, default "json_object"
+            
+        Returns:
+            Dict containing the processed API response
+        """
         # Set defaults
         if model is None:
             model = MODEL_CONFIG.get("model", "gpt-4")
@@ -454,76 +484,73 @@ class OpenAIContextManager:
             "messages": messages
         }
         
-        # Add response_format for compatible models
+        # Add response_format for compatible models (structured JSON)
         if response_format and not model.startswith("o3-"):
             api_params["response_format"] = {"type": response_format}
         
         # Only include temperature for models that support it
         if not model.startswith("o3-"):
             api_params["temperature"] = temperature
-        
-        # ENHANCED LOGGING: Log the full API request parameters
-        logger.info("=" * 80)
-        logger.info("OpenAI API REQUEST")
-        logger.info("=" * 80)
-        logger.info(f"Model: {model}")
-        logger.info(f"Temperature: {temperature}")
-        
-        # Format messages for clear viewing in logs
-        formatted_messages = []
-        for msg in messages:
-            # Truncate content if it's too long for the logs
-            content = msg.get('content', '')
-            if len(content) > 1000:
-                content_preview = content[:500] + "... [truncated] ..." + content[-500:]
-                formatted_msg = {**msg, 'content': content_preview}
-            else:
-                formatted_msg = msg
-            formatted_messages.append(formatted_msg)
-        
-        # Log the full request parameters in JSON format
-        logger.info("REQUEST PAYLOAD:")
-        logger.info(json.dumps(api_params, indent=2, default=str))
-        logger.info("-" * 80)
-        
+            
         # Make the API call
         try:
-            logger.info(f"Sending request to OpenAI API at {model}...")
             response = client.chat.completions.create(**api_params)
             
             # Process the response
             content = response.choices[0].message.content
             
             # Log response summary
-            logger.info("RESPONSE RECEIVED:")
-            logger.info(f"Usage: {response.usage}")
-            logger.info(f"Content length: {len(content)}")
-            logger.debug(f"Raw response content: {content[:500]}..." if len(content) > 500 else f"Raw response content: {content}")
+            if VERBOSE_LOGGING:
+                logger.info(f"Response received: {len(content)} characters, token usage: {response.usage}")
             
-            # Clean the content if needed
-            if content.startswith('```json'):
-                content = content[7:]  # Remove ```json
-            if content.endswith('```'):
-                content = content[:-3]  # Remove ```
-                
-            content = content.strip()
-            
-            try:
-                result = json.loads(content)
-                logger.info("Successfully parsed JSON response")
-                logger.info("=" * 80)
-                return result
-            except json.JSONDecodeError as e:
-                logging.error(f"JSON decode error: {str(e)} with content: {content}")
-                escaped_content = content.replace("\n", "\\n").replace("\r", "\\r")
-                logging.error(f"Escaped JSON content for inspection: {escaped_content}")
-                logging.error("=" * 80)
-                raise
+            # Handle function calling or structured JSON directly if available
+            if response_format == "json_object":
+                try:
+                    # Try to parse the JSON content directly
+                    return self._safe_parse_json(content)
+                except json.JSONDecodeError as e:
+                    logger.error(f"JSON decode error: {str(e)}")
+                    logger.error(f"Raw content (first 100 chars): {content[:100]}...")
+                    raise
+            else:
+                return {"text": content}
                 
         except Exception as e:
             logger.error(f"API call error: {str(e)}")
-            logger.error("=" * 80)
             raise
+
+    def _safe_parse_json(self, content: str) -> Dict[str, Any]:
+        """
+        Safely parse JSON content from API response.
+        
+        Args:
+            content: String containing JSON content
+            
+        Returns:
+            Dict parsed from JSON
+        """
+        # Clean the content if needed
+        if content.startswith('```json'):
+            content = content[7:]  # Remove ```json
+        if content.endswith('```'):
+            content = content[:-3]  # Remove ```
+                
+        content = content.strip()
+        
+        # Try parsing the JSON
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            # Try to recover malformed JSON
+            # Replace any single quotes with double quotes
+            fixed_content = content.replace("'", '"')
+            # Try parsing again
+            try:
+                return json.loads(fixed_content)
+            except json.JSONDecodeError:
+                # If still failing, log and re-raise
+                logger.error("Failed to parse JSON even after attempting to fix malformed quotes")
+                raise
 
 
 class GameState:
@@ -540,7 +567,7 @@ class GameState:
         """Get the OpenAIContextManager for this story."""
         return self._context_manager
         
-    def get_enhanced_context(self, node_id=None, max_tokens=1000, include_character_interactions=True) -> str:
+    def get_enhanced_context(self, node_id=None, max_tokens=150000, include_character_interactions=True) -> str:
         """
         Get enhanced context for the current or specified story node.
         
@@ -599,15 +626,34 @@ class GameState:
                     context_parts.append("\nPREVIOUS CHOICES:")
                     for choice in prev_choices[:2]:
                         context_parts.append(f"- {choice}")
-        
-        return "\n\n".join(context_parts)
-        
+                        
+        return "\n".join(context_parts)
+
     def _load_user_progress(self):
         """Load user progress from database."""
-        # Implementation depends on your database model
-        return {}
+        # Imported here to avoid circular imports
+        from models import UserProgress
+        
+        return UserProgress.query.filter_by(user_id=self.user_id).first()
         
     def reload_state(self):
         """Reload game state from database."""
-        # Implementation depends on your database model
-        pass
+        # Import models here to avoid circular imports
+        from models import StoryGeneration, StoryNode, Mission
+        
+        if not self.user_progress:
+            return
+            
+        # Load current story
+        if self.user_progress.current_story_id:
+            self.current_story = StoryGeneration.query.get(self.user_progress.current_story_id)
+            
+        # Load current node
+        if self.user_progress.current_node_id:
+            self.current_node = StoryNode.query.get(self.user_progress.current_node_id)
+            
+        # Load active missions
+        self.active_missions = Mission.query.filter_by(
+            user_id=self.user_id,
+            status='active'
+        ).all()

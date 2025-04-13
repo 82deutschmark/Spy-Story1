@@ -121,7 +121,7 @@ The system includes enhanced logging capabilities for OpenAI API interactions:
 - **Complete API Request Logging**: All requests to the OpenAI API are thoroughly logged, including full message content and parameters
 - **Request/Response Inspection**: Track exactly what's being sent to and received from the API
 - **Dedicated Testing Script**: Use `test_api_logging.py` to quickly verify API connectivity and logging
-- **Centralized Logging Configuration**: All logging is configured through `utils/context_manager.py`
+- **Centralized Logging Configuration**: All logging is configured through `utils/context_manager.py`  BUT THIS NEEDS TO CHANGE!!!
 
 To test the API logging:
 ```bash
