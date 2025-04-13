@@ -29,6 +29,7 @@ Table: user_progress
 - Character tracking: encountered_characters
 - Currency tracking: currency_balances
 - Story tracking: node_count (tracks position in narrative tree)
+- User identification: agent_codename (for login and retrieval)
 
 Currency Types:
 ------------
@@ -73,6 +74,7 @@ class UserProgress(db.Model):
     Attributes:
         id (int): Primary key
         user_id (str): Unique user identifier
+        agent_codename (str): Agent codename for identification and login
         current_node_id (int): Current story node ID
         current_story_id (int): Current story ID
         level (int): User's game level [default: 1]
@@ -98,6 +100,7 @@ class UserProgress(db.Model):
     """
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(255), nullable=False, unique=True)
+    agent_codename = db.Column(db.String(255), nullable=True, index=True)  # Agent codename for easier lookup
     current_node_id = db.Column(db.Integer, db.ForeignKey('story_node.id', ondelete='SET NULL'))
     current_story_id = db.Column(db.Integer, db.ForeignKey('story_generation.id', ondelete='SET NULL'))
     level = db.Column(db.Integer, default=1)  # User's game level

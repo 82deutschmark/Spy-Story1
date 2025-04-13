@@ -74,6 +74,9 @@ import UserProgress from './modules/UserProgress.js';
 import MissionManager from './modules/MissionManager.js';
 import NotebookManager from './modules/NotebookManager.js';
 
+// Keep track of initialized modules
+const initializedModules = new Set();
+
 // Wait for DOM content and modules to load
 document.addEventListener('DOMContentLoaded', async () => {
     appLog('DOM Content Loaded, initializing application...');
@@ -109,10 +112,12 @@ async function initializeApplication() {
                     const instance = new module();
                     if (typeof instance[initMethod] === 'function') {
                         await instance[initMethod]();
+                        initializedModules.add(name); // Track successful initialization
                     }
                 } else if (typeof module[initMethod] === 'function') {
                     // Static method or module-level initialization
                     await module[initMethod]();
+                    initializedModules.add(name); // Track successful initialization
                 }
 
                 appLog(`${name} initialized successfully`);
@@ -133,25 +138,28 @@ async function initializeApplication() {
 
         appLog("Initializing application with config:", window.FLASK_CONFIG);
 
-        // Fallback initialization for core systems
-        const loadingManager = new LoadingManager();
-        if (typeof loadingManager.initialize === 'function') loadingManager.initialize();
-        appLog("LoadingManager initialized");
+        // Fallback initialization ONLY for modules that failed to initialize in the loop above
+        if (!initializedModules.has('LoadingManager')) {
+            const loadingManager = new LoadingManager();
+            if (typeof loadingManager.initialize === 'function') loadingManager.initialize();
+            appLog("LoadingManager initialized (fallback)");
+        }
 
-        const errorHandler = new ErrorHandler();
-        if (typeof errorHandler.initialize === 'function') errorHandler.initialize();
-        appLog("ErrorHandler initialized");
+        if (!initializedModules.has('ErrorHandler')) {
+            const errorHandler = new ErrorHandler();
+            if (typeof errorHandler.initialize === 'function') errorHandler.initialize();
+            appLog("ErrorHandler initialized (fallback)");
+        }
 
-        const storyFormHandler = new StoryFormHandler();
-        if (typeof storyFormHandler.initialize === 'function') storyFormHandler.initialize();
-        appLog("StoryFormHandler initialized");
+        // REMOVED: Redundant StoryFormHandler initialization to fix duplicate API calls
+        // The StoryFormHandler is already initialized in the modules loop above
 
         // Initialize character mentions last (after all content is loaded)
-        if (document.querySelector('.story-content')) {
+        if (document.querySelector('.story-content') && !initializedModules.has('CharacterMentions')) {
             const characterMentions = new CharacterMentions();
             if (typeof characterMentions.initialize === 'function') {
                 characterMentions.initialize();
-                appLog("CharacterMentions initialized");
+                appLog("CharacterMentions initialized (fallback)");
             }
         }
 
@@ -193,7 +201,7 @@ function setupGlobalListeners() {
 
 function renderStory(responseData) {
     // Ensure we are using the top-level narrative text and choices
-    // If narrative_text isn’t found, look inside 'stories' as fallback
+    // If narrative_text isn't found, look inside 'stories' as fallback
     let narrative = responseData.narrative_text || (responseData.stories && responseData.stories.narrative_text) || "";
     let choices = responseData.choices || (responseData.stories && responseData.stories.choices) || [];
 

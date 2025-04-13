@@ -4,7 +4,7 @@ from models.stories import StoryGeneration, story_images, StoryNode, StoryChoice
 from models.user import UserProgress
 from models.character_evolution import CharacterEvolution
 from models.missions import Mission
-from models.achievements import Achievement
+# Achievement module has been removed from the project
 from models.plot import PlotArc
 from models.ai import AIInstruction
 
@@ -17,7 +17,7 @@ __all__ = [
     'UserProgress',
     'CharacterEvolution',
     'Mission',
-    'Achievement',
+    # 'Achievement', # Removed as module no longer exists
     'PlotArc',
     'AIInstruction'
 ]

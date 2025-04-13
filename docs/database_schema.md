@@ -115,12 +115,13 @@ This document outlines all database tables in our project, their relationships, 
 **Key Fields**:
 - `id`: Primary key
 - `user_id`: Unique user identifier
+- `agent_codename`: Agent codename for user identification and login
 - `current_node_id`: Current story node
 - `current_story_id`: Current story
-- `level`: User's game level
-- `experience_points`: XP for leveling
+- `level`: User's game level  NOT USED!!
+- `experience_points`: XP for leveling NOT USED!!
 - `choice_history`: History of user's choices (JSON array)
-- `achievements_earned`: User's earned achievements (JSON array)
+- `achievements_earned`: User's earned achievements (JSON array)  NOT USED!!
 - `currency_balances`: User's currency balances (JSON)
 - `encountered_characters`: Characters the user has met (JSON)
 - `active_missions`: Array of active mission IDs (JSON)

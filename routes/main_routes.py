@@ -79,7 +79,7 @@ configure_logging()
 
 # Create Blueprint
 main_bp = Blueprint('main', __name__)
-REQUIRED_ROLES = ['mission-giver', 'villain']
+REQUIRED_ROLES = ['mission-giver', 'villain', 'neutral']
 
 
 def serialize_character(char: Character,
@@ -178,6 +178,10 @@ def process_selected_characters(selected_ids: List[str]) -> List[Character]:
     """
     Process selected character IDs from form data
     Validates IDs and converts to integers
+    Ensures required character roles are included:
+    - mission-giver (assigns missions)
+    - villain (creates opposition)
+    - neutral (provides help and interaction options)
     """
     character_ids = []
     
@@ -203,9 +207,15 @@ def process_selected_characters(selected_ids: List[str]) -> List[Character]:
             ]
             for role in REQUIRED_ROLES:
                 if role not in existing_roles:
-                    missing_char = Character.query.filter_by(
-                        character_role=role).order_by(
-                            db.func.random()).first()
+                    # For neutral roles, include undetermined as an alternative
+                    if role == 'neutral':
+                        missing_char = Character.query.filter(
+                            Character.character_role.in_(['neutral', 'undetermined'])
+                        ).order_by(db.func.random()).first()
+                    else:
+                        missing_char = Character.query.filter_by(
+                            character_role=role).order_by(
+                                db.func.random()).first()
                     if missing_char:
                         selected_characters.append(missing_char)
             return selected_characters
@@ -238,33 +248,57 @@ def get_random_scene_background() -> str:
 
 def get_random_characters_with_roles() -> List[Character]:
     """
-    Select at least one mission-giver and one villain.
+    Select at least one character of each required role:
+    - mission-giver (assigns missions)
+    - villain (creates opposition)
+    - neutral (provides help options and side interactions)
+    
     Uses get_random_characters() and supplements missing roles.
     """
     selected = get_random_characters(3)
     roles = [
         char.character_role.lower() for char in selected if char.character_role
     ]
+    
+    # Ensure mission-giver is included
     if 'mission-giver' not in roles:
         mg = Character.query.filter_by(
             character_role='mission-giver').order_by(db.func.random()).first()
         if mg and mg not in selected:
             selected.append(mg)
+    
+    # Ensure villain is included
     if 'villain' not in roles:
         vil = Character.query.filter_by(character_role='villain').order_by(
             db.func.random()).first()
         if vil and vil not in selected:
             selected.append(vil)
+    
+    # Ensure neutral or undetermined character is included
+    if 'neutral' not in roles and 'undetermined' not in roles:
+        neutral_char = Character.query.filter(
+            Character.character_role.in_(['neutral', 'undetermined'])
+        ).order_by(db.func.random()).first()
+        if neutral_char and neutral_char not in selected:
+            selected.append(neutral_char)
+    
     return selected
 
 
-def get_or_create_progress(protagonist_name=None) -> UserProgress:
+def get_or_create_progress(agent_codename=None) -> UserProgress:
     """
     Ensure a user_id exists in session and retrieve or create user progress.
+    Uses agent_codename (protagonist name) for identification.
+    
+    Args:
+        agent_codename (str, optional): The agent codename for identification
+        
+    Returns:
+        UserProgress: User progress object with session user ID
     """
     if 'user_id' not in session:
         session['user_id'] = str(uuid.uuid4())
-    return db_get_or_create_user_progress(session['user_id'], protagonist_name)
+    return db_get_or_create_user_progress(session['user_id'], agent_codename)
 
 
 @main_bp.route('/')
@@ -539,12 +573,40 @@ def reroll_character():
 
 @main_bp.route('/api/user/progress')
 def api_user_progress():
-    user_progress = get_or_create_progress()
+    """
+    API endpoint to retrieve or create user progress data.
+    
+    Handles both session-based and agent codename-based identification.
+    Query parameters:
+        codename: Optional agent codename for identification
+        
+    Returns:
+        JSON: User progress data including currency, missions, and story status
+    """
+    # Get agent codename from query parameter if available
+    agent_codename = request.args.get('codename')
+    
+    # Get or create user progress using the codename if provided
+    user_progress = get_or_create_progress(agent_codename)
+    
+    # Prepare complete user progress data for the frontend
     progress_data = {
-        "active_missions": user_progress.active_missions or [],
-        "currency": user_progress.currency_balances,
-        "notes": user_progress.game_state.get("notes", "No notes yet")
+        "success": True,
+        "user_progress": {
+            "user_id": user_progress.user_id,
+            "agent_codename": user_progress.agent_codename or user_progress.game_state.get('protagonist_name'),
+            "current_story_id": user_progress.current_story_id,
+            "active_missions": user_progress.active_missions or [],
+            "completed_missions": user_progress.completed_missions or [],
+            "currency_balances": user_progress.currency_balances,
+            "choice_history": user_progress.choice_history or [],
+            "completed_plot_arcs": user_progress.completed_plot_arcs or [],
+            "encountered_characters": user_progress.encountered_characters or {},
+            "game_state": user_progress.game_state or {}
+        },
+        "create_new": False
     }
+    
     return jsonify(progress_data)
 
 
@@ -552,16 +614,30 @@ def api_user_progress():
 def login():
     """
     Handle user login with agent codename.
+    
+    This route allows users to:
+    1. Enter their agent codename
+    2. Resume previous stories if they exist
+    3. Create a new user record if not found
+    
+    Returns:
+        Template: login.html for GET requests
+        Redirect: to story or index for successful login
     """
     if request.method == 'POST':
         agent_codename = request.form.get('agentCodename')
         if agent_codename:
             # Store codename in session
             session['agent_codename'] = agent_codename
+            
             # Get or create user progress based on codename
             user_progress = get_or_create_progress(agent_codename)
             session['user_id'] = user_progress.user_id
+            
+            # Log successful login
+            logger.info(f"User logged in as Agent {agent_codename}, user_id: {user_progress.user_id}")
             flash('Successfully logged in as Agent ' + agent_codename, 'success')
+            
             # Check if user has an existing story
             if user_progress.current_story_id:
                 return redirect(url_for('main.storyboard', story_id=user_progress.current_story_id))
@@ -569,6 +645,7 @@ def login():
         else:
             flash('Please enter a valid codename', 'danger')
             return redirect(url_for('main.login'))
+    
     return render_template('login.html')
 
 

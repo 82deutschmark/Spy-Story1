@@ -19,40 +19,25 @@ from utils.narrative_analyzer import (
     clean_story_response, 
     process_mission_update
 )
+from utils.logging_config import configure_minimal_logging
 
 # Configure module-level logger
 logger = logging.getLogger(__name__)
 
-# Verbosity control for logging - can be adjusted as needed
-VERBOSE_LOGGING = True
+# Verbosity control for logging - set to False for production use
+VERBOSE_LOGGING = False
 
-def configure_logging():
-    """Ensure logs are directed to the console with proper formatting."""
-    # Get root logger
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
+def configure_logging(debug_mode=False):
+    """Configure logging using the centralized configuration."""
+    configure_minimal_logging(debug_mode)
     
-    # Check if handlers already exist to avoid duplicates
-    if not root_logger.handlers:
-        # Create console handler and set level
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(logging.INFO)
-        
-        # Create formatter
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        console_handler.setFormatter(formatter)
-        
-        # Add handler to logger
-        root_logger.addHandler(console_handler)
-    
-    # Ensure httpx and openai loggers are set to DEBUG for API requests/responses
-    logging.getLogger("httpx").setLevel(logging.DEBUG)
-    logging.getLogger("openai").setLevel(logging.DEBUG)
-    
-    logger.info("Logging configured for OpenAI context manager")
+    if debug_mode:
+        logger.info("OpenAI context manager logging configured in debug mode")
+    else:
+        logger.info("OpenAI context manager logging configured in minimal mode")
 
-# Configure logging once during module import
-configure_logging()
+# Configure logging once during module import with minimal verbosity
+configure_logging(debug_mode=False)
 
 def log_operation(func):
     """Decorator for logging method entry/exit with controlled verbosity."""
@@ -178,6 +163,13 @@ class OpenAIContextManager:
             "3. Only include character_id for NPCs involved in the choice.",
             "4. Respect character roles: mission-givers give missions, villains oppose the player, etc.",
             "5. Maintain character traits, backstories, and plot lines exactly as provided.",
+            "",
+            "SECONDARY CHARACTER INTEGRATION REQUIREMENTS:",
+            "1. You MUST incorporate at least one neutral or supporting character in every story segment.",
+            "2. Always include at least one choice that involves seeking help from or interacting with a neutral character.",
+            "3. Neutral characters should provide meaningful interaction opportunities and plot development.",
+            "4. Ensure neutral character interactions reflect their specific traits and backstories.",
+            "5. Use neutral characters to introduce side plots, provide information, or offer alternative mission approaches.",
             "",
             "NARRATIVE STYLE REQUIREMENTS:",
             "1. Tell the story in second person, addressing the player directly.",

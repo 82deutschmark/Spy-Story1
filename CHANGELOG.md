@@ -3,6 +3,15 @@
 ## [Unreleased]
 
 ### Added
+- Enhanced User Identification System:
+  - Added dedicated `agent_codename` column to UserProgress model for efficient user lookup
+  - Updated `get_or_create_user_progress` function to prioritize agent codename for user identification
+  - Enhanced login route to handle agent codename-based authentication
+  - Added backward compatibility with existing game_state protagonist name
+  - Created data migration script to populate agent_codename from existing game_state data
+  - Updated API endpoints to accept and return agent codename consistently
+  - Improved documentation for the user identification approach
+  - Enhanced user session management for story continuation
 - Enhanced OpenAI API logging system:
   - Added detailed request and response logging with `utils/context_manager.py`
   - Created a standalone test script `test_api_logging.py` for API logging verification

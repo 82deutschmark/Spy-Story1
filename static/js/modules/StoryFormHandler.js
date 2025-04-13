@@ -7,6 +7,7 @@ class StoryFormHandler {
         this.loadingManager = new LoadingManager();
         this.errorHandler = new ErrorHandler();
         this.characterSelector = new CharacterSelector();
+        this.isSubmitting = false; // Add submission tracking flag
     }
 
     initialize() {
@@ -20,6 +21,41 @@ class StoryFormHandler {
                 this.handleStorySubmit(event);
             }
         });
+
+        // Ensure protagonist fields are synchronized
+        this.setupFieldSynchronization();
+    }
+
+    // Add method to synchronize visible and hidden fields
+    setupFieldSynchronization() {
+        const visibleNameField = document.getElementById('protagonistName');
+        const hiddenNameField = document.getElementById('protagonistNameInput');
+        const visibleGenderField = document.getElementById('protagonistGender');
+        const hiddenGenderField = document.getElementById('protagonistGenderInput');
+
+        if (visibleNameField && hiddenNameField) {
+            // Copy initial value if present
+            if (visibleNameField.value) {
+                hiddenNameField.value = visibleNameField.value;
+            }
+
+            // Update hidden field when visible field changes
+            visibleNameField.addEventListener('input', () => {
+                hiddenNameField.value = visibleNameField.value;
+            });
+        }
+
+        if (visibleGenderField && hiddenGenderField) {
+            // Copy initial value if present
+            if (visibleGenderField.value) {
+                hiddenGenderField.value = visibleGenderField.value;
+            }
+
+            // Update hidden field when visible field changes
+            visibleGenderField.addEventListener('change', () => {
+                hiddenGenderField.value = visibleGenderField.value;
+            });
+        }
     }
 
     async handleStorySubmit(event) {
@@ -28,15 +64,39 @@ class StoryFormHandler {
         const submitButton = form.querySelector('button[type="submit"]');
         let loadingState = null;
 
+        // Prevent duplicate submissions
+        if (this.isSubmitting) {
+            console.log('Form submission already in progress, ignoring duplicate request');
+            return;
+        }
+
         try {
+            // Set submission flag
+            this.isSubmitting = true;
+
+            // Synchronize visible and hidden fields one final time before submission
+            const visibleNameField = document.getElementById('protagonistName');
+            const hiddenNameField = document.getElementById('protagonistNameInput');
+            const visibleGenderField = document.getElementById('protagonistGender');
+            const hiddenGenderField = document.getElementById('protagonistGenderInput');
+
+            if (visibleNameField && hiddenNameField) {
+                hiddenNameField.value = visibleNameField.value;
+            }
+            
+            if (visibleGenderField && hiddenGenderField) {
+                hiddenGenderField.value = visibleGenderField.value;
+            }
+
             // Validate required fields
-            const name = form.querySelector('#protagonistNameInput').value;
-            const gender = form.querySelector('#protagonistGenderInput').value;
+            const name = hiddenNameField.value;
+            const gender = hiddenGenderField.value;
             const errorDiv = form.querySelector('.error-message');
 
             if (!name || !gender) {
                 errorDiv.textContent = 'Please enter both agent codename and gender.';
                 errorDiv.style.display = 'block';
+                this.isSubmitting = false; // Reset submission flag
                 return;
             }
             errorDiv.style.display = 'none';
@@ -52,6 +112,9 @@ class StoryFormHandler {
             if (!selectedImagesInput?.value) {
                 throw new Error('Please select a character before proceeding');
             }
+
+            // Log the form data to ensure everything is correct
+            console.log('Submitting form with agent codename:', name, 'gender:', gender);
 
             const response = await fetch(form.action, {
                 method: 'POST',
@@ -89,6 +152,9 @@ class StoryFormHandler {
             if (submitButton && loadingState) {
                 this.loadingManager.stopButtonLoading(submitButton, loadingState.originalText);
             }
+        } finally {
+            // Always reset submission flag
+            this.isSubmitting = false;
         }
     }
 }

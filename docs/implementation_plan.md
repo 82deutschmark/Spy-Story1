@@ -4,15 +4,15 @@ This implementation plan outlines the steps needed to properly implement the gam
 
 ## 1. User Management System Implementation
 
-### 1.1 Improve User Identification Logic
-- Implement the approach outlined in `user_identification_plan.md`
-- Ensure consistent identification using both session `user_id` and `protagonist_name`
+### 1.1 Improve User Identification Logic 
+- Implemented the approach outlined in `user_identification_plan.md`
+- Ensured consistent identification using both session `user_id` and `protagonist_name`
 - Review `get_or_create_user_progress()` in `utils/db_utils.py` to properly handle identification
 - Ensure protagonist information is consistently stored in `branch_metadata["protagonist"]`
 
-### 1.2 Enhance User Session Management
+### 1.2 Enhance User Session Management 
 - Fix user session persistence with Flask-Login
-- Update login route to handle agent codename login properly
+- Updated login route to handle agent codename login properly
 - Ensure proper state tracking in `GameState` using `reload_state()` 
 
 ### 1.3 Story Resumption Implementation

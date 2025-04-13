@@ -87,10 +87,17 @@ from models import Character, SceneImages, StoryGeneration, Transaction, UserPro
 # Configure logging
 logger = logging.getLogger(__name__)
 
-def get_or_create_user_progress(user_id=None, protagonist_name=None):
+def get_or_create_user_progress(user_id=None, agent_codename=None):
     """
     Get or create user progress record for the current session.
-    Uses user_id from session and protagonist_name for identification.
+    Uses user_id from session and agent_codename for identification.
+    
+    Args:
+        user_id (str, optional): Session user ID
+        agent_codename (str, optional): Agent codename (protagonist name)
+        
+    Returns:
+        UserProgress: User progress object
     """
     if not user_id and 'user_id' not in session:
         session['user_id'] = str(uuid.uuid4())
@@ -99,23 +106,39 @@ def get_or_create_user_progress(user_id=None, protagonist_name=None):
     elif not user_id:
         user_id = session['user_id']
 
-    # Find user by user_id first
+    # First try by session user_id
     user_progress = UserProgress.query.filter_by(user_id=user_id).first()
+    
+    # If user found by session ID and agent_codename provided, update agent_codename if missing
+    if user_progress and agent_codename and not user_progress.agent_codename:
+        user_progress.agent_codename = agent_codename
+        # For backward compatibility, also update game_state
+        if not user_progress.game_state:
+            user_progress.game_state = {}
+        user_progress.game_state['protagonist_name'] = agent_codename
+        db.session.commit()
+        logger.info(f"Updated agent_codename for user {user_id} to {agent_codename}")
+        
+    # If not found by session ID, try to find by agent_codename (dedicated column)
+    if not user_progress and agent_codename:
+        user_progress = UserProgress.query.filter_by(agent_codename=agent_codename).first()
+        
+        # If still not found, try to find by protagonist_name in game_state (backward compatibility)
+        if not user_progress:
+            user_progress = UserProgress.query.filter(
+                UserProgress.game_state.has_key('protagonist_name')
+            ).filter(
+                UserProgress.game_state['protagonist_name'].astext == agent_codename
+            ).first()
 
-    # If no user found and protagonist name is provided, try to find by protagonist name
-    if not user_progress and protagonist_name:
-        # Find user progress with matching protagonist name from game_state
-        user_progress = UserProgress.query.filter(
-            UserProgress.game_state.has_key('protagonist_name')
-        ).filter(
-            UserProgress.game_state['protagonist_name'].astext == protagonist_name
-        ).first()
-
-        # If found by protagonist name, update the user_id to the session user_id
+        # If found by agent_codename or protagonist_name, update user_id to match current session
         if user_progress:
-            logger.info(f"Found user progress by protagonist name: {protagonist_name}")
+            logger.info(f"Found user progress by agent codename: {agent_codename}")
             # Update user_id to match current session
             user_progress.user_id = user_id
+            # Ensure agent_codename is set in the dedicated column
+            if not user_progress.agent_codename:
+                user_progress.agent_codename = agent_codename
             db.session.commit()
 
     # If still no user progress, create a new one
@@ -123,8 +146,9 @@ def get_or_create_user_progress(user_id=None, protagonist_name=None):
         logger.debug(f"Creating new user progress for ID: {user_id}")
         user_progress = UserProgress(
             user_id=user_id,
+            agent_codename=agent_codename,
             currency_balances={
-                "💎": 550,  # Diamonds
+                "💎": 500,  # Diamonds
                 "💷": 5000,  # Pounds
                 "💶": 5000,  # Euros
                 "💴": 5000,  # Yen
@@ -132,11 +156,11 @@ def get_or_create_user_progress(user_id=None, protagonist_name=None):
             }
         )
 
-        # If protagonist name is provided, add it to game_state
-        if protagonist_name:
+        # For backward compatibility, also store in game_state
+        if agent_codename:
             if not user_progress.game_state:
                 user_progress.game_state = {}
-            user_progress.game_state['protagonist_name'] = protagonist_name
+            user_progress.game_state['protagonist_name'] = agent_codename
 
         db.session.add(user_progress)
         db.session.commit()

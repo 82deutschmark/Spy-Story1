@@ -11,12 +11,12 @@ The Spy Story Game Engine includes comprehensive logging for OpenAI API requests
 ## Key Components
 
 ### 1. `utils/context_manager.py`
-This file contains the core API logging functionality:
+This file contains the core API logging functionality:  AND IT SHOULD NOT!!!
 
-- `configure_logging()`: Sets up logging configuration for the entire application
+- `configure_logging()`: Sets up logging configuration for the entire application  WHY?!?!  THIS SEEMS WRONG!!
 - `OpenAIContextManager`: Stateless service class that handles API interactions
-- `process_api_call()`: Centralized method for making API calls with robust logging
-- `test_api_logging()`: Helper function for testing the logging system
+- `process_api_call()`: Centralized method for making API calls with robust logging  NO LOGGING!!!
+- `test_api_logging()`: Helper function for testing the logging system  NOOO!!!  BAD!!!
 
 ### 2. `test_api_logging.py`
 A standalone script that demonstrates API request logging:
@@ -29,10 +29,10 @@ python test_api_logging.py
 ## What's Logged
 
 ### Request Information
-- **Model**: Which model is being used (e.g., `gpt-4-turbo`)
-- **Temperature**: Temperature setting for the request
+- **Model**: Which model is being used (e.g., `o3-mini`)
+- **Temperature**: Temperature setting for the request NOT USED WITH o3!!!  
 - **Full Request Payload**: The complete messages array and all parameters
-- **Truncated Content**: For very large messages, content is truncated but preserves important parts
+- **Truncated Content**: For very large messages, content is truncated but preserves important parts  HOW?!?!
 
 ### Response Information
 - **Usage Statistics**: Token counts for prompt, completion, and total

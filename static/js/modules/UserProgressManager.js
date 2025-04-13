@@ -77,6 +77,7 @@ class UserProgressManager {
     constructor() {
         this.userData = null;
         this.isInitialized = false;
+        this.isLoadingAgent = false; // Flag to prevent duplicate API calls
         this.missionManager = new MissionManager(); // Create an instance
         this.setupMissionHandlers();
     }
@@ -98,16 +99,28 @@ class UserProgressManager {
             });
         }
 
-        // Listen for protagonist name input change
+        // Listen for protagonist name input change with debounce
         const protagonistNameInput = document.getElementById('protagonistName');
         if (protagonistNameInput) {
+            let debounceTimer;
+            
             protagonistNameInput.addEventListener('change', (e) => {
                 const agentCodename = e.target.value.trim();
                 if (agentCodename) {
                     // Save to local storage
                     localStorage.setItem('agentCodename', agentCodename);
-                    // Optionally auto-load data
-                    this.loadAgentData(agentCodename);
+                    
+                    // Synchronize with hidden form field if present
+                    const hiddenNameField = document.getElementById('protagonistNameInput');
+                    if (hiddenNameField) {
+                        hiddenNameField.value = agentCodename;
+                    }
+                    
+                    // Clear previous timer and set a new one for agent data loading
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => {
+                        this.loadAgentData(agentCodename);
+                    }, 300); // 300ms debounce
                 }
             });
         }
@@ -160,6 +173,14 @@ class UserProgressManager {
      */
     loadAgentData(codename) {
         if (!codename) return;
+        
+        // Prevent duplicate API calls
+        if (this.isLoadingAgent) {
+            console.log(`Already loading agent data for ${codename}, ignoring duplicate request`);
+            return;
+        }
+        
+        this.isLoadingAgent = true;
 
         // Show loading state
         // this.toggleAgentDetailsLoading(true);
@@ -183,13 +204,22 @@ class UserProgressManager {
                     if (!this.userData.choice_history) this.userData.choice_history = [];
                     if (!this.userData.encountered_characters) this.userData.encountered_characters = {};
 
+                    // Update form fields with agent data
+                    this.updateFormFields(codename);
                     this.updateAgentDisplay();
                     this.showNotification(`Agent ${codename} loaded successfully!`, 'success');
                     // Check if user has a story to continue
                     if (this.userData.current_story_id) {
+                        // Store last story ID in localStorage
+                        localStorage.setItem('lastStoryId', this.userData.current_story_id);
+                        
                         const continueBtn = document.getElementById('continueStoryBtn');
                         if (continueBtn) {
-                            continueBtn.addEventListener('click', () => {
+                            // Remove existing event listeners to prevent duplicates
+                            const newBtn = continueBtn.cloneNode(true);
+                            continueBtn.parentNode.replaceChild(newBtn, continueBtn);
+                            
+                            newBtn.addEventListener('click', () => {
                                 window.location.href = `/storyboard?story_id=${this.userData.current_story_id}`;
                             });
                         }
@@ -212,6 +242,8 @@ class UserProgressManager {
                         encountered_characters: {},
                         is_new: true
                     };
+                    // Update form fields for new agent
+                    this.updateFormFields(codename);
                     this.updateAgentDisplay();
                     this.showNotification(`New agent ${codename} created!`, 'info');
                 }
@@ -220,7 +252,37 @@ class UserProgressManager {
                 console.error('Error loading agent data:', error);
                 this.showNotification('Error loading agent data', 'danger');
                 // this.toggleAgentDetailsLoading(false);
+            })
+            .finally(() => {
+                this.isLoadingAgent = false; // Reset loading flag regardless of success/failure
             });
+    }
+    
+    /**
+     * Update form fields with agent codename data
+     * @param {string} codename - The agent codename to use
+     */
+    updateFormFields(codename) {
+        // Update hidden form field if it exists
+        const hiddenNameField = document.getElementById('protagonistNameInput');
+        if (hiddenNameField) {
+            hiddenNameField.value = codename;
+        }
+        
+        // Ensure protagonist gender is set if available from user data
+        if (this.userData && this.userData.game_state && this.userData.game_state.protagonist) {
+            const gender = this.userData.game_state.protagonist.gender;
+            const hiddenGenderField = document.getElementById('protagonistGenderInput');
+            const visibleGenderField = document.getElementById('protagonistGender');
+            
+            if (gender && hiddenGenderField) {
+                hiddenGenderField.value = gender;
+            }
+            
+            if (gender && visibleGenderField) {
+                visibleGenderField.value = gender;
+            }
+        }
     }
 
     /* Commented out to centralize loading state management in LoadingManager.js
@@ -294,10 +356,13 @@ class UserProgressManager {
             localStorage.setItem('lastStoryId', this.userData.current_story_id);
             continueStoryContainer.style.display = 'block';
 
-            // Setup continue story button if it exists
+            // Setup continue story button if it exists - REPLACE NODE TO AVOID DUPLICATE LISTENERS
             const continueStoryBtn = document.getElementById('continue-story-btn');
             if (continueStoryBtn) {
-                continueStoryBtn.addEventListener('click', () => {
+                const newBtn = continueStoryBtn.cloneNode(true);
+                continueStoryBtn.parentNode.replaceChild(newBtn, continueStoryBtn);
+                
+                newBtn.addEventListener('click', () => {
                     window.location.href = `/storyboard?story_id=${this.userData.current_story_id}`;
                 });
             }

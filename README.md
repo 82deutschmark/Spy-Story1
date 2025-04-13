@@ -123,16 +123,6 @@ The system includes enhanced logging capabilities for OpenAI API interactions:
 - **Dedicated Testing Script**: Use `test_api_logging.py` to quickly verify API connectivity and logging
 - **Centralized Logging Configuration**: All logging is configured through `utils/context_manager.py`  BUT THIS NEEDS TO CHANGE!!!
 
-To test the API logging:
-```bash
-# Set your OpenAI API key
-export OPENAI_API_KEY=your_key_here  # Linux/Mac
-set OPENAI_API_KEY=your_key_here     # Windows CMD
-$env:OPENAI_API_KEY='your_key_here'  # Windows PowerShell
-
-# Run the test script
-python test_api_logging.py
-```
 
 ## Narrative Analysis Migration
 

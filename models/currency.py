@@ -3,7 +3,10 @@ currency.py - Currency and Transaction Management
 ===========================================
 
 This module defines the models for managing different types of currency and
-tracking currency transactions in the interactive spy story system.
+tracking currency transactions in the interactive spy story system.  A complex system 
+is planned to have the user spend currency on story choices, purchases, and exchanges.  
+This is not yet implemented.
+
 
 Key Components:
 ------------

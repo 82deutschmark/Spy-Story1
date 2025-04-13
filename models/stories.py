@@ -119,7 +119,7 @@ class StoryNode(db.Model):
     is_endpoint = db.Column(db.Boolean, default=False)
     generated_by_ai = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    achievement_id = db.Column(db.Integer, db.ForeignKey('achievement.id'))
+    achievement_id = db.Column(db.Integer)  # Keeping the column but removing the foreign key reference
     branch_metadata = db.Column(JSONB)  # Store branch-specific metadata
     parent_node_id = db.Column(db.Integer, db.ForeignKey('story_node.id'))
     branch_id = db.Column(db.String(255))  # Unique identifier for this story branch
@@ -127,7 +127,6 @@ class StoryNode(db.Model):
 
     # Relationships
     character = db.relationship('Character')
-    achievement = db.relationship('Achievement', backref='story_nodes')
     parent_node = db.relationship('StoryNode', remote_side=[id],
                                 backref=db.backref('child_nodes', lazy='dynamic'))
     choices = db.relationship('StoryChoice', 
