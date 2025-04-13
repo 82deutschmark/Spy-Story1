@@ -52,6 +52,7 @@ from utils.context_manager import OpenAIContextManager, configure_logging
 from utils.character_manager import format_character_info
 import json
 import sys
+from sqlalchemy import func
 
 # Configure proper logging for game engine
 def setup_game_engine_logging():
@@ -499,6 +500,39 @@ class GameEngine:
                     "description": getattr(char, "description", ""),
                     "role": char.character_role  # Include both formats for compatibility
                 } for char in story.characters]
+            
+            # Check if we need to add neutral characters
+            has_neutral = any(char.get('character_role', '').lower() in ['neutral', 'undetermined'] 
+                             for char in char_info)
+            
+            if not has_neutral:
+                logger.info("No neutral characters found in story, adding from database...")
+                # Query for neutral characters not already in the story
+                existing_ids = [char['id'] for char in char_info]
+                neutral_chars = Character.query.filter(
+                    Character.character_role.in_(["neutral", "undetermined"]),
+                    ~Character.id.in_(existing_ids) if existing_ids else True
+                ).order_by(func.random()).limit(2).all()
+                
+                if neutral_chars:
+                    logger.info(f"Found {len(neutral_chars)} neutral characters to add")
+                    for char in neutral_chars:
+                        # Add to story.characters for persistence
+                        story.characters.append(char)
+                        
+                        # Add to char_info for current request
+                        char_info.append({
+                            "id": char.id,
+                            "name": char.character_name,
+                            "character_name": char.character_name,
+                            "character_role": char.character_role,
+                            "character_traits": getattr(char, "character_traits", {}),
+                            "plot_lines": getattr(char, "plot_lines", []),
+                            "backstory": getattr(char, "backstory", ""),
+                            "description": getattr(char, "description", ""),
+                            "role": char.character_role
+                        })
+                        logger.info(f"Added neutral character: {char.character_name} (ID: {char.id})")
             
             logger.debug(f"Formatted {len(char_info)} characters for context manager")
             
