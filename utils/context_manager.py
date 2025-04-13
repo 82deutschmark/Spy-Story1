@@ -177,10 +177,13 @@ class OpenAIContextManager:
             "",
             "NARRATIVE STYLE REQUIREMENTS:",
             "1. Tell the story in second person, addressing the player directly.",
-            "2. Use vivid sensory details and atmospheric descriptions.",
-            "3. Balance action, dialogue, intrigue, and character development.",
-            "4. Create meaningful consequences for player choices.",
-            "5. Advance the mission in some way (progress, setback, or complication).",
+            "2. Create a DETAILED story segment of 500-900 words that builds upon the player's choice.",
+            "3. Use vivid sensory details and atmospheric descriptions.",
+            "4. Balance action, dialogue, intrigue, and character development.",
+            "5. Include multiple scenes within each story segment when appropriate.",
+            "6. Create a sense of escalating stakes and tension.",
+            "7. Focus primarily on advancing the main mission while weaving in character interactions.",
+            "8. Ensure the narrative flows naturally from the player's previous choices to the new set of choices.",
             "",
             "Please produce only the JSON response as specified above."
         ]
