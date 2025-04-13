@@ -81,6 +81,17 @@ class LoadingManager {
     startLoadingOverlay(message = 'Loading...') {
         const overlay = document.createElement('div');
         overlay.className = 'loading-overlay';
+        // Add critical styles inline to ensure visibility
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+        overlay.style.display = 'flex';
+        overlay.style.justifyContent = 'center';
+        overlay.style.alignItems = 'center';
+        overlay.style.zIndex = '99999'; // Extremely high z-index
         // Notice the spinner-border here comes from Bootstrap and auto-animates:
         overlay.innerHTML = `
             <div class="loading-content">

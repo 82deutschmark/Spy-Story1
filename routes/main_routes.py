@@ -546,3 +546,150 @@ def api_user_progress():
         "notes": user_progress.game_state.get("notes", "No notes yet")
     }
     return jsonify(progress_data)
+
+
+@main_bp.route('/login', methods=['GET', 'POST'])
+def login():
+    """
+    Handle user login with agent codename.
+    """
+    if request.method == 'POST':
+        agent_codename = request.form.get('agentCodename')
+        if agent_codename:
+            # Store codename in session
+            session['agent_codename'] = agent_codename
+            # Get or create user progress based on codename
+            user_progress = get_or_create_progress(agent_codename)
+            session['user_id'] = user_progress.user_id
+            flash('Successfully logged in as Agent ' + agent_codename, 'success')
+            # Check if user has an existing story
+            if user_progress.current_story_id:
+                return redirect(url_for('main.storyboard', story_id=user_progress.current_story_id))
+            return redirect(url_for('main.index'))
+        else:
+            flash('Please enter a valid codename', 'danger')
+            return redirect(url_for('main.login'))
+    return render_template('login.html')
+
+
+@main_bp.route('/api/missions/active')
+def api_missions_active():
+    """
+    Retrieve active missions for the current user.
+    """
+    user_progress = get_or_create_progress()
+    active_missions = user_progress.active_missions or []
+    return jsonify({
+        'status': 'success',
+        'missions': active_missions
+    })
+
+
+@main_bp.route('/api/missions')
+def api_missions():
+    """
+    Retrieve all missions for the current user.
+    """
+    user_progress = get_or_create_progress()
+    active_missions = user_progress.active_missions or []
+    completed_missions = user_progress.completed_missions or []
+    return jsonify({
+        'status': 'success',
+        'missions': active_missions + completed_missions
+    })
+
+
+@main_bp.route('/api/missions/<int:mission_id>')
+def api_mission_details(mission_id):
+    """
+    Retrieve details for a specific mission.
+    """
+    user_progress = get_or_create_progress()
+    all_missions = (user_progress.active_missions or []) + (user_progress.completed_missions or [])
+    mission = next((m for m in all_missions if m.get('id') == mission_id), None)
+    if mission:
+        return jsonify({
+            'status': 'success',
+            'mission': mission
+        })
+    return jsonify({
+        'status': 'error',
+        'message': 'Mission not found'
+    }), 404
+
+
+@main_bp.route('/api/missions/<int:mission_id>/update', methods=['POST'])
+def api_mission_update(mission_id):
+    """
+    Update progress for a specific mission.
+    """
+    user_progress = get_or_create_progress()
+    active_missions = user_progress.active_missions or []
+    mission_index = next((i for i, m in enumerate(active_missions) if m.get('id') == mission_id), None)
+    if mission_index is not None:
+        data = request.get_json()
+        active_missions[mission_index].update(data)
+        user_progress.active_missions = active_missions
+        db.session.commit()
+        return jsonify({
+            'status': 'success',
+            'mission': active_missions[mission_index]
+        })
+    return jsonify({
+        'status': 'error',
+        'message': 'Mission not found'
+    }), 404
+
+
+@main_bp.route('/api/missions/<int:mission_id>/complete', methods=['POST'])
+def api_mission_complete(mission_id):
+    """
+    Mark a mission as completed.
+    """
+    user_progress = get_or_create_progress()
+    active_missions = user_progress.active_missions or []
+    completed_missions = user_progress.completed_missions or []
+    mission_index = next((i for i, m in enumerate(active_missions) if m.get('id') == mission_id), None)
+    if mission_index is not None:
+        mission = active_missions.pop(mission_index)
+        mission['status'] = 'completed'
+        mission['completed_at'] = datetime.utcnow().isoformat()
+        completed_missions.append(mission)
+        user_progress.active_missions = active_missions
+        user_progress.completed_missions = completed_missions
+        db.session.commit()
+        return jsonify({
+            'status': 'success',
+            'mission': mission
+        })
+    return jsonify({
+        'status': 'error',
+        'message': 'Mission not found'
+    }), 404
+
+
+@main_bp.route('/api/missions/<int:mission_id>/fail', methods=['POST'])
+def api_mission_fail(mission_id):
+    """
+    Mark a mission as failed.
+    """
+    user_progress = get_or_create_progress()
+    active_missions = user_progress.active_missions or []
+    completed_missions = user_progress.completed_missions or []
+    mission_index = next((i for i, m in enumerate(active_missions) if m.get('id') == mission_id), None)
+    if mission_index is not None:
+        mission = active_missions.pop(mission_index)
+        mission['status'] = 'failed'
+        mission['failed_at'] = datetime.utcnow().isoformat()
+        completed_missions.append(mission)
+        user_progress.active_missions = active_missions
+        user_progress.completed_missions = completed_missions
+        db.session.commit()
+        return jsonify({
+            'status': 'success',
+            'mission': mission
+        })
+    return jsonify({
+        'status': 'error',
+        'message': 'Mission not found'
+    }), 404

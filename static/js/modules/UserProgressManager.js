@@ -162,7 +162,7 @@ class UserProgressManager {
         if (!codename) return;
 
         // Show loading state
-        this.toggleAgentDetailsLoading(true);
+        // this.toggleAgentDetailsLoading(true);
 
         // Make API call to get user progress data
         fetch(`/api/user/progress?codename=${encodeURIComponent(codename)}`)
@@ -185,6 +185,15 @@ class UserProgressManager {
 
                     this.updateAgentDisplay();
                     this.showNotification(`Agent ${codename} loaded successfully!`, 'success');
+                    // Check if user has a story to continue
+                    if (this.userData.current_story_id) {
+                        const continueBtn = document.getElementById('continueStoryBtn');
+                        if (continueBtn) {
+                            continueBtn.addEventListener('click', () => {
+                                window.location.href = `/storyboard?story_id=${this.userData.current_story_id}`;
+                            });
+                        }
+                    }
                 } else if (data.create_new || !data.success) {
                     // If no existing data but valid response, we'll create a new agent
                     this.userData = {
@@ -210,26 +219,25 @@ class UserProgressManager {
             .catch(error => {
                 console.error('Error loading agent data:', error);
                 this.showNotification('Error loading agent data', 'danger');
-                this.toggleAgentDetailsLoading(false);
+                // this.toggleAgentDetailsLoading(false);
             });
     }
 
-    /**
-     * Toggle loading state for agent details
-     * @param {boolean} isLoading - Whether the data is loading
-     */
+    /* Commented out to centralize loading state management in LoadingManager.js
     toggleAgentDetailsLoading(isLoading) {
-        const placeholder = document.getElementById('agent-details-placeholder');
-        const details = document.getElementById('agent-details');
+        const placeholder = document.querySelector('#agent-details-placeholder');
+        const details = document.querySelector('#agent-details');
+        if (!placeholder && !details) return;
 
         if (isLoading) {
             if (placeholder) placeholder.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading agent data...</p></div>';
             if (details) details.style.display = 'none';
         } else {
-            if (placeholder) placeholder.style.display = 'none';
+            if (placeholder) placeholder.innerHTML = '';
             if (details) details.style.display = 'block';
         }
     }
+    */
 
     /**
      * Update the agent display with loaded data
@@ -238,7 +246,7 @@ class UserProgressManager {
         if (!this.userData) return;
 
         // Hide placeholder and show details
-        this.toggleAgentDetailsLoading(false);
+        // this.toggleAgentDetailsLoading(false);
 
         const agentDetails = document.getElementById('agent-details');
         const placeholder = document.getElementById('agent-details-placeholder');

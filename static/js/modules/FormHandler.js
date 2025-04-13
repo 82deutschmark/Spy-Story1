@@ -26,8 +26,8 @@ class FormHandler {
         this.errorHandler.initialize();
         this.characterSelector.initialize();
 
-        // Handle form submissions
-        document.addEventListener('submit', this.handleSubmit, true);
+        // Removed event listener to avoid conflict with specific form handlers
+        // document.addEventListener('submit', this.handleSubmit, true);
     }
 
     /**

@@ -173,7 +173,7 @@ class ChoiceHandler {
                 
                 // Stop loading state and re-enable buttons
                 if (submitButton && loadingState) {
-                    this.loadingManager.stopButtonLoading(submitButton, loadingState.originalText);
+                    this.loadingManager.stopButtonLoading(submitButton);
                 }
                 
                 // Re-enable all choice buttons
@@ -199,7 +199,7 @@ class ChoiceHandler {
             this.errorHandler.showError(error.message || 'Failed to process your choice. Please try again.');
             
             if (submitButton && loadingState) {
-                this.loadingManager.stopButtonLoading(submitButton, loadingState.originalText);
+                this.loadingManager.stopButtonLoading(submitButton);
             }
 
             // Re-enable choice buttons

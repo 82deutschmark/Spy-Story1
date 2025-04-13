@@ -86,10 +86,15 @@ async function initializeApplication() {
 
         // Centralized module initialization with error handling
         const modules = [
-            { name: 'LoadingManager', module: LoadingManager, initMethod: 'init' },
+            { name: 'LoadingManager', module: LoadingManager, initMethod: 'initialize' },
+            // Commented out to prevent conflicts with form submission handling in ChoiceHandler and StoryFormHandler
+            // { name: 'FormHandler', module: FormHandler, initMethod: 'initialize' },
             { name: 'ErrorHandler', module: ErrorHandler, initMethod: 'initialize' },
-            { name: 'StoryFormHandler', module: StoryFormHandler, initMethod: 'init' },
-            { name: 'NotebookManager', module: NotebookManager, initMethod: 'initialize' },
+            { name: 'ChoiceHandler', module: ChoiceHandler, initMethod: 'initialize' },
+            { name: 'StoryFormHandler', module: StoryFormHandler, initMethod: 'initialize' },
+            { name: 'CharacterSelector', module: CharacterSelector, initMethod: 'initialize' },
+            { name: 'CharacterMentions', module: CharacterMentions, initMethod: 'initialize' },
+            { name: 'NotebookManager', module: NotebookManager, initMethod: 'initialize' },            
             { name: 'MissionManager', module: MissionManager, initMethod: 'initialize' },
             { name: 'UserProgressManager', module: UserProgressManager, initMethod: 'initialize' }
         ];
@@ -130,7 +135,7 @@ async function initializeApplication() {
 
         // Fallback initialization for core systems
         const loadingManager = new LoadingManager();
-        if (typeof loadingManager.init === 'function') loadingManager.init();
+        if (typeof loadingManager.initialize === 'function') loadingManager.initialize();
         appLog("LoadingManager initialized");
 
         const errorHandler = new ErrorHandler();
@@ -138,7 +143,7 @@ async function initializeApplication() {
         appLog("ErrorHandler initialized");
 
         const storyFormHandler = new StoryFormHandler();
-        if (typeof storyFormHandler.init === 'function') storyFormHandler.init();
+        if (typeof storyFormHandler.initialize === 'function') storyFormHandler.initialize();
         appLog("StoryFormHandler initialized");
 
         // Initialize character mentions last (after all content is loaded)
