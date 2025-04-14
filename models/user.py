@@ -11,10 +11,9 @@ Key Features:
 1. Story progression tracking
 2. Currency and transaction management
 3. Character relationship system
-4. Experience and leveling system
-5. Mission and plot arc tracking
-6. Achievement management
-7. Choice history recording
+4. Mission and plot arc tracking
+5. Achievement management  DEPRECATED!!!
+6. Choice history recording
 
 Database Schema:
 -------------
@@ -22,7 +21,7 @@ Table: user_progress
 - Primary key: id
 - Required fields: user_id
 - Foreign keys: current_node_id, current_story_id
-- Progress tracking: level, experience_points, choice_history
+- Progress tracking: choice_history
 - Game state: achievements_earned, game_state
 - Plot tracking: active_plot_arcs, completed_plot_arcs
 - Mission tracking: active/completed/failed_missions
@@ -38,13 +37,6 @@ Currency Types:
 - 💶 Euros: European currency (5000 starting)
 - 💴 Yen: Japanese currency (5000 starting)
 - 💵 Dollars: US currency (5000 starting)
-
-Leveling System:
--------------
-- Experience points determine level
-- Level = 1 + sqrt(xp/100)
-- Level-up bonus: 50 * new_level in Euros
-- Experience awarded for various actions
 
 Usage Notes:
 ----------
@@ -77,8 +69,6 @@ class UserProgress(db.Model):
         agent_codename (str): Agent codename for identification and login
         current_node_id (int): Current story node ID
         current_story_id (int): Current story ID
-        level (int): User's game level [default: 1]
-        experience_points (int): XP for leveling [default: 0]
         last_updated (datetime): Last state update timestamp
         choice_history (JSONB): Array of user's choices
         achievements_earned (JSONB): Array of earned achievements
@@ -103,8 +93,9 @@ class UserProgress(db.Model):
     agent_codename = db.Column(db.String(255), nullable=True, index=True)  # Agent codename for easier lookup
     current_node_id = db.Column(db.Integer, db.ForeignKey('story_node.id', ondelete='SET NULL'))
     current_story_id = db.Column(db.Integer, db.ForeignKey('story_generation.id', ondelete='SET NULL'))
-    level = db.Column(db.Integer, default=1)  # User's game level
-    experience_points = db.Column(db.Integer, default=0)  # XP for leveling up
+    # 2025-04-13: DEPRECATED - These fields are maintained for compatibility but should not be used for new features
+    level = db.Column(db.Integer, default=1)  # DEPRECATED - User's game level
+    experience_points = db.Column(db.Integer, default=0)  # DEPRECATED - XP for leveling up
     last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     choice_history = db.Column(JSONB, default=[])  # Track user's choice history as an array
     achievements_earned = db.Column(JSONB, default=[])  # Track earned achievements
@@ -286,7 +277,7 @@ class UserProgress(db.Model):
         self.current_story_id = story_id
         db.session.commit()
         return True
-        
+     ###Good method, but not used in the project??? Needs thoughts on how to use it!### 
     def encounter_character(self, character_id, character_name, initial_relationship=0):
         """
         Record or update a character encounter.
@@ -323,7 +314,7 @@ class UserProgress(db.Model):
             
         db.session.commit()
         return True
-        
+      ### This is a good method and I like it but not sure we are using it properly in the project!  
     def change_character_relationship(self, character_id, change_amount, reason=None):
         """
         Change relationship level with a character.
@@ -361,9 +352,11 @@ class UserProgress(db.Model):
         self.encountered_characters[str(character_id)] = char_data
         db.session.commit()
         return True
-        
+    ### 2025-04-13: DEPRECATED - Experience and leveling system not used in current implementation
+    # Commented out but preserved for reference
+    """
     def add_experience_points(self, points, reason=None):
-        """
+        '''
         Add experience points and handle leveling up.
         
         Args:
@@ -382,24 +375,25 @@ class UserProgress(db.Model):
         Notes:
             Level calculation: level = 1 + sqrt(xp/100)
             Level-up bonus: 50 * new_level in Euros
-        """
-        self.experience_points += points
+        '''
+        # self.experience_points += points
         
-        # Simple leveling formula: level = 1 + sqrt(xp/100)
-        new_level = 1 + int(math.sqrt(self.experience_points / 100))
+        # # Simple leveling formula: level = 1 + sqrt(xp/100)
+        # new_level = 1 + int(math.sqrt(self.experience_points / 100))
         
-        level_up = new_level > self.level
-        if level_up:
-            old_level = self.level
-            self.level = new_level
-            logger.info(f"User {self.user_id} leveled up from {old_level} to {new_level}")
+        # level_up = new_level > self.level
+        # if level_up:
+        #     old_level = self.level
+        #     self.level = new_level
+        #     logger.info(f"User {self.user_id} leveled up from {old_level} to {new_level}")
             
-            # Award level-up bonus
-            level_bonus = 50 * new_level
-            self.add_currency("💶", level_bonus, "level_up", f"Level up bonus for reaching level {new_level}")
+        #     # Award level-up bonus
+        #     level_bonus = 50 * new_level
+        #     self.add_currency("💶", level_bonus, "level_up", f"Level up bonus for reaching level {new_level}")
             
-        db.session.commit()
-        return level_up
+        # db.session.commit()
+        # return level_up
+    """
 
 # Need to import Transaction here to avoid circular dependency
 from .currency import Transaction

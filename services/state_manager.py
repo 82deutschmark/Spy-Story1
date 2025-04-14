@@ -391,8 +391,9 @@ class GameState:
                 "user_id": self.user_progress.user_id if self.user_progress else None,
                 "current_story_id": self.user_progress.current_story_id if self.user_progress else None,
                 "current_node_id": self.user_progress.current_node_id if self.user_progress else None,
-                "level": self.user_progress.level if self.user_progress else None,
-                "experience_points": self.user_progress.experience_points if self.user_progress else None,
+                # 2025-04-13: Maintain backward compatibility with deprecated fields
+                "level": self.user_progress.level if self.user_progress else 1,  # DEPRECATED
+                "experience_points": self.user_progress.experience_points if self.user_progress else 0,  # DEPRECATED
                 "currency_balances": self.user_progress.currency_balances if self.user_progress else None,
                 "active_missions": self.user_progress.active_missions if self.user_progress else None,
                 "completed_missions": self.user_progress.completed_missions if self.user_progress else None,

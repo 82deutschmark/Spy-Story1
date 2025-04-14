@@ -1,5 +1,38 @@
 # Spy Story Game Engine - Comprehensive Reference
 
+## Game Concept Overview
+
+**Genre:** Interactive narrative adventure (choose-your-own-adventure)
+
+**Premise:** The player is a rogue agent, recently disavowed by their spy agency for a series of outrageous misadventures. With limited diamonds and other virtual currencies, the agent receives missions from a mission-giver drawn from your PostgreSQL database of characters.
+
+**Story & Gameplay:**
+*   **Theme:** Irreverent espionage with high stakes and a bold, risk-taking attitude.
+*   **Player Role:** A disavowed spy with a devil-may-care personality navigating chaotic missions through unpredictable narrative twists.
+*   **Mission Structure:**
+    *   The game begins with a mission assignment from a mission giver character (queried from your database).
+    *   The narrative unfolds through a series of decisions using both low-cost and high-cost choices. Mission completion is determined by reaching specific end states via high-cost choices.
+
+**Core Mechanics:**
+*   **Dual-Tier Decision System:**
+    *   **Low-Cost Choices (💵, 💴, 💶, 💷):** Enhance the narrative by introducing unexpected characters and twists from your character database using lower-value currencies. Each decision pulls in different narrative elements by triggering events that reference PostgreSQL-stored character data.
+    *   **High-Cost Choices (💎):** Drive the story toward critical, binary outcomes (mission success or failure). Gate high-impact narrative decisions behind premium currency (Diamonds 💎) checks. A simple state machine controls story transitions based on these choices.
+*   **Currency Management:**
+    *   **Premium Currency (Diamonds 💎):** Limited supply, used exclusively for mission-critical decisions.
+    *   **Other Currencies:** Serve to enhance narrative depth by funding the introduction of auxiliary characters and events.
+
+**Narrative Engine & ChatGPT Integration:**
+*   **Dynamic Storytelling:** Use ChatGPT to generate narrative responses in real-time, adapting to player choices while ensuring coherent story progression.
+*   **State Management:** A simplified state machine tracks the player’s journey, updating the narrative based on both low-cost (exploratory) and high-cost (decisive) choices.
+*   **Data-Driven Decisions:** Basic configuration files (e.g., JSON) outline narrative branches, making it easy to add new scenarios or adjust existing ones without major code changes.
+
+**Database Integration:**
+*   **PostgreSQL Usage:** Store a rich set of character entries (e.g., mission givers, side-characters) that the narrative engine can pull from dynamically.
+*   **Mission Giver Selection:** Query the database to randomly select a mission giver character for each new mission, ensuring variety in story assignments.
+*   **Character Dynamics:** Low-cost decisions trigger database queries to fetch unpredictable auxiliary characters, contributing to the evolving narrative landscape.
+
+---
+
 ## Architecture Overview
 
 The Spy Story Engine is a Flask-based interactive narrative game focused on espionage themes with dynamic story generation powered by OpenAI. The system uses a sophisticated data model to track characters, missions, plot arcs, and narrative progression.
@@ -121,7 +154,7 @@ The prototype design prioritizes ease of testing over persistent user state, wit
 - **mission-giver**: Assign objectives and missions
 - **villain**: Antagonists who oppose the player
 - **neutral**: Supporting characters for general interactions
-- **undetermined**: Characters whose role hasn't been established
+- **undetermined**: Characters whose role hasn’t been established
 
 ## Key System Features
 

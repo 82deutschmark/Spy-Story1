@@ -507,7 +507,52 @@ def make_choice():
     if user_progress.current_story_id != int(story_id):
         user_progress.current_story_id = int(story_id)
         db.session.commit()
+    
+    # 2025-04-13: Added currency validation before choice processing
+    # Find the current node and selected choice to check currency requirements
+    current_node = StoryNode.query.get(user_progress.current_node_id)
+    if not current_node:
+        logger.error(f"No current node found for user {user_progress.user_id}")
+        return jsonify({'error': 'No current story position found'}), 404
         
+    selected_choice = None
+    for choice in current_node.choices:
+        if str(choice.id) == str(choice_id):
+            selected_choice = choice
+            break
+    
+    if selected_choice and selected_choice.currency_requirements:
+        # Validate user has enough currency
+        if not user_progress.can_afford(selected_choice.currency_requirements):
+            error_message = f"Insufficient currency to make this choice"
+            logger.warning(f"User {user_progress.user_id} cannot afford choice {choice_id}: {selected_choice.currency_requirements}")
+            
+            # Return appropriate error based on request type
+            if request.headers.get('X-Requested-With'):
+                return jsonify({
+                    'success': False,
+                    'error': error_message,
+                    'currency_requirements': selected_choice.currency_requirements,
+                    'current_balances': user_progress.currency_balances
+                }), 402  # 402 Payment Required
+            flash(error_message, 'danger')
+            return redirect(url_for('main.storyboard', story_id=story_id))
+            
+        # Process currency transaction
+        transaction_success = user_progress.spend_currency(
+            selected_choice.currency_requirements,
+            'choice',
+            f"Choice: {selected_choice.choice_text[:50]}...",
+            current_node.id
+        )
+        
+        if not transaction_success:
+            logger.error(f"Failed to process currency transaction for choice {choice_id}")
+            if request.headers.get('X-Requested-With'):
+                return jsonify({'success': False, 'error': 'Transaction processing failed'}), 500
+            flash('Failed to process payment for this choice', 'danger')
+            return redirect(url_for('main.storyboard', story_id=story_id))
+    
     game_engine = GameEngine(user_id=user_progress.user_id)
 
     # Retrieve complete character details if provided
@@ -536,6 +581,11 @@ def make_choice():
         f"make_choice result (summary): {json.dumps(summary, indent=2)}")
 
     result.update({'success': True, 'story_id': story_id})
+    
+    # Add currency balance to the result for frontend awareness
+    # 2025-04-13: Added currency balances to response
+    if selected_choice and selected_choice.currency_requirements:
+        result.update({'currency_balances': user_progress.currency_balances})
     
     # Check if this is an AJAX request
     if request.headers.get('X-Requested-With'):

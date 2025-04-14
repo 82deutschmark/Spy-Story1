@@ -2,19 +2,20 @@
 missions.py - Mission Management System
 ===================================
 
-This module defines the Mission model for tracking and managing player missions
-in the interactive spy story system. It handles mission progress, rewards,
-and relationships with characters and stories.  Missions typically last for 10 or more story segments.
+This module defines the Mission model for tracking and managing player missions but it is in development!!
+It should handle mission progress, rewards,and relationships with characters and stories. 
+Missions might last for 10 or more story segments.
 This is not completely thought out and requires some design input!
 
-Key Features:
+Key Features:  
 -----------
-1. Mission tracking and status management
-2. Progress updates and completion handling
-3. Character relationships (giver/target)
-4. Reward management
-5. Time tracking and deadlines
-6. Story integration
+1. Mission tracking and status management IN DEVELOPMENT!!!
+2. Progress updates and completion handling  NOT IMPLEMENTED!!!
+3. Character relationships (giver/target) Functional!
+3a. Character relationships (protagonist/other characters) NOT IMPLEMENTED!!!
+4. Reward management NOT IMPLEMENTED!!!
+5. Time tracking and deadlines NOT IMPLEMENTED!!!
+6. Story integration IN DEVELOPMENT!!!
 
 Database Schema:
 -------------
@@ -28,9 +29,9 @@ Table: mission
 
 Mission Status Values:
 ------------------
-- active: Mission is currently in progress
-- completed: Mission has been successfully completed
-- failed: Mission has failed or been abandoned
+- active: Mission is currently in progress  (This is the only one implemented and the only one of concern to the user)
+- completed: Mission has been successfully completed (Logic for this is not implemented)
+- failed: Mission has failed or been abandoned (Logic for this is not implemented)
 
 
 Usage Notes:
@@ -61,15 +62,15 @@ class Mission(db.Model):
         target_id (int): ID of character who is the mission target
         objective (str): Specific mission objective
         status (str): Current mission status (active/completed/failed)
-        difficulty (str): Mission difficulty level (easy/medium/hard)
+        difficulty (str): Mission difficulty level (easy/medium/hard)   ///IS THIS NEEDED???///
         reward_currency (str): Type of currency reward (💎, 💵, 💷)
         reward_amount (int): Amount of currency reward
         created_at (datetime): Mission creation timestamp
         deadline (str): Narrative deadline description
         completed_at (datetime): Mission completion timestamp
         story_id (int): Associated story ID
-        progress (int): Current progress percentage (0-100)
-        progress_updates (JSONB): Array of progress update records
+        progress (int): Current progress percentage (0-100)  NEEDS TO BE REMOVED!!!  It is impossible to know the progress percentage of a mission
+        progress_updates (JSONB): Array of progress update records ///This is not implemented???///
         
     Relationships:
         giver (Character): Character who gave the mission
@@ -99,9 +100,9 @@ class Mission(db.Model):
     deadline = db.Column(db.String(255))  # Narrative deadline
     completed_at = db.Column(db.DateTime)
     
-    # Related story and progress
+    # Related story and progress  ///THIS NEEDS TO BE REWORKED!///
     story_id = db.Column(db.Integer, db.ForeignKey('story_generation.id'))
-    progress = db.Column(db.Integer, default=0)  # 0-100%
+    progress = db.Column(db.Integer, default=0)  # 0-100%  NEEDS TO BE REWORKED
     progress_updates = db.Column(JSONB, default=[])  # Array of progress updates
     
     # Relationships
@@ -141,46 +142,46 @@ class Mission(db.Model):
             
         self.progress_updates.append(update)
         
-        # Check if mission is now complete
+        # Check if mission is now complete  THIS LOGIC IS WRONG!!!  NEEDS TO BE REMOVED!!!  A mission will be judged to be complete by a yet undetermined method!
         if self.progress >= 100 and self.status == 'active':
             self.status = 'completed'
             self.completed_at = datetime.utcnow()
             
         db.session.commit()
         return True
-    
-    def fail_mission(self, reason=None):
-        """
-        Mark the mission as failed and record the failure.
-        
-        Args:
-            reason (str, optional): Reason for mission failure
+    ###  No logic for this, comment out the code for now!!
+###    def fail_mission(self, reason=None):
+###        """
+###        Mark the mission as failed and record the failure.
+###        
+###        Args:
+###            reason (str, optional): Reason for mission failure
             
-        Returns:
-            bool: True if failure was recorded successfully
+###        Returns:
+###            bool: True if failure was recorded successfully
             
-        Side Effects:
-            - Changes mission status to failed
-            - Adds failure record to progress updates
-            - Commits database changes
-        """
-        self.status = 'failed'
-        
-        if not self.progress_updates:
-            self.progress_updates = []
+###        Side Effects:
+###            - Changes mission status to failed
+###            - Adds failure record to progress updates
+###            - Commits database changes
+###        """
+###        self.status = 'failed'
+###        
+###        if not self.progress_updates:
+###            self.progress_updates = []
+###            
+###        update = {
+###            "progress": self.progress,
+###            "status": "failed",
+###            "timestamp": datetime.utcnow().isoformat()
+###        }
+###        
+###        if reason:
+###            update["reason"] = reason
             
-        update = {
-            "progress": self.progress,
-            "status": "failed",
-            "timestamp": datetime.utcnow().isoformat()
-        }
-        
-        if reason:
-            update["reason"] = reason
-            
-        self.progress_updates.append(update)
-        db.session.commit()
-        return True
+###        self.progress_updates.append(update)
+###        db.session.commit()
+###        return True
 
     def to_dict(self):
         """
