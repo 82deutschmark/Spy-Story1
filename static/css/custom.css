@@ -630,3 +630,134 @@ button[type="submit"].loading::after {
     font-size: 1rem;
     color: var(--text-color);
 }
+
+/* Currency Display Styling */
+#currency-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.currency {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.2);
+    font-weight: 500;
+    position: relative;
+}
+
+.premium-currency {
+    background-color: rgba(255, 215, 0, 0.3);
+    border: 1px solid rgba(255, 215, 0, 0.5);
+    font-weight: 700;
+    color: #000;
+}
+
+/* Currency change animation */
+.currency-change {
+    position: absolute;
+    top: -15px;
+    right: 0;
+    font-size: 0.8rem;
+    animation: float-up 2s forwards;
+    opacity: 0;
+}
+
+.currency-change.positive {
+    color: #2ecc71;
+}
+
+.currency-change.negative {
+    color: #e74c3c;
+}
+
+@keyframes float-up {
+    0% {
+        opacity: 0;
+        transform: translateY(0);
+    }
+    20% {
+        opacity: 1;
+    }
+    80% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
+
+/* Choice button currency indicators */
+.choice-btn {
+    position: relative;
+}
+
+.choice-btn[data-currency-req] {
+    padding-right: 32px;
+}
+
+.choice-btn[data-currency-req]::after {
+    content: attr(data-currency-display);
+    position: absolute;
+    right: 8px;
+    font-size: 0.75rem;
+    opacity: 0.8;
+    font-weight: 600;
+}
+
+.choice-btn.premium-choice {
+    background: linear-gradient(135deg, var(--primary-color), #2a6daf);
+    box-shadow: 0 2px 10px rgba(66, 153, 225, 0.3);
+}
+
+.insufficient-currency {
+    opacity: 0.7;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.insufficient-currency::before {
+    content: '🔒';
+    margin-right: 8px;
+}
+
+/* User progress panel - make it more prominent */
+#user-progress-panel {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+/* Tooltip for premium currency explanation */
+.tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+    margin-left: 5px;
+}
+
+.tooltip .tooltip-text {
+    visibility: hidden;
+    width: 200px;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
