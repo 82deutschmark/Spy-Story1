@@ -37,6 +37,95 @@ class ChoiceHandler {
                 this.handleChoiceSubmit(event);
             }
         });
+        
+        // Initialize choice buttons with currency indicators
+        this.initializeChoiceButtons();
+    }
+
+    /**
+     * Initialize choice buttons with currency indicators
+     */
+    initializeChoiceButtons() {
+        const choiceButtons = document.querySelectorAll('.choice-btn');
+        
+        choiceButtons.forEach(button => {
+            // Check if button has currency requirements
+            if (button.dataset.currencyReq) {
+                try {
+                    const currencyReq = JSON.parse(button.dataset.currencyReq);
+                    
+                    // Format currency display text
+                    let displayText = '';
+                    
+                    // Check for premium currency (diamond) first
+                    if (currencyReq['💎']) {
+                        displayText = `💎 ${currencyReq['💎']}`;
+                        button.classList.add('premium-choice');
+                    } else {
+                        // Get first currency requirement
+                        const firstCurrency = Object.keys(currencyReq)[0];
+                        if (firstCurrency) {
+                            displayText = `${firstCurrency} ${currencyReq[firstCurrency]}`;
+                        }
+                    }
+                    
+                    // Set the formatted display text
+                    if (displayText) {
+                        button.dataset.currencyDisplay = displayText;
+                    }
+                    
+                    // Add tooltip explaining premium choices advance missions
+                    if (currencyReq['💎']) {
+                        const tooltipSpan = document.createElement('span');
+                        tooltipSpan.className = 'tooltip';
+                        tooltipSpan.innerHTML = 'ℹ️ <span class="tooltip-text">Premium choices directly progress missions!</span>';
+                        button.parentNode.appendChild(tooltipSpan);
+                    }
+                    
+                    // Check if user has enough currency
+                    this.checkUserCurrency(button, currencyReq);
+                    
+                } catch (e) {
+                    console.error('Error parsing currency requirements:', e);
+                }
+            }
+        });
+    }
+    
+    /**
+     * Check if user has enough currency for the choice
+     * @param {HTMLElement} button - The choice button
+     * @param {Object} requirements - Currency requirements
+     */
+    checkUserCurrency(button, requirements) {
+        const currencyDisplay = document.getElementById('currency-display');
+        if (!currencyDisplay || !currencyDisplay.dataset.balances) return;
+        
+        try {
+            const userBalances = JSON.parse(currencyDisplay.dataset.balances);
+            let hasSufficientCurrency = true;
+            
+            // Check each required currency
+            Object.keys(requirements).forEach(currency => {
+                const required = requirements[currency];
+                const available = userBalances[currency] || 0;
+                
+                if (available < required) {
+                    hasSufficientCurrency = false;
+                }
+            });
+            
+            // Add visual indicator if user doesn't have enough currency
+            if (!hasSufficientCurrency) {
+                button.classList.add('insufficient-currency');
+                button.title = 'Insufficient currency for this choice';
+                
+                // Still allow clicking but will get server validation error
+            }
+            
+        } catch (e) {
+            console.error('Error checking user currency:', e);
+        }
     }
 
     /**
@@ -49,6 +138,12 @@ class ChoiceHandler {
         const submitButton = form.querySelector('button[type="submit"]');
         let loadingState = null;
         try {
+            // Check if button is marked as insufficient currency
+            if (submitButton.classList.contains('insufficient-currency')) {
+                this.errorHandler.showError('You don\'t have enough currency for this choice');
+                return;
+            }
+            
             // Disable all choice buttons
             document.querySelectorAll('.choice-btn').forEach(btn => {
                 btn.disabled = true;
@@ -83,6 +178,12 @@ class ChoiceHandler {
             const result = await response.json();
 
             console.log("Full response received:", result);
+
+            // Handle currency errors specifically (402 Payment Required)
+            if (response.status === 402 || (result.error && result.error.includes('currency'))) {
+                this.handleInsufficientCurrency(result, submitButton);
+                throw new Error(result.error || 'Insufficient currency for this choice');
+            }
 
             if (!response.ok || result.error) {
                 throw new Error(result.error || `HTTP error! status: ${response.status}`);
@@ -207,6 +308,34 @@ class ChoiceHandler {
                 btn.disabled = false;
             });
         }
+    }
+
+    /**
+     * Handle insufficient currency errors
+     * @param {Object} result - The error response
+     * @param {HTMLElement} button - The choice button
+     */
+    handleInsufficientCurrency(result, button) {
+        // Mark button as insufficient
+        button.classList.add('insufficient-currency');
+        
+        // Show the required amounts and user's current amounts
+        let errorMessage = 'Insufficient currency for this choice.';
+        
+        if (result.currency_requirements && result.current_balances) {
+            errorMessage += '<br><br>Required:';
+            
+            // Show requirements
+            Object.entries(result.currency_requirements).forEach(([currency, amount]) => {
+                const userBalance = result.current_balances[currency] || 0;
+                errorMessage += `<br>${currency} ${amount} (You have: ${userBalance})`;
+            });
+            
+            // Add option to get more currency (placeholder for monetization)
+            errorMessage += '<br><br><a href="#" class="btn btn-sm btn-primary">Get More Diamonds 💎</a>';
+        }
+        
+        this.errorHandler.showError(errorMessage, 'warning', true);
     }
 
     /**
