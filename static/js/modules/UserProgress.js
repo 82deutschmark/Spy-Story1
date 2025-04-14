@@ -249,8 +249,123 @@ class UserProgress {
      * @param {Object} reward - Reward object with currency and amount
      */
     updateUserCurrency(reward) {
-        // Placeholder for currency update logic
+        // If reward is null or missing currency/amount, do nothing
+        if (!reward || !reward.currency || reward.amount === undefined) return;
+        
         console.log('Updating currency:', reward);
+        
+        // Find the currency display element
+        const currencyDisplay = document.getElementById('currency-display');
+        if (!currencyDisplay) return;
+        
+        // Get current balances from data attribute or create default
+        let currentBalances = {};
+        try {
+            currentBalances = currencyDisplay.dataset.balances ? 
+                JSON.parse(currencyDisplay.dataset.balances) : 
+                { "💎": 0, "💷": 0, "💶": 0, "💴": 0, "💵": 0 };
+        } catch (e) {
+            console.error("Error parsing currency balances:", e);
+            currentBalances = { "💎": 0, "💷": 0, "💶": 0, "💴": 0, "💵": 0 };
+        }
+        
+        // Update the specific currency
+        if (currentBalances[reward.currency] !== undefined) {
+            currentBalances[reward.currency] += reward.amount;
+        } else {
+            currentBalances[reward.currency] = reward.amount;
+        }
+        
+        // Store updated balances
+        currencyDisplay.dataset.balances = JSON.stringify(currentBalances);
+        
+        // Display the updated balances
+        this.refreshCurrencyDisplay(currentBalances);
+        
+        // Add animation effect for feedback
+        this.animateCurrencyChange(reward.currency, reward.amount);
+    }
+    
+    /**
+     * Update the currency display with current balances
+     * @param {Object} balances - Currency balance object
+     */
+    refreshCurrencyDisplay(balances = null) {
+        const currencyDisplay = document.getElementById('currency-display');
+        if (!currencyDisplay) return;
+        
+        // If no balances provided, try to get from data attribute
+        if (!balances) {
+            try {
+                balances = currencyDisplay.dataset.balances ? 
+                    JSON.parse(currencyDisplay.dataset.balances) : 
+                    { "💎": 0, "💷": 0, "💶": 0, "💴": 0, "💵": 0 };
+            } catch (e) {
+                console.error("Error parsing currency balances:", e);
+                balances = { "💎": 0, "💷": 0, "💶": 0, "💴": 0, "💵": 0 };
+            }
+        }
+        
+        // Format the currency display with all currencies
+        let displayHtml = '';
+        
+        // Premium currency first with special styling
+        if (balances["💎"] !== undefined) {
+            displayHtml += `<span class="currency premium-currency" data-currency="💎">💎 ${balances["💎"]}</span>`;
+        }
+        
+        // Add other currencies
+        const otherCurrencies = ["💷", "💶", "💴", "💵"];
+        otherCurrencies.forEach(currency => {
+            if (balances[currency] !== undefined) {
+                displayHtml += `<span class="currency" data-currency="${currency}">${currency} ${balances[currency]}</span>`;
+            }
+        });
+        
+        // Update the display
+        currencyDisplay.innerHTML = displayHtml;
+    }
+    
+    /**
+     * Animate currency change for visual feedback
+     * @param {string} currency - The currency symbol
+     * @param {number} amount - The amount changed
+     */
+    animateCurrencyChange(currency, amount) {
+        const currencyElement = document.querySelector(`.currency[data-currency="${currency}"]`);
+        if (!currencyElement) return;
+        
+        // Create animation element
+        const animationEl = document.createElement('span');
+        animationEl.className = `currency-change ${amount > 0 ? 'positive' : 'negative'}`;
+        animationEl.textContent = `${amount > 0 ? '+' : ''}${amount}`;
+        
+        // Add to the document near the currency display
+        currencyElement.appendChild(animationEl);
+        
+        // Remove after animation completes
+        setTimeout(() => {
+            animationEl.remove();
+        }, 2000);
+    }
+    
+    /**
+     * Initialize currency display from user progress data
+     * @param {Object} currencyBalances - User's currency balances
+     */
+    initializeCurrencyDisplay(currencyBalances) {
+        if (!currencyBalances) return;
+        
+        const currencyDisplay = document.getElementById('currency-display');
+        if (!currencyDisplay) return;
+        
+        // Store balances in data attribute
+        currencyDisplay.dataset.balances = JSON.stringify(currencyBalances);
+        
+        // Display the currencies
+        this.refreshCurrencyDisplay(currencyBalances);
+        
+        console.log("Currency display initialized:", currencyBalances);
     }
 
     /**
