@@ -8,7 +8,7 @@ import logging
 from flask import Flask
 from flask_cors import CORS
 from flask_migrate import Migrate
-from flask_sqlalchemy import SQLAlchemy
+from database import db
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.pool import QueuePool
@@ -65,9 +65,6 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
     # Initialize extensions
-    from database import db, init_db
-    from flask_migrate import Migrate
-    
     db.init_app(app)
     migrate = Migrate(app, db)
     
@@ -77,7 +74,6 @@ def create_app():
     # Register blueprints
     logger.info("Registering blueprints")
     from routes.main_routes import main_bp
-    
     app.register_blueprint(main_bp)
     
     return app

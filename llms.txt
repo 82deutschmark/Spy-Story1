@@ -1,0 +1,151 @@
+# Spy Story Game Engine - Project Information for LLM Agents
+
+## Project Overview
+Interactive spy thriller game engine with dynamic narrative generation, character relationship management, and mission-based progression. Players navigate branching storylines as secret agents, making choices that affect story outcomes, character relationships, and mission progress.
+
+## Architecture Summary
+
+### Core Components
+1. **Story Generation System**
+   - Initial story creation via OpenAI API
+   - Dynamic story continuation based on player choices
+   - Story node tree structure for narrative branching
+
+2. **Character Management System**
+   - Role-based character system (mission-giver, villain, neutral)
+   - Relationship tracking and evolution
+   - Character-specific choice generation
+
+3. **Mission System**
+   - Dynamic mission generation and progression
+   - Reward and currency management
+   - Character-linked mission types
+
+4. **Game State Management**
+   - User progress tracking
+   - Story node navigation
+   - Character relationship states
+
+### Technology Stack
+- **Backend**: Python Flask web application
+- **Database**: PostgreSQL with SQLAlchemy ORM
+- **AI**: OpenAI API for content generation
+- **Frontend**: HTML/CSS/JavaScript with dynamic forms
+
+## Directory Structure
+```
+/
+├── app.py                     # Flask application entry point
+├── main.py                    # Main application runner
+├── config.py                  # Configuration management
+├── database.py                # Database connection setup
+├── models/                    # Database models
+│   ├── stories.py            # Story, StoryNode, StoryChoice models
+│   ├── character_data.py     # Character model
+│   ├── user.py               # UserProgress model
+│   ├── missions.py           # Mission model
+│   └── ...                   # Other models
+├── services/                  # Core business logic
+│   ├── game_engine.py        # Main game orchestration
+│   ├── story_maker.py        # Initial story generation
+│   ├── segment_maker.py      # Story continuation
+│   ├── mission_generator.py  # Mission management
+│   ├── character_interaction.py
+│   └── state_manager.py      # Game state management
+├── routes/                    # Flask route handlers
+├── utils/                     # Utility functions
+├── templates/                 # HTML templates
+├── static/                    # Static assets (CSS, JS, images)
+└── docs/                     # Documentation
+```
+
+## Key Models
+
+### StoryGeneration
+- Main container for story content
+- Contains metadata (conflict, setting, style, mood)
+- Has `generated_story` JSONB field storing story text and choices
+- Links to current node via `current_node_id`
+
+### StoryNode
+- Represents individual story segments in tree structure
+- Contains `narrative_text`, `branch_metadata`
+- Links to parent nodes via `parent_node_id`
+- Tracks character involvement and relationship states
+
+### Character
+- Role-based character system
+- Character traits, backstory, and relationships
+- ID-based reference system for story integration
+
+### UserProgress
+- Tracks player state and progression
+- Current story/node position
+- Experience points and currency balances
+- Character relationship states
+
+## Critical Implementation Details
+
+### Story Flow
+1. User selects characters → Generate initial story → Create root StoryNode
+2. Player makes choice → Process choice → Generate continuation → Create new StoryNode
+3. Update character relationships, missions, and user progress
+
+### Choice Processing
+- Validate choice requirements (currency costs)
+- Generate story continuation using OpenAI
+- Create new StoryNode with narrative and choices
+- Update game state atomically
+
+### Character Integration
+- Characters have specific roles and traits
+- Character IDs must be preserved in story choices
+- Relationship tracking affects story options
+- Character-specific missions and interactions
+
+## Current Known Issues
+1. **Narrative Duplication**: Story continuations often duplicate previous content instead of advancing
+2. **Choice Replication**: Generated choices may repeat previous options
+3. **Context Management**: OpenAI context not properly differentiating continuations from initial generation
+
+## Development Guidelines
+1. Always read entire files before making changes
+2. Maintain character ID tracking throughout story flow
+3. Keep files under 300 lines for maintainability
+4. Follow modular architecture principles
+5. Ensure role consistency in story generation
+6. Document all changes in CHANGELOG.md
+
+## API Integration
+- OpenAI API for story and choice generation
+- JSON response format for structured story data
+- Context management for conversation continuity
+- Function calling for structured responses
+
+## State Management
+- Priority-based node resolution system
+- Atomic state transitions with proper transaction management
+- Rich context retrieval for story continuity
+- Error handling and rollback mechanisms
+
+## Testing Requirements
+- Character ID validation
+- Story continuation flow verification
+- Character role enforcement
+- Mission update validation
+- State consistency checks
+
+## Entry Points for Modifications
+- `services/game_engine.py`: Main game logic orchestration
+- `services/story_maker.py`: Initial story generation
+- `services/segment_maker.py`: Story continuation logic
+- `models/stories.py`: Core data models
+- `routes/main_routes.py`: Web interface handlers
+
+## Configuration
+- Environment variables in `.env`
+- Database configuration in `config.py`
+- OpenAI API key required
+- PostgreSQL database setup required
+
+This project implements a sophisticated interactive narrative system with AI-driven content generation, requiring careful attention to state management, character consistency, and story flow continuity.

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 # Import database after app is created to avoid circular imports
 from .database import db
-from .api.unity_routes import unity_api
+# from .api.unity_routes import unity_api  # unity_routes.py does not exist; update if needed
 
 def create_app():
     # Load environment variables

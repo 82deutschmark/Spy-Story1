@@ -5,18 +5,17 @@ Flask application factory for the Spy Story game.
 from flask import Flask
 from flask_cors import CORS
 from flask_migrate import Migrate
-from flask_sqlalchemy import SQLAlchemy
+
 from dotenv import load_dotenv
 import os
 import logging
+from database import db
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Initialize extensions
-db = SQLAlchemy()
-migrate = Migrate()
 
 def create_app():
     """Create and configure the Flask application."""
@@ -36,7 +35,7 @@ def create_app():
     
     # Initialize extensions
     db.init_app(app)
-    migrate.init_app(app, db)
+    Migrate(app, db)
     
     # CORS configuration
     CORS(app, resources={
@@ -49,10 +48,10 @@ def create_app():
     
     # Register blueprints
     from routes import main_bp
-    from api.unity_routes import unity_api
+    # from api.unity_routes import unity_api  # unity_routes.py does not exist
     
     app.register_blueprint(main_bp)
-    app.register_blueprint(unity_api, url_prefix='/api/unity')
+    # app.register_blueprint(unity_api, url_prefix='/api/unity')  # unity_routes.py does not exist
     
     return app
 
@@ -63,9 +62,9 @@ if __name__ == '__main__':
 # Dummy database.py file
 # database.py
 import os
-from flask_sqlalchemy import SQLAlchemy
 
-db = SQLAlchemy()
+
+
 
 def init_db(app):
     db.init_app(app)
